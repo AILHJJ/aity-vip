@@ -27,7 +27,7 @@ const Message = sequelize.define('Message', {
     allowNull: false
   },
   type: {
-    type: DataTypes.ENUM('system', 'important', 'daily'),
+    type: DataTypes.ENUM('system', 'important', 'daily', 'pre_market_comment', 'morning_comment', 'morning_focus', 'afternoon_comment', 'afternoon_focus', 'close_comment', 'risk_warning'),
     allowNull: false
   },
   sender: {

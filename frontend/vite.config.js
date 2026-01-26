@@ -8,6 +8,7 @@
  */
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { resolve } from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -17,9 +18,67 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api')
       }
+    },
+    open: true,
+    watch: {
+      ignored: ['**/node_modules/**', '**/dist/**', '**/build/**'],
+      usePolling: true,
+      interval: 100
     }
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['vue', 'vue-router', 'pinia'],
+          element: ['element-plus', '@element-plus/icons-vue'],
+          axios: ['axios']
+        },
+        chunkFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: 'assets/js/[name]-[hash].js',
+        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]'
+      }
+    },
+    sourcemap: false,
+    cssCodeSplit: true,
+    emptyOutDir: true,
+    reportCompressedSize: true,
+    chunkSizeWarningLimit: 1000
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+      '@components': resolve(__dirname, 'src/components'),
+      '@views': resolve(__dirname, 'src/views'),
+      '@store': resolve(__dirname, 'src/store'),
+      '@utils': resolve(__dirname, 'src/utils'),
+      '@assets': resolve(__dirname, 'src/assets')
+    },
+    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue']
+  },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@import "@/assets/styles/variables.scss";`
+      }
+    },
+    devSourcemap: true
+  },
+  optimizeDeps: {
+    include: ['vue', 'vue-router', 'pinia', 'axios', 'element-plus'],
+    exclude: ['sass']
   }
 })

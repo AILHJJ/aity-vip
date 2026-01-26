@@ -5,6 +5,9 @@ const fileUpload = require('express-fileupload');
 const path = require('path');
 require('dotenv').config();
 
+// 导入日志工具
+const logger = require('./utils/logger');
+
 // 导入路由
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -24,6 +27,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(fileUpload());
+
+// 日志中间件
+app.use(logger.requestLogger);
 
 // 静态文件服务
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -48,12 +54,9 @@ app.use((req, res) => {
 });
 
 // 错误处理
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Internal server error' });
-});
+app.use(logger.errorLogger);
 
 // 启动服务器
 app.listen(PORT, HOST, () => {
-  console.log(`Server is running on ${HOST}:${PORT}`);
+  logger.info(`Server is running on ${HOST}:${PORT}`);
 });

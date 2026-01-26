@@ -11,7 +11,7 @@ module.exports = {
       env: {
         NODE_ENV: 'development',
         HOST: '0.0.0.0',
-        PORT: 3001
+        PORT: 3000
       },
       env_production: {
         NODE_ENV: 'production',
