@@ -3,20 +3,40 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const { authenticateToken, checkAdmin } = require('../utils/jwtUtils');
+const { validateCreateUser, validateUpdateUser, validateIdParam, validateQueryParams } = require('../middleware/validation');
 
-// 获取所有用户（需要管理员权限）
-router.get('/', authenticateToken, checkAdmin, userController.getAllUsers);
+router.get('/', 
+  authenticateToken, 
+  checkAdmin, 
+  validateQueryParams, 
+  userController.getAllUsers
+);
 
-// 获取用户详情
-router.get('/:id', authenticateToken, userController.getUserById);
+router.get('/:id', 
+  authenticateToken, 
+  validateIdParam, 
+  userController.getUserById
+);
 
-// 创建用户（需要管理员权限）
-router.post('/', authenticateToken, checkAdmin, userController.createUser);
+router.post('/', 
+  authenticateToken, 
+  checkAdmin, 
+  validateCreateUser, 
+  userController.createUser
+);
 
-// 更新用户（需要管理员权限）
-router.put('/:id', authenticateToken, checkAdmin, userController.updateUser);
+router.put('/:id', 
+  authenticateToken, 
+  checkAdmin, 
+  validateUpdateUser, 
+  userController.updateUser
+);
 
-// 删除用户（需要管理员权限）
-router.delete('/:id', authenticateToken, checkAdmin, userController.deleteUser);
+router.delete('/:id', 
+  authenticateToken, 
+  checkAdmin, 
+  validateIdParam, 
+  userController.deleteUser
+);
 
 module.exports = router;

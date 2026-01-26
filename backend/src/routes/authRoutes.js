@@ -3,13 +3,16 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { authenticateToken } = require('../utils/jwtUtils');
+const { validateLogin } = require('../middleware/validation');
 
-// 登录
-router.post('/login', authController.login);
+router.post('/login', 
+  validateLogin,
+  authController.login
+);
 
-// 注册路由已移除，用户注册由管理员统一管理
-
-// 获取当前用户信息
-router.get('/me', authenticateToken, authController.getCurrentUser);
+router.get('/me', 
+  authenticateToken, 
+  authController.getCurrentUser
+);
 
 module.exports = router;

@@ -3,20 +3,12 @@ const express = require('express');
 const router = express.Router();
 const discussionController = require('../controllers/discussionController');
 const { authenticateToken } = require('../utils/jwtUtils');
+const { validateCreateDiscussion, validateAddReply, validateIdParam } = require('../middleware/validation');
 
-// 获取讨论列表
 router.get('/', authenticateToken, discussionController.getDiscussions);
-
-// 获取讨论详情
-router.get('/:id', authenticateToken, discussionController.getDiscussionById);
-
-// 创建讨论
-router.post('/', authenticateToken, discussionController.createDiscussion);
-
-// 添加讨论回复
-router.post('/:id/replies', authenticateToken, discussionController.addDiscussionReply);
-
-// 获取讨论回复
-router.get('/:id/replies', authenticateToken, discussionController.getDiscussionReplies);
+router.get('/:id', authenticateToken, validateIdParam, discussionController.getDiscussionById);
+router.post('/', authenticateToken, validateCreateDiscussion, discussionController.createDiscussion);
+router.post('/:id/replies', authenticateToken, validateAddReply, discussionController.addDiscussionReply);
+router.get('/:id/replies', authenticateToken, validateIdParam, discussionController.getDiscussionReplies);
 
 module.exports = router;

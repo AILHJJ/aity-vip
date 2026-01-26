@@ -1,4 +1,4 @@
-/*
+                /*
  * @Author: fuli fuli@example.com
  * @Date: 2026-01-26 11:30:22
  * @LastEditors: fuli fuli@example.com
@@ -13,11 +13,11 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [vue()],
   server: {
-    port: 3002,
+    port: 5173,
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:3000',
         changeOrigin: true
       }
     }

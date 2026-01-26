@@ -39,9 +39,10 @@ AITY_VIP/
 │   ├── 部署指南.md
 │   └── ...
 ├── scripts/               # 部署和运维脚本
-│   ├── deploy.sh          # 部署脚本
-│   ├── build.sh           # 构建脚本
-│   ├── start.sh           # 启动脚本
+│   ├── deploy.sh          # 部署脚本 (Linux/Mac)
+│   ├── build.sh           # 构建脚本 (Linux/Mac)
+│   ├── start.sh           # 启动脚本 (Linux/Mac)
+│   ├── start.ps1          # 启动脚本 (Windows)
 │   └── ...
 ├── .gitignore             # Git忽略文件
 └── README.md              # 项目说明
@@ -94,8 +95,28 @@ AITY_VIP/
 ### 开发流程
 
 1. **启动开发服务器**
+
+   **Windows 用户**:
+   ```powershell
+   # 方式1：使用启动脚本（推荐）
+   cd scripts
+   .\start.ps1
+   
+   # 方式2：手动启动
+   # 启动后端
+   cd backend
+   npm install
+   npm run dev
+   
+   # 启动前端（新开一个 PowerShell 窗口）
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+   **Linux/Mac 用户**:
    ```bash
-   # 方式1：使用启动脚本
+   # 方式1：使用启动脚本（推荐）
    cd scripts
    bash start.sh
    
@@ -109,9 +130,9 @@ AITY_VIP/
    npm run dev
    ```
 
-2. **访问开发环境**
+2. **访问应用：**
    - 前端：http://localhost:5173
-   - 后端API：http://localhost:3001/api
+   - 后端API：http://localhost:3000/api
 
 3. **代码提交规范**
    - 采用 Conventional Commits 规范

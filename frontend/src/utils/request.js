@@ -10,9 +10,17 @@ const getToken = () => {
   return null
 }
 
+// 获取API基础URL
+const getBaseURL = () => {
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env.VITE_API_BASE_URL || ''
+  }
+  return ''
+}
+
 // 创建axios实例
 const service = axios.create({
-  baseURL: '',
+  baseURL: getBaseURL(),
   timeout: 15000
 })
 
