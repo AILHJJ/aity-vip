@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const swaggerUi = require('swagger-ui-express');
 const logger = require('./utils/logger');
 const swaggerSpec = require('./config/swagger');
+const { trackRequest, trackError, getMetrics } = require('./middleware/monitoring');
 require('dotenv').config();
 
 // 导入路由
@@ -17,6 +18,8 @@ const discussionRoutes = require('./routes/discussionRoutes');
 const groupRoutes = require('./routes/groupRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 const healthRoutes = require('./routes/healthRoutes');
+const versionRoutes = require('./routes/versionRoutes');
+const monitorRoutes = require('./routes/monitorRoutes');
 
 // 创建Express应用
 const app = express();
@@ -71,6 +74,7 @@ const securityHeaders = {
 // 中间件配置
 app.use(cors(corsOptions));
 app.use(helmet(securityHeaders));
+app.use(trackRequest);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(fileUpload({
@@ -89,7 +93,9 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/discussions', discussionRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/stats', statsRoutes);
-app.use('/api', healthRoutes);
+app.use('/api/health', healthRoutes);
+app.use('/api/version', versionRoutes);
+app.use('/api/monitor', monitorRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
