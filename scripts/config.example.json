@@ -1,0 +1,21 @@
+{
+  "server": {
+    "ip": "124.221.119.134",
+    "user": "root",
+    "frontendDir": "/var/www/aity-vip/frontend",
+    "backendDir": "/var/www/aity-vip/backend",
+    "nginxDir": "/etc/nginx"
+  },
+  "https": {
+    "domain": "aity88.online",
+    "port": "8443",
+    "httpPort": "8080"
+  },
+  "paths": {
+    "frontend": "../frontend",
+    "backend": "../backend"
+  },
+  "logs": {
+    "dir": "logs"
+  }
+}

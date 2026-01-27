@@ -2,30 +2,42 @@
   <view class="messages-container">
     <view class="header">
       <text class="title">消息中心</text>
-      <button class="refresh-btn" @click="refreshMessages">
-        <text>刷新</text>
-      </button>
-    </view>
-    
-    <view class="filter-bar">
-      <view class="filter-item" 
-        v-for="tag in messageTags" 
-        :key="tag.value"
-        :class="{ active: activeTag === tag.value }"
-        @click="filterByTag(tag.value)"
-      >
-        {{ tag.label }}
+      <view class="header-actions">
+        <button class="refresh-btn" @click="refreshMessages" :class="{ 'loading': refreshing }">
+          <text>{{ refreshing ? '刷新中...' : '刷新' }}</text>
+        </button>
       </view>
     </view>
     
+    <view class="filter-bar">
+      <scroll-view class="filter-scroll" scroll-x="true" show-scrollbar="false">
+        <view class="filter-items">
+          <view class="filter-item" 
+            v-for="tag in messageTags" 
+            :key="tag.value"
+            :class="{ active: activeTag === tag.value }"
+            @click="filterByTag(tag.value)"
+          >
+            {{ tag.label }}
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+    
     <view v-if="loading" class="loading-container">
-      <view class="loading"></view>
+      <view class="loading-spinner"></view>
       <text class="loading-text">加载中...</text>
     </view>
     
     <view v-else-if="messages.length === 0" class="empty-state">
-      <text class="empty-state-icon">📭</text>
-      <text class="empty-state-text">暂无消息</text>
+      <view class="empty-icon-container">
+        <text class="empty-state-icon">📭</text>
+      </view>
+      <text class="empty-state-title">暂无消息</text>
+      <text class="empty-state-subtitle">您可以稍后再来查看，或刷新页面重试</text>
+      <button class="empty-refresh-btn" @click="refreshMessages">
+        <text>刷新</text>
+      </button>
     </view>
     
     <view v-else class="messages-list">
@@ -33,11 +45,19 @@
         v-for="message in messages" 
         :key="message.id"
         class="message-item"
+        :class="{ 'unread': !message.isRead }"
         @click="goToMessageDetail(message.id)"
       >
         <view class="message-header">
-          <text class="message-title">{{ message.title }}</text>
+          <view class="message-title-container">
+            <text class="message-title">{{ message.title }}</text>
+            <view v-if="!message.isRead" class="unread-indicator"></view>
+          </view>
           <text class="message-time">{{ formatTime(message.created_at) }}</text>
+        </view>
+        <view class="message-meta">
+          <text class="message-sender">{{ message.sender_name || '管理员' }}</text>
+          <text class="message-type">{{ getMessageTypeLabel(message.type) }}</text>
         </view>
         <view class="message-content">
           <text class="message-text">{{ message.content }}</text>
@@ -49,7 +69,7 @@
               :key="tag"
               class="message-tag"
             >
-              {{ tag }}
+              {{ getMessageTagLabel(tag) }}
             </view>
           </view>
           <view class="message-stats">
@@ -61,8 +81,9 @@
     
     <!-- 管理员操作按钮 -->
     <view v-if="userStore.isAdmin" class="admin-actions">
-      <button class="btn btn-primary" @click="createMessage">
-        <text>发布消息</text>
+      <button class="create-message-btn" @click="createMessage">
+        <text class="btn-icon">+</text>
+        <text class="btn-text">发布消息</text>
       </button>
     </view>
   </view>
@@ -78,6 +99,7 @@ import { navigateTo } from '../../utils/navigation'
 
 const userStore = useUserStore()
 const loading = ref(true)
+const refreshing = ref(false)
 const messages = ref([])
 const activeTag = ref('all')
 
@@ -100,19 +122,26 @@ const loadMessages = async () => {
   
   try {
     const response = await getMessagesApi({ type: activeTag.value })
-    messages.value = response.data
+    // 模拟添加已读状态，实际应该从API获取
+    messages.value = response.data.map(msg => ({
+      ...msg,
+      isRead: msg.read_count > 0
+    }))
   } catch (error) {
     console.error('Load messages error:', error)
     uni.showToast({
       title: '加载消息失败',
-      icon: 'none'
+      icon: 'none',
+      duration: 2000
     })
   } finally {
     loading.value = false
+    refreshing.value = false
   }
 }
 
 const refreshMessages = () => {
+  refreshing.value = true
   loadMessages()
 }
 
@@ -146,6 +175,7 @@ onMounted(() => {
 .messages-container {
   min-height: 100vh;
   background-color: #f5f5f5;
+  position: relative;
 }
 
 .header {
@@ -155,6 +185,10 @@ onMounted(() => {
   padding: 20px;
   background-color: #fff;
   border-bottom: 1px solid #e8e8e8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .title {
@@ -163,37 +197,75 @@ onMounted(() => {
   color: #333;
 }
 
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
 .refresh-btn {
-  padding: 6px 12px;
+  padding: 8px 16px;
   font-size: 14px;
   color: #1890ff;
   background-color: transparent;
   border: 1px solid #1890ff;
-  border-radius: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refresh-btn:hover {
+  background-color: #e6f7ff;
+}
+
+.refresh-btn.loading {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .filter-bar {
-  display: flex;
-  overflow-x: auto;
-  padding: 10px 20px;
   background-color: #fff;
   border-bottom: 1px solid #e8e8e8;
+  position: sticky;
+  top: 72px;
+  z-index: 90;
+}
+
+.filter-scroll {
+  white-space: nowrap;
+  padding: 12px 20px;
+}
+
+.filter-items {
+  display: inline-flex;
+  gap: 12px;
 }
 
 .filter-item {
-  padding: 8px 16px;
-  margin-right: 10px;
+  padding: 8px 18px;
   font-size: 14px;
   color: #666;
   background-color: #f0f0f0;
-  border-radius: 16px;
+  border-radius: 20px;
   white-space: nowrap;
   cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.filter-item:hover {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border-color: #91d5ff;
 }
 
 .filter-item.active {
   color: #fff;
   background-color: #1890ff;
+  border-color: #1890ff;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
 }
 
 .loading-container {
@@ -201,12 +273,22 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 80px 20px;
+  min-height: 400px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(24, 144, 255, 0.2);
+  border-top: 3px solid #1890ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 .loading-text {
-  margin-top: 10px;
-  font-size: 14px;
+  margin-top: 16px;
+  font-size: 16px;
   color: #999;
 }
 
@@ -215,18 +297,56 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 80px 20px;
   text-align: center;
+  min-height: 400px;
+}
+
+.empty-icon-container {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  animation: pulse 2s infinite;
 }
 
 .empty-state-icon {
   font-size: 48px;
-  margin-bottom: 16px;
 }
 
-.empty-state-text {
-  font-size: 16px;
+.empty-state-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.empty-state-subtitle {
+  font-size: 14px;
   color: #999;
+  margin-bottom: 24px;
+  line-height: 1.5;
+  max-width: 300px;
+}
+
+.empty-refresh-btn {
+  padding: 10px 24px;
+  font-size: 14px;
+  color: #1890ff;
+  background-color: transparent;
+  border: 1px solid #1890ff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.empty-refresh-btn:hover {
+  background-color: #1890ff;
+  color: #fff;
 }
 
 .messages-list {
@@ -235,24 +355,38 @@ onMounted(() => {
 
 .message-item {
   background-color: #fff;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .message-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.message-item.unread {
+  border-left: 4px solid #1890ff;
+  background-color: #f6f9ff;
 }
 
 .message-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+}
+
+.message-title-container {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  margin-right: 12px;
 }
 
 .message-title {
@@ -260,17 +394,46 @@ onMounted(() => {
   font-weight: bold;
   color: #333;
   flex: 1;
-  margin-right: 10px;
+  margin-right: 8px;
+  line-height: 1.4;
+}
+
+.unread-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ff4d4f;
+  flex-shrink: 0;
+  animation: pulse 2s infinite;
 }
 
 .message-time {
   font-size: 12px;
   color: #999;
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.message-meta {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #999;
+}
+
+.message-sender {
+  font-weight: 500;
+}
+
+.message-type {
+  background-color: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
 .message-content {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .message-text {
@@ -287,32 +450,84 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .message-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  flex: 1;
 }
 
 .message-tag {
-  padding: 4px 8px;
+  padding: 4px 10px;
   font-size: 12px;
   color: #1890ff;
   background-color: #e6f7ff;
   border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.message-tag:hover {
+  background-color: #91d5ff;
+  color: #096dd9;
 }
 
 .message-stats {
   font-size: 12px;
   color: #999;
+  flex-shrink: 0;
 }
 
 .admin-actions {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: 24px;
+  right: 24px;
   z-index: 1000;
+}
+
+.create-message-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #1890ff, #40a9ff);
+  border: none;
+  border-radius: 50px;
+  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.create-message-btn:hover {
+  background: linear-gradient(135deg, #40a9ff, #69c0ff);
+  box-shadow: 0 6px 20px rgba(24, 144, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-icon {
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* 响应式设计 */
@@ -326,18 +541,18 @@ onMounted(() => {
   }
   
   .refresh-btn {
-    padding: 12rpx 24rpx;
+    padding: 16rpx 32rpx;
     font-size: 28rpx;
   }
   
-  .filter-bar {
-    padding: 20rpx 40rpx;
+  .filter-scroll {
+    padding: 24rpx 40rpx;
   }
   
   .filter-item {
-    padding: 16rpx 32rpx;
+    padding: 12rpx 36rpx;
     font-size: 28rpx;
-    margin-right: 20rpx;
+    border-radius: 40rpx;
   }
   
   .messages-list {
@@ -347,6 +562,7 @@ onMounted(() => {
   .message-item {
     padding: 40rpx;
     margin-bottom: 32rpx;
+    border-radius: 20rpx;
   }
   
   .message-title {
@@ -357,12 +573,17 @@ onMounted(() => {
     font-size: 24rpx;
   }
   
+  .message-meta {
+    font-size: 24rpx;
+    gap: 24rpx;
+  }
+  
   .message-text {
     font-size: 28rpx;
   }
   
   .message-tag {
-    padding: 8rpx 16rpx;
+    padding: 8rpx 20rpx;
     font-size: 24rpx;
   }
   
@@ -371,13 +592,40 @@ onMounted(() => {
   }
   
   .admin-actions {
-    bottom: 40rpx;
-    right: 40rpx;
+    bottom: 48rpx;
+    right: 48rpx;
   }
   
-  .btn {
-    padding: 24rpx 48rpx;
-    font-size: 32rpx;
+  .create-message-btn {
+    padding: 28rpx 48rpx;
+    font-size: 28rpx;
+    border-radius: 100rpx;
+  }
+  
+  .btn-icon {
+    font-size: 36rpx;
+  }
+  
+  .empty-icon-container {
+    width: 200rpx;
+    height: 200rpx;
+  }
+  
+  .empty-state-icon {
+    font-size: 96rpx;
+  }
+  
+  .empty-state-title {
+    font-size: 36rpx;
+  }
+  
+  .empty-state-subtitle {
+    font-size: 28rpx;
+  }
+  
+  .empty-refresh-btn {
+    padding: 20rpx 48rpx;
+    font-size: 28rpx;
   }
 }
 </style>

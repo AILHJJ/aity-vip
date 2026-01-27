@@ -1,0 +1,225 @@
+{
+  "info": {
+    "name": "AITY VIP API 调试集合",
+    "description": "投研内部分享系统 API 调试配置",
+    "version": "1.0.0"
+  },
+  "apis": [
+    {
+      "name": "用户登录",
+      "method": "POST",
+      "url": "{{baseUrl}}/api/auth/login",
+      "headers": [],
+      "query": [],
+      "body": {
+        "mode": "json",
+        "json": {
+          "email": "admin@example.com",
+          "password": "123456"
+        }
+      },
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "获取用户信息",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/auth/me",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer {{token}}",
+          "type": "text"
+        }
+      ],
+      "query": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": {
+          "token": "{{token}}"
+        }
+      }
+    },
+    {
+      "name": "获取用户列表",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/users",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer {{token}}",
+          "type": "text"
+        }
+      ],
+      "query": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": {
+          "token": "{{token}}"
+        }
+      }
+    },
+    {
+      "name": "创建用户",
+      "method": "POST",
+      "url": "{{baseUrl}}/api/users",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer {{token}}",
+          "type": "text"
+        }
+      ],
+      "query": [],
+      "body": {
+        "mode": "json",
+        "json": {
+          "name": "测试用户",
+          "email": "test@example.com",
+          "password": "123456",
+          "role": "vip_mid",
+          "groupId": "vip_mid"
+        }
+      },
+      "auth": {
+        "type": "bearer",
+        "bearer": {
+          "token": "{{token}}"
+        }
+      }
+    },
+    {
+      "name": "获取消息列表",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/messages",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer {{token}}",
+          "type": "text"
+        }
+      ],
+      "query": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": {
+          "token": "{{token}}"
+        }
+      }
+    },
+    {
+      "name": "创建消息",
+      "method": "POST",
+      "url": "{{baseUrl}}/api/messages",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer {{token}}",
+          "type": "text"
+        }
+      ],
+      "query": [],
+      "body": {
+        "mode": "json",
+        "json": {
+          "title": "测试消息",
+          "content": "这是一条测试消息",
+          "type": "system",
+          "groupId": "vip_mid"
+        }
+      },
+      "auth": {
+        "type": "bearer",
+        "bearer": {
+          "token": "{{token}}"
+        }
+      }
+    },
+    {
+      "name": "获取讨论列表",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/discussions",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer {{token}}",
+          "type": "text"
+        }
+      ],
+      "query": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": {
+          "token": "{{token}}"
+        }
+      }
+    },
+    {
+      "name": "创建讨论",
+      "method": "POST",
+      "url": "{{baseUrl}}/api/discussions",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer {{token}}",
+          "type": "text"
+        }
+      ],
+      "query": [],
+      "body": {
+        "mode": "json",
+        "json": {
+          "messageId": 1,
+          "title": "测试讨论",
+          "content": "这是一条测试讨论",
+          "visibility": "public"
+        }
+      },
+      "auth": {
+        "type": "bearer",
+        "bearer": {
+          "token": "{{token}}"
+        }
+      }
+    },
+    {
+      "name": "获取群组列表",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/groups",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer {{token}}",
+          "type": "text"
+        }
+      ],
+      "query": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": {
+          "token": "{{token}}"
+        }
+      }
+    },
+    {
+      "name": "健康检查",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/health",
+      "headers": [],
+      "query": [],
+      "auth": {
+        "type": "noauth"
+      }
+    }
+  ],
+  "environments": [
+    {
+      "name": "开发环境",
+      "variables": {
+        "baseUrl": "http://localhost:3000",
+        "token": ""
+      }
+    }
+  ]
+}

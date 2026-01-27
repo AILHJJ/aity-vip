@@ -1,4 +1,5 @@
-const cache = require('../config/redis');
+// 内存缓存实现，替代Redis
+const memoryCache = new Map();
 
 function generateCacheKey(prefix, params) {
   const sortedParams = Object.keys(params)
@@ -7,6 +8,45 @@ function generateCacheKey(prefix, params) {
     .join(':');
   return `${prefix}:${sortedParams}`;
 }
+
+// 内存缓存操作
+const cache = {
+  get: async (key) => {
+    const item = memoryCache.get(key);
+    if (!item) return null;
+    
+    // 检查是否过期
+    if (item.expiry < Date.now()) {
+      memoryCache.delete(key);
+      return null;
+    }
+    
+    return item.value;
+  },
+  
+  set: async (key, value, ttl = 3600) => {
+    memoryCache.set(key, {
+      value,
+      expiry: Date.now() + (ttl * 1000)
+    });
+    return true;
+  },
+  
+  del: async (key) => {
+    memoryCache.delete(key);
+    return true;
+  },
+  
+  delPattern: async (pattern) => {
+    // 简单实现，实际项目中可能需要更复杂的模式匹配
+    for (const key of memoryCache.keys()) {
+      if (key.startsWith(pattern)) {
+        memoryCache.delete(key);
+      }
+    }
+    return true;
+  }
+};
 
 function cacheMiddleware(prefix, ttl = 300) {
   return async (req, res, next) => {

@@ -8,8 +8,6 @@ const { cacheMiddleware, clearCache } = require('../middleware/cache');
 
 router.get('/', 
   authenticateToken, 
-  validateQueryParams, 
-  cacheMiddleware('messages:list', 300),
   messageController.getMessages
 );
 

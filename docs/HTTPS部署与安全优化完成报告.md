@@ -264,7 +264,7 @@ BACKEND_URL="https://$HTTPS_DOMAIN:$HTTPS_PORT/api"
 
 #### 3.2 Windows部署脚本
 
-**新增文件**：`scripts/deploy-https.ps1`
+**新增文件**：`scripts/deploy-https.ps`
 
 **功能特性**：
 - ✅ Windows PowerShell脚本
