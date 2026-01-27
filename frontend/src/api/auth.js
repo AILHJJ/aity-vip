@@ -11,7 +11,7 @@ import request from '../utils/request'
 // 登录
 export const loginApi = (data) => {
   return request({
-    url: '/api/auth/login',
+    url: '/auth/login',
     method: 'POST',
     data
   })
@@ -20,7 +20,7 @@ export const loginApi = (data) => {
 // 登出
 export const logoutApi = () => {
   return request({
-    url: '/api/auth/logout',
+    url: '/auth/logout',
     method: 'POST'
   })
 }
@@ -28,7 +28,7 @@ export const logoutApi = () => {
 // 刷新token
 export const refreshTokenApi = () => {
   return request({
-    url: '/api/auth/refresh',
+    url: '/auth/refresh',
     method: 'POST'
   })
 }
@@ -36,7 +36,7 @@ export const refreshTokenApi = () => {
 // 获取用户信息
 export const getUserInfoApi = () => {
   return request({
-    url: '/api/auth/info',
+    url: '/auth/info',
     method: 'GET'
   })
 }
@@ -44,7 +44,7 @@ export const getUserInfoApi = () => {
 // 更新个人资料
 export const updateProfile = (data) => {
   return request({
-    url: '/api/auth/profile',
+    url: '/auth/profile',
     method: 'PUT',
     data
   })
@@ -53,7 +53,7 @@ export const updateProfile = (data) => {
 // 修改密码
 export const changePassword = (data) => {
   return request({
-    url: '/api/auth/password',
+    url: '/auth/password',
     method: 'PUT',
     data
   })
