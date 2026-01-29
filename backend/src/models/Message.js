@@ -27,8 +27,20 @@ const Message = sequelize.define('Message', {
     allowNull: false
   },
   type: {
-    type: DataTypes.ENUM('system', 'important', 'daily'),
-    allowNull: false
+    type: DataTypes.ENUM(
+      'pre_market_comment',    // 盘前点评
+      'morning_comment',       // 早盘点评
+      'morning_focus',         // 早盘关注
+      'afternoon_comment',     // 尾盘点评
+      'afternoon_focus',       // 尾盘关注
+      'close_comment',         // 收盘点评
+      'risk_warning',          // 风险提示
+      'system',                // 系统消息
+      'important',             // 重要消息
+      'daily'                  // 日常消息
+    ),
+    allowNull: false,
+    defaultValue: 'daily'
   },
   sender: {
     type: DataTypes.STRING(100),
@@ -54,23 +66,41 @@ const Message = sequelize.define('Message', {
     field: 'total_count',
     defaultValue: 0
   },
+  tags: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: null,
+    comment: '消息标签数组，如 ["短线策略", "中线策略", "全部用户"]'
+  },
+  publishTime: {
+    type: DataTypes.DATE,
+    field: 'publish_time',
+    allowNull: true,
+    defaultValue: null,
+    comment: '定时发布时间，null表示立即发布'
+  },
+  status: {
+    type: DataTypes.ENUM('draft', 'scheduled', 'published'),
+    allowNull: false,
+    defaultValue: 'published',
+    comment: 'draft:草稿, scheduled:定时发布, published:已发布'
+  },
   createdAt: {
     type: DataTypes.DATE,
     field: 'created_at',
-    allowNull: false
+    allowNull: false,
+    defaultValue: DataTypes.NOW
   }
 }, {
   tableName: 'messages',
-  timestamps: false,
-  // 明确指定字段映射
-  underscored: false,
-  // 禁用自动添加时间戳
-  createdAt: false,
+  timestamps: true,
+  createdAt: 'createdAt',
   updatedAt: false
 });
 
 // 关联关系
 Message.belongsTo(User, { foreignKey: 'senderId', as: 'senderUser' });
-Message.belongsTo(Group, { foreignKey: 'groupId', as: 'messageGroup' });
+// 注意：groupId 不设置外键约束，因为它可以是特殊值 'all' 或实际的 group_id
+// Message.belongsTo(Group, { foreignKey: 'groupId', as: 'messageGroup' });
 
 module.exports = Message;

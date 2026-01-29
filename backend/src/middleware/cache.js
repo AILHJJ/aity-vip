@@ -39,8 +39,10 @@ const cache = {
   
   delPattern: async (pattern) => {
     // 简单实现，实际项目中可能需要更复杂的模式匹配
+    // 将通配符 * 转换为实际的前缀匹配
+    const prefix = pattern.replace(/\*/g, '');
     for (const key of memoryCache.keys()) {
-      if (key.startsWith(pattern)) {
+      if (key.startsWith(prefix)) {
         memoryCache.delete(key);
       }
     }

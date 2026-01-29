@@ -1,7 +1,7 @@
 const request = require('supertest');
-const app = require('../../src/index');
-const User = require('../../src/models/User');
-const Message = require('../../src/models/Message');
+const app = require('../src/index');
+const User = require('../src/models/User');
+const Message = require('../src/models/Message');
 const bcrypt = require('bcryptjs');
 
 describe('Message API', () => {
@@ -9,9 +9,7 @@ describe('Message API', () => {
   let messageId;
 
   beforeAll(async () => {
-    await User.sync({ force: true });
-    await Message.sync({ force: true });
-    
+    // Tables are already created by globalSetup, just seed test data
     const adminPassword = await bcrypt.hash('admin123', 10);
     await User.create({
       name: 'Admin User',
@@ -31,8 +29,22 @@ describe('Message API', () => {
   });
 
   afterAll(async () => {
-    await Message.drop();
-    await User.drop();
+    // Clean up test data - delete in correct order due to foreign key constraints
+    const Discussion = require('../src/models/Discussion');
+    const DiscussionReply = require('../src/models/DiscussionReply');
+    const MessageAttachment = require('../src/models/MessageAttachment');
+    const UserMessageRead = require('../src/models/UserMessageRead');
+
+    // Delete discussion replies first
+    await DiscussionReply.destroy({ where: {} });
+    // Then discussions
+    await Discussion.destroy({ where: {} });
+    // Then message attachments and read records
+    await MessageAttachment.destroy({ where: {} });
+    await UserMessageRead.destroy({ where: {} });
+    // Finally messages and users
+    await Message.destroy({ where: {} });
+    await User.destroy({ where: { email: 'admin@example.com' } });
   });
 
   describe('POST /api/messages', () => {

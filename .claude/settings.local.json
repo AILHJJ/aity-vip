@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node test-script.js:*)",
+      "Bash(npm start)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(npm test:*)",
+      "Bash(dir:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(node test-db-connection.js:*)",
+      "Bash(npx jest:*)",
+      "Bash(powershell:*)",
+      "Bash(node init-test-data.js:*)",
+      "Bash(node init-test-messages.js:*)",
+      "Bash(curl:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

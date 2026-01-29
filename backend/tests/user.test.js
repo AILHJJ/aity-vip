@@ -1,19 +1,19 @@
 const request = require('supertest');
-const app = require('../../src/index');
-const User = require('../../src/models/User');
+const app = require('../src/index');
+const User = require('../src/models/User');
 const bcrypt = require('bcryptjs');
+const { Op } = require('sequelize');
 
 describe('User API', () => {
   let adminToken;
   let testUserId;
 
   beforeAll(async () => {
-    await User.sync({ force: true });
-    
+    // Tables are already created by globalSetup, just seed test data
     const adminPassword = await bcrypt.hash('admin123', 10);
     const admin = await User.create({
-      name: 'Admin User',
-      email: 'admin@example.com',
+      name: 'Admin User 2',
+      email: 'admin2@example.com',
       password: adminPassword,
       role: 'admin',
       status: 'active'
@@ -22,14 +22,15 @@ describe('User API', () => {
     const loginResponse = await request(app)
       .post('/api/auth/login')
       .send({
-        email: 'admin@example.com',
+        email: 'admin2@example.com',
         password: 'admin123'
       });
     adminToken = loginResponse.body.data.token;
   });
 
   afterAll(async () => {
-    await User.drop();
+    // Clean up test data
+    await User.destroy({ where: { email: { [Op.in]: ['admin2@example.com', 'newuser@example.com'] } } });
   });
 
   describe('POST /api/users', () => {

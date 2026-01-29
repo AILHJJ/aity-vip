@@ -6,38 +6,38 @@ const { authenticateToken, checkAdmin } = require('../utils/jwtUtils');
 const { validateCreateMessage, validateUpdateMessage, validateIdParam, validateQueryParams } = require('../middleware/validation');
 const { cacheMiddleware, clearCache } = require('../middleware/cache');
 
-router.get('/', 
-  authenticateToken, 
+router.get('/',
+  authenticateToken,
   messageController.getMessages
 );
 
-router.get('/:id', 
-  authenticateToken, 
-  validateIdParam, 
+router.get('/:id',
+  authenticateToken,
+  ...validateIdParam(),
   cacheMiddleware('messages:detail', 600),
   messageController.getMessageById
 );
 
-router.post('/', 
-  authenticateToken, 
-  checkAdmin, 
-  validateCreateMessage, 
+router.post('/',
+  authenticateToken,
+  checkAdmin,
+  ...validateCreateMessage(),
   clearCache('messages:*'),
   messageController.createMessage
 );
 
-router.put('/:id', 
-  authenticateToken, 
-  checkAdmin, 
-  validateUpdateMessage, 
+router.put('/:id',
+  authenticateToken,
+  checkAdmin,
+  ...validateUpdateMessage(),
   clearCache('messages:*'),
   messageController.updateMessage
 );
 
-router.delete('/:id', 
-  authenticateToken, 
-  checkAdmin, 
-  validateIdParam, 
+router.delete('/:id',
+  authenticateToken,
+  checkAdmin,
+  ...validateIdParam(),
   clearCache('messages:*'),
   messageController.deleteMessage
 );

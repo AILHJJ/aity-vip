@@ -46,23 +46,39 @@ function validateUpdateUser() {
 }
 
 function validateCreateMessage() {
+  const validTypes = [
+    'pre_market_comment', 'morning_comment', 'morning_focus',
+    'afternoon_comment', 'afternoon_focus', 'close_comment',
+    'risk_warning', 'system', 'important', 'daily'
+  ];
+
   return [
     body('title').notEmpty().withMessage('Title is required').isLength({ min: 1, max: 255 }).withMessage('Title must be between 1 and 255 characters'),
     body('content').notEmpty().withMessage('Content is required'),
-    body('type').notEmpty().withMessage('Type is required').isIn(['system', 'important', 'daily']).withMessage('Invalid type'),
-    body('groupId').notEmpty().withMessage('Group ID is required').isIn(['all']).withMessage('Invalid group ID'),
+    body('type').notEmpty().withMessage('Type is required').isIn(validTypes).withMessage('Invalid type'),
+    body('groupId').notEmpty().withMessage('Group ID is required'),
     body('attachments').optional().isArray().withMessage('Attachments must be an array'),
+    body('tags').optional().isArray().withMessage('Tags must be an array'),
+    body('publishTime').optional().isISO8601().withMessage('Publish time must be a valid date'),
     handleValidationErrors
   ];
 }
 
 function validateUpdateMessage() {
+  const validTypes = [
+    'pre_market_comment', 'morning_comment', 'morning_focus',
+    'afternoon_comment', 'afternoon_focus', 'close_comment',
+    'risk_warning', 'system', 'important', 'daily'
+  ];
+
   return [
     param('id').isInt().withMessage('Invalid message ID'),
     body('title').optional().isLength({ min: 1, max: 255 }).withMessage('Title must be between 1 and 255 characters'),
     body('content').optional(),
-    body('type').optional().isIn(['system', 'important', 'daily']).withMessage('Invalid type'),
+    body('type').optional().isIn(validTypes).withMessage('Invalid type'),
     body('attachments').optional().isArray().withMessage('Attachments must be an array'),
+    body('tags').optional().isArray().withMessage('Tags must be an array'),
+    body('publishTime').optional().isISO8601().withMessage('Publish time must be a valid date'),
     handleValidationErrors
   ];
 }
@@ -109,10 +125,16 @@ function validateIdParam() {
 }
 
 function validateQueryParams() {
+  const validTypes = [
+    'pre_market_comment', 'morning_comment', 'morning_focus',
+    'afternoon_comment', 'afternoon_focus', 'close_comment',
+    'risk_warning', 'system', 'important', 'daily'
+  ];
+
   return [
     query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
     query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-    query('type').optional().isIn(['system', 'important', 'daily']).withMessage('Invalid type'),
+    query('type').optional().isIn(validTypes).withMessage('Invalid type'),
     query('status').optional().isIn(['active', 'inactive']).withMessage('Invalid status'),
     handleValidationErrors
   ];

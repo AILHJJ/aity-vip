@@ -63,9 +63,6 @@ const securityHeaders = {
     action: 'deny'
   },
   noSniff: true,
-  xssFilter: {
-    mode: 'block'
-  },
   referrerPolicy: {
     policy: 'strict-origin-when-cross-origin'
   }
@@ -131,11 +128,16 @@ app.use((err, req, res, next) => {
 });
 
 // 启动服务器
-app.listen(PORT, HOST, () => {
-  logger.info('Server started', {
-    port: PORT,
-    host: HOST,
-    environment: NODE_ENV,
-    allowedOrigins: ALLOWED_ORIGINS
+if (require.main === module) {
+  app.listen(PORT, HOST, () => {
+    logger.info('Server started', {
+      port: PORT,
+      host: HOST,
+      environment: NODE_ENV,
+      allowedOrigins: ALLOWED_ORIGINS
+    });
   });
-});
+}
+
+// 导出app供测试使用
+module.exports = app;

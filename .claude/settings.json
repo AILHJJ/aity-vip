@@ -1,0 +1,6 @@
+{
+    "env": {
+        "ANTHROPIC_AUTH_TOKEN": "sk-zvihHZz6cG2GBqUz53fG9KXmoeiOt1yZ6uk3wIMn8GiEdDlc",
+        "ANTHROPIC_BASE_URL": "https://api.lingyaai.cn"
+    }
+}

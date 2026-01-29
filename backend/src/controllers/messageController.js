@@ -1,5 +1,6 @@
 // 消息控制器
 const { Op } = require('sequelize');
+const sequelize = require('../config/db');
 const Message = require('../models/Message');
 const MessageAttachment = require('../models/MessageAttachment');
 const UserMessageRead = require('../models/UserMessageRead');
@@ -55,50 +56,98 @@ async function getMessages(req, res) {
   try {
     console.log('=== 获取消息列表请求开始 ===');
     const startTime = Date.now();
-    
-    // 简化获取消息列表逻辑，直接返回模拟的消息数据
-    // 暂时跳过数据库查询、用户权限验证等操作
-    
-    // 模拟消息数据
-    const mockMessages = [
-      {
-        id: 1,
-        title: '测试消息 1',
-        content: '这是一条测试消息，用于测试消息列表功能。',
-        type: 'system',
-        tags: ['all'],
-        sender: '管理员',
-        sender_id: 1,
-        created_at: new Date(),
-        read_count: 0,
-        sender_name: '管理员',
-        sender_avatar: ''
-      },
-      {
-        id: 2,
-        title: '测试消息 2',
-        content: '这是另一条测试消息，用于测试消息列表功能。',
-        type: 'important',
-        tags: ['all'],
-        sender: '管理员',
-        sender_id: 1,
-        created_at: new Date(),
-        read_count: 1,
-        sender_name: '管理员',
-        sender_avatar: ''
-      }
-    ];
-    
-    const result = {
-      list: mockMessages,
-      total: mockMessages.length,
-      page: 1,
-      pageSize: 20
-    };
-    
+
+    const { page = 1, limit = 10, type, groupId, status } = req.query;
+    const userId = req.user.userId;
+    const offset = (page - 1) * limit;
+    const where = {};
+
+    // 获取当前用户信息
+    const currentUser = await User.findByPk(userId);
+    if (!currentUser) {
+      return res.status(404).json(notFound('User not found'));
+    }
+
+    // 构建复杂的查询条件
+    const andConditions = [];
+
+    // 状态过滤（仅管理员可用）
+    if (status && (currentUser.role === 'super_admin' || currentUser.role === 'admin')) {
+      // 管理员可以看到所有状态的消息
+      where.status = status;
+    } else {
+      // 普通用户只能看到已发布的消息，或者定时发布时间已到的消息
+      // 向后兼容：status为null的旧消息也应该显示
+      andConditions.push({
+        [Op.or]: [
+          { status: 'published' },
+          { status: { [Op.is]: null } }, // 向后兼容旧数据
+          {
+            status: 'scheduled',
+            publishTime: { [Op.lte]: new Date() }
+          }
+        ]
+      });
+    }
+
+    // 类型过滤
+    if (type) where.type = type;
+
+    // 分组过滤
+    if (groupId) where.groupId = groupId;
+
+    // 标签权限过滤（trial用户和管理员不受限制）
+    if (currentUser.role !== 'trial' && currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+      // vip_mid 只能看到包含"中线策略"或"全部用户"标签的消息
+      // vip_short 只能看到包含"短线策略"或"全部用户"标签的消息
+      const allowedTags = currentUser.role === 'vip_mid'
+        ? ['中线策略', '全部用户']
+        : ['短线策略', '全部用户'];
+
+      andConditions.push({
+        [Op.or]: [
+          { tags: null }, // 没有标签的消息所有人可见（向后兼容）
+          sequelize.where(
+            sequelize.fn('JSON_CONTAINS', sequelize.col('tags'), JSON.stringify(allowedTags[0])),
+            1
+          ),
+          sequelize.where(
+            sequelize.fn('JSON_CONTAINS', sequelize.col('tags'), JSON.stringify(allowedTags[1])),
+            1
+          )
+        ]
+      });
+    }
+
+    // 合并所有条件
+    if (andConditions.length > 0) {
+      where[Op.and] = andConditions;
+    }
+
+    const { count, rows } = await Message.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']],
+      include: [{
+        model: User,
+        as: 'senderUser',
+        attributes: ['id', 'name', 'email', 'role']
+      }]
+    });
+
     console.log('获取消息列表请求处理完成，总耗时:', Date.now() - startTime, 'ms');
-    
-    res.json(success(result));
+
+    res.json({
+      success: true,
+      data: rows,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(count / limit)
+      }
+    });
   } catch (err) {
     console.error('获取消息列表错误:', err);
     res.status(500).json(error('Server error'));
@@ -184,15 +233,15 @@ async function getMessageById(req, res) {
 // 创建消息
 async function createMessage(req, res) {
   try {
-    const { title, content, type, groupId, attachments } = req.body;
+    const { title, content, type, groupId, attachments, tags, publishTime } = req.body;
     const userId = req.user.userId;
-    
+
     // 获取用户信息
     const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json(notFound('User not found'));
     }
-    
+
     // 计算接收消息的用户数量
     let totalCount = 0;
     if (groupId === 'all') {
@@ -200,7 +249,22 @@ async function createMessage(req, res) {
     } else {
       totalCount = await User.count({ where: { groupId, status: 'active' } });
     }
-    
+
+    // 确定消息状态
+    let messageStatus = 'published';
+    let messagePublishTime = null;
+
+    if (publishTime) {
+      const publishDate = new Date(publishTime);
+      const now = new Date();
+
+      if (publishDate > now) {
+        // 定时发布
+        messageStatus = 'scheduled';
+        messagePublishTime = publishDate;
+      }
+    }
+
     // 创建消息
     const message = await Message.create({
       title,
@@ -209,9 +273,12 @@ async function createMessage(req, res) {
       sender: user.name,
       senderId: userId,
       groupId,
-      totalCount
+      totalCount,
+      tags: tags || null,
+      publishTime: messagePublishTime,
+      status: messageStatus
     });
-    
+
     // 处理附件
     if (attachments && attachments.length > 0) {
       const attachmentData = attachments.map(attach => ({
@@ -222,12 +289,12 @@ async function createMessage(req, res) {
       }));
       await MessageAttachment.bulkCreate(attachmentData);
     }
-    
+
     const messageData = {
       ...message.toJSON(),
       attachments: attachments || []
     };
-    
+
     res.status(201).json(success(messageData, 'Message created successfully'));
   } catch (err) {
     console.error(err);
@@ -239,22 +306,49 @@ async function createMessage(req, res) {
 async function updateMessage(req, res) {
   try {
     const { id } = req.params;
-    const { title, content, type, attachments } = req.body;
-    
+    const { title, content, type, attachments, tags, publishTime } = req.body;
+
     // 获取消息
     const message = await Message.findByPk(id);
     if (!message) {
       return res.status(404).json(notFound('Message not found'));
     }
-    
+
+    // 准备更新数据
+    const updateData = { title, content, type };
+
+    // 处理tags
+    if (tags !== undefined) {
+      updateData.tags = tags;
+    }
+
+    // 处理publishTime和status
+    if (publishTime !== undefined) {
+      if (publishTime) {
+        const publishDate = new Date(publishTime);
+        const now = new Date();
+
+        if (publishDate > now) {
+          updateData.publishTime = publishDate;
+          updateData.status = 'scheduled';
+        } else {
+          updateData.publishTime = null;
+          updateData.status = 'published';
+        }
+      } else {
+        updateData.publishTime = null;
+        updateData.status = 'published';
+      }
+    }
+
     // 更新消息
-    await message.update({ title, content, type });
-    
+    await message.update(updateData);
+
     // 更新附件
     if (attachments !== undefined) {
       // 删除现有附件
       await MessageAttachment.destroy({ where: { messageId: id } });
-      
+
       // 添加新附件
       if (attachments.length > 0) {
         const attachmentData = attachments.map(attach => ({
@@ -266,17 +360,17 @@ async function updateMessage(req, res) {
         await MessageAttachment.bulkCreate(attachmentData);
       }
     }
-    
+
     // 获取最新的附件
     const updatedAttachments = await MessageAttachment.findAll({
       where: { messageId: id }
     });
-    
+
     const messageData = {
       ...message.toJSON(),
       attachments: updatedAttachments
     };
-    
+
     res.json(success(messageData, 'Message updated successfully'));
   } catch (err) {
     console.error(err);
@@ -288,19 +382,31 @@ async function updateMessage(req, res) {
 async function deleteMessage(req, res) {
   try {
     const { id } = req.params;
-    
+
     // 获取消息
     const message = await Message.findByPk(id);
     if (!message) {
       return res.status(404).json(notFound('Message not found'));
     }
-    
+
+    // 删除相关的讨论回复（需要先删除，因为有外键约束）
+    const Discussion = require('../models/Discussion');
+    const DiscussionReply = require('../models/DiscussionReply');
+    const discussions = await Discussion.findAll({ where: { messageId: id } });
+    for (const discussion of discussions) {
+      await DiscussionReply.destroy({ where: { discussionId: discussion.id } });
+    }
+    await Discussion.destroy({ where: { messageId: id } });
+
     // 删除附件
     await MessageAttachment.destroy({ where: { messageId: id } });
-    
+
+    // 删除用户阅读记录
+    await UserMessageRead.destroy({ where: { messageId: id } });
+
     // 删除消息
     await message.destroy();
-    
+
     res.json(success(null, 'Message deleted successfully'));
   } catch (err) {
     console.error(err);

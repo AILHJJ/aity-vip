@@ -6,41 +6,41 @@ const { authenticateToken, checkAdmin } = require('../utils/jwtUtils');
 const { validateCreateUser, validateUpdateUser, validateIdParam, validateQueryParams } = require('../middleware/validation');
 const { cacheMiddleware, clearCache } = require('../middleware/cache');
 
-router.get('/', 
-  authenticateToken, 
-  checkAdmin, 
-  validateQueryParams, 
+router.get('/',
+  authenticateToken,
+  checkAdmin,
+  ...validateQueryParams(),
   cacheMiddleware('users:list', 300),
   userController.getAllUsers
 );
 
-router.get('/:id', 
-  authenticateToken, 
-  validateIdParam, 
+router.get('/:id',
+  authenticateToken,
+  ...validateIdParam(),
   cacheMiddleware('users:detail', 600),
   userController.getUserById
 );
 
-router.post('/', 
-  authenticateToken, 
-  checkAdmin, 
-  validateCreateUser, 
+router.post('/',
+  authenticateToken,
+  checkAdmin,
+  ...validateCreateUser(),
   clearCache('users:*'),
   userController.createUser
 );
 
-router.put('/:id', 
-  authenticateToken, 
-  checkAdmin, 
-  validateUpdateUser, 
+router.put('/:id',
+  authenticateToken,
+  checkAdmin,
+  ...validateUpdateUser(),
   clearCache('users:*'),
   userController.updateUser
 );
 
-router.delete('/:id', 
-  authenticateToken, 
-  checkAdmin, 
-  validateIdParam, 
+router.delete('/:id',
+  authenticateToken,
+  checkAdmin,
+  ...validateIdParam(),
   clearCache('users:*'),
   userController.deleteUser
 );

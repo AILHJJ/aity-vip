@@ -97,6 +97,47 @@ Authorization: Bearer <token>
 
 ## 消息接口
 
+### 消息类型说明
+
+系统支持以下10种消息类型：
+
+| 类型代码 | 类型名称 | 说明 |
+|----------|----------|------|
+| `pre_market_comment` | 盘前点评 | 开盘前的市场分析和预测 |
+| `morning_comment` | 早盘点评 | 上午开盘后的市场分析 |
+| `morning_focus` | 早盘关注 | 上午值得关注的个股或板块 |
+| `afternoon_comment` | 尾盘点评 | 下午收盘前的市场分析 |
+| `afternoon_focus` | 尾盘关注 | 下午值得关注的个股或板块 |
+| `close_comment` | 收盘点评 | 全天市场走势的总结分析 |
+| `risk_warning` | 风险提示 | 投资风险的警示信息 |
+| `system` | 系统消息 | 系统通知和公告 |
+| `important` | 重要消息 | 重要通知 |
+| `daily` | 日常消息 | 日常消息（默认值） |
+
+### 消息标签说明
+
+消息标签用于权限控制，支持以下标签：
+
+| 标签名称 | 说明 | 可见用户 |
+|----------|------|----------|
+| `短线策略` | 短线投资策略 | vip_short, trial, admin |
+| `中线策略` | 中线投资策略 | vip_mid, trial, admin |
+| `全部用户` | 所有人可见 | 所有VIP用户 |
+
+**标签规则：**
+- 消息可以有多个标签（JSON数组）
+- 没有标签的消息所有人可见
+- trial用户不受标签限制，可查看所有消息
+- admin和super_admin不受标签限制
+
+### 消息状态说明
+
+| 状态代码 | 状态名称 | 说明 |
+|----------|----------|------|
+| `draft` | 草稿 | 草稿状态，不可见 |
+| `scheduled` | 定时发布 | 等待发布时间到达 |
+| `published` | 已发布 | 已发布，用户可见 |
+
 ### 获取消息列表
 
 **请求**：
@@ -105,36 +146,43 @@ Authorization: Bearer <token>
 - 认证: 需要
 - 参数:
   - `page` (可选): 页码，默认1
-  - `pageSize` (可选): 每页数量，默认20
-  - `type` (可选): 消息类型
-  - `tag` (可选): 消息标签
-  - `search` (可选): 搜索关键词
+  - `limit` (可选): 每页数量，默认10
+  - `type` (可选): 消息类型（见上方消息类型说明）
+  - `groupId` (可选): 分组ID
+  - `status` (可选): 消息状态（仅管理员可用）
 
 **响应**：
 ```json
 {
-  "code": 200,
-  "message": "Success",
-  "data": {
-    "messages": [
-      {
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "title": "测试消息",
+      "content": "这是一条测试消息",
+      "type": "daily",
+      "tags": ["全部用户"],
+      "groupId": "all",
+      "sender": "管理员",
+      "senderId": 1,
+      "status": "published",
+      "publishTime": null,
+      "readCount": 0,
+      "totalCount": 10,
+      "createdAt": "2026-01-29T00:00:00.000Z",
+      "senderUser": {
         "id": 1,
-        "title": "测试消息",
-        "content": "这是一条测试消息",
-        "type": "daily",
-        "tag": "all",
-        "groupId": "all",
-        "authorId": 1,
-        "authorName": "管理员",
-        "createdAt": "2026-01-26T00:00:00.000Z",
-        "updatedAt": "2026-01-26T00:00:00.000Z",
-        "read": true,
-        "favorited": false
+        "name": "管理员",
+        "email": "admin@example.com",
+        "role": "admin"
       }
-    ],
+    }
+  ],
+  "pagination": {
     "total": 1,
     "page": 1,
-    "pageSize": 20
+    "limit": 10,
+    "pages": 1
   }
 }
 ```
@@ -182,28 +230,54 @@ Authorization: Bearer <token>
     "title": "新消息",
     "content": "消息内容",
     "type": "daily",
-    "tag": "all",
     "groupId": "all",
-    "publishType": "immediate",
-    "publishTime": null
+    "tags": ["全部用户"],
+    "publishTime": "2026-01-30T10:00:00.000Z",
+    "attachments": [
+      {
+        "type": "image",
+        "url": "https://example.com/image.jpg",
+        "name": "图片.jpg"
+      }
+    ]
   }
   ```
+
+**参数说明：**
+- `title` (必填): 消息标题
+- `content` (必填): 消息内容
+- `type` (必填): 消息类型（见消息类型说明）
+- `groupId` (必填): 分组ID
+- `tags` (可选): 消息标签数组
+- `publishTime` (可选): 定时发布时间（ISO8601格式），不传或传null表示立即发布
+- `attachments` (可选): 附件数组
 
 **响应**：
 ```json
 {
-  "code": 201,
+  "code": 200,
   "message": "Message created successfully",
   "data": {
     "id": 2,
     "title": "新消息",
     "content": "消息内容",
     "type": "daily",
-    "tag": "all",
+    "tags": ["全部用户"],
     "groupId": "all",
-    "authorId": 1,
-    "createdAt": "2026-01-26T00:00:00.000Z",
-    "updatedAt": "2026-01-26T00:00:00.000Z"
+    "sender": "管理员",
+    "senderId": 1,
+    "status": "scheduled",
+    "publishTime": "2026-01-30T10:00:00.000Z",
+    "readCount": 0,
+    "totalCount": 10,
+    "createdAt": "2026-01-29T00:00:00.000Z",
+    "attachments": [
+      {
+        "type": "image",
+        "url": "https://example.com/image.jpg",
+        "name": "图片.jpg"
+      }
+    ]
   }
 }
 ```
@@ -220,10 +294,16 @@ Authorization: Bearer <token>
     "title": "更新后的消息",
     "content": "更新后的内容",
     "type": "important",
-    "tag": "all",
-    "groupId": "all"
+    "tags": ["短线策略", "全部用户"],
+    "publishTime": null,
+    "attachments": []
   }
   ```
+
+**参数说明：**
+- 所有参数都是可选的
+- `publishTime` 传null表示立即发布
+- `tags` 传null或空数组表示清除标签
 
 **响应**：
 ```json
@@ -235,10 +315,14 @@ Authorization: Bearer <token>
     "title": "更新后的消息",
     "content": "更新后的内容",
     "type": "important",
-    "tag": "all",
+    "tags": ["短线策略", "全部用户"],
     "groupId": "all",
-    "authorId": 1,
-    "updatedAt": "2026-01-26T00:00:00.000Z"
+    "sender": "管理员",
+    "senderId": 1,
+    "status": "published",
+    "publishTime": null,
+    "createdAt": "2026-01-29T00:00:00.000Z",
+    "attachments": []
   }
 }
 ```
