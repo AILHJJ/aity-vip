@@ -14,7 +14,11 @@
       "Bash(powershell:*)",
       "Bash(node init-test-data.js:*)",
       "Bash(node init-test-messages.js:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjUsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoic3VwZXJfYWRtaW4iLCJpYXQiOjE3Njk2ODExMDUsImV4cCI6MTc2OTc2NzUwNX0.SjMNwjiD5HOTMWeGmqPGCP12P6pA-hNVlDRE4TaIc38\")",
+      "Bash(python -c:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

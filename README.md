@@ -6,11 +6,14 @@ AITY VIP是一个专为投研团队设计的内部分享系统，支持消息发
 ## 技术栈
 
 ### 前端
-- **框架**：uni-app（支持多端部署）
-- **构建工具**：Vite
-- **样式**：SCSS
+- **框架**：Vue 3 (Composition API)
+- **构建工具**：Vite 4.x
+- **UI组件库**：Element Plus 2.x
 - **状态管理**：Pinia
-- **路由**：Vue Router
+- **路由**：Vue Router 4.x
+- **样式**：SCSS
+
+**注意**：虽然项目名称包含 "uni-app"，但实际上是标准的 Vue 3 + Element Plus Web 应用，仅支持 Web 端部署。
 
 ### 后端
 - **语言**：Node.js
@@ -23,7 +26,7 @@ AITY VIP是一个专为投研团队设计的内部分享系统，支持消息发
 
 ```
 AITY_VIP/
-├── frontend/              # 前端代码（uni-app）
+├── frontend/              # 前端代码（Vue 3 + Element Plus）
 │   ├── src/               # 源代码
 │   ├── package.json       # 依赖配置
 │   ├── vite.config.js     # 构建配置
