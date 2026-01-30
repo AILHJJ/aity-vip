@@ -6,9 +6,12 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# 获取脚本所在目录的父目录（backend目录）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 # 配置变量
 PROJECT_NAME="aity-backend"
-PROJECT_DIR="/root/AITY/backend"
 DOMAIN="aity88.online"
 PORT=8443
 NODE_PORT=3001
@@ -178,15 +181,43 @@ start_backend() {
 setup_nginx() {
     echo -e "\n${YELLOW}[10/11] 配置 Nginx...${NC}"
 
-    # 创建 Nginx 配置
-    cat > /etc/nginx/sites-available/$PROJECT_NAME << 'EOF'
+    # 检测 Nginx 配置目录
+    if [ -d "/www/server/nginx/conf" ]; then
+        # 宝塔面板 Nginx
+        NGINX_CONF_DIR="/www/server/nginx/conf/vhost"
+        NGINX_SSL_DIR="/www/server/nginx/ssl"
+        NGINX_LOG_DIR="/www/wwwlogs"
+        NGINX_RELOAD_CMD="nginx -s reload"
+    elif [ -d "/etc/nginx/sites-available" ]; then
+        # Ubuntu/Debian Nginx
+        NGINX_CONF_DIR="/etc/nginx/sites-available"
+        NGINX_SSL_DIR="/etc/nginx/ssl"
+        NGINX_LOG_DIR="/var/log/nginx"
+        NGINX_RELOAD_CMD="systemctl reload nginx"
+    elif [ -d "/etc/nginx/conf.d" ]; then
+        # CentOS/RHEL Nginx
+        NGINX_CONF_DIR="/etc/nginx/conf.d"
+        NGINX_SSL_DIR="/etc/nginx/ssl"
+        NGINX_LOG_DIR="/var/log/nginx"
+        NGINX_RELOAD_CMD="systemctl reload nginx"
+    else
+        echo -e "${YELLOW}! 未找到标准 Nginx 配置目录，跳过 Nginx 配置${NC}"
+        echo -e "${YELLOW}! 请手动配置 Nginx 反向代理到 http://127.0.0.1:$NODE_PORT${NC}"
+        return 0
+    fi
+
+    # 创建配置目录
+    mkdir -p "$NGINX_CONF_DIR"
+
+    # 创建 Nginx 配置文件
+    cat > "$NGINX_CONF_DIR/$PROJECT_NAME.conf" << EOF
 server {
-    listen 8443 ssl http2;
-    server_name aity88.online;
+    listen $PORT ssl http2;
+    server_name $DOMAIN;
 
     # SSL 证书配置
-    ssl_certificate /etc/nginx/ssl/aity88.online.crt;
-    ssl_certificate_key /etc/nginx/ssl/aity88.online.key;
+    ssl_certificate $NGINX_SSL_DIR/$DOMAIN.crt;
+    ssl_certificate_key $NGINX_SSL_DIR/$DOMAIN.key;
 
     # SSL 安全配置
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -194,20 +225,20 @@ server {
     ssl_prefer_server_ciphers on;
 
     # 日志配置
-    access_log /var/log/nginx/aity-access.log;
-    error_log /var/log/nginx/aity-error.log;
+    access_log $NGINX_LOG_DIR/aity-access.log;
+    error_log $NGINX_LOG_DIR/aity-error.log;
 
     # 反向代理配置
     location / {
-        proxy_pass http://127.0.0.1:3001;
+        proxy_pass http://127.0.0.1:$NODE_PORT;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
 
         # 超时配置
         proxy_connect_timeout 60s;
@@ -217,25 +248,29 @@ server {
 
     # 健康检查
     location /health {
-        proxy_pass http://127.0.0.1:3001/health;
+        proxy_pass http://127.0.0.1:$NODE_PORT/health;
         access_log off;
     }
 }
 EOF
 
-    # 启用站点
-    ln -sf /etc/nginx/sites-available/$PROJECT_NAME /etc/nginx/sites-enabled/
+    # 如果是 Ubuntu/Debian，创建软链接
+    if [ -d "/etc/nginx/sites-enabled" ]; then
+        ln -sf "$NGINX_CONF_DIR/$PROJECT_NAME.conf" /etc/nginx/sites-enabled/
+    fi
 
     # 测试配置
     nginx -t
 
     if [ $? -eq 0 ]; then
-        # 重启 Nginx
-        systemctl restart nginx
+        # 重载 Nginx
+        $NGINX_RELOAD_CMD
         echo -e "${GREEN}✓ Nginx 配置完成${NC}"
+        echo -e "${GREEN}  配置文件: $NGINX_CONF_DIR/$PROJECT_NAME.conf${NC}"
     else
         echo -e "${RED}✗ Nginx 配置测试失败${NC}"
-        exit 1
+        echo -e "${YELLOW}! 请检查 SSL 证书路径: $NGINX_SSL_DIR/$DOMAIN.crt${NC}"
+        echo -e "${YELLOW}! 如果证书路径不对，请手动修改配置文件${NC}"
     fi
 }
 
