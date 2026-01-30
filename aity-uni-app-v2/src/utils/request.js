@@ -3,9 +3,15 @@
  * 基于 uni.request 封装，支持 H5 和小程序
  */
 
-// API 基础地址
+// API 基础地址配置
+// 开发环境：
+//   - H5: 使用 '/api' 代理到本地后端
+//   - 小程序: 使用本机 IP 地址（需要在微信开发者工具中勾选"不校验合法域名"）
+// 生产环境：使用实际的 HTTPS 域名
 const BASE_URL = process.env.NODE_ENV === 'development'
-  ? '/api'  // 开发环境使用代理
+  ? (typeof window !== 'undefined' && window.location.protocol === 'http:'
+      ? '/api'  // H5 开发环境使用代理
+      : 'http://192.168.2.140:3001/api')  // 小程序开发环境使用本机 IP
   : 'https://aity88.online:8443/api'  // 生产环境使用实际地址
 
 /**

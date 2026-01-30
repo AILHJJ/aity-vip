@@ -21,7 +21,14 @@
       "Bash(npm install:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(timeout /t 15 /nobreak)",
+      "Bash(npm run dev:h5:*)",
+      "Bash(node:*)",
+      "Bash(if not exist scripts mkdir scripts)",
+      "Bash(npm run dev:mp-weixin:*)",
+      "Bash(where:*)",
+      "Bash(npm run build:mp-weixin:*)"
     ],
     "deny": [],
     "ask": []

@@ -49,7 +49,8 @@ export const useUserStore = defineStore('user', {
       try {
         const res = await loginApi(loginData)
 
-        if (res.success) {
+        // 后端返回格式: { code: 200, message, data: { token, user } }
+        if (res.code === 200 && res.data) {
           this.token = res.data.token
           this.userInfo = res.data.user
 
@@ -57,13 +58,13 @@ export const useUserStore = defineStore('user', {
           uni.setStorageSync('token', this.token)
           uni.setStorageSync('userInfo', this.userInfo)
 
-          return { success: true, data: res.data }
+          return res
         } else {
-          return { success: false, message: res.message || '登录失败' }
+          return res
         }
       } catch (error) {
         console.error('登录失败:', error)
-        return { success: false, message: error.message || '登录失败' }
+        throw error
       }
     },
 

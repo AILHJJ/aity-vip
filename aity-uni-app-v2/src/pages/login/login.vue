@@ -7,38 +7,44 @@
 			</view>
 
 			<view class="form-section">
-				<view class="input-group">
+				<!-- 用户名输入框 -->
+				<view class="input-wrapper">
+					<text class="input-label">用户名/邮箱</text>
 					<input
 						class="input-field"
 						v-model="formData.account"
+						type="text"
 						placeholder="请输入用户名或邮箱"
-						:maxlength="50"
+						placeholder-style="color: #999999"
 					/>
 				</view>
 
-				<view class="input-group">
+				<!-- 密码输入框 -->
+				<view class="input-wrapper">
+					<text class="input-label">密码</text>
 					<input
 						class="input-field"
 						v-model="formData.password"
 						type="password"
 						placeholder="请输入密码"
-						:maxlength="50"
+						placeholder-style="color: #999999"
 						@confirm="handleLogin"
 					/>
 				</view>
 
-				<view class="remember-section">
+				<!-- 记住我 -->
+				<view class="remember-wrapper">
 					<checkbox-group @change="handleRememberChange">
 						<label class="checkbox-label">
-							<checkbox :checked="formData.rememberMe" />
+							<checkbox :checked="formData.rememberMe" color="#667eea" />
 							<text class="checkbox-text">记住我</text>
 						</label>
 					</checkbox-group>
 				</view>
 
+				<!-- 登录按钮 -->
 				<button
 					class="login-btn"
-					:class="{ 'loading': loading }"
 					:disabled="loading"
 					@click="handleLogin"
 				>
@@ -48,6 +54,7 @@
 
 			<view class="footer-section">
 				<text class="footer-text">请使用管理员分配的账号登录</text>
+				<text class="footer-text">测试账号: admin / 123456</text>
 			</view>
 		</view>
 	</view>
@@ -104,7 +111,7 @@ const handleLogin = async () => {
 	try {
 		const result = await userStore.login(loginData)
 
-		if (result.success) {
+		if (result.code === 200 && result.data) {
 			uni.showToast({
 				title: '登录成功',
 				icon: 'success'
@@ -125,22 +132,13 @@ const handleLogin = async () => {
 	} catch (error) {
 		console.error('登录失败:', error)
 		uni.showToast({
-			title: '登录失败，请重试',
+			title: error.message || '登录失败，请重试',
 			icon: 'none'
 		})
 	} finally {
 		loading.value = false
 	}
 }
-
-// 页面加载时检查是否已登录
-uni.onLoad(() => {
-	if (userStore.isLoggedIn) {
-		uni.switchTab({
-			url: '/pages/messages/messages'
-		})
-	}
-})
 </script>
 
 <style lang="scss" scoped>
@@ -185,27 +183,31 @@ uni.onLoad(() => {
 	margin-bottom: 40rpx;
 }
 
-.input-group {
+.input-wrapper {
 	margin-bottom: 30rpx;
+}
+
+.input-label {
+	display: block;
+	font-size: 28rpx;
+	color: #666666;
+	margin-bottom: 10rpx;
+	font-weight: 500;
 }
 
 .input-field {
 	width: 100%;
-	height: 90rpx;
-	padding: 0 30rpx;
+	height: 88rpx;
+	padding: 0 24rpx;
 	font-size: 28rpx;
+	color: #333333;
+	background-color: #f5f5f5;
 	border: 2rpx solid #e0e0e0;
-	border-radius: 10rpx;
-	background: #f8f8f8;
+	border-radius: 8rpx;
 	box-sizing: border-box;
 }
 
-.input-field:focus {
-	border-color: #667eea;
-	background: #ffffff;
-}
-
-.remember-section {
+.remember-wrapper {
 	margin-bottom: 40rpx;
 }
 
@@ -222,23 +224,19 @@ uni.onLoad(() => {
 
 .login-btn {
 	width: 100%;
-	height: 90rpx;
-	line-height: 90rpx;
+	height: 88rpx;
+	line-height: 88rpx;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	color: #ffffff;
 	font-size: 32rpx;
 	font-weight: bold;
-	border-radius: 10rpx;
+	border-radius: 8rpx;
 	border: none;
 	text-align: center;
 }
 
-.login-btn.loading {
-	opacity: 0.7;
-}
-
-.login-btn:active {
-	opacity: 0.8;
+.login-btn[disabled] {
+	opacity: 0.6;
 }
 
 .footer-section {
@@ -247,7 +245,9 @@ uni.onLoad(() => {
 }
 
 .footer-text {
+	display: block;
 	font-size: 24rpx;
 	color: #999999;
+	margin-top: 10rpx;
 }
 </style>

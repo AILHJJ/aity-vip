@@ -1,5 +1,30 @@
 <template>
 	<view class="messages-container">
+		<!-- 管理员操作栏 -->
+		<view v-if="userStore.isAdmin" class="admin-bar">
+			<button class="create-btn" @click="goToCreate">
+				<text class="create-icon">✏️</text>
+				<text class="create-text">发布消息</text>
+			</button>
+		</view>
+
+		<!-- 搜索栏 -->
+		<view class="search-bar">
+			<view class="search-input-wrapper">
+				<text class="search-icon">🔍</text>
+				<input
+					class="search-input"
+					v-model="searchKeyword"
+					type="text"
+					placeholder="搜索消息标题或内容"
+					placeholder-style="color: #999999"
+					@confirm="handleSearch"
+				/>
+				<text v-if="searchKeyword" class="clear-icon" @click="clearSearch">×</text>
+			</view>
+			<button class="search-btn" @click="handleSearch">搜索</button>
+		</view>
+
 		<!-- 筛选栏 -->
 		<view class="filter-bar">
 			<scroll-view class="filter-scroll" scroll-x show-scrollbar="false">
@@ -41,7 +66,7 @@
 			<!-- 消息列表 -->
 			<view v-else class="messages-list">
 				<view
-					v-for="message in messages"
+					v-for="message in filteredMessages"
 					:key="message.id"
 					class="message-item"
 					@click="goToDetail(message.id)"
@@ -64,7 +89,7 @@
 								:key="tag"
 								class="message-tag"
 							>
-								{{ tag }}
+								{{ getTagLabel(tag) }}
 							</text>
 						</view>
 						<view class="message-stats">
@@ -97,7 +122,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
 import { getMessagesApi } from '../../api/message'
-import { MESSAGE_TYPE_LABELS, MESSAGE_TAGS } from '../../utils/constants'
+import { MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatFriendlyTime } from '../../utils/time'
 
 const userStore = useUserStore()
@@ -110,6 +135,7 @@ const page = ref(1)
 const limit = ref(20)
 const hasMore = ref(true)
 const activeTag = ref('')
+const searchKeyword = ref('')
 
 // 筛选标签
 const filterTags = computed(() => {
@@ -120,28 +146,71 @@ const filterTags = computed(() => {
 	// 根据用户角色显示不同的标签
 	if (userStore.isAdmin) {
 		tags.push(
-			{ label: MESSAGE_TAGS.SHORT_TERM, value: MESSAGE_TAGS.SHORT_TERM },
-			{ label: MESSAGE_TAGS.MID_TERM, value: MESSAGE_TAGS.MID_TERM },
-			{ label: MESSAGE_TAGS.ALL_USERS, value: MESSAGE_TAGS.ALL_USERS }
+			{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.SHORT_TERM], value: MESSAGE_TAGS.SHORT_TERM },
+			{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.MID_TERM], value: MESSAGE_TAGS.MID_TERM },
+			{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.ALL_USERS], value: MESSAGE_TAGS.ALL_USERS }
 		)
 	} else if (userStore.userRole === 'vip_short') {
 		tags.push(
-			{ label: MESSAGE_TAGS.SHORT_TERM, value: MESSAGE_TAGS.SHORT_TERM },
-			{ label: MESSAGE_TAGS.ALL_USERS, value: MESSAGE_TAGS.ALL_USERS }
+			{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.SHORT_TERM], value: MESSAGE_TAGS.SHORT_TERM },
+			{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.ALL_USERS], value: MESSAGE_TAGS.ALL_USERS }
 		)
 	} else if (userStore.userRole === 'vip_mid') {
 		tags.push(
-			{ label: MESSAGE_TAGS.MID_TERM, value: MESSAGE_TAGS.MID_TERM },
-			{ label: MESSAGE_TAGS.ALL_USERS, value: MESSAGE_TAGS.ALL_USERS }
+			{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.MID_TERM], value: MESSAGE_TAGS.MID_TERM },
+			{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.ALL_USERS], value: MESSAGE_TAGS.ALL_USERS }
 		)
 	}
 
 	return tags
 })
 
+// 根据用户角色和搜索关键词过滤消息
+const filteredMessages = computed(() => {
+	let filtered = messages.value
+
+	// 权限过滤：根据用户角色过滤消息
+	const userRole = userStore.userRole
+	if (userRole === 'vip_mid') {
+		// VIP中线用户：只显示包含"中线策略"或"全部用户"标签的消息
+		filtered = filtered.filter(msg => {
+			return msg.tags && (
+				msg.tags.includes(MESSAGE_TAGS.MID_TERM) ||
+				msg.tags.includes(MESSAGE_TAGS.ALL_USERS)
+			)
+		})
+	} else if (userRole === 'vip_short') {
+		// VIP短线用户：只显示包含"短线策略"或"全部用户"标签的消息
+		filtered = filtered.filter(msg => {
+			return msg.tags && (
+				msg.tags.includes(MESSAGE_TAGS.SHORT_TERM) ||
+				msg.tags.includes(MESSAGE_TAGS.ALL_USERS)
+			)
+		})
+	}
+	// trial、admin、super_admin 显示所有消息，不需要过滤
+
+	// 搜索过滤：根据关键词过滤标题和内容
+	if (searchKeyword.value.trim()) {
+		const keyword = searchKeyword.value.trim().toLowerCase()
+		filtered = filtered.filter(msg => {
+			const title = (msg.title || '').toLowerCase()
+			const content = (msg.content || '').toLowerCase()
+			return title.includes(keyword) || content.includes(keyword)
+		})
+	}
+
+	return filtered
+})
+
 // 获取消息类型标签
 const getMessageTypeLabel = (type) => {
 	return MESSAGE_TYPE_LABELS[type] || type
+}
+
+// 获取标签标签
+const getTagLabel = (tag) => {
+	return MESSAGE_TAG_LABELS[tag] || tag
 }
 
 // 加载消息列表
@@ -168,14 +237,18 @@ const loadMessages = async (isRefresh = false) => {
 		const res = await getMessagesApi(params)
 
 		if (res.success) {
+			// 后端返回格式: { success: true, data: [...], pagination: { total, page, limit, pages } }
+			const messageList = res.data || []
+			const total = res.pagination?.total || 0
+
 			if (isRefresh) {
-				messages.value = res.data.messages || []
+				messages.value = messageList
 			} else {
-				messages.value = [...messages.value, ...(res.data.messages || [])]
+				messages.value = [...messages.value, ...messageList]
 			}
 
 			// 判断是否还有更多
-			hasMore.value = messages.value.length < res.data.total
+			hasMore.value = messages.value.length < total
 		} else {
 			uni.showToast({
 				title: res.message || '加载失败',
@@ -211,6 +284,17 @@ const loadMore = () => {
 const handleTagFilter = (tag) => {
 	activeTag.value = tag
 	loadMessages(true)
+}
+
+// 搜索
+const handleSearch = () => {
+	// 搜索在客户端进行过滤，不需要重新加载
+	// 如果需要服务端搜索，可以在这里调用 loadMessages(true)
+}
+
+// 清除搜索
+const clearSearch = () => {
+	searchKeyword.value = ''
 }
 
 // 跳转到详情
@@ -254,6 +338,87 @@ uni.onShow(() => {
 	display: flex;
 	flex-direction: column;
 	background: #f5f5f5;
+}
+
+.admin-bar {
+	padding: 20rpx;
+	background: #ffffff;
+	border-bottom: 1rpx solid #e0e0e0;
+}
+
+.create-btn {
+	width: 100%;
+	height: 80rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10rpx;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border: none;
+	border-radius: 40rpx;
+	color: #ffffff;
+	font-size: 30rpx;
+	font-weight: 500;
+	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+}
+
+.create-icon {
+	font-size: 32rpx;
+}
+
+.create-text {
+	font-size: 30rpx;
+}
+
+.search-bar {
+	display: flex;
+	align-items: center;
+	gap: 20rpx;
+	padding: 20rpx;
+	background: #ffffff;
+	border-bottom: 1rpx solid #e0e0e0;
+}
+
+.search-input-wrapper {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	height: 70rpx;
+	padding: 0 20rpx;
+	background: #f5f5f5;
+	border-radius: 35rpx;
+}
+
+.search-icon {
+	font-size: 32rpx;
+	margin-right: 10rpx;
+}
+
+.search-input {
+	flex: 1;
+	font-size: 28rpx;
+	color: #333333;
+	background: transparent;
+}
+
+.clear-icon {
+	font-size: 40rpx;
+	color: #999999;
+	margin-left: 10rpx;
+	line-height: 1;
+}
+
+.search-btn {
+	width: 120rpx;
+	height: 70rpx;
+	line-height: 70rpx;
+	padding: 0;
+	font-size: 28rpx;
+	color: #ffffff;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border: none;
+	border-radius: 35rpx;
+	text-align: center;
 }
 
 .filter-bar {

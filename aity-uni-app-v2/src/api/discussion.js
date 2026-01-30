@@ -76,6 +76,42 @@ export function getDiscussionRepliesApi(id) {
   return get(`/discussions/${id}/replies`)
 }
 
+/**
+ * 收藏讨论
+ * @param {Number} id 讨论ID
+ * @returns {Promise}
+ */
+export function favoriteDiscussionApi(id) {
+  return post(`/discussions/${id}/favorite`)
+}
+
+/**
+ * 取消收藏讨论
+ * @param {Number} id 讨论ID
+ * @returns {Promise}
+ */
+export function unfavoriteDiscussionApi(id) {
+  return del(`/discussions/${id}/favorite`)
+}
+
+/**
+ * 获取收藏的讨论列表
+ * @param {Object} params 查询参数
+ * @returns {Promise}
+ */
+export function getFavoriteDiscussionsApi(params = {}) {
+  return get('/discussions/favorites', params)
+}
+
+/**
+ * 获取我的讨论列表
+ * @param {Object} params 查询参数
+ * @returns {Promise}
+ */
+export function getMyDiscussionsApi(params = {}) {
+  return get('/discussions/my', params)
+}
+
 export default {
   getDiscussionsApi,
   getDiscussionDetailApi,
@@ -83,5 +119,9 @@ export default {
   updateDiscussionVisibilityApi,
   deleteDiscussionApi,
   replyDiscussionApi,
-  getDiscussionRepliesApi
+  getDiscussionRepliesApi,
+  favoriteDiscussionApi,
+  unfavoriteDiscussionApi,
+  getFavoriteDiscussionsApi,
+  getMyDiscussionsApi
 }

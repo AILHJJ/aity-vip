@@ -1,5 +1,22 @@
 <template>
 	<view class="discussions-container">
+		<!-- 搜索栏 -->
+		<view class="search-bar">
+			<view class="search-input-wrapper">
+				<text class="search-icon">🔍</text>
+				<input
+					class="search-input"
+					v-model="searchKeyword"
+					type="text"
+					placeholder="搜索讨论标题或内容"
+					placeholder-style="color: #999999"
+					@confirm="handleSearch"
+				/>
+				<text v-if="searchKeyword" class="clear-icon" @click="clearSearch">×</text>
+			</view>
+			<button class="search-btn" @click="handleSearch">搜索</button>
+		</view>
+
 		<!-- 筛选栏 -->
 		<view class="filter-bar">
 			<view
@@ -29,7 +46,7 @@
 			</view>
 
 			<!-- 空状态 -->
-			<view v-else-if="discussions.length === 0" class="empty-state">
+			<view v-else-if="filteredDiscussions.length === 0" class="empty-state">
 				<text class="empty-icon">💬</text>
 				<text class="empty-text">暂无讨论</text>
 			</view>
@@ -37,7 +54,7 @@
 			<!-- 讨论列表 -->
 			<view v-else class="discussions-list">
 				<view
-					v-for="discussion in discussions"
+					v-for="discussion in filteredDiscussions"
 					:key="discussion.id"
 					class="discussion-item"
 					@click="goToDetail(discussion.id)"
@@ -80,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
 import { getDiscussionsApi } from '../../api/discussion'
 import { formatFriendlyTime } from '../../utils/time'
@@ -95,6 +112,7 @@ const page = ref(1)
 const limit = ref(20)
 const hasMore = ref(true)
 const activeFilter = ref('')
+const searchKeyword = ref('')
 
 // 筛选选项
 const filters = ref([
@@ -102,6 +120,38 @@ const filters = ref([
 	{ label: '待回复', value: 'pending' },
 	{ label: '已回复', value: 'replied' }
 ])
+
+// 根据权限和搜索关键词过滤讨论
+const filteredDiscussions = computed(() => {
+	let filtered = discussions.value
+
+	// 权限过滤：私密讨论只有管理员和发起者可见
+	if (!userStore.isAdmin) {
+		filtered = filtered.filter(discussion => {
+			// 公开讨论所有人可见
+			if (discussion.visibility === 'public') {
+				return true
+			}
+			// 私密讨论只有发起者可见
+			if (discussion.visibility === 'private') {
+				return discussion.creatorId === userStore.userInfo?.id
+			}
+			return true
+		})
+	}
+
+	// 搜索过滤：根据关键词过滤标题和内容
+	if (searchKeyword.value.trim()) {
+		const keyword = searchKeyword.value.trim().toLowerCase()
+		filtered = filtered.filter(discussion => {
+			const title = (discussion.title || '').toLowerCase()
+			const content = (discussion.content || '').toLowerCase()
+			return title.includes(keyword) || content.includes(keyword)
+		})
+	}
+
+	return filtered
+})
 
 // 加载讨论列表
 const loadDiscussions = async (isRefresh = false) => {
@@ -172,6 +222,16 @@ const handleFilter = (value) => {
 	loadDiscussions(true)
 }
 
+// 搜索
+const handleSearch = () => {
+	// 搜索在客户端进行过滤，不需要重新加载
+}
+
+// 清除搜索
+const clearSearch = () => {
+	searchKeyword.value = ''
+}
+
 // 跳转到详情
 const goToDetail = (id) => {
 	uni.navigateTo({
@@ -206,6 +266,57 @@ uni.onShow(() => {
 	display: flex;
 	flex-direction: column;
 	background: #f5f5f5;
+}
+
+.search-bar {
+	display: flex;
+	align-items: center;
+	gap: 20rpx;
+	padding: 20rpx;
+	background: #ffffff;
+	border-bottom: 1rpx solid #e0e0e0;
+}
+
+.search-input-wrapper {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	height: 70rpx;
+	padding: 0 20rpx;
+	background: #f5f5f5;
+	border-radius: 35rpx;
+}
+
+.search-icon {
+	font-size: 32rpx;
+	margin-right: 10rpx;
+}
+
+.search-input {
+	flex: 1;
+	font-size: 28rpx;
+	color: #333333;
+	background: transparent;
+}
+
+.clear-icon {
+	font-size: 40rpx;
+	color: #999999;
+	margin-left: 10rpx;
+	line-height: 1;
+}
+
+.search-btn {
+	width: 120rpx;
+	height: 70rpx;
+	line-height: 70rpx;
+	padding: 0;
+	font-size: 28rpx;
+	color: #ffffff;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border: none;
+	border-radius: 35rpx;
+	text-align: center;
 }
 
 .filter-bar {

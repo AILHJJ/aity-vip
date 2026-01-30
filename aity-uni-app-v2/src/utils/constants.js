@@ -32,9 +32,9 @@ export const MESSAGE_TYPE_LABELS = {
 
 // 消息标签（权限控制）
 export const MESSAGE_TAGS = {
-  SHORT_TERM: '短线策略',
-  MID_TERM: '中线策略',
-  ALL_USERS: '全部用户'
+  SHORT_TERM: 'short_term',
+  MID_TERM: 'mid_term',
+  ALL_USERS: 'all_users'
 }
 
 // 消息标签标签映射
