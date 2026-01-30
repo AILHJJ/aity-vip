@@ -8,7 +8,7 @@ NC='\033[0m' # No Color
 
 # 配置变量
 PROJECT_NAME="aity-backend"
-PROJECT_DIR="/var/www/aity-backend"
+PROJECT_DIR="/root/AITY/backend"
 DOMAIN="aity88.online"
 PORT=8443
 NODE_PORT=3001
@@ -76,31 +76,19 @@ check_nginx() {
     fi
 }
 
-# 5. 创建项目目录
+# 5. 设置项目目录
 setup_project_dir() {
-    echo -e "\n${YELLOW}[5/11] 设置项目目录...${NC}"
+    echo -e "\n${YELLOW}[5/11] 检查项目目录...${NC}"
 
-    # 如果项目目录已存在，先备份
+    # 检查项目目录是否存在
     if [ -d "$PROJECT_DIR" ]; then
-        BACKUP_DIR="${PROJECT_DIR}_backup_$(date +%Y%m%d_%H%M%S)"
-        echo -e "${YELLOW}→ 备份现有项目到: $BACKUP_DIR${NC}"
-        mv "$PROJECT_DIR" "$BACKUP_DIR"
-    fi
-
-    # 创建新的项目目录
-    mkdir -p "$PROJECT_DIR"
-
-    # 复制代码
-    if [ -d "/tmp/backend" ]; then
-        echo -e "${YELLOW}→ 复制代码到项目目录...${NC}"
-        cp -r /tmp/backend/* "$PROJECT_DIR/"
+        echo -e "${GREEN}✓ 项目目录已存在: $PROJECT_DIR${NC}"
     else
-        echo -e "${RED}✗ 错误: /tmp/backend 目录不存在${NC}"
-        echo -e "${YELLOW}请先将代码上传到 /tmp/backend${NC}"
+        echo -e "${RED}✗ 错误: 项目目录不存在: $PROJECT_DIR${NC}"
         exit 1
     fi
 
-    echo -e "${GREEN}✓ 项目目录设置完成${NC}"
+    echo -e "${GREEN}✓ 项目目录检查完成${NC}"
 }
 
 # 6. 配置环境变量
