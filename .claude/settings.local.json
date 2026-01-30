@@ -18,7 +18,10 @@
       "Bash(python -m json.tool:*)",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjUsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoic3VwZXJfYWRtaW4iLCJpYXQiOjE3Njk2ODExMDUsImV4cCI6MTc2OTc2NzUwNX0.SjMNwjiD5HOTMWeGmqPGCP12P6pA-hNVlDRE4TaIc38\")",
       "Bash(python -c:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []

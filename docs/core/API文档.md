@@ -4,7 +4,7 @@
 
 ### 基础URL
 - 开发环境：http://localhost:3001/api
-- 生产环境：http://your-domain.com/api
+- 生产环境：https://aity88.online:8443/api
 
 ### 响应格式
 

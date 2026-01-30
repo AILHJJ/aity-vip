@@ -1,9 +1,10 @@
-# 云服务器和部署信息
+# 部署与运维指南
 
 > **文档版本**：v1.0.0
 > **创建日期**：2026-01-29
 > **最后更新**：2026-01-29
 > **文档类型**：服务器和部署信息汇总
+> **集成目标**：与字节跳动 Trae 编辑器无缝集成，支持 Skill 功能
 
 ---
 
@@ -375,7 +376,10 @@ npm run dev
 1. **构建前端**
 ```bash
 cd aity-uni-app-new
+# 构建H5版本
 npm run build:h5
+# 构建小程序版本（以微信小程序为例）
+npm run build:mp-weixin
 ```
 
 2. **部署到服务器**
@@ -394,6 +398,26 @@ ssh root@124.221.119.134 "cd /var/www/aity-vip/backend && pm2 restart private-sh
 ```bash
 ssh root@124.221.119.134 "nginx -t && systemctl reload nginx"
 ```
+
+### 小程序部署
+
+1. **构建小程序代码**
+```bash
+# 构建微信小程序
+npm run build:mp-weixin
+# 构建支付宝小程序
+npm run build:mp-alipay
+# 构建百度小程序
+npm run build:mp-baidu
+# 构建字节跳动小程序
+npm run build:mp-toutiao
+```
+
+2. **上传到小程序平台**
+- **微信小程序**：使用微信开发者工具导入 `dist/build/mp-weixin` 目录，然后上传代码
+- **支付宝小程序**：使用支付宝开发者工具导入 `dist/build/mp-alipay` 目录，然后上传代码
+- **百度小程序**：使用百度开发者工具导入 `dist/build/mp-baidu` 目录，然后上传代码
+- **字节跳动小程序**：使用字节跳动开发者工具导入 `dist/build/mp-toutiao` 目录，然后上传代码
 
 ---
 

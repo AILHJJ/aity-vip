@@ -1,10 +1,9 @@
-# uni-app 开发规范
+# Uni-App 前端开发规范
 
 > **适用范围**：AITY VIP 项目前端开发
-> **技术栈**：Vue 3 + uni-app + Vite
-> **核心目标**：同时支持小程序和H5双端部署
-
----
+> **技术栈**：Vue 3 (Composition API) + uni-app + Vite
+> **核心目标**：同时支持 H5、微信小程序、支付宝小程序、百度小程序、字节跳动小程序多端部署
+> **集成目标**：与字节跳动 Trae 编辑器无缝集成，支持 Skill 功能
 
 ## 🎯 核心原则
 
@@ -13,8 +12,9 @@
 3. **使用 pages.json** 配置路由，不是 Vue Router
 4. **使用 uni-app 路由 API** 进行页面跳转
 5. **使用 uni.request** 进行网络请求（小程序端）
-
----
+6. **遵循 Trae 编辑器规范**，确保 Skill 功能正常运行
+7. **统一代码风格**，使用 ESLint + Prettier 进行代码检查
+8. **模块化开发**，提高代码复用性和可维护性
 
 ## ✅ 组件使用规范
 
@@ -75,15 +75,6 @@
       <view>{{ selectedLabel }}</view>
     </picker>
     <!-- #endif -->
-    
-    <!-- #ifdef MP-ALIPAY -->
-    <button @click="handleClick">按钮</button>
-    <input v-model="value" placeholder="请输入" />
-    <checkbox v-model="checked">选项</checkbox>
-    <picker @change="onPickerChange">
-      <view>{{ selectedLabel }}</view>
-    </picker>
-    <!-- #endif -->
   </view>
 </template>
 
@@ -106,8 +97,6 @@ const onPickerChange = (e) => {
 </script>
 ```
 
----
-
 ## 🚀 路由配置规范
 
 ### pages.json（主要路由配置）
@@ -118,9 +107,7 @@ const onPickerChange = (e) => {
     {
       "path": "pages/login/login",
       "style": {
-        "navigationBarTitleText": "登录",
-        "navigationBarBackgroundColor": "#ffffff",
-        "navigationBarTextStyle": "black"
+        "navigationBarTitleText": "登录"
       }
     },
     {
@@ -171,13 +158,7 @@ const onPickerChange = (e) => {
 ```javascript
 // 跳转到新页面（保留当前页面）
 uni.navigateTo({
-  url: '/pages/messages/messages?id=123',
-  success: () => {
-    console.log('跳转成功')
-  },
-  fail: (err) => {
-    console.error('跳转失败', err)
-  }
+  url: '/pages/messages/messages?id=123'
 })
 
 // 关闭当前页面，跳转到新页面
@@ -200,8 +181,6 @@ uni.reLaunch({
   url: '/pages/login/login'
 })
 ```
-
----
 
 ## 📡 API调用规范
 
@@ -256,22 +235,6 @@ export function post(url, data) {
     data
   })
 }
-
-export function put(url, data) {
-  return request({
-    url,
-    method: 'PUT',
-    data
-  })
-}
-
-export function del(url, data) {
-  return request({
-    url,
-    method: 'DELETE',
-    data
-  })
-}
 ```
 
 ### H5端可选Axios
@@ -298,33 +261,9 @@ request.interceptors.request.use(
   }
 )
 
-request.interceptors.response.use(
-  response => {
-    const res = response.data
-    if (res.code === 200) {
-      return res
-    } else {
-      uni.showToast({
-        title: res.message || '请求失败',
-        icon: 'none'
-      })
-      return Promise.reject(res)
-    }
-  },
-  error => {
-    uni.showToast({
-      title: '网络请求失败',
-      icon: 'none'
-    })
-    return Promise.reject(error)
-  }
-)
-
 export default request
 // #endif
 ```
-
----
 
 ## 🎨 样式规范
 
@@ -359,8 +298,6 @@ export default request
   /* #endif */
 }
 ```
-
----
 
 ## 📱 平台特定API
 
@@ -410,8 +347,6 @@ window.localStorage.getItem('key')
 window.open('https://example.com')
 // #endif
 ```
-
----
 
 ## ⚠️ 常见错误和解决方案
 
@@ -489,8 +424,6 @@ uni.request({
 }
 ```
 
----
-
 ## 📋 开发检查清单
 
 在开发uni-app页面时，请确认：
@@ -503,9 +436,95 @@ uni.request({
 - [ ] 使用 rpx 单位设置样式
 - [ ] 测试 H5 端运行效果
 - [ ] 测试小程序端运行效果
+- [ ] 代码符合 ESLint + Prettier 规范
+- [ ] 组件命名和文件结构符合项目规范
+- [ ] 已处理平台特定的API调用
+
+## 🚀 Trae 编辑器集成指南
+
+### Skill 功能支持
+
+Trae 编辑器已经支持 Skill 功能，您可以通过以下方式使用：
+
+1. **创建 Skill 文件**：在 `.claude/skills` 目录下创建 markdown 文件
+2. **编写 Skill 内容**：使用标准 markdown 格式，包含代码示例和说明
+3. **集成到 Trae**：Trae 会自动识别并加载这些 Skill 文件
+
+### 最佳实践
+
+- **使用清晰的标题层级**：便于 Trae 编辑器索引和展示
+- **提供详细的代码示例**：使用代码块，包含注释说明
+- **添加使用场景**：说明在什么情况下使用该 Skill
+- **遵循统一的格式**：保持所有 Skill 文件的格式一致
+
+### 示例：创建一个简单的 Skill
+
+```markdown
+# 网络请求封装
+
+> **适用场景**：需要在多端进行网络请求时
+> **技术栈**：uni-app + Vue 3
+
+## 📋 功能说明
+
+封装 uni.request，支持 Promise 语法，统一处理错误和认证。
+
+## 💻 代码示例
+
+```javascript
+// src/utils/request.js
+export function request(options) {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: import.meta.env.VITE_API_BASE_URL + options.url,
+      method: options.method || 'GET',
+      data: options.data,
+      header: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + uni.getStorageSync('token')
+      },
+      success: (res) => {
+        if (res.data.code === 200) {
+          resolve(res.data)
+        } else {
+          uni.showToast({
+            title: res.data.message || '请求失败',
+            icon: 'none'
+          })
+          reject(res.data)
+        }
+      },
+      fail: (err) => {
+        uni.showToast({
+          title: '网络请求失败',
+          icon: 'none'
+        })
+        reject(err)
+      }
+    })
+  })
+}
+```
+
+## 🎯 使用方法
+
+```javascript
+// 导入
+import { get, post } from '@/utils/request'
+
+// 使用
+async function fetchMessages() {
+  try {
+    const res = await get('/api/messages')
+    console.log(res.data)
+  } catch (error) {
+    console.error(error)
+  }
+}
+```
 
 ---
 
 **文档维护者**：开发团队
-**最后更新**：2026-01-29
+**最后更新**：2026-01-30
 **适用范围**：AITY VIP 项目前端开发
