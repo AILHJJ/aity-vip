@@ -31,7 +31,9 @@
       "Bash(npm run build:mp-weixin:*)",
       "Bash(set VERSION=1.0.0)",
       "Bash(set:*)",
-      "Bash(npm run upload:weixin:*)"
+      "Bash(npm run upload:weixin:*)",
+      "Bash(if not exist backendscripts mkdir backendscripts)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
