@@ -15,12 +15,18 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@dcloudio/uni-app": "^2.0.2-4080720251210002",
+    "@dcloudio/uni-cli-i18n": "^2.0.2-4080720251210002",
+    "@dcloudio/uni-cli-shared": "^2.0.2-4080720251210002",
+    "@dcloudio/uni-ui": "^1.5.11",
+    "@dcloudio/vite-plugin-uni": "^3.0.0-alpha-3000020210521001",
     "@element-plus/icons-vue": "^2.3.1",
     "axios": "^1.6.2",
     "element-plus": "^2.5.0",
     "pinia": "^2.1.7",
     "vue": "^3.2.0",
-    "vue-router": "^4.1.0"
+    "vue-router": "^4.1.0",
+    "webpack": "^5.104.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.0.0",
