@@ -2,8 +2,8 @@
 	<view class="login-container">
 		<view class="login-box">
 			<view class="logo-section">
-				<text class="app-title">VIP投研分享系统</text>
-				<text class="app-subtitle">内部投研信息分享平台</text>
+				<text class="app-title">投研图灵室</text>
+				<text class="app-subtitle">金融知识学习平台</text>
 			</view>
 
 			<view class="form-section">
@@ -54,7 +54,6 @@
 
 			<view class="footer-section">
 				<text class="footer-text">请使用管理员分配的账号登录</text>
-				<text class="footer-text">测试账号: admin / 123456</text>
 			</view>
 		</view>
 	</view>
