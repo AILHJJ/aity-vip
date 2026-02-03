@@ -4,10 +4,13 @@
 			<view class="form-container">
 				<!-- 标题 -->
 				<view class="form-item">
-					<Input
+					<text class="form-label">消息标题</text>
+					<input
 						v-model="formData.title"
-						label="消息标题"
+						type="text"
 						placeholder="请输入消息标题"
+						placeholder-style="color: #999999"
+						class="form-input"
 						maxlength="100"
 					/>
 				</view>
@@ -138,7 +141,6 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useUserStore } from '../../store/user'
 import { createMessageApi, updateMessageApi, getMessageDetailApi } from '../../api/message'
 import { MESSAGE_TYPES, MESSAGE_TAGS, MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS } from '../../utils/constants'
-import { Input } from '@/components/common'
 
 const userStore = useUserStore()
 
@@ -871,55 +873,63 @@ onBeforeUnmount(() => {
 }
 
 .preview-container {
-	min-height: 300rpx;
-	padding: 24rpx;
+	min-height: 400rpx;
+	max-height: 800rpx;
+	padding: 32rpx 28rpx;
 	background-color: #ffffff;
 	border: 2rpx solid #e0e0e0;
 	border-radius: 8rpx;
 	box-sizing: border-box;
+	overflow-y: auto;
 }
 
 .markdown-preview {
-	font-size: 28rpx;
-	color: #333333;
-	line-height: 1.8;
+	font-size: 30rpx;
+	color: #2c3e50;
+	line-height: 1.9;
 	word-wrap: break-word;
 	overflow-wrap: break-word;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Markdown渲染样式 */
+/* Markdown渲染样式 - 参考mdnice */
 .markdown-preview h1,
 .markdown-preview h2,
 .markdown-preview h3 {
-	margin: 30rpx 0 20rpx;
-	font-weight: 600;
+	margin: 48rpx 0 24rpx;
+	font-weight: 700;
 	line-height: 1.4;
+	color: #1a1a1a;
 }
 
 .markdown-preview h1 {
-	font-size: 48rpx;
-	color: #1a1a1a;
-	padding-bottom: 16rpx;
-	border-bottom: 4rpx solid #e0e0e0;
+	font-size: 52rpx;
+	padding-bottom: 20rpx;
+	border-bottom: 6rpx solid #667eea;
+	margin-top: 0;
 }
 
 .markdown-preview h2 {
-	font-size: 40rpx;
-	color: #2c2c2c;
+	font-size: 44rpx;
+	padding-bottom: 16rpx;
+	border-bottom: 3rpx solid #e8e8e8;
 }
 
 .markdown-preview h3 {
-	font-size: 34rpx;
-	color: #3a3a3a;
+	font-size: 38rpx;
+	color: #333;
 }
 
 .markdown-preview p {
-	margin: 20rpx 0;
+	margin: 24rpx 0;
+	line-height: 1.9;
+	text-align: justify;
 }
 
 .markdown-preview strong {
-	font-weight: 600;
+	font-weight: 700;
 	color: #1a1a1a;
+	background: linear-gradient(180deg, transparent 65%, #ffd700 65%);
 }
 
 .markdown-preview em {
@@ -928,65 +938,119 @@ onBeforeUnmount(() => {
 }
 
 .markdown-preview code.inline-code {
-	padding: 4rpx 12rpx;
-	font-family: 'Courier New', Courier, monospace;
+	padding: 6rpx 14rpx;
+	font-family: "Menlo", "Monaco", "Consolas", "Courier New", monospace;
 	font-size: 26rpx;
 	color: #e74c3c;
-	background: #f8f8f8;
-	border: 1rpx solid #e0e0e0;
-	border-radius: 4rpx;
+	background: #fff5f5;
+	border: 1rpx solid #fed7d7;
+	border-radius: 6rpx;
+	font-weight: 500;
 }
 
 .markdown-preview pre {
-	margin: 24rpx 0;
-	padding: 24rpx;
-	background: #2d2d2d;
-	border-radius: 8rpx;
+	margin: 28rpx 0;
+	padding: 28rpx;
+	background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+	border-radius: 12rpx;
 	overflow-x: auto;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+	border: 2rpx solid #4a5568;
 }
 
 .markdown-preview pre code.code-block {
 	display: block;
-	font-family: 'Courier New', Courier, monospace;
-	font-size: 24rpx;
-	color: #f8f8f2;
-	line-height: 1.6;
+	font-family: "Menlo", "Monaco", "Consolas", "Courier New", monospace;
+	font-size: 26rpx;
+	color: #e2e8f0;
+	line-height: 1.7;
 	white-space: pre-wrap;
 	word-wrap: break-word;
 }
 
 .markdown-preview blockquote {
-	margin: 20rpx 0;
-	padding: 20rpx 24rpx;
-	font-size: 28rpx;
-	color: #666666;
-	background: #f9f9f9;
-	border-left: 8rpx solid #667eea;
-	border-radius: 0 8rpx 8rpx 0;
+	margin: 24rpx 0;
+	padding: 24rpx 28rpx;
+	font-size: 30rpx;
+	color: #4a5568;
+	background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+	border-left: 10rpx solid #667eea;
+	border-radius: 8rpx;
+	box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
 }
 
-.markdown-preview ul {
-	margin: 20rpx 0;
-	padding-left: 48rpx;
+.markdown-preview blockquote p {
+	margin: 0;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+	margin: 24rpx 0;
+	padding-left: 56rpx;
 }
 
 .markdown-preview li {
-	margin: 12rpx 0;
+	margin: 16rpx 0;
+	line-height: 1.9;
+	list-style-position: outside;
+}
+
+.markdown-preview ul li {
 	list-style-type: disc;
-	line-height: 1.8;
 }
 
 .markdown-preview ul ul {
-	margin: 12rpx 0;
+	margin: 16rpx 0;
+}
+
+.markdown-preview ol li {
+	list-style-type: decimal;
 }
 
 .markdown-preview a.md-link {
 	color: #667eea;
-	text-decoration: underline;
+	text-decoration: none;
+	border-bottom: 2rpx solid #667eea;
+	transition: all 0.2s;
+	font-weight: 500;
 }
 
 .markdown-preview a.md-link:active {
 	color: #764ba2;
+	border-bottom-color: #764ba2;
+}
+
+.markdown-preview hr {
+	border: none;
+	border-top: 3rpx solid #e8e8e8;
+	margin: 48rpx 0;
+}
+
+.markdown-preview table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 24rpx 0;
+	font-size: 28rpx;
+}
+
+.markdown-preview table th,
+.markdown-preview table td {
+	border: 2rpx solid #e8e8e8;
+	padding: 16rpx;
+	text-align: left;
+}
+
+.markdown-preview table th {
+	background: #f7fafc;
+	font-weight: 600;
+}
+
+.markdown-preview img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 8rpx;
+	margin: 24rpx 0;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
 }
 
 .char-count {

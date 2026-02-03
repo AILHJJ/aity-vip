@@ -8,21 +8,29 @@
 
 			<view class="form-section">
 				<!-- 用户名输入框 -->
-				<Input
-					v-model="formData.account"
-					label="用户名/邮箱"
-					type="text"
-					placeholder="请输入用户名或邮箱"
-				/>
+				<view class="input-wrapper">
+					<text class="input-label">用户名/邮箱</text>
+					<input
+						v-model="formData.account"
+						type="text"
+						placeholder="请输入用户名或邮箱"
+						placeholder-style="color: #999999"
+						class="form-input"
+					/>
+				</view>
 
 				<!-- 密码输入框 -->
-				<Input
-					v-model="formData.password"
-					label="密码"
-					type="password"
-					placeholder="请输入密码"
-					@confirm="handleLogin"
-				/>
+				<view class="input-wrapper">
+					<text class="input-label">密码</text>
+					<input
+						v-model="formData.password"
+						type="password"
+						placeholder="请输入密码"
+						placeholder-style="color: #999999"
+						class="form-input"
+						@confirm="handleLogin"
+					/>
+				</view>
 
 				<!-- 记住我 -->
 				<view class="remember-wrapper">
@@ -54,7 +62,6 @@
 <script setup>
 import { ref } from 'vue'
 import { useUserStore } from '../../store/user'
-import { Input } from '@/components/common'
 
 const userStore = useUserStore()
 
@@ -182,12 +189,12 @@ const handleLogin = async () => {
 .input-label {
 	display: block;
 	font-size: 28rpx;
-	color: #666666;
-	margin-bottom: 10rpx;
+	color: #333333;
+	margin-bottom: 12rpx;
 	font-weight: 500;
 }
 
-.input-field {
+.form-input {
 	width: 100%;
 	height: 88rpx;
 	padding: 0 24rpx;
@@ -197,6 +204,12 @@ const handleLogin = async () => {
 	border: 2rpx solid #e0e0e0;
 	border-radius: 8rpx;
 	box-sizing: border-box;
+	transition: all 0.3s;
+
+	&:focus {
+		background-color: #ffffff;
+		border-color: #667eea;
+	}
 }
 
 .remember-wrapper {
