@@ -118,13 +118,14 @@
 
 					<view class="message-footer">
 						<view class="message-tags">
-							<text
+							<view
 								v-for="tag in message.tags"
 								:key="tag"
 								class="message-tag"
+								:class="getTagClass(tag)"
 							>
-								{{ getTagLabel(tag) }}
-							</text>
+								<text class="tag-text">{{ getTagLabel(tag) }}</text>
+							</view>
 						</view>
 						<view class="message-stats">
 							<text class="stat-item">👁 {{ message.readCount || 0 }}</text>
@@ -252,6 +253,16 @@ const getMessageTypeLabel = (type) => {
 // 获取标签标签
 const getTagLabel = (tag) => {
 	return MESSAGE_TAG_LABELS[tag] || tag
+}
+
+// 获取标签样式类名
+const getTagClass = (tag) => {
+	const tagClassMap = {
+		[MESSAGE_TAGS.ALL_USERS]: 'tag-all-users',
+		[MESSAGE_TAGS.MID_TERM]: 'tag-mid-term',
+		[MESSAGE_TAGS.SHORT_TERM]: 'tag-short-term'
+	}
+	return tagClassMap[tag] || 'tag-default'
 }
 
 // 加载消息列表
@@ -706,22 +717,57 @@ onMounted(async () => {
 	border-radius: 20rpx;
 	font-weight: 500;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
 
 	// 为不同类型设置不同的渐变色
 	&.type-pre_market_comment {
 		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
+	}
+
+	&.type-morning_comment {
+		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+		box-shadow: 0 2rpx 8rpx rgba(79, 172, 254, 0.3);
+	}
+
+	&.type-morning_focus {
+		background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+		box-shadow: 0 2rpx 8rpx rgba(67, 233, 123, 0.3);
+	}
+
+	&.type-afternoon_comment {
+		background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+		box-shadow: 0 2rpx 8rpx rgba(250, 112, 154, 0.3);
+	}
+
+	&.type-afternoon_focus {
+		background: linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%);
+		box-shadow: 0 2rpx 8rpx rgba(255, 154, 86, 0.3);
+	}
+
+	&.type-close_comment {
+		background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+		box-shadow: 0 2rpx 8rpx rgba(161, 140, 209, 0.3);
 	}
 
 	&.type-risk_warning {
 		background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+		box-shadow: 0 2rpx 8rpx rgba(240, 147, 251, 0.3);
 	}
 
-	&.type-morning_focus {
-		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+	&.type-system {
+		background: linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%);
+		box-shadow: 0 2rpx 8rpx rgba(149, 165, 166, 0.3);
 	}
 
 	&.type-important {
 		background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+		box-shadow: 0 2rpx 8rpx rgba(253, 160, 133, 0.3);
+	}
+
+	&.type-daily {
+		background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+		box-shadow: 0 2rpx 8rpx rgba(102, 166, 255, 0.3);
 	}
 }
 
@@ -761,15 +807,46 @@ onMounted(async () => {
 .message-tags {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 10rpx;
+	gap: 12rpx;
 }
 
 .message-tag {
-	padding: 6rpx 16rpx;
+	padding: 8rpx 20rpx;
+	border-radius: 16rpx;
 	font-size: 22rpx;
-	color: #667eea;
-	background: #f0f2ff;
-	border-radius: 12rpx;
+	font-weight: 500;
+	transition: all 0.3s ease;
+
+	// 默认标签
+	&.tag-default {
+		background: #f5f5f5;
+		color: #999999;
+	}
+
+	// 全部用户 - 紫色
+	&.tag-all-users {
+		background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+		color: #667eea;
+		border: 1rpx solid rgba(102, 126, 234, 0.2);
+	}
+
+	// 中线策略 - 蓝色
+	&.tag-mid-term {
+		background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
+		color: #4facfe;
+		border: 1rpx solid rgba(79, 172, 254, 0.2);
+	}
+
+	// 短线策略 - 绿色
+	&.tag-short-term {
+		background: linear-gradient(135deg, rgba(67, 233, 123, 0.1) 0%, rgba(56, 249, 215, 0.1) 100%);
+		color: #43e97b;
+		border: 1rpx solid rgba(67, 233, 123, 0.2);
+	}
+}
+
+.tag-text {
+	display: block;
 }
 
 .message-stats {
