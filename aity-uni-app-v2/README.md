@@ -196,11 +196,11 @@ VIP短线用户: vip_short@example.com / 123456
 
 ## 文档导航
 
-- [需求文档](./docs/REQUIREMENTS.md) - 产品需求与功能说明
-- [优化方案](./docs/OPTIMIZATION.md) - UI/UX/功能优化计划
-- [设计规范](./docs/DESIGN.md) - UI设计规范与组件标准
-- [问题追踪](./docs/ISSUES.md) - 已知问题与解决方案
-- [开发指南](./docs/DEVELOPMENT.md) - 开发规范与最佳实践
+- [需求文档](./docs/需求文档.md) - 产品需求与功能说明
+- [优化方案](./docs/优化方案.md) - UI/UX/功能优化计划
+- [设计规范](./docs/设计规范.md) - UI设计规范与组件标准
+- [问题追踪](./docs/问题追踪.md) - 已知问题与解决方案
+- [开发指南](./docs/开发指南.md) - 开发规范与最佳实践
 
 ## 版本历史
 
