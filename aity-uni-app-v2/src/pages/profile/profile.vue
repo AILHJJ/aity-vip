@@ -9,16 +9,33 @@
 				<text class="user-name">{{ userStore.userName }}</text>
 				<text class="user-role">{{ getRoleLabel(userStore.userRole) }}</text>
 			</view>
+			<view class="card-decoration"></view>
 		</view>
 
 		<!-- 功能菜单 -->
 		<view class="menu-section">
+			<view class="menu-item" @click="goToMessages">
+				<view class="menu-left">
+					<text class="menu-icon">📨</text>
+					<text class="menu-text">消息中心</text>
+				</view>
+				<view class="menu-right">
+					<view v-if="userStore.hasUnread" class="unread-badge">
+						<text class="unread-count">{{ userStore.unreadCount > 99 ? '99+' : userStore.unreadCount }}</text>
+					</view>
+					<text class="menu-arrow">›</text>
+				</view>
+			</view>
+
 			<view class="menu-item" @click="goToFavorites">
 				<view class="menu-left">
 					<text class="menu-icon">⭐</text>
 					<text class="menu-text">我的收藏</text>
 				</view>
-				<text class="menu-arrow">›</text>
+				<view class="menu-right">
+					<text class="menu-count">{{ favoriteCount }}</text>
+					<text class="menu-arrow">›</text>
+				</view>
 			</view>
 
 			<view class="menu-item" @click="goToMyDiscussions">
@@ -26,7 +43,10 @@
 					<text class="menu-icon">💬</text>
 					<text class="menu-text">我的讨论</text>
 				</view>
-				<text class="menu-arrow">›</text>
+				<view class="menu-right">
+					<text class="menu-count">{{ discussionCount }}</text>
+					<text class="menu-arrow">›</text>
+				</view>
 			</view>
 
 			<view v-if="userStore.isAdmin" class="menu-item" @click="goToUserManagement">
@@ -72,11 +92,16 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
 import { USER_ROLE_LABELS } from '../../utils/constants'
+import { getDiscussionsApi } from '../../api/discussion'
 
 const userStore = useUserStore()
+
+// 统计数据
+const favoriteCount = ref(0)
+const discussionCount = ref(0)
 
 // 用户名首字母
 const userInitial = computed(() => {
@@ -87,6 +112,33 @@ const userInitial = computed(() => {
 // 获取角色标签
 const getRoleLabel = (role) => {
 	return USER_ROLE_LABELS[role] || role
+}
+
+// 加载统计数据
+const loadStats = async () => {
+	try {
+		// TODO: 加载收藏数 - 需要实现favorite API
+		favoriteCount.value = 0
+
+		// 加载讨论数
+		const discRes = await getDiscussionsApi({ page: 1, limit: 1 })
+		if (discRes.success) {
+			discussionCount.value = discRes.data.total || 0
+		}
+	} catch (error) {
+		console.error('加载统计数据失败:', error)
+	}
+}
+
+onMounted(() => {
+	loadStats()
+})
+
+// 跳转到消息中心
+const goToMessages = () => {
+	uni.switchTab({
+		url: '/pages/messages/messages'
+	})
 }
 
 // 跳转到收藏页面
@@ -154,6 +206,18 @@ const handleLogout = () => {
 	display: flex;
 	align-items: center;
 	gap: 30rpx;
+	position: relative;
+	overflow: hidden;
+}
+
+.card-decoration {
+	position: absolute;
+	right: -50rpx;
+	top: -50rpx;
+	width: 200rpx;
+	height: 200rpx;
+	background: rgba(255, 255, 255, 0.1);
+	border-radius: 50%;
 }
 
 .user-avatar {
@@ -208,6 +272,11 @@ const handleLogout = () => {
 	justify-content: space-between;
 	padding: 30rpx;
 	border-bottom: 1rpx solid #f0f0f0;
+	transition: background 0.2s;
+}
+
+.menu-item:active {
+	background: #f5f5f5;
 }
 
 .menu-item:last-child {
@@ -227,6 +296,40 @@ const handleLogout = () => {
 .menu-text {
 	font-size: 30rpx;
 	color: #333333;
+}
+
+.menu-right {
+	display: flex;
+	align-items: center;
+	gap: 10rpx;
+}
+
+.menu-count {
+	font-size: 26rpx;
+	color: #999999;
+	background: #f5f5f5;
+	padding: 4rpx 16rpx;
+	border-radius: 12rpx;
+}
+
+.unread-badge {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 36rpx;
+	height: 36rpx;
+	padding: 0 8rpx;
+	background: #ff5252;
+	border-radius: 18rpx;
+	margin-right: 10rpx;
+}
+
+.unread-count {
+	font-size: 20rpx;
+	color: #ffffff;
+	font-weight: 600;
+	line-height: 1;
 }
 
 .menu-arrow {

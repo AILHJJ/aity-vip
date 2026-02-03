@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/your-mcp-proxy/AITY_VIP/backend/**)",
+      "Bash(mkdir:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(for:*)",
+      "Bash(do sed:*)",
+      "Bash(done:*)",
+      "Bash(tree:*)",
+      "Bash(npm run build:*)",
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(npm run build:mp-weixin:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

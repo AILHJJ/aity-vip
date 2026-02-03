@@ -1,7 +1,7 @@
 <template>
 	<view class="messages-container">
 		<!-- 管理员操作栏 -->
-		<view v-if="userStore.isAdmin" class="admin-bar">
+		<view v-if="userStore.isAdmin && userInfoLoaded" class="admin-bar">
 			<button class="create-btn" @click="goToCreate">
 				<text class="create-icon">✏️</text>
 				<text class="create-text">发布消息</text>
@@ -19,10 +19,30 @@
 					placeholder="搜索消息标题或内容"
 					placeholder-style="color: #999999"
 					@confirm="handleSearch"
+					@focus="showSearchHistory = true"
 				/>
 				<text v-if="searchKeyword" class="clear-icon" @click="clearSearch">×</text>
 			</view>
 			<button class="search-btn" @click="handleSearch">搜索</button>
+		</view>
+
+		<!-- 搜索历史弹窗 -->
+		<view v-if="showSearchHistory && searchHistory.length > 0" class="search-history-panel">
+			<view class="history-header">
+				<text class="history-title">搜索历史</text>
+				<text class="history-clear" @click="handleClearHistory">清空</text>
+			</view>
+			<view class="history-list">
+				<view
+					v-for="(item, index) in searchHistory"
+					:key="index"
+					class="history-item"
+					@click="handleSelectHistory(item)"
+				>
+					<text class="history-text">{{ item }}</text>
+					<text class="history-remove" @click.stop="handleRemoveHistory(item)">×</text>
+				</view>
+			</view>
 		</view>
 
 		<!-- 筛选栏 -->
@@ -50,18 +70,28 @@
 			:refresher-enabled="true"
 			:refresher-triggered="refreshing"
 			@refresherrefresh="onRefresh"
+			refresher-background="#f5f5f5"
 		>
+			<!-- 下拉刷新提示 -->
+			<view v-if="refreshing" class="refresh-tip">
+				<view class="refresh-loading"></view>
+				<text class="refresh-text">正在刷新...</text>
+			</view>
+
+			<!-- 骨架屏加载 -->
+			<message-skeleton v-if="loading && messages.length === 0" :count="5" />
+
 			<!-- 加载中 -->
-			<view v-if="loading && messages.length === 0" class="loading-container">
+			<view v-else-if="loading && messages.length === 0" class="loading-container">
 				<view class="loading-spinner"></view>
 				<text class="loading-text">加载中...</text>
 			</view>
 
 			<!-- 空状态 -->
-			<view v-else-if="messages.length === 0" class="empty-state">
-				<text class="empty-icon">📭</text>
-				<text class="empty-text">暂无消息</text>
-			</view>
+			<empty-state v-else-if="messages.length === 0" type="message" />
+
+			<!-- 搜索无结果 -->
+			<empty-state v-else-if="filteredMessages.length === 0 && searchKeyword" type="no-result" />
 
 			<!-- 消息列表 -->
 			<view v-else class="messages-list">
@@ -69,13 +99,17 @@
 					v-for="message in filteredMessages"
 					:key="message.id"
 					class="message-item"
+					:class="{ unread: isMessageUnread(message.id) }"
 					@click="goToDetail(message.id)"
 				>
 					<view class="message-header">
 						<view class="message-type-badge" :class="'type-' + message.type">
 							{{ getMessageTypeLabel(message.type) }}
 						</view>
-						<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
+						<view class="header-right">
+							<view v-if="isMessageUnread(message.id)" class="unread-dot"></view>
+							<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
+						</view>
 					</view>
 
 					<view class="message-title">{{ message.title }}</view>
@@ -84,13 +118,15 @@
 
 					<view class="message-footer">
 						<view class="message-tags">
-							<text
+							<view
 								v-for="tag in message.tags"
 								:key="tag"
 								class="message-tag"
+								:class="getTagClass(tag)"
 							>
-								{{ getTagLabel(tag) }}
-							</text>
+								<text class="tag-icon">{{ getTagIcon(tag) }}</text>
+								<text class="tag-text">{{ getTagLabel(tag) }}</text>
+							</view>
 						</view>
 						<view class="message-stats">
 							<text class="stat-item">👁 {{ message.readCount || 0 }}</text>
@@ -112,7 +148,7 @@
 		</scroll-view>
 
 		<!-- 管理员发布按钮 -->
-		<view v-if="userStore.isAdmin" class="fab-button" @click="goToCreate">
+		<view v-if="userStore.isAdmin && userInfoLoaded" class="fab-button" @click="goToCreate">
 			<text class="fab-icon">+</text>
 		</view>
 	</view>
@@ -124,6 +160,10 @@ import { useUserStore } from '../../store/user'
 import { getMessagesApi } from '../../api/message'
 import { MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatFriendlyTime } from '../../utils/time'
+import { getSearchHistory, addSearchHistory, clearSearchHistory, removeSearchHistory } from '../../utils/search-history'
+import { isMessageRead, markAsRead, getUnreadCount } from '../../utils/read-status'
+import MessageSkeleton from '@/components/message-skeleton.vue'
+import EmptyState from '@/components/empty-state.vue'
 
 const userStore = useUserStore()
 
@@ -136,6 +176,9 @@ const limit = ref(20)
 const hasMore = ref(true)
 const activeTag = ref('')
 const searchKeyword = ref('')
+const userInfoLoaded = ref(false) // 用户信息加载状态
+const showSearchHistory = ref(false) // 显示搜索历史
+const searchHistory = ref([]) // 搜索历史列表
 
 // 筛选标签
 const filterTags = computed(() => {
@@ -213,6 +256,31 @@ const getTagLabel = (tag) => {
 	return MESSAGE_TAG_LABELS[tag] || tag
 }
 
+// 获取标签样式类名
+const getTagClass = (tag) => {
+	// 处理不同的tag值格式
+	const tagMap = {
+		'short_term': 'tag-short-term',
+		'mid_term': 'tag-mid-term',
+		'all_users': 'tag-all-users',
+		// 兼容旧格式
+		[MESSAGE_TAGS.SHORT_TERM]: 'tag-short-term',
+		[MESSAGE_TAGS.MID_TERM]: 'tag-mid-term',
+		[MESSAGE_TAGS.ALL_USERS]: 'tag-all-users'
+	}
+	return tagMap[tag] || 'tag-default'
+}
+
+// 获取标签图标
+const getTagIcon = (tag) => {
+	const iconMap = {
+		'short_term': '⚡',
+		'mid_term': '📈',
+		'all_users': '👥'
+	}
+	return iconMap[tag] || ''
+}
+
 // 加载消息列表
 const loadMessages = async (isRefresh = false) => {
 	if (loading.value) return
@@ -247,6 +315,9 @@ const loadMessages = async (isRefresh = false) => {
 				messages.value = [...messages.value, ...messageList]
 			}
 
+			// 更新未读消息数
+			updateUnreadCount()
+
 			// 判断是否还有更多
 			hasMore.value = messages.value.length < total
 		} else {
@@ -265,6 +336,18 @@ const loadMessages = async (isRefresh = false) => {
 		loading.value = false
 		refreshing.value = false
 	}
+}
+
+// 更新未读消息数
+const updateUnreadCount = () => {
+	const allMessageIds = messages.value.map(msg => msg.id)
+	const unreadCount = getUnreadCount(allMessageIds)
+	userStore.setUnreadCount(unreadCount)
+}
+
+// 检查消息是否未读
+const isMessageUnread = (messageId) => {
+	return !isMessageRead(messageId)
 }
 
 // 下拉刷新
@@ -288,8 +371,12 @@ const handleTagFilter = (tag) => {
 
 // 搜索
 const handleSearch = () => {
+	if (searchKeyword.value.trim()) {
+		addSearchHistory(searchKeyword.value.trim())
+		searchHistory.value = getSearchHistory()
+	}
+	showSearchHistory.value = false
 	// 搜索在客户端进行过滤，不需要重新加载
-	// 如果需要服务端搜索，可以在这里调用 loadMessages(true)
 }
 
 // 清除搜索
@@ -297,8 +384,39 @@ const clearSearch = () => {
 	searchKeyword.value = ''
 }
 
+// 选择搜索历史
+const handleSelectHistory = (keyword) => {
+	searchKeyword.value = keyword
+	showSearchHistory.value = false
+	handleSearch()
+}
+
+// 清除搜索历史
+const handleClearHistory = () => {
+	uni.showModal({
+		title: '清空搜索历史',
+		content: '确定要清空所有搜索历史吗？',
+		success: (res) => {
+			if (res.confirm) {
+				clearSearchHistory()
+				searchHistory.value = []
+			}
+		}
+	})
+}
+
+// 删除单条搜索历史
+const handleRemoveHistory = (keyword) => {
+	removeSearchHistory(keyword)
+	searchHistory.value = getSearchHistory()
+}
+
 // 跳转到详情
 const goToDetail = (id) => {
+	// 标记为已读
+	markAsRead(id)
+	updateUnreadCount()
+
 	uni.navigateTo({
 		url: `/pages/message-detail/message-detail?id=${id}`
 	})
@@ -312,7 +430,7 @@ const goToCreate = () => {
 }
 
 // 页面加载
-onMounted(() => {
+onMounted(async () => {
 	// 检查登录状态
 	if (!userStore.isLoggedIn) {
 		uni.reLaunch({
@@ -321,14 +439,32 @@ onMounted(() => {
 		return
 	}
 
-	loadMessages(true)
-})
+	// 加载搜索历史
+	searchHistory.value = getSearchHistory()
 
-// 监听页面显示（从详情页返回时刷新）
-uni.onShow(() => {
-	if (messages.value.length > 0) {
-		loadMessages(true)
+	// 强制刷新用户信息，确保权限正确
+	try {
+		await userStore.fetchUserInfo()
+
+		// 开发环境调试日志
+		if (process.env.NODE_ENV === 'development') {
+			console.log('=== 用户信息加载完成 ===')
+			console.log('用户名:', userStore.userName)
+			console.log('用户角色:', userStore.userRole)
+			console.log('是否管理员:', userStore.isAdmin)
+		}
+
+		userInfoLoaded.value = true
+	} catch (error) {
+		console.error('获取用户信息失败:', error)
+		uni.showToast({
+			title: '获取用户信息失败',
+			icon: 'none'
+		})
+		return
 	}
+
+	loadMessages(true)
 })
 </script>
 
@@ -457,6 +593,30 @@ uni.onShow(() => {
 	overflow-y: auto;
 }
 
+.refresh-tip {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 40rpx 0;
+	background: #f5f5f5;
+}
+
+.refresh-loading {
+	width: 40rpx;
+	height: 40rpx;
+	border: 3rpx solid #e0e0e0;
+	border-top-color: #667eea;
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+}
+
+.refresh-text {
+	margin-top: 15rpx;
+	font-size: 24rpx;
+	color: #999999;
+}
+
 .loading-container {
 	display: flex;
 	flex-direction: column;
@@ -482,6 +642,12 @@ uni.onShow(() => {
 	margin-top: 20rpx;
 	font-size: 28rpx;
 	color: #999999;
+	animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+	0%, 100% { opacity: 0.6; }
+	50% { opacity: 1; }
 }
 
 .empty-state {
@@ -512,6 +678,22 @@ uni.onShow(() => {
 	padding: 30rpx;
 	margin-bottom: 20rpx;
 	box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+	border-left: 4rpx solid transparent;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	// 性能优化：提示浏览器哪些属性会变化
+	will-change: transform, box-shadow, border-left-color;
+
+	&:active {
+		transform: scale(0.98);
+		border-left-color: #667eea;
+		box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+	}
+
+	// 未读状态
+	&.unread {
+		background: linear-gradient(to right, #f8f9ff, #ffffff);
+		border-left-color: #667eea;
+	}
 }
 
 .message-header {
@@ -521,12 +703,90 @@ uni.onShow(() => {
 	margin-bottom: 20rpx;
 }
 
+.header-right {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+}
+
+.unread-dot {
+	width: 16rpx;
+	height: 16rpx;
+	background: #ff5252;
+	border-radius: 50%;
+	animation: unread-pulse 2s ease-in-out infinite;
+}
+
+@keyframes unread-pulse {
+	0%, 100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.6;
+		transform: scale(1.1);
+	}
+}
+
 .message-type-badge {
 	padding: 8rpx 20rpx;
 	font-size: 24rpx;
 	color: #ffffff;
 	border-radius: 20rpx;
-	background: #667eea;
+	font-weight: 500;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
+
+	// 为不同类型设置不同的渐变色
+	&.type-pre_market_comment {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
+	}
+
+	&.type-morning_comment {
+		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+		box-shadow: 0 2rpx 8rpx rgba(79, 172, 254, 0.3);
+	}
+
+	&.type-morning_focus {
+		background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+		box-shadow: 0 2rpx 8rpx rgba(67, 233, 123, 0.3);
+	}
+
+	&.type-afternoon_comment {
+		background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+		box-shadow: 0 2rpx 8rpx rgba(250, 112, 154, 0.3);
+	}
+
+	&.type-afternoon_focus {
+		background: linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%);
+		box-shadow: 0 2rpx 8rpx rgba(255, 154, 86, 0.3);
+	}
+
+	&.type-close_comment {
+		background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+		box-shadow: 0 2rpx 8rpx rgba(161, 140, 209, 0.3);
+	}
+
+	&.type-risk_warning {
+		background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+		box-shadow: 0 2rpx 8rpx rgba(240, 147, 251, 0.3);
+	}
+
+	&.type-system {
+		background: linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%);
+		box-shadow: 0 2rpx 8rpx rgba(149, 165, 166, 0.3);
+	}
+
+	&.type-important {
+		background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+		box-shadow: 0 2rpx 8rpx rgba(253, 160, 133, 0.3);
+	}
+
+	&.type-daily {
+		background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+		box-shadow: 0 2rpx 8rpx rgba(102, 166, 255, 0.3);
+	}
 }
 
 .message-time {
@@ -565,15 +825,56 @@ uni.onShow(() => {
 .message-tags {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 10rpx;
+	gap: 12rpx;
 }
 
 .message-tag {
-	padding: 6rpx 16rpx;
+	display: inline-flex;
+	align-items: center;
+	gap: 6rpx;
+	padding: 10rpx 20rpx;
+	border-radius: 16rpx;
 	font-size: 22rpx;
-	color: #667eea;
-	background: #f0f2ff;
-	border-radius: 12rpx;
+	font-weight: 500;
+	transition: all 0.3s ease;
+	white-space: nowrap;
+
+	// 默认标签
+	&.tag-default {
+		background: #f5f5f5;
+		color: #999999;
+	}
+
+	// 全部用户 - 紫色
+	&.tag-all-users {
+		background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.12) 100%);
+		color: #667eea;
+		border: 1rpx solid rgba(102, 126, 234, 0.25);
+	}
+
+	// 中线策略 - 蓝色
+	&.tag-mid-term {
+		background: linear-gradient(135deg, rgba(79, 172, 254, 0.12) 0%, rgba(0, 242, 254, 0.12) 100%);
+		color: #4facfe;
+		border: 1rpx solid rgba(79, 172, 254, 0.25);
+	}
+
+	// 短线策略 - 绿色
+	&.tag-short-term {
+		background: linear-gradient(135deg, rgba(67, 233, 123, 0.12) 0%, rgba(56, 249, 215, 0.12) 100%);
+		color: #43e97b;
+		border: 1rpx solid rgba(67, 233, 123, 0.25);
+	}
+}
+
+.tag-icon {
+	font-size: 20rpx;
+	line-height: 1;
+}
+
+.tag-text {
+	display: block;
+	line-height: 1;
 }
 
 .message-stats {
@@ -617,5 +918,77 @@ uni.onShow(() => {
 	font-size: 60rpx;
 	color: #ffffff;
 	font-weight: 300;
+}
+
+// 搜索历史面板
+.search-history-panel {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	background: #ffffff;
+	border-radius: 0 0 16rpx 16rpx;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+	z-index: 100;
+	padding: 20rpx;
+	max-height: 600rpx;
+	overflow-y: auto;
+}
+
+.history-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 20rpx;
+	padding-bottom: 15rpx;
+	border-bottom: 1rpx solid #e0e0e0;
+}
+
+.history-title {
+	font-size: 28rpx;
+	font-weight: bold;
+	color: #333333;
+}
+
+.history-clear {
+	font-size: 26rpx;
+	color: #667eea;
+	padding: 8rpx 16rpx;
+}
+
+.history-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10rpx;
+}
+
+.history-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16rpx 20rpx;
+	background: #f5f5f5;
+	border-radius: 8rpx;
+	transition: all 0.3s;
+
+	&:active {
+		background: #e0e0e0;
+	}
+}
+
+.history-text {
+	flex: 1;
+	font-size: 28rpx;
+	color: #333333;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.history-remove {
+	font-size: 36rpx;
+	color: #999999;
+	padding: 0 10rpx;
+	line-height: 1;
 }
 </style>

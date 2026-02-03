@@ -38,7 +38,14 @@
 			:refresher-enabled="true"
 			:refresher-triggered="refreshing"
 			@refresherrefresh="onRefresh"
+			refresher-background="#f5f5f5"
 		>
+			<!-- 下拉刷新提示 -->
+			<view v-if="refreshing" class="refresh-tip">
+				<view class="refresh-loading"></view>
+				<text class="refresh-text">正在刷新...</text>
+			</view>
+
 			<!-- 加载中 -->
 			<view v-if="loading && discussions.length === 0" class="loading-container">
 				<view class="loading-spinner"></view>
@@ -46,10 +53,10 @@
 			</view>
 
 			<!-- 空状态 -->
-			<view v-else-if="filteredDiscussions.length === 0" class="empty-state">
-				<text class="empty-icon">💬</text>
-				<text class="empty-text">暂无讨论</text>
-			</view>
+			<empty-state v-else-if="filteredDiscussions.length === 0" type="discussion" />
+
+			<!-- 搜索无结果 -->
+			<empty-state v-else-if="filteredDiscussions.length === 0 && searchKeyword" type="no-result" />
 
 			<!-- 讨论列表 -->
 			<view v-else class="discussions-list">
@@ -101,6 +108,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
 import { getDiscussionsApi } from '../../api/discussion'
 import { formatFriendlyTime } from '../../utils/time'
+import EmptyState from '@/components/empty-state.vue'
 
 const userStore = useUserStore()
 
@@ -113,6 +121,7 @@ const limit = ref(20)
 const hasMore = ref(true)
 const activeFilter = ref('')
 const searchKeyword = ref('')
+const userInfoLoaded = ref(false) // 用户信息加载状态
 
 // 筛选选项
 const filters = ref([
@@ -240,7 +249,7 @@ const goToDetail = (id) => {
 }
 
 // 页面加载
-onMounted(() => {
+onMounted(async () => {
 	// 检查登录状态
 	if (!userStore.isLoggedIn) {
 		uni.reLaunch({
@@ -249,14 +258,29 @@ onMounted(() => {
 		return
 	}
 
-	loadDiscussions(true)
-})
+	// 强制刷新用户信息，确保权限正确
+	try {
+		await userStore.fetchUserInfo()
 
-// 监听页面显示
-uni.onShow(() => {
-	if (discussions.value.length > 0) {
-		loadDiscussions(true)
+		// 开发环境调试日志
+		if (process.env.NODE_ENV === 'development') {
+			console.log('=== 用户信息加载完成 ===')
+			console.log('用户名:', userStore.userName)
+			console.log('用户角色:', userStore.userRole)
+			console.log('是否管理员:', userStore.isAdmin)
+		}
+
+		userInfoLoaded.value = true
+	} catch (error) {
+		console.error('获取用户信息失败:', error)
+		uni.showToast({
+			title: '获取用户信息失败',
+			icon: 'none'
+		})
+		return
 	}
+
+	loadDiscussions(true)
 })
 </script>
 
@@ -346,6 +370,30 @@ uni.onShow(() => {
 	overflow-y: auto;
 }
 
+.refresh-tip {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 40rpx 0;
+	background: #f5f5f5;
+}
+
+.refresh-loading {
+	width: 40rpx;
+	height: 40rpx;
+	border: 3rpx solid #e0e0e0;
+	border-top-color: #667eea;
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+}
+
+.refresh-text {
+	margin-top: 15rpx;
+	font-size: 24rpx;
+	color: #999999;
+}
+
 .loading-container {
 	display: flex;
 	flex-direction: column;
@@ -371,6 +419,12 @@ uni.onShow(() => {
 	margin-top: 20rpx;
 	font-size: 28rpx;
 	color: #999999;
+	animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+	0%, 100% { opacity: 0.6; }
+	50% { opacity: 1; }
 }
 
 .empty-state {

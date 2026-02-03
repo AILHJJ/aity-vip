@@ -65,9 +65,29 @@
 					<text class="btn-icon">{{ isFavorited ? '⭐' : '☆' }}</text>
 					<text class="btn-text">{{ isFavorited ? '已收藏' : '收藏' }}</text>
 				</button>
+				<button class="action-btn" @click="handleShare">
+					<text class="btn-icon">📤</text>
+					<text class="btn-text">分享</text>
+				</button>
 				<button class="action-btn primary" @click="goToDiscuss">
 					<text class="btn-icon">💬</text>
 					<text class="btn-text">发起讨论</text>
+				</button>
+			</view>
+
+			<!-- 管理员操作按钮 -->
+			<view v-if="userStore.isAdmin" class="admin-actions">
+				<button class="admin-btn pin" :class="{ pinned: message.isPinned }" @click="handleTogglePin">
+					<text class="admin-btn-icon">{{ message.isPinned ? '📌' : '📍' }}</text>
+					<text>{{ message.isPinned ? '取消置顶' : '置顶' }}</text>
+				</button>
+				<button class="admin-btn edit" @click="handleEdit">
+					<text class="admin-btn-icon">✏️</text>
+					<text>编辑</text>
+				</button>
+				<button class="admin-btn delete" @click="handleDelete">
+					<text class="admin-btn-icon">🗑️</text>
+					<text>删除</text>
 				</button>
 			</view>
 
@@ -107,7 +127,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
-import { getMessageDetailApi, markMessageAsReadApi, favoriteMessageApi, unfavoriteMessageApi } from '../../api/message'
+import { getMessageDetailApi, markMessageAsReadApi, favoriteMessageApi, unfavoriteMessageApi, deleteMessageApi, pinMessageApi, unpinMessageApi } from '../../api/message'
 import { getDiscussionsApi } from '../../api/discussion'
 import { MESSAGE_TYPE_LABELS } from '../../utils/constants'
 import { formatTime, formatFriendlyTime } from '../../utils/time'
@@ -216,6 +236,23 @@ const previewImage = (index) => {
 	})
 }
 
+// 分享消息
+const handleShare = () => {
+	// 复制消息链接和标题到剪贴板
+	const shareText = `${message.value.title}\n\n${message.value.content.substring(0, 100)}...`
+
+	uni.setClipboardData({
+		data: shareText,
+		success: () => {
+			uni.showModal({
+				title: '分享成功',
+				content: '内容已复制到剪贴板，可以粘贴分享给好友',
+				showCancel: false
+			})
+		}
+	})
+}
+
 // 发起讨论
 const goToDiscuss = () => {
 	uni.navigateTo({
@@ -233,6 +270,78 @@ const goToDiscussionDetail = (id) => {
 // 返回
 const goBack = () => {
 	uni.navigateBack()
+}
+
+// 编辑消息
+const handleEdit = () => {
+	uni.navigateTo({
+		url: `/pages/create-message/create-message?id=${messageId.value}&mode=edit`
+	})
+}
+
+// 删除消息
+const handleDelete = () => {
+	uni.showModal({
+		title: '确认删除',
+		content: '删除后无法恢复，是否继续？',
+		confirmColor: '#ff5252',
+		success: async (res) => {
+			if (res.confirm) {
+				try {
+					const result = await deleteMessageApi(messageId.value)
+					if (result.success) {
+						uni.showToast({
+							title: '删除成功',
+							icon: 'success'
+						})
+						setTimeout(() => {
+							uni.navigateBack()
+						}, 1500)
+					} else {
+						uni.showToast({
+							title: result.message || '删除失败',
+							icon: 'none'
+						})
+					}
+				} catch (error) {
+					console.error('删除消息失败:', error)
+					uni.showToast({
+						title: '删除失败',
+						icon: 'none'
+					})
+				}
+			}
+		}
+	})
+}
+
+// 切换置顶
+const handleTogglePin = async () => {
+	try {
+		const api = message.value.isPinned ? unpinMessageApi : pinMessageApi
+		const action = message.value.isPinned ? '取消置顶' : '置顶'
+
+		const result = await api(messageId.value)
+		if (result.success) {
+			// 更新本地状态
+			message.value.isPinned = !message.value.isPinned
+			uni.showToast({
+				title: `${action}成功`,
+				icon: 'success'
+			})
+		} else {
+			uni.showToast({
+				title: result.message || `${action}失败`,
+				icon: 'none'
+			})
+		}
+	} catch (error) {
+		console.error('切换置顶失败:', error)
+		uni.showToast({
+			title: '操作失败',
+			icon: 'none'
+		})
+	}
 }
 
 // 页面加载
@@ -486,6 +595,58 @@ onMounted(() => {
 .discussion-replies {
 	font-size: 24rpx;
 	color: #999999;
+}
+
+.admin-actions {
+	display: flex;
+	gap: 20rpx;
+	padding: 30rpx;
+	background: #ffffff;
+	margin-top: 20rpx;
+	border-radius: 16rpx;
+	box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.admin-btn {
+	flex: 1;
+	height: 80rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10rpx;
+	border-radius: 12rpx;
+	border: none;
+	font-size: 28rpx;
+	font-weight: 500;
+
+	&.pin {
+		background: #fff9e6;
+		color: #ff9800;
+
+		&.pinned {
+			background: #ffeaa7;
+			color: #d63031;
+		}
+	}
+
+	&.edit {
+		background: #f0f2ff;
+		color: #667eea;
+	}
+
+	&.delete {
+		background: #ffeef0;
+		color: #ff5252;
+	}
+
+	&:active {
+		opacity: 0.8;
+		transform: scale(0.98);
+	}
+}
+
+.admin-btn-icon {
+	font-size: 32rpx;
 }
 
 .error-state {
