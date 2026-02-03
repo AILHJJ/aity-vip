@@ -157,6 +157,49 @@ const handleTagToggle = (tag) => {
 
 // 处理文件上传
 const handleUpload = () => {
+	// #ifdef MP-WEIXIN
+	// 微信小程序使用 chooseImage
+	uni.chooseImage({
+		count: 9,
+		sizeType: ['original', 'compressed'],
+		sourceType: ['album', 'camera'],
+		success: (res) => {
+			const tempFilePaths = res.tempFilePaths
+
+			tempFilePaths.forEach(filePath => {
+				// 检查文件大小
+				uni.getFileInfo({
+					filePath: filePath,
+					success: (fileInfo) => {
+						if (fileInfo.size > 10 * 1024 * 1024) {
+							uni.showToast({
+								title: '文件大小不能超过 10MB',
+								icon: 'none'
+							})
+							return
+						}
+
+						formData.value.attachments.push({
+							name: filePath.split('/').pop(),
+							path: filePath,
+							size: fileInfo.size
+						})
+					}
+				})
+			})
+		},
+		fail: (err) => {
+			console.error('选择图片失败:', err)
+			uni.showToast({
+				title: '选择图片失败',
+				icon: 'none'
+			})
+		}
+	})
+	// #endif
+
+	// #ifndef MP-WEIXIN
+	// 其他平台使用 chooseFile
 	uni.chooseFile({
 		count: 1,
 		extension: ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png'],
@@ -186,6 +229,7 @@ const handleUpload = () => {
 			})
 		}
 	})
+	// #endif
 }
 
 // 移除文件

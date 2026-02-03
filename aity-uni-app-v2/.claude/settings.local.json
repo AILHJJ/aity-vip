@@ -9,7 +9,11 @@
       "Bash(do sed:*)",
       "Bash(done:*)",
       "Bash(tree:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []

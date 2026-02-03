@@ -2,8 +2,8 @@
     "name" : "投研图灵室",
     "appid" : "wxb16a33cdd58f05d3",
     "description" : "金融知识学习平台。提供系统的研究方法论与案例分析，帮助建立知识体系与分析能力。内容为学术交流，不构成任何投资建议。",
-    "versionName" : "1.4.0",
-    "versionCode" : "104",
+    "versionName" : "1.4.1",
+    "versionCode" : "105",
     "transformPx" : false,
     /* 5+App特有相关 */
     "app-plus" : {
