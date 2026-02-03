@@ -8,29 +8,21 @@
 
 			<view class="form-section">
 				<!-- 用户名输入框 -->
-				<view class="input-wrapper">
-					<text class="input-label">用户名/邮箱</text>
-					<input
-						class="input-field"
-						v-model="formData.account"
-						type="text"
-						placeholder="请输入用户名或邮箱"
-						placeholder-style="color: #999999"
-					/>
-				</view>
+				<Input
+					v-model="formData.account"
+					label="用户名/邮箱"
+					type="text"
+					placeholder="请输入用户名或邮箱"
+				/>
 
 				<!-- 密码输入框 -->
-				<view class="input-wrapper">
-					<text class="input-label">密码</text>
-					<input
-						class="input-field"
-						v-model="formData.password"
-						type="password"
-						placeholder="请输入密码"
-						placeholder-style="color: #999999"
-						@confirm="handleLogin"
-					/>
-				</view>
+				<Input
+					v-model="formData.password"
+					label="密码"
+					type="password"
+					placeholder="请输入密码"
+					@confirm="handleLogin"
+				/>
 
 				<!-- 记住我 -->
 				<view class="remember-wrapper">
@@ -62,6 +54,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useUserStore } from '../../store/user'
+import { Input } from '@/components/common'
 
 const userStore = useUserStore()
 

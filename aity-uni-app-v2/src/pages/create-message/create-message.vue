@@ -4,13 +4,11 @@
 			<view class="form-container">
 				<!-- 标题 -->
 				<view class="form-item">
-					<text class="form-label">消息标题 *</text>
-					<input
-						class="form-input"
+					<Input
 						v-model="formData.title"
-						type="text"
+						label="消息标题"
 						placeholder="请输入消息标题"
-						placeholder-style="color: #999999"
+						maxlength="100"
 					/>
 				</view>
 
@@ -50,16 +48,54 @@
 
 				<!-- 内容 -->
 				<view class="form-item">
-					<text class="form-label">消息内容 *</text>
-					<textarea
-						class="form-textarea"
-						v-model="formData.content"
-						placeholder="请输入消息内容"
-						placeholder-style="color: #999999"
-						:maxlength="5000"
-						:show-confirm-bar="false"
-					/>
-					<text class="char-count">{{ formData.content.length }}/5000</text>
+					<view class="form-label-row">
+						<text class="form-label">消息内容 *</text>
+						<view class="mode-switch">
+							<text
+								class="mode-btn"
+								:class="{ active: !previewMode }"
+								@click="previewMode = false"
+							>
+								编辑
+							</text>
+							<text
+								class="mode-btn"
+								:class="{ active: previewMode }"
+								@click="previewMode = true"
+							>
+								预览
+							</text>
+						</view>
+					</view>
+
+					<!-- 编辑模式 -->
+					<view v-if="!previewMode" class="editor-container">
+						<!-- Markdown工具栏 -->
+						<view class="markdown-toolbar">
+							<text class="toolbar-btn" @click="insertMarkdown('**', '**')" title="粗体">B</text>
+							<text class="toolbar-btn" @click="insertMarkdown('*', '*')" title="斜体">I</text>
+							<text class="toolbar-btn" @click="insertMarkdown('# ', '')" title="标题">H</text>
+							<text class="toolbar-btn" @click="insertMarkdown('- ', '')" title="列表">≡</text>
+							<text class="toolbar-btn" @click="insertMarkdown('`', '`')" title="代码">&lt;/&gt;</text>
+							<text class="toolbar-btn" @click="insertMarkdown('[', '](url)')" title="链接">🔗</text>
+							<text class="toolbar-btn" @click="insertMarkdown('> ', '')" title="引用">"</text>
+						</view>
+						<textarea
+							class="form-textarea"
+							v-model="formData.content"
+							placeholder="支持 Markdown 格式，使用工具栏快速插入格式"
+							placeholder-style="color: #999999"
+							:maxlength="5000"
+							:show-confirm-bar="false"
+						/>
+						<text class="char-count">{{ formData.content.length }}/5000</text>
+					</view>
+
+					<!-- 预览模式 -->
+					<view v-else class="preview-container">
+						<view class="markdown-preview" v-html="renderedHtml"></view>
+						<text class="char-count">{{ formData.content.length }}/5000</text>
+					</view>
 				</view>
 
 				<!-- 附件上传 -->
@@ -101,11 +137,15 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useUserStore } from '../../store/user'
 import { createMessageApi, updateMessageApi, getMessageDetailApi } from '../../api/message'
 import { MESSAGE_TYPES, MESSAGE_TAGS, MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS } from '../../utils/constants'
+import { Input } from '@/components/common'
 
 const userStore = useUserStore()
 
 // 草稿存储key
 const DRAFT_KEY = 'message_draft'
+
+// 预览模式
+const previewMode = ref(false)
 
 // 表单数据
 const formData = ref({
@@ -398,6 +438,110 @@ watch(formData, () => {
 	saveDraft()
 }, { deep: true })
 
+// 简单的Markdown解析器
+const parseMarkdown = (text) => {
+	if (!text) return ''
+
+	let html = text
+		// 转义HTML特殊字符
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+
+		// 代码块（必须在一行开始处理）
+		.replace(/```(\w*)([\s\S]*?)```/g, (match, lang, code) => {
+			return `<pre><code class="code-block">${code.trim()}</code></pre>`
+		})
+
+		// 行内代码
+		.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
+
+		// 标题
+		.replace(/^### (.*$)/gim, '<h3>$1</h3>')
+		.replace(/^## (.*$)/gim, '<h2>$1</h2>')
+		.replace(/^# (.*$)/gim, '<h1>$1</h1>')
+
+		// 粗体和斜体
+		.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+		.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+		.replace(/\*(.+?)\*/g, '<em>$1</em>')
+
+		// 引用
+		.replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>')
+
+		// 无序列表
+		.replace(/^\- (.*$)/gim, '<li>$1</li>')
+
+		// 有序列表
+		.replace(/^\d+\. (.*$)/gim, '<li>$1</li>')
+
+		// 链接
+		.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="md-link">$1</a>')
+
+		// 换行
+		.replace(/\n/g, '<br>')
+
+	// 包装列表项
+	html = html.replace(/(<li>.*<\/li>)/g, '<ul>$1</ul>')
+	// 合并相邻的ul标签
+	html = html.replace(/<\/ul><br><ul>/g, '')
+
+	return html
+}
+
+// 渲染后的HTML
+const renderedHtml = computed(() => {
+	return parseMarkdown(formData.value.content)
+})
+
+// 插入Markdown语法
+const insertMarkdown = (before, after) => {
+	const textarea = uni.createSelectorQuery().select('.form-textarea')
+
+	// 获取当前光标位置（在小程序中可能无法获取，使用末尾）
+	const content = formData.value.content
+	const cursorPosition = content.length
+
+	// 构建新内容
+	let newContent = ''
+	let newPosition = 0
+
+	if (before === '# ') {
+		// 标题：在行首插入
+		const lines = content.split('\n')
+		const currentLineIndex = content.substring(0, cursorPosition).split('\n').length - 1
+		lines[currentLineIndex] = before + lines[currentLineIndex]
+		newContent = lines.join('\n')
+		newPosition = cursorPosition + before.length
+	} else if (before === '- ' || before === '> ') {
+		// 列表和引用：在行首插入
+		const lines = content.split('\n')
+		const currentLineIndex = content.substring(0, cursorPosition).split('\n').length - 1
+		lines[currentLineIndex] = before + lines[currentLineIndex]
+		newContent = lines.join('\n')
+		newPosition = cursorPosition + before.length
+	} else if (before === '[') {
+		// 链接：插入链接模板
+		const selectedText = '' // 在小程序中无法获取选中文本
+		newContent = content.substring(0, cursorPosition) + before + selectedText + after + content.substring(cursorPosition)
+		newPosition = cursorPosition + before.length
+	} else {
+		// 其他格式：包裹光标位置
+		const selectedText = '' // 在小程序中无法获取选中文本
+		newContent = content.substring(0, cursorPosition) + before + selectedText + after + content.substring(cursorPosition)
+		newPosition = cursorPosition + before.length
+	}
+
+	formData.value.content = newContent
+
+	// 在小程序中，焦点管理可能不太准确，但我们可以尝试
+	// #ifndef MP-WEIXIN
+	setTimeout(() => {
+		// 尝试重新聚焦（仅在非小程序环境）
+	}, 100)
+	// #endif
+}
+
 // 页面加载
 onMounted(async () => {
 	// 检查管理员权限
@@ -491,6 +635,40 @@ onBeforeUnmount(() => {
 	font-weight: 500;
 }
 
+.form-label-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 20rpx;
+}
+
+.mode-switch {
+	display: flex;
+	background: #f0f0f0;
+	border-radius: 8rpx;
+	padding: 4rpx;
+}
+
+.mode-btn {
+	padding: 8rpx 24rpx;
+	font-size: 24rpx;
+	color: #666666;
+	border-radius: 6rpx;
+	transition: all 0.3s;
+	cursor: pointer;
+}
+
+.mode-btn.active {
+	background: #ffffff;
+	color: #667eea;
+	font-weight: 500;
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.2);
+}
+
+.editor-container {
+	position: relative;
+}
+
 .form-input {
 	width: 100%;
 	height: 88rpx;
@@ -562,6 +740,166 @@ onBeforeUnmount(() => {
 	border-radius: 8rpx;
 	box-sizing: border-box;
 	line-height: 1.6;
+}
+
+.markdown-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	padding: 16rpx 20rpx;
+	background: #fafafa;
+	border: 2rpx solid #e0e0e0;
+	border-bottom: none;
+	border-radius: 8rpx 8rpx 0 0;
+	margin-bottom: 0;
+}
+
+.toolbar-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 56rpx;
+	height: 56rpx;
+	padding: 0 16rpx;
+	font-size: 28rpx;
+	font-weight: 600;
+	font-family: Arial, sans-serif;
+	color: #666666;
+	background: #ffffff;
+	border: 2rpx solid #d9d9d9;
+	border-radius: 6rpx;
+	transition: all 0.2s;
+	cursor: pointer;
+}
+
+.toolbar-btn:active {
+	background: #667eea;
+	color: #ffffff;
+	border-color: #667eea;
+	transform: scale(0.95);
+}
+
+.form-textarea {
+	border-radius: 0 0 8rpx 8rpx;
+}
+
+.preview-container {
+	min-height: 300rpx;
+	padding: 24rpx;
+	background-color: #ffffff;
+	border: 2rpx solid #e0e0e0;
+	border-radius: 8rpx;
+	box-sizing: border-box;
+}
+
+.markdown-preview {
+	font-size: 28rpx;
+	color: #333333;
+	line-height: 1.8;
+	word-wrap: break-word;
+	overflow-wrap: break-word;
+}
+
+/* Markdown渲染样式 */
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3 {
+	margin: 30rpx 0 20rpx;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.markdown-preview h1 {
+	font-size: 48rpx;
+	color: #1a1a1a;
+	padding-bottom: 16rpx;
+	border-bottom: 4rpx solid #e0e0e0;
+}
+
+.markdown-preview h2 {
+	font-size: 40rpx;
+	color: #2c2c2c;
+}
+
+.markdown-preview h3 {
+	font-size: 34rpx;
+	color: #3a3a3a;
+}
+
+.markdown-preview p {
+	margin: 20rpx 0;
+}
+
+.markdown-preview strong {
+	font-weight: 600;
+	color: #1a1a1a;
+}
+
+.markdown-preview em {
+	font-style: italic;
+	color: #555555;
+}
+
+.markdown-preview code.inline-code {
+	padding: 4rpx 12rpx;
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 26rpx;
+	color: #e74c3c;
+	background: #f8f8f8;
+	border: 1rpx solid #e0e0e0;
+	border-radius: 4rpx;
+}
+
+.markdown-preview pre {
+	margin: 24rpx 0;
+	padding: 24rpx;
+	background: #2d2d2d;
+	border-radius: 8rpx;
+	overflow-x: auto;
+}
+
+.markdown-preview pre code.code-block {
+	display: block;
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 24rpx;
+	color: #f8f8f2;
+	line-height: 1.6;
+	white-space: pre-wrap;
+	word-wrap: break-word;
+}
+
+.markdown-preview blockquote {
+	margin: 20rpx 0;
+	padding: 20rpx 24rpx;
+	font-size: 28rpx;
+	color: #666666;
+	background: #f9f9f9;
+	border-left: 8rpx solid #667eea;
+	border-radius: 0 8rpx 8rpx 0;
+}
+
+.markdown-preview ul {
+	margin: 20rpx 0;
+	padding-left: 48rpx;
+}
+
+.markdown-preview li {
+	margin: 12rpx 0;
+	list-style-type: disc;
+	line-height: 1.8;
+}
+
+.markdown-preview ul ul {
+	margin: 12rpx 0;
+}
+
+.markdown-preview a.md-link {
+	color: #667eea;
+	text-decoration: underline;
+}
+
+.markdown-preview a.md-link:active {
+	color: #764ba2;
 }
 
 .char-count {

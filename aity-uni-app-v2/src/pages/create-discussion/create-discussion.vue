@@ -4,13 +4,11 @@
 			<view class="form-container">
 				<!-- 标题 -->
 				<view class="form-item">
-					<text class="form-label">讨论标题 *</text>
-					<input
-						class="form-input"
+					<Input
 						v-model="formData.title"
-						type="text"
+						label="讨论标题"
 						placeholder="请输入讨论标题"
-						placeholder-style="color: #999999"
+						maxlength="100"
 					/>
 				</view>
 
@@ -84,6 +82,7 @@ import { ref, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
 import { createDiscussionApi } from '../../api/discussion'
 import { getMessagesApi } from '../../api/message'
+import { Input } from '@/components/common'
 
 const userStore = useUserStore()
 
