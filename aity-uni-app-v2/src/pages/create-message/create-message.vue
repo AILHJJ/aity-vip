@@ -100,7 +100,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useUserStore } from '../../store/user'
 import { createMessageApi, updateMessageApi, getMessageDetailApi } from '../../api/message'
-import { MESSAGE_TYPES, MESSAGE_TAGS, MESSAGE_TYPE_LABELS } from '../../utils/constants'
+import { MESSAGE_TYPES, MESSAGE_TAGS, MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 
 const userStore = useUserStore()
 
