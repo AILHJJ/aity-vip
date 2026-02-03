@@ -76,10 +76,12 @@
 						</view>
 						<view class="upload-btn" @click="handleUpload">
 							<text class="upload-icon">+</text>
-							<text class="upload-text">上传附件</text>
+							<text class="upload-text">上传图片</text>
 						</view>
 					</view>
-					<text class="form-hint">支持 PDF、Word、Excel、图片等格式，单个文件不超过 10MB</text>
+					<view class="form-hint">
+						<text class="hint-text">💡 提示：支持选择或粘贴图片（Ctrl+V），单次最多9张，每张不超过10MB</text>
+					</view>
 				</view>
 
 				<!-- 提交按钮 -->
@@ -98,7 +100,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useUserStore } from '../../store/user'
 import { createMessageApi, updateMessageApi, getMessageDetailApi } from '../../api/message'
-import { MESSAGE_TYPES, MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../utils/constants'
+import { MESSAGE_TYPES, MESSAGE_TAGS, MESSAGE_TYPE_LABELS } from '../../utils/constants'
 
 const userStore = useUserStore()
 
@@ -167,11 +169,11 @@ const handleUpload = () => {
 			const tempFilePaths = res.tempFilePaths
 
 			tempFilePaths.forEach(filePath => {
-				// 检查文件大小
-				uni.getFileInfo({
+				// 检查文件大小 - 使用新的API
+				const fileInfo = uni.getFileSystemManager().getFileInfo({
 					filePath: filePath,
-					success: (fileInfo) => {
-						if (fileInfo.size > 10 * 1024 * 1024) {
+					success: (res) => {
+						if (res.size > 10 * 1024 * 1024) {
 							uni.showToast({
 								title: '文件大小不能超过 10MB',
 								icon: 'none'
@@ -182,18 +184,30 @@ const handleUpload = () => {
 						formData.value.attachments.push({
 							name: filePath.split('/').pop(),
 							path: filePath,
-							size: fileInfo.size
+							size: res.size
+						})
+					},
+					fail: (err) => {
+						console.error('获取文件信息失败:', err)
+						// 如果获取失败，仍然添加文件（跳过大校验）
+						formData.value.attachments.push({
+							name: filePath.split('/').pop(),
+							path: filePath,
+							size: 0
 						})
 					}
 				})
 			})
 		},
 		fail: (err) => {
-			console.error('选择图片失败:', err)
-			uni.showToast({
-				title: '选择图片失败',
-				icon: 'none'
-			})
+			// 用户取消选择，不显示错误
+			if (err.errMsg && !err.errMsg.includes('cancel')) {
+				console.error('选择图片失败:', err)
+				uni.showToast({
+					title: '选择图片失败',
+					icon: 'none'
+				})
+			}
 		}
 	})
 	// #endif
@@ -222,11 +236,14 @@ const handleUpload = () => {
 			})
 		},
 		fail: (err) => {
-			console.error('选择文件失败:', err)
-			uni.showToast({
-				title: '选择文件失败',
-				icon: 'none'
-			})
+			// 用户取消选择，不显示错误
+			if (err.errMsg && !err.errMsg.includes('cancel')) {
+				console.error('选择文件失败:', err)
+				uni.showToast({
+					title: '选择文件失败',
+					icon: 'none'
+				})
+			}
 		}
 	})
 	// #endif

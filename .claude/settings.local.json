@@ -33,7 +33,9 @@
       "Bash(set:*)",
       "Bash(npm run upload:weixin:*)",
       "Bash(if not exist backendscripts mkdir backendscripts)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git log:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []
