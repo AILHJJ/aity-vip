@@ -99,13 +99,17 @@
 					v-for="message in filteredMessages"
 					:key="message.id"
 					class="message-item"
+					:class="{ unread: isMessageUnread(message.id) }"
 					@click="goToDetail(message.id)"
 				>
 					<view class="message-header">
 						<view class="message-type-badge" :class="'type-' + message.type">
 							{{ getMessageTypeLabel(message.type) }}
 						</view>
-						<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
+						<view class="header-right">
+							<view v-if="isMessageUnread(message.id)" class="unread-dot"></view>
+							<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
+						</view>
 					</view>
 
 					<view class="message-title">{{ message.title }}</view>
@@ -155,6 +159,7 @@ import { getMessagesApi } from '../../api/message'
 import { MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatFriendlyTime } from '../../utils/time'
 import { getSearchHistory, addSearchHistory, clearSearchHistory, removeSearchHistory } from '../../utils/search-history'
+import { isMessageRead, markAsRead, getUnreadCount } from '../../utils/read-status'
 import MessageSkeleton from '@/components/message-skeleton.vue'
 import EmptyState from '@/components/empty-state.vue'
 
@@ -283,6 +288,9 @@ const loadMessages = async (isRefresh = false) => {
 				messages.value = [...messages.value, ...messageList]
 			}
 
+			// 更新未读消息数
+			updateUnreadCount()
+
 			// 判断是否还有更多
 			hasMore.value = messages.value.length < total
 		} else {
@@ -301,6 +309,18 @@ const loadMessages = async (isRefresh = false) => {
 		loading.value = false
 		refreshing.value = false
 	}
+}
+
+// 更新未读消息数
+const updateUnreadCount = () => {
+	const allMessageIds = messages.value.map(msg => msg.id)
+	const unreadCount = getUnreadCount(allMessageIds)
+	userStore.setUnreadCount(unreadCount)
+}
+
+// 检查消息是否未读
+const isMessageUnread = (messageId) => {
+	return !isMessageRead(messageId)
 }
 
 // 下拉刷新
@@ -366,6 +386,10 @@ const handleRemoveHistory = (keyword) => {
 
 // 跳转到详情
 const goToDetail = (id) => {
+	// 标记为已读
+	markAsRead(id)
+	updateUnreadCount()
+
 	uni.navigateTo({
 		url: `/pages/message-detail/message-detail?id=${id}`
 	})
@@ -635,6 +659,12 @@ onMounted(async () => {
 		border-left-color: #667eea;
 		box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
 	}
+
+	// 未读状态
+	&.unread {
+		background: linear-gradient(to right, #f8f9ff, #ffffff);
+		border-left-color: #667eea;
+	}
 }
 
 .message-header {
@@ -642,6 +672,31 @@ onMounted(async () => {
 	align-items: center;
 	justify-content: space-between;
 	margin-bottom: 20rpx;
+}
+
+.header-right {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+}
+
+.unread-dot {
+	width: 16rpx;
+	height: 16rpx;
+	background: #ff5252;
+	border-radius: 50%;
+	animation: unread-pulse 2s ease-in-out infinite;
+}
+
+@keyframes unread-pulse {
+	0%, 100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.6;
+		transform: scale(1.1);
+	}
 }
 
 .message-type-badge {

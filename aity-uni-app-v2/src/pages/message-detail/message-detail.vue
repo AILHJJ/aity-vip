@@ -65,6 +65,10 @@
 					<text class="btn-icon">{{ isFavorited ? '⭐' : '☆' }}</text>
 					<text class="btn-text">{{ isFavorited ? '已收藏' : '收藏' }}</text>
 				</button>
+				<button class="action-btn" @click="handleShare">
+					<text class="btn-icon">📤</text>
+					<text class="btn-text">分享</text>
+				</button>
 				<button class="action-btn primary" @click="goToDiscuss">
 					<text class="btn-icon">💬</text>
 					<text class="btn-text">发起讨论</text>
@@ -225,6 +229,23 @@ const previewImage = (index) => {
 	uni.previewImage({
 		urls: message.value.images,
 		current: index
+	})
+}
+
+// 分享消息
+const handleShare = () => {
+	// 复制消息链接和标题到剪贴板
+	const shareText = `${message.value.title}\n\n${message.value.content.substring(0, 100)}...`
+
+	uni.setClipboardData({
+		data: shareText,
+		success: () => {
+			uni.showModal({
+				title: '分享成功',
+				content: '内容已复制到剪贴板，可以粘贴分享给好友',
+				showCancel: false
+			})
+		}
 	})
 }
 
