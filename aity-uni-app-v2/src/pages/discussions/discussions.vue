@@ -97,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onShow } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
 import { getDiscussionsApi } from '../../api/discussion'
 import { formatFriendlyTime } from '../../utils/time'
@@ -273,20 +273,6 @@ onMounted(async () => {
 	}
 
 	loadDiscussions(true)
-})
-
-// 监听页面显示（从详情页返回时刷新）
-onShow(() => {
-	// 每次显示页面时刷新用户信息和讨论列表
-	if (userInfoLoaded.value) {
-		userStore.fetchUserInfo().catch(err => {
-			console.error('刷新用户信息失败:', err)
-		})
-
-		if (discussions.value.length > 0) {
-			loadDiscussions(true)
-		}
-	}
 })
 </script>
 

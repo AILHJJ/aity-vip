@@ -19,10 +19,30 @@
 					placeholder="搜索消息标题或内容"
 					placeholder-style="color: #999999"
 					@confirm="handleSearch"
+					@focus="showSearchHistory = true"
 				/>
 				<text v-if="searchKeyword" class="clear-icon" @click="clearSearch">×</text>
 			</view>
 			<button class="search-btn" @click="handleSearch">搜索</button>
+		</view>
+
+		<!-- 搜索历史弹窗 -->
+		<view v-if="showSearchHistory && searchHistory.length > 0" class="search-history-panel">
+			<view class="history-header">
+				<text class="history-title">搜索历史</text>
+				<text class="history-clear" @click="handleClearHistory">清空</text>
+			</view>
+			<view class="history-list">
+				<view
+					v-for="(item, index) in searchHistory"
+					:key="index"
+					class="history-item"
+					@click="handleSelectHistory(item)"
+				>
+					<text class="history-text">{{ item }}</text>
+					<text class="history-remove" @click.stop="handleRemoveHistory(item)">×</text>
+				</view>
+			</view>
 		</view>
 
 		<!-- 筛选栏 -->
@@ -51,8 +71,11 @@
 			:refresher-triggered="refreshing"
 			@refresherrefresh="onRefresh"
 		>
+			<!-- 骨架屏加载 -->
+			<message-skeleton v-if="loading && messages.length === 0" :count="5" />
+
 			<!-- 加载中 -->
-			<view v-if="loading && messages.length === 0" class="loading-container">
+			<view v-else-if="loading && messages.length === 0" class="loading-container">
 				<view class="loading-spinner"></view>
 				<text class="loading-text">加载中...</text>
 			</view>
@@ -119,11 +142,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onShow } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
 import { getMessagesApi } from '../../api/message'
 import { MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatFriendlyTime } from '../../utils/time'
+import { getSearchHistory, addSearchHistory, clearSearchHistory, removeSearchHistory } from '../../utils/search-history'
+import MessageSkeleton from '@/components/message-skeleton.vue'
 
 const userStore = useUserStore()
 
@@ -137,6 +162,8 @@ const hasMore = ref(true)
 const activeTag = ref('')
 const searchKeyword = ref('')
 const userInfoLoaded = ref(false) // 用户信息加载状态
+const showSearchHistory = ref(false) // 显示搜索历史
+const searchHistory = ref([]) // 搜索历史列表
 
 // 筛选标签
 const filterTags = computed(() => {
@@ -289,13 +316,44 @@ const handleTagFilter = (tag) => {
 
 // 搜索
 const handleSearch = () => {
+	if (searchKeyword.value.trim()) {
+		addSearchHistory(searchKeyword.value.trim())
+		searchHistory.value = getSearchHistory()
+	}
+	showSearchHistory.value = false
 	// 搜索在客户端进行过滤，不需要重新加载
-	// 如果需要服务端搜索，可以在这里调用 loadMessages(true)
 }
 
 // 清除搜索
 const clearSearch = () => {
 	searchKeyword.value = ''
+}
+
+// 选择搜索历史
+const handleSelectHistory = (keyword) => {
+	searchKeyword.value = keyword
+	showSearchHistory.value = false
+	handleSearch()
+}
+
+// 清除搜索历史
+const handleClearHistory = () => {
+	uni.showModal({
+		title: '清空搜索历史',
+		content: '确定要清空所有搜索历史吗？',
+		success: (res) => {
+			if (res.confirm) {
+				clearSearchHistory()
+				searchHistory.value = []
+			}
+		}
+	})
+}
+
+// 删除单条搜索历史
+const handleRemoveHistory = (keyword) => {
+	removeSearchHistory(keyword)
+	searchHistory.value = getSearchHistory()
 }
 
 // 跳转到详情
@@ -322,6 +380,9 @@ onMounted(async () => {
 		return
 	}
 
+	// 加载搜索历史
+	searchHistory.value = getSearchHistory()
+
 	// 强制刷新用户信息，确保权限正确
 	try {
 		await userStore.fetchUserInfo()
@@ -345,20 +406,6 @@ onMounted(async () => {
 	}
 
 	loadMessages(true)
-})
-
-// 监听页面显示（从详情页返回时刷新）
-onShow(() => {
-	// 每次显示页面时刷新用户信息和消息列表
-	if (userInfoLoaded.value) {
-		userStore.fetchUserInfo().catch(err => {
-			console.error('刷新用户信息失败:', err)
-		})
-
-		if (messages.value.length > 0) {
-			loadMessages(true)
-		}
-	}
 })
 </script>
 
@@ -542,6 +589,14 @@ onShow(() => {
 	padding: 30rpx;
 	margin-bottom: 20rpx;
 	box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+	border-left: 4rpx solid transparent;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+	&:active {
+		transform: scale(0.98);
+		border-left-color: #667eea;
+		box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+	}
 }
 
 .message-header {
@@ -556,7 +611,25 @@ onShow(() => {
 	font-size: 24rpx;
 	color: #ffffff;
 	border-radius: 20rpx;
-	background: #667eea;
+	font-weight: 500;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+	// 为不同类型设置不同的渐变色
+	&.type-pre_market_comment {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	}
+
+	&.type-risk_warning {
+		background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+	}
+
+	&.type-morning_focus {
+		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+	}
+
+	&.type-important {
+		background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+	}
 }
 
 .message-time {
@@ -647,5 +720,77 @@ onShow(() => {
 	font-size: 60rpx;
 	color: #ffffff;
 	font-weight: 300;
+}
+
+// 搜索历史面板
+.search-history-panel {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	background: #ffffff;
+	border-radius: 0 0 16rpx 16rpx;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+	z-index: 100;
+	padding: 20rpx;
+	max-height: 600rpx;
+	overflow-y: auto;
+}
+
+.history-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 20rpx;
+	padding-bottom: 15rpx;
+	border-bottom: 1rpx solid #e0e0e0;
+}
+
+.history-title {
+	font-size: 28rpx;
+	font-weight: bold;
+	color: #333333;
+}
+
+.history-clear {
+	font-size: 26rpx;
+	color: #667eea;
+	padding: 8rpx 16rpx;
+}
+
+.history-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10rpx;
+}
+
+.history-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16rpx 20rpx;
+	background: #f5f5f5;
+	border-radius: 8rpx;
+	transition: all 0.3s;
+
+	&:active {
+		background: #e0e0e0;
+	}
+}
+
+.history-text {
+	flex: 1;
+	font-size: 28rpx;
+	color: #333333;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.history-remove {
+	font-size: 36rpx;
+	color: #999999;
+	padding: 0 10rpx;
+	line-height: 1;
 }
 </style>
