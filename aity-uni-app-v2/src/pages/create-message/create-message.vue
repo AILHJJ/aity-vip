@@ -95,12 +95,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useUserStore } from '../../store/user'
-import { createMessageApi } from '../../api/message'
+import { createMessageApi, updateMessageApi, getMessageDetailApi } from '../../api/message'
 import { MESSAGE_TYPES, MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 
 const userStore = useUserStore()
+
+// 草稿存储key
+const DRAFT_KEY = 'message_draft'
 
 // 表单数据
 const formData = ref({
@@ -112,6 +115,9 @@ const formData = ref({
 })
 
 const submitting = ref(false)
+const editMode = ref(false)
+const editMessageId = ref(0)
+const draftTimer = ref(null)
 
 // 消息类型选项
 const messageTypes = computed(() => {
@@ -239,11 +245,21 @@ const handleSubmit = async () => {
 			attachments: formData.value.attachments
 		}
 
-		const res = await createMessageApi(data)
+		let res
+		if (editMode.value) {
+			// 编辑模式
+			res = await updateMessageApi(editMessageId.value, data)
+		} else {
+			// 新建模式
+			res = await createMessageApi(data)
+		}
 
 		if (res.success) {
+			// 清除草稿
+			uni.removeStorageSync(DRAFT_KEY)
+
 			uni.showToast({
-				title: '发布成功',
+				title: editMode.value ? '修改成功' : '发布成功',
 				icon: 'success'
 			})
 
@@ -252,14 +268,14 @@ const handleSubmit = async () => {
 			}, 1500)
 		} else {
 			uni.showToast({
-				title: res.message || '发布失败',
+				title: res.message || (editMode.value ? '修改失败' : '发布失败'),
 				icon: 'none'
 			})
 		}
 	} catch (error) {
-		console.error('发布消息失败:', error)
+		console.error('提交消息失败:', error)
 		uni.showToast({
-			title: '发布失败',
+			title: editMode.value ? '修改失败' : '发布失败',
 			icon: 'none'
 		})
 	} finally {
@@ -271,7 +287,7 @@ const handleSubmit = async () => {
 const handleCancel = () => {
 	uni.showModal({
 		title: '提示',
-		content: '确定要取消吗？未保存的内容将丢失。',
+		content: '确定要取消吗？草稿已自动保存。',
 		success: (res) => {
 			if (res.confirm) {
 				uni.navigateBack()
@@ -280,8 +296,49 @@ const handleCancel = () => {
 	})
 }
 
+// 保存草稿
+const saveDraft = () => {
+	if (!editMode.value && (formData.value.title || formData.value.content)) {
+		uni.setStorageSync(DRAFT_KEY, JSON.stringify(formData.value))
+	}
+}
+
+// 恢复草稿
+const restoreDraft = () => {
+	const draft = uni.getStorageSync(DRAFT_KEY)
+	if (draft && !editMode.value) {
+		try {
+			const draftData = JSON.parse(draft)
+			if (draftData.title || draftData.content) {
+				uni.showModal({
+					title: '发现草稿',
+					content: '是否恢复上次编辑的内容？',
+					success: (res) => {
+						if (res.confirm) {
+							formData.value = draftData
+							uni.showToast({
+								title: '草稿已恢复',
+								icon: 'success'
+							})
+						} else {
+							uni.removeStorageSync(DRAFT_KEY)
+						}
+					}
+				})
+			}
+		} catch (error) {
+			console.error('恢复草稿失败:', error)
+		}
+	}
+}
+
+// 监听表单变化，自动保存草稿
+watch(formData, () => {
+	saveDraft()
+}, { deep: true })
+
 // 页面加载
-onMounted(() => {
+onMounted(async () => {
 	// 检查管理员权限
 	if (!userStore.isAdmin) {
 		uni.showToast({
@@ -291,6 +348,58 @@ onMounted(() => {
 		setTimeout(() => {
 			uni.navigateBack()
 		}, 1500)
+		return
+	}
+
+	// 检查是否是编辑模式
+	const pages = getCurrentPages()
+	const currentPage = pages[pages.length - 1]
+	const messageId = currentPage.options.id
+	const mode = currentPage.options.mode
+
+	if (messageId && mode === 'edit') {
+		// 编辑模式：加载消息详情
+		editMode.value = true
+		editMessageId.value = parseInt(messageId)
+
+		try {
+			const res = await getMessageDetailApi(editMessageId.value)
+			if (res.success && res.data) {
+				formData.value = {
+					title: res.data.title || '',
+					type: res.data.type || '',
+					tags: res.data.tags || [],
+					content: res.data.content || '',
+					attachments: res.data.attachments || []
+				}
+			} else {
+				uni.showToast({
+					title: '加载消息失败',
+					icon: 'none'
+				})
+				setTimeout(() => uni.navigateBack(), 1500)
+			}
+		} catch (error) {
+			console.error('加载消息详情失败:', error)
+			uni.showToast({
+				title: '加载失败',
+				icon: 'none'
+			})
+			setTimeout(() => uni.navigateBack(), 1500)
+		}
+	} else {
+		// 新建模式：检查是否有草稿
+		restoreDraft()
+	}
+
+	// 启动定时保存草稿（每30秒）
+	draftTimer.value = setInterval(saveDraft, 30000)
+})
+
+// 页面卸载时清除定时器
+onBeforeUnmount(() => {
+	if (draftTimer.value) {
+		clearInterval(draftTimer.value)
 	}
 })
 </script>

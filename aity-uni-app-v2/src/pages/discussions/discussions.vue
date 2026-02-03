@@ -97,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onShow } from 'vue'
 import { useUserStore } from '../../store/user'
 import { getDiscussionsApi } from '../../api/discussion'
 import { formatFriendlyTime } from '../../utils/time'
@@ -113,6 +113,7 @@ const limit = ref(20)
 const hasMore = ref(true)
 const activeFilter = ref('')
 const searchKeyword = ref('')
+const userInfoLoaded = ref(false) // 用户信息加载状态
 
 // 筛选选项
 const filters = ref([
@@ -240,7 +241,7 @@ const goToDetail = (id) => {
 }
 
 // 页面加载
-onMounted(() => {
+onMounted(async () => {
 	// 检查登录状态
 	if (!userStore.isLoggedIn) {
 		uni.reLaunch({
@@ -249,13 +250,42 @@ onMounted(() => {
 		return
 	}
 
+	// 强制刷新用户信息，确保权限正确
+	try {
+		await userStore.fetchUserInfo()
+
+		// 开发环境调试日志
+		if (process.env.NODE_ENV === 'development') {
+			console.log('=== 用户信息加载完成 ===')
+			console.log('用户名:', userStore.userName)
+			console.log('用户角色:', userStore.userRole)
+			console.log('是否管理员:', userStore.isAdmin)
+		}
+
+		userInfoLoaded.value = true
+	} catch (error) {
+		console.error('获取用户信息失败:', error)
+		uni.showToast({
+			title: '获取用户信息失败',
+			icon: 'none'
+		})
+		return
+	}
+
 	loadDiscussions(true)
 })
 
-// 监听页面显示
-uni.onShow(() => {
-	if (discussions.value.length > 0) {
-		loadDiscussions(true)
+// 监听页面显示（从详情页返回时刷新）
+onShow(() => {
+	// 每次显示页面时刷新用户信息和讨论列表
+	if (userInfoLoaded.value) {
+		userStore.fetchUserInfo().catch(err => {
+			console.error('刷新用户信息失败:', err)
+		})
+
+		if (discussions.value.length > 0) {
+			loadDiscussions(true)
+		}
 	}
 })
 </script>

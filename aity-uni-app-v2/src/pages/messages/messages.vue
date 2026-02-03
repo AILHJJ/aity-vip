@@ -1,7 +1,7 @@
 <template>
 	<view class="messages-container">
 		<!-- 管理员操作栏 -->
-		<view v-if="userStore.isAdmin" class="admin-bar">
+		<view v-if="userStore.isAdmin && userInfoLoaded" class="admin-bar">
 			<button class="create-btn" @click="goToCreate">
 				<text class="create-icon">✏️</text>
 				<text class="create-text">发布消息</text>
@@ -112,14 +112,14 @@
 		</scroll-view>
 
 		<!-- 管理员发布按钮 -->
-		<view v-if="userStore.isAdmin" class="fab-button" @click="goToCreate">
+		<view v-if="userStore.isAdmin && userInfoLoaded" class="fab-button" @click="goToCreate">
 			<text class="fab-icon">+</text>
 		</view>
 	</view>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onShow } from 'vue'
 import { useUserStore } from '../../store/user'
 import { getMessagesApi } from '../../api/message'
 import { MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../utils/constants'
@@ -136,6 +136,7 @@ const limit = ref(20)
 const hasMore = ref(true)
 const activeTag = ref('')
 const searchKeyword = ref('')
+const userInfoLoaded = ref(false) // 用户信息加载状态
 
 // 筛选标签
 const filterTags = computed(() => {
@@ -312,7 +313,7 @@ const goToCreate = () => {
 }
 
 // 页面加载
-onMounted(() => {
+onMounted(async () => {
 	// 检查登录状态
 	if (!userStore.isLoggedIn) {
 		uni.reLaunch({
@@ -321,13 +322,42 @@ onMounted(() => {
 		return
 	}
 
+	// 强制刷新用户信息，确保权限正确
+	try {
+		await userStore.fetchUserInfo()
+
+		// 开发环境调试日志
+		if (process.env.NODE_ENV === 'development') {
+			console.log('=== 用户信息加载完成 ===')
+			console.log('用户名:', userStore.userName)
+			console.log('用户角色:', userStore.userRole)
+			console.log('是否管理员:', userStore.isAdmin)
+		}
+
+		userInfoLoaded.value = true
+	} catch (error) {
+		console.error('获取用户信息失败:', error)
+		uni.showToast({
+			title: '获取用户信息失败',
+			icon: 'none'
+		})
+		return
+	}
+
 	loadMessages(true)
 })
 
 // 监听页面显示（从详情页返回时刷新）
-uni.onShow(() => {
-	if (messages.value.length > 0) {
-		loadMessages(true)
+onShow(() => {
+	// 每次显示页面时刷新用户信息和消息列表
+	if (userInfoLoaded.value) {
+		userStore.fetchUserInfo().catch(err => {
+			console.error('刷新用户信息失败:', err)
+		})
+
+		if (messages.value.length > 0) {
+			loadMessages(true)
+		}
 	}
 })
 </script>

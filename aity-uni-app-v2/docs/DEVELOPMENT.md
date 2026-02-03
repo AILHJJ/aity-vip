@@ -1,0 +1,942 @@
+# 开发指南 (DEVELOPMENT.md)
+
+> VIP投研内部分享系统的开发规范和最佳实践
+
+## 目录
+
+- [开发环境搭建](#开发环境搭建)
+- [项目结构说明](#项目结构说明)
+- [代码规范](#代码规范)
+- [开发流程](#开发流程)
+- [调试技巧](#调试技巧)
+- [常见问题](#常见问题)
+- [部署发布](#部署发布)
+
+---
+
+## 开发环境搭建
+
+### 必需软件
+
+| 软件 | 版本要求 | 用途 |
+|------|---------|------|
+| Node.js | >= 16.0.0 | 运行环境 |
+| npm | >= 8.0.0 | 包管理器 |
+| HBuilderX / VS Code | 最新版 | 代码编辑器 |
+| 微信开发者工具 | 最新版 | 小程序开发 |
+| Git | 最新版 | 版本控制 |
+
+### 安装步骤
+
+#### 1. 克隆项目
+
+```bash
+git clone https://github.com/your-org/aity-vip.git
+cd aity-vip/aity-uni-app-v2
+```
+
+#### 2. 安装依赖
+
+```bash
+npm install
+```
+
+#### 3. 配置开发环境
+
+```bash
+# 复制环境配置文件
+cp .env.development.example .env.development
+
+# 编辑配置
+# 主要配置后端API地址
+```
+
+#### 4. 启动开发服务器
+
+```bash
+# H5开发
+npm run dev:h5
+
+# 微信小程序开发
+npm run dev:mp-weixin
+
+# 支付宝小程序开发
+npm run dev:mp-alipay
+```
+
+---
+
+## 项目结构说明
+
+### 目录结构
+
+```
+aity-uni-app-v2/
+├── docs/                   # 项目文档
+│   ├── REQUIREMENTS.md     # 需求文档
+│   ├── OPTIMIZATION.md     # 优化方案
+│   ├── DESIGN.md          # 设计规范
+│   ├── ISSUES.md          # 问题追踪
+│   └── DEVELOPMENT.md     # 开发指南(本文件)
+├── public/                 # 静态资源
+│   └── images/            # 图片资源
+├── scripts/               # 构建脚本
+├── src/
+│   ├── api/               # API接口
+│   │   ├── auth.js        # 认证相关
+│   │   ├── message.js     # 消息相关
+│   │   ├── discussion.js  # 讨论相关
+│   │   ├── user.js        # 用户管理
+│   │   └── stats.js       # 数据统计
+│   ├── components/        # 公共组件
+│   ├── pages/            # 页面组件
+│   │   ├── login/         # 登录页
+│   │   ├── messages/      # 消息列表
+│   │   ├── message-detail/# 消息详情
+│   │   ├── discussions/   # 讨论列表
+│   │   ├── profile/       # 个人中心
+│   │   └── ...
+│   ├── store/            # 状态管理(Pinia)
+│   │   └── user.js       # 用户状态
+│   ├── utils/            # 工具函数
+│   │   ├── request.js    # 请求封装
+│   │   ├── constants.js  # 常量定义
+│   │   ├── time.js       # 时间处理
+│   │   └── validate.js   # 表单验证
+│   ├── styles/           # 全局样式
+│   ├── App.vue           # 应用入口
+│   ├── main.js           # 主文件
+│   ├── pages.json        # 页面配置
+│   └── manifest.json     # 应用配置
+├── .gitignore            # Git忽略
+├── package.json          # 依赖配置
+├── vite.config.js        # Vite配置
+└── README.md             # 项目说明
+```
+
+### 核心文件说明
+
+#### package.json
+
+```json
+{
+  "name": "aity-vip-uni-app",
+  "version": "1.0.0",
+  "scripts": {
+    "dev:h5": "uni",
+    "dev:mp-weixin": "uni -p mp-weixin",
+    "build:h5": "uni build",
+    "build:mp-weixin": "uni build -p mp-weixin",
+    "lint": "eslint --ext .js,.vue src",
+    "format": "prettier --write \"src/**/*.{js,vue}\""
+  },
+  "dependencies": {
+    "vue": "^3.2.0",
+    "pinia": "^2.0.0",
+    "dayjs": "^1.11.0"
+  },
+  "devDependencies": {
+    "@dcloudio/vite-plugin-uni": "^3.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^2.8.0"
+  }
+}
+```
+
+#### pages.json
+
+```json
+{
+  "pages": [
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/messages/messages",
+      "style": {
+        "navigationBarTitleText": "消息"
+      }
+    }
+  ],
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#667eea",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/messages/messages",
+        "iconPath": "static/tabbar/message.png",
+        "selectedIconPath": "static/tabbar/message-active.png",
+        "text": "消息"
+      },
+      {
+        "pagePath": "pages/discussions/discussions",
+        "iconPath": "static/tabbar/discussion.png",
+        "selectedIconPath": "static/tabbar/discussion-active.png",
+        "text": "讨论"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "iconPath": "static/tabbar/profile.png",
+        "selectedIconPath": "static/tabbar/profile-active.png",
+        "text": "我的"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 代码规范
+
+### Vue组件规范
+
+#### 组件命名
+
+```vue
+<!-- ✅ 正确 - 多单词,驼峰命名 -->
+<template>
+  <view class="message-list">
+    <!-- ... -->
+  </view>
+</template>
+
+<script setup>
+// 组件名与文件名一致
+</script>
+
+<!-- ❌ 错误 - 单单词 -->
+<template>
+  <view class="list">
+    <!-- ... -->
+  </view>
+</template>
+```
+
+#### 组件结构
+
+```vue
+<template>
+  <!-- 模板 -->
+</template>
+
+<script setup>
+// 1. 导入
+import { ref, computed, onMounted } from 'vue'
+import { useUserStore } from '@/store/user'
+
+// 2. Props定义
+const props = defineProps({
+  messageId: {
+    type: Number,
+    required: true
+  }
+})
+
+// 3. Emits定义
+const emit = defineEmits(['success', 'error'])
+
+// 4. 响应式数据
+const loading = ref(false)
+const message = ref(null)
+
+// 5. 计算属性
+const isAdmin = computed(() => {
+  return userStore.isAdmin
+})
+
+// 6. 方法
+const loadData = async () => {
+  // ...
+}
+
+// 7. 生命周期
+onMounted(() => {
+  loadData()
+})
+</script>
+
+<style lang="scss" scoped>
+// 样式
+</style>
+```
+
+#### 模板规范
+
+```vue
+<template>
+  <!-- ✅ 使用kebab-case -->
+  <view class="message-item" @click="goToDetail">
+
+  <!-- ✅ v-if vs v-show -->
+  <view v-if="shouldShow">  <!-- 频繁切换用v-show -->
+    内容
+  </view>
+
+  <!-- ✅ 列表渲染必须带key -->
+  <view v-for="item in list" :key="item.id">
+
+  <!-- ✅ 修饰符顺序 -->
+  <button @click.stop.prevent="handleSubmit">
+</template>
+```
+
+### JavaScript规范
+
+#### 变量命名
+
+```javascript
+// ✅ 常量 - 大写下划线
+const MAX_COUNT = 100
+const API_BASE_URL = 'https://api.example.com'
+
+// ✅ 变量 - 驼峰命名
+const userName = 'Admin'
+const isLoggedIn = true
+
+// ✅ 函数 - 驼峰命名,动词开头
+function getUserInfo() {}
+const handleSubmit = async () => {}
+
+// ✅ 类/组件 - 帕斯卡命名
+class UserManager {}
+```
+
+#### 异步处理
+
+```javascript
+// ✅ 使用 async/await
+const loadMessages = async () => {
+  try {
+    const res = await getMessagesApi()
+    if (res.success) {
+      messages.value = res.data
+    }
+  } catch (error) {
+    console.error('加载失败:', error)
+  }
+}
+
+// ❌ 避免回调地狱
+const loadMessages = () => {
+  getMessagesApi().then(res => {
+    if (res.success) {
+      messages.value = res.data
+    }
+  })
+}
+```
+
+#### 错误处理
+
+```javascript
+// ✅ 完整的错误处理
+const handleSubmit = async () => {
+  if (!validateForm()) {
+    return
+  }
+
+  submitting.value = true
+
+  try {
+    const res = await createMessageApi(formData.value)
+
+    if (res.success) {
+      uni.showToast({ title: '发布成功', icon: 'success' })
+      emit('success')
+    } else {
+      throw new Error(res.message || '发布失败')
+    }
+  } catch (error) {
+    console.error('发布消息失败:', error)
+    uni.showToast({ title: error.message, icon: 'none' })
+    emit('error', error)
+  } finally {
+    submitting.value = false
+  }
+}
+```
+
+### CSS/SCSS规范
+
+#### 命名规范
+
+```scss
+// ✅ BEM命名法
+.message-item {           // Block
+  &__header {            // Element
+    &--title {           // Modifier
+      font-size: 32rpx;
+    }
+  }
+}
+
+// ✅ 语义化类名
+.search-bar { }
+.message-list { }
+.user-avatar { }
+
+// ❌ 避免无意义类名
+.red-text { }
+.mt-20 { }
+```
+
+#### 样式组织
+
+```scss
+<style lang="scss" scoped>
+// 1. 变量定义
+$primary-color: #667eea;
+
+// 2. 样式重置
+.message-item {
+  margin: 0;
+  padding: 0;
+}
+
+// 3. 布局样式
+.message-list {
+  display: flex;
+  flex-direction: column;
+}
+
+// 4. 组件样式
+.message-item {
+  background: #ffffff;
+  border-radius: 16rpx;
+
+  // 5. 状态样式
+  &:active {
+    opacity: 0.8;
+  }
+
+  &.unread {
+    background: #f8f9ff;
+  }
+
+  // 6. 响应式
+  @media (max-width: 600rpx) {
+    padding: 20rpx;
+  }
+}
+</style>
+```
+
+### 注释规范
+
+```javascript
+/**
+ * 获取消息列表
+ * @param {Object} params - 查询参数
+ * @param {Number} params.page - 页码
+ * @param {Number} params.limit - 每页数量
+ * @param {String} params.tag - 标签筛选
+ * @returns {Promise<Object>} 返回消息列表
+ */
+const getMessagesApi = async (params) => {
+  // ...
+}
+
+// TODO: 添加分页加载
+// FIXME: 修复iOS兼容性问题
+// NOTE: 这里需要特殊处理
+```
+
+---
+
+## 开发流程
+
+### Git工作流
+
+#### 分支策略
+
+```
+main (生产环境)
+  ↑
+develop (开发环境)
+  ↑
+feature/xxx (功能分支)
+hotfix/xxx (紧急修复)
+```
+
+#### 分支命名
+
+```bash
+# 功能分支
+feature/message-edit
+feature/user-search
+
+# 修复分支
+fix/login-error
+fix/display-issue
+
+# 紧急修复
+hotfix/security-patch
+```
+
+#### 提交信息
+
+```bash
+# 格式
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+
+# 类型
+feat: 新功能
+fix: 修复bug
+docs: 文档更新
+style: 代码格式(不影响功能)
+refactor: 重构
+perf: 性能优化
+test: 测试
+chore: 构建/工具
+
+# 示例
+feat(message): 添加消息编辑功能
+
+fix(login): 修复Token过期未跳转问题
+
+docs(readme): 更新安装说明
+```
+
+#### 开发流程
+
+```bash
+# 1. 创建功能分支
+git checkout -b feature/message-edit
+
+# 2. 开发并提交
+git add .
+git commit -m "feat(message): 添加消息编辑页面"
+
+# 3. 推送到远程
+git push origin feature/message-edit
+
+# 4. 创建Pull Request
+# 在GitHub/GitLab上创建PR
+
+# 5. Code Review
+# 等待审核通过
+
+# 6. 合并到develop
+git checkout develop
+git merge feature/message-edit
+
+# 7. 删除功能分支
+git branch -d feature/message-edit
+```
+
+---
+
+## 调试技巧
+
+### 控制台调试
+
+```javascript
+// 基础日志
+console.log('普通日志')
+console.error('错误日志')
+console.warn('警告日志')
+
+// 分组日志
+console.group('用户信息')
+console.log('姓名:', userStore.userName)
+console.log('角色:', userStore.userRole)
+console.groupEnd()
+
+// 表格日志
+console.table([
+  { name: 'Alice', age: 25 },
+  { name: 'Bob', age: 30 }
+])
+
+// 对象日志(格式化)
+console.log('用户信息:', JSON.stringify(userInfo, null, 2))
+```
+
+### Vue DevTools
+
+```bash
+# 安装
+npm install --save-dev @vue/devtools
+
+# 使用
+# 在main.js中引入
+if (process.env.NODE_ENV === 'development') {
+  const devtools = require('@vue/devtools')
+  devtools.connect(/* host, port */)
+}
+```
+
+### 网络请求调试
+
+```javascript
+// src/utils/request.js
+export function request(options) {
+  console.log('=== 请求开始 ===')
+  console.log('URL:', options.url)
+  console.log('Method:', options.method)
+  console.log('Data:', options.data)
+
+  return uni.request({
+    // ...
+    success: (res) => {
+      console.log('=== 响应成功 ===')
+      console.log('Status:', res.statusCode)
+      console.log('Data:', res.data)
+    },
+    fail: (err) => {
+      console.error('=== 请求失败 ===')
+      console.error('Error:', err)
+    }
+  })
+}
+```
+
+### 小程序调试
+
+#### 微信开发者工具
+
+1. **开启调试模式**
+   - 勾选"不校验合法域名"
+   - 勾选"启用调试"
+
+2. **使用vconsole**
+   ```javascript
+   // 在App.vue中
+   onLaunch(() => {
+     if (process.env.NODE_ENV === 'development') {
+       const vconsole = require('vconsole')
+       new vconsole()
+     }
+   })
+   ```
+
+3. **真机调试**
+   - 点击"真机调试"
+   - 扫码在手机上打开
+   - 查看实时日志
+
+### 常见问题排查
+
+#### 网络请求失败
+
+```bash
+# 1. 检查后端服务
+curl http://192.168.2.140:3001/api/health
+
+# 2. 检查手机网络
+# 确保手机和电脑在同一局域网
+
+# 3. 查看后端日志
+cd backend
+tail -f logs/app.log
+```
+
+#### 页面白屏
+
+```javascript
+// 1. 检查控制台错误
+// 2. 检查路由配置
+console.log('当前页面:', getCurrentPages())
+
+// 3. 检查组件导入
+import MyComponent from '@/components/MyComponent.vue'
+console.log('组件:', MyComponent)
+```
+
+#### 数据不更新
+
+```javascript
+// 确保使用响应式API
+import { ref, reactive } from 'vue'
+
+// ✅ 正确
+const list = ref([])
+list.value = [1, 2, 3]
+
+const obj = reactive({})
+Object.assign(obj, { a: 1 })
+
+// ❌ 错误
+let list = []
+list = [1, 2, 3]
+```
+
+---
+
+## 常见问题
+
+### 1. 小程序网络请求失败
+
+**问题**: request:fail
+
+**解决方案**:
+```javascript
+// 检查request.js配置
+const BASE_URL = 'http://192.168.2.140:3001/api'
+
+// 确认微信开发者工具已勾选"不校验合法域名"
+
+// 确认后端服务启动
+cd backend && npm start
+```
+
+### 2. 页面样式错乱
+
+**问题**: H5正常,小程序显示异常
+
+**解决方案**:
+```scss
+// 使用rpx而不是px
+// ❌ 错误
+ width: 100px;
+
+// ✅ 正确
+ width: 200rpx;
+```
+
+### 3. Pinia状态不持久化
+
+**问题**: 刷新页面后状态丢失
+
+**解决方案**:
+```javascript
+// store/user.js
+import { defineStore } from 'pinia'
+
+export const useUserStore = defineStore('user', {
+  state: () => ({
+    token: uni.getStorageSync('token') || '',
+    userInfo: uni.getStorageSync('userInfo') || null
+  }),
+
+  actions: {
+    login(token, userInfo) {
+      this.token = token
+      this.userInfo = userInfo
+
+      // 持久化
+      uni.setStorageSync('token', token)
+      uni.setStorageSync('userInfo', userInfo)
+    }
+  }
+})
+```
+
+### 4. 路由跳转参数丢失
+
+**问题**: 页面跳转后参数获取不到
+
+**解决方案**:
+```javascript
+// 发送页
+uni.navigateTo({
+  url: `/pages/message-detail/message-detail?id=${messageId}`
+})
+
+// 接收页
+onMounted(() => {
+  const pages = getCurrentPages()
+  const currentPage = pages[pages.length - 1]
+  const messageId = currentPage.options.id || 0
+
+  console.log('消息ID:', messageId)
+})
+```
+
+---
+
+## 部署发布
+
+### H5部署
+
+```bash
+# 1. 构建生产版本
+npm run build:h5
+
+# 2. 生成文件在 dist/build/h5
+
+# 3. 部署到服务器
+# 方式1: 直接上传dist/build/h5目录到Web服务器
+
+# 方式2: 使用静态托管
+# 例如: Vercel, Netlify, GitHub Pages
+```
+
+### 小程序发布
+
+```bash
+# 1. 构建小程序
+npm run build:mp-weixin
+
+# 2. 生成文件在 dist/build/mp-weixin
+
+# 3. 使用微信开发者工具
+# - 打开项目: dist/build/mp-weixin
+# - 点击"上传"按钮
+# - 填写版本号和项目备注
+# - 登录微信公众平台提交审核
+# https://mp.weixin.qq.com
+```
+
+### 环境变量配置
+
+```javascript
+// .env.development (开发环境)
+VUE_APP_API_BASE_URL=http://192.168.2.140:3001/api
+VUE_APP_ENV=development
+
+// .env.production (生产环境)
+VUE_APP_API_BASE_URL=https://aity88.online:8443/api
+VUE_APP_ENV=production
+
+// 使用
+const API_BASE_URL = process.env.VUE_APP_API_BASE_URL
+```
+
+### 版本管理
+
+```bash
+# 1. 更新版本号
+# package.json
+{
+  "version": "1.1.0"
+}
+
+# 2. 生成changelog
+npm run changelog
+
+# 3. Git tag
+git tag -a v1.1.0 -m "Release v1.1.0"
+git push origin v1.1.0
+```
+
+---
+
+## 性能优化
+
+### 代码优化
+
+```javascript
+// 1. 懒加载页面
+// pages.json
+{
+  "pages": [
+    {
+      "path": "pages/user-management/user-management",
+      "lazyCodeLoading": "requiredComponents"
+    }
+  ]
+}
+
+// 2. 组件按需引入
+import { showToast } from '@dcloudio/uni-ui'
+
+// 3. 图片懒加载
+<image :src="imgSrc" lazy-load mode="aspectFill"></image>
+```
+
+### 网络优化
+
+```javascript
+// 1. 请求合并
+const loadAllData = async () => {
+  const [messages, discussions] = await Promise.all([
+    getMessagesApi(),
+    getDiscussionsApi()
+  ])
+}
+
+// 2. 数据缓存
+const cache = new Map()
+
+const getCachedData = async (key) => {
+  if (cache.has(key)) {
+    return cache.get(key)
+  }
+
+  const data = await fetchData(key)
+  cache.set(key, data)
+  return data
+}
+```
+
+### 渲染优化
+
+```vue
+<template>
+  <!-- 1. 虚拟列表(长列表) -->
+  <scroll-view scroll-y>
+    <recycle-list :data="longList">
+      <template v-slot="{ item }">
+        <view class="item">{{ item.name }}</view>
+      </template>
+    </recycle-list>
+  </scroll-view>
+
+  <!-- 2. 避免不必要的响应式 -->
+  <script setup>
+  // ✅ 静态数据用shallowRef
+  const staticData = shallowRef(largeData)
+
+  // ✅ 只读数据用readonly
+  const readonlyData = readonly(data)
+  </script>
+</template>
+```
+
+---
+
+## 测试
+
+### 单元测试
+
+```bash
+# 安装依赖
+npm install --save-dev jest @vue/test-utils
+
+# 运行测试
+npm run test
+```
+
+### E2E测试
+
+```bash
+# 使用微信自动化测试
+npm install --save-dev miniprogram-automator
+
+# 运行E2E测试
+npm run test:e2e
+```
+
+---
+
+## 参考资料
+
+### 官方文档
+
+- [uni-app官方文档](https://uniapp.dcloud.net.cn/)
+- [Vue 3官方文档](https://cn.vuejs.org/)
+- [Pinia官方文档](https://pinia.vuejs.org/zh/)
+- [微信小程序文档](https://developers.weixin.qq.com/miniprogram/dev/framework/)
+
+### 推荐阅读
+
+- [Vue 3 Composition API](https://vuejs.org/guide/extras/composition-api-faq.html)
+- [JavaScript ES6+](https://es6.ruanyifeng.com/)
+- [CSS-in-JS](https://vue-loader.vuejs.org/guide/scoped-css.html)
+
+---
+
+**文档版本**: v1.0.0
+**最后更新**: 2024-02-02
+**维护人**: 开发团队
