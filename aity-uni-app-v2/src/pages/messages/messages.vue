@@ -680,6 +680,8 @@ onMounted(async () => {
 	box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
 	border-left: 4rpx solid transparent;
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	// 性能优化：提示浏览器哪些属性会变化
+	will-change: transform, box-shadow, border-left-color;
 
 	&:active {
 		transform: scale(0.98);
