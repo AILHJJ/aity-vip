@@ -124,6 +124,7 @@
 								class="message-tag"
 								:class="getTagClass(tag)"
 							>
+								<text class="tag-icon">{{ getTagIcon(tag) }}</text>
 								<text class="tag-text">{{ getTagLabel(tag) }}</text>
 							</view>
 						</view>
@@ -257,12 +258,27 @@ const getTagLabel = (tag) => {
 
 // 获取标签样式类名
 const getTagClass = (tag) => {
-	const tagClassMap = {
-		[MESSAGE_TAGS.ALL_USERS]: 'tag-all-users',
+	// 处理不同的tag值格式
+	const tagMap = {
+		'short_term': 'tag-short-term',
+		'mid_term': 'tag-mid-term',
+		'all_users': 'tag-all-users',
+		// 兼容旧格式
+		[MESSAGE_TAGS.SHORT_TERM]: 'tag-short-term',
 		[MESSAGE_TAGS.MID_TERM]: 'tag-mid-term',
-		[MESSAGE_TAGS.SHORT_TERM]: 'tag-short-term'
+		[MESSAGE_TAGS.ALL_USERS]: 'tag-all-users'
 	}
-	return tagClassMap[tag] || 'tag-default'
+	return tagMap[tag] || 'tag-default'
+}
+
+// 获取标签图标
+const getTagIcon = (tag) => {
+	const iconMap = {
+		'short_term': '⚡',
+		'mid_term': '📈',
+		'all_users': '👥'
+	}
+	return iconMap[tag] || ''
 }
 
 // 加载消息列表
@@ -811,11 +827,15 @@ onMounted(async () => {
 }
 
 .message-tag {
-	padding: 8rpx 20rpx;
+	display: inline-flex;
+	align-items: center;
+	gap: 6rpx;
+	padding: 10rpx 20rpx;
 	border-radius: 16rpx;
 	font-size: 22rpx;
 	font-weight: 500;
 	transition: all 0.3s ease;
+	white-space: nowrap;
 
 	// 默认标签
 	&.tag-default {
@@ -825,28 +845,34 @@ onMounted(async () => {
 
 	// 全部用户 - 紫色
 	&.tag-all-users {
-		background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+		background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.12) 100%);
 		color: #667eea;
-		border: 1rpx solid rgba(102, 126, 234, 0.2);
+		border: 1rpx solid rgba(102, 126, 234, 0.25);
 	}
 
 	// 中线策略 - 蓝色
 	&.tag-mid-term {
-		background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
+		background: linear-gradient(135deg, rgba(79, 172, 254, 0.12) 0%, rgba(0, 242, 254, 0.12) 100%);
 		color: #4facfe;
-		border: 1rpx solid rgba(79, 172, 254, 0.2);
+		border: 1rpx solid rgba(79, 172, 254, 0.25);
 	}
 
 	// 短线策略 - 绿色
 	&.tag-short-term {
-		background: linear-gradient(135deg, rgba(67, 233, 123, 0.1) 0%, rgba(56, 249, 215, 0.1) 100%);
+		background: linear-gradient(135deg, rgba(67, 233, 123, 0.12) 0%, rgba(56, 249, 215, 0.12) 100%);
 		color: #43e97b;
-		border: 1rpx solid rgba(67, 233, 123, 0.2);
+		border: 1rpx solid rgba(67, 233, 123, 0.25);
 	}
+}
+
+.tag-icon {
+	font-size: 20rpx;
+	line-height: 1;
 }
 
 .tag-text {
 	display: block;
+	line-height: 1;
 }
 
 .message-stats {
