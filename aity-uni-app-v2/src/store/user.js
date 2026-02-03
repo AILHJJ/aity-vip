@@ -7,7 +7,8 @@ import { loginApi, logoutApi, getCurrentUserApi } from '../api/auth'
 export const useUserStore = defineStore('user', {
   state: () => ({
     token: uni.getStorageSync('token') || '',
-    userInfo: uni.getStorageSync('userInfo') || null
+    userInfo: uni.getStorageSync('userInfo') || null,
+    unreadCount: uni.getStorageSync('unreadCount') || 0 // 未读消息数
   }),
 
   getters: {
@@ -37,6 +38,11 @@ export const useUserStore = defineStore('user', {
     // 用户邮箱
     userEmail: (state) => {
       return state.userInfo?.email || ''
+    },
+
+    // 是否有未读消息
+    hasUnread: (state) => {
+      return state.unreadCount > 0
     }
   },
 
@@ -119,6 +125,23 @@ export const useUserStore = defineStore('user', {
     updateUserInfo(userInfo) {
       this.userInfo = { ...this.userInfo, ...userInfo }
       uni.setStorageSync('userInfo', this.userInfo)
+    },
+
+    /**
+     * 设置未读消息数
+     * @param {Number} count 未读数量
+     */
+    setUnreadCount(count) {
+      this.unreadCount = count
+      uni.setStorageSync('unreadCount', count)
+    },
+
+    /**
+     * 清空未读消息数
+     */
+    clearUnreadCount() {
+      this.unreadCount = 0
+      uni.setStorageSync('unreadCount', 0)
     }
   }
 })
