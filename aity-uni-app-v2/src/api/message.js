@@ -90,6 +90,24 @@ export function getFavoriteMessagesApi(params = {}) {
   return get('/favorites', params)
 }
 
+/**
+ * 置顶消息
+ * @param {Number} id 消息ID
+ * @returns {Promise}
+ */
+export function pinMessageApi(id) {
+  return post(`/messages/${id}/pin`)
+}
+
+/**
+ * 取消置顶消息
+ * @param {Number} id 消息ID
+ * @returns {Promise}
+ */
+export function unpinMessageApi(id) {
+  return del(`/messages/${id}/pin`)
+}
+
 export default {
   getMessagesApi,
   getMessageDetailApi,
@@ -99,5 +117,7 @@ export default {
   markMessageAsReadApi,
   favoriteMessageApi,
   unfavoriteMessageApi,
-  getFavoriteMessagesApi
+  getFavoriteMessagesApi,
+  pinMessageApi,
+  unpinMessageApi
 }

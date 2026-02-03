@@ -77,6 +77,10 @@
 
 			<!-- 管理员操作按钮 -->
 			<view v-if="userStore.isAdmin" class="admin-actions">
+				<button class="admin-btn pin" :class="{ pinned: message.isPinned }" @click="handleTogglePin">
+					<text class="admin-btn-icon">{{ message.isPinned ? '📌' : '📍' }}</text>
+					<text>{{ message.isPinned ? '取消置顶' : '置顶' }}</text>
+				</button>
 				<button class="admin-btn edit" @click="handleEdit">
 					<text class="admin-btn-icon">✏️</text>
 					<text>编辑</text>
@@ -123,7 +127,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
-import { getMessageDetailApi, markMessageAsReadApi, favoriteMessageApi, unfavoriteMessageApi, deleteMessageApi } from '../../api/message'
+import { getMessageDetailApi, markMessageAsReadApi, favoriteMessageApi, unfavoriteMessageApi, deleteMessageApi, pinMessageApi, unpinMessageApi } from '../../api/message'
 import { getDiscussionsApi } from '../../api/discussion'
 import { MESSAGE_TYPE_LABELS } from '../../utils/constants'
 import { formatTime, formatFriendlyTime } from '../../utils/time'
@@ -309,6 +313,35 @@ const handleDelete = () => {
 			}
 		}
 	})
+}
+
+// 切换置顶
+const handleTogglePin = async () => {
+	try {
+		const api = message.value.isPinned ? unpinMessageApi : pinMessageApi
+		const action = message.value.isPinned ? '取消置顶' : '置顶'
+
+		const result = await api(messageId.value)
+		if (result.success) {
+			// 更新本地状态
+			message.value.isPinned = !message.value.isPinned
+			uni.showToast({
+				title: `${action}成功`,
+				icon: 'success'
+			})
+		} else {
+			uni.showToast({
+				title: result.message || `${action}失败`,
+				icon: 'none'
+			})
+		}
+	} catch (error) {
+		console.error('切换置顶失败:', error)
+		uni.showToast({
+			title: '操作失败',
+			icon: 'none'
+		})
+	}
 }
 
 // 页面加载
@@ -585,6 +618,16 @@ onMounted(() => {
 	border: none;
 	font-size: 28rpx;
 	font-weight: 500;
+
+	&.pin {
+		background: #fff9e6;
+		color: #ff9800;
+
+		&.pinned {
+			background: #ffeaa7;
+			color: #d63031;
+		}
+	}
 
 	&.edit {
 		background: #f0f2ff;
