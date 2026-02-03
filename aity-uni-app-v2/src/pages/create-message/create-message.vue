@@ -87,6 +87,7 @@
 							placeholder-style="color: #999999"
 							:maxlength="5000"
 							:show-confirm-bar="false"
+							@paste="handlePaste"
 						/>
 						<text class="char-count">{{ formData.content.length }}/5000</text>
 					</view>
@@ -195,6 +196,92 @@ const handleTagToggle = (tag) => {
 	} else {
 		formData.value.tags.push(tag)
 	}
+}
+
+// 处理粘贴事件
+const handlePaste = (e) => {
+	// #ifdef MP-WEIXIN
+	// 微信小程序支持粘贴图片
+	const clipboardData = e.detail || {}
+
+	if (clipboardData.items && clipboardData.items.length > 0) {
+		const items = clipboardData.items
+
+		// 检查是否有图片
+		let hasImage = false
+		items.forEach((item) => {
+			if (item.kind === 'file' && item.type && item.type.startsWith('image/')) {
+				hasImage = true
+				const file = item.getAsFile()
+
+				if (file) {
+					// 检查文件大小
+					if (file.size > 10 * 1024 * 1024) {
+						uni.showToast({
+							title: '图片大小不能超过 10MB',
+							icon: 'none'
+						})
+						return
+					}
+
+					// 检查图片数量限制
+					if (formData.value.attachments.length >= 9) {
+						uni.showToast({
+							title: '最多只能上传9张图片',
+							icon: 'none'
+						})
+						return
+					}
+
+					// 读取文件
+					const reader = new FileReader()
+					reader.onload = (event) => {
+						const base64 = event.target.result
+
+						// 转换为临时文件路径
+						const fsm = uni.getFileSystemManager()
+						const tempFilePath = `${wx.env.USER_DATA_PATH}/paste_${Date.now()}.jpg`
+
+						fsm.writeFile({
+							filePath: tempFilePath,
+							data: base64.split(',')[1],
+							encoding: 'base64',
+							success: () => {
+								formData.value.attachments.push({
+									name: `粘贴图片_${formData.value.attachments.length + 1}.jpg`,
+									path: tempFilePath,
+									size: file.size
+								})
+
+								uni.showToast({
+									title: '图片已添加',
+									icon: 'success',
+									duration: 1500
+								})
+							},
+							fail: (err) => {
+								console.error('保存粘贴图片失败:', err)
+								uni.showToast({
+									title: '图片保存失败',
+									icon: 'none'
+								})
+							}
+						})
+					}
+					reader.readAsDataURL(file)
+				}
+			}
+		})
+
+		if (hasImage) {
+			// 如果有图片，阻止默认行为
+			return false
+		}
+	}
+	// #endif
+
+	// 对于普通文本粘贴，不阻止默认行为
+	return true
 }
 
 // 处理文件上传
