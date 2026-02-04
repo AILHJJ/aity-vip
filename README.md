@@ -1,253 +1,422 @@
 # AITY VIP - 投研内部分享系统
 
+## ⚠️ AI协作重要提示
+
+**使用 Claude Code (AI Coding Assistant) 开发前，请务必阅读**:
+- 📖 [AI协作规则](.claude/AI协作规则.md) - **必须遵守的协作流程**
+
+### 核心规则摘要
+
+1. **生产环境优先**: 所有代码默认配置为生产环境
+2. **API地址**: `https://aity88.online:8443/api`
+3. **后端更新**: 修改后端代码后必须同步更新服务器
+4. **文档同步**: 代码变更必须同步更新文档
+
+**快速检查**:
+```bash
+# 1. 查看AI协作规则
+cat .claude/AI协作规则.md
+
+# 2. 确认API配置
+grep "API_BASE_URL" aity-uni-app-v2/src/utils/request.js
+# 应该输出: const API_BASE_URL = PRODUCTION_API_URL
+```
+
+---
+
 ## 项目简介
+
 AITY VIP是一个专为投研团队设计的内部分享系统，支持消息发布、讨论交流、用户管理等功能，采用前后端分离架构。
 
 ## 技术栈
 
 ### 前端
-- **框架**：Vue 3 (Composition API)
-- **构建工具**：Vite 4.x
-- **UI组件库**：Element Plus 2.x
-- **状态管理**：Pinia
-- **路由**：Vue Router 4.x
-- **样式**：SCSS
-
-**注意**：虽然项目名称包含 "uni-app"，但实际上是标准的 Vue 3 + Element Plus Web 应用，仅支持 Web 端部署。
+- **框架**: uni-app 3.0 (Vue 3)
+- **构建工具**: Vite 5.2.8
+- **状态管理**: Pinia
+- **样式**: SCSS
+- **平台**: 微信小程序、H5
 
 ### 后端
-- **语言**：Node.js
-- **框架**：Express
-- **数据库**：MySQL
-- **认证**：JWT
-- **进程管理**：PM2
+- **语言**: Node.js
+- **框架**: Express
+- **数据库**: MySQL
+- **认证**: JWT
+- **进程管理**: PM2
 
 ## 项目结构
 
 ```
 AITY_VIP/
-├── frontend/              # 前端代码（Vue 3 + Element Plus）
-│   ├── src/               # 源代码
-│   ├── package.json       # 依赖配置
-│   ├── vite.config.js     # 构建配置
+├── .claude/                    # AI协作配置
+│   └── AI协作规则.md           # ⚠️ 必读：AI协作规则
+├── backend/                    # 后端代码
+│   ├── src/                    # 源代码
+│   ├── package.json            # 依赖配置
+│   ├── ecosystem.config.js     # PM2配置
 │   └── ...
-├── backend/               # 后端代码
-│   ├── src/               # 源代码
-│   ├── package.json       # 依赖配置
-│   ├── ecosystem.config.js # PM2配置
+├── aity-uni-app-v2/            # 小程序代码
+│   ├── src/                    # 源代码
+│   ├── dist/                   # 编译输出
+│   ├── docs/                   # 文档
+│   ├── package.json            # 依赖配置
 │   └── ...
-├── docs/                  # 文档
-│   ├── 需求文档.md
-│   ├── API文档.md
-│   ├── 部署指南.md
-│   └── ...
-├── scripts/               # 部署和运维脚本
-│   ├── deploy.sh          # 部署脚本 (Linux/Mac)
-│   ├── build.sh           # 构建脚本 (Linux/Mac)
-│   ├── start.sh           # 启动脚本 (Linux/Mac)
-│   ├── start.ps1          # 启动脚本 (Windows)
-│   └── ...
-├── .gitignore             # Git忽略文件
-└── README.md              # 项目说明
+├── docs/                       # 项目文档
+│   ├── core/                   # 核心文档
+│   ├── config/                 # 配置文档
+│   └── iteration/              # 迭代文档
+└── README.md                   # 本文件
 ```
 
-## 快速开始
+---
+
+## 🚀 快速开始
 
 ### 开发环境要求
-- **Node.js**：v16.0.0+
-- **npm**：v7.0.0+
-- **MySQL**：v5.7+
+
+- **Node.js**: v16.0.0+
+- **npm**: v7.0.0+
+- **MySQL**: v5.7+
+- **微信开发者工具**: 最新版
 
 ### 安装步骤
 
-1. **克隆仓库**
-   ```bash
-   git clone <repository-url> AITY_VIP
-   cd AITY_VIP
-   ```
+#### 1. 克隆仓库
 
-2. **安装前端依赖**
-   ```bash
-   cd frontend
-   npm install
-   ```
-
-3. **安装后端依赖**
-   ```bash
-   cd ../backend
-   npm install
-   ```
-
-4. **配置数据库**
-   - 复制 `.env.example` 文件为 `.env`
-   - 修改 `.env` 文件中的数据库配置
-   ```env
-   DB_HOST=localhost
-   DB_PORT=3306
-   DB_USER=root
-   DB_PASSWORD=your-password
-   DB_NAME=aity_vip
-   ```
-
-5. **初始化数据库**
-   - 执行数据库初始化脚本
-   ```bash
-   node init-test-data.js
-   ```
-
-### 开发流程
-
-1. **启动开发服务器**
-
-   **Windows 用户**:
-   ```powershell
-   # 方式1：使用启动脚本（推荐）
-   cd scripts
-   .\start.ps1
-   
-   # 方式2：手动启动
-   # 启动后端
-   cd backend
-   npm install
-   npm run dev
-   
-   # 启动前端（新开一个 PowerShell 窗口）
-   cd frontend
-   npm install
-   npm run dev
-   ```
-
-   **Linux/Mac 用户**:
-   ```bash
-   # 方式1：使用启动脚本（推荐）
-   cd scripts
-   bash start.sh
-   
-   # 方式2：手动启动
-   # 启动后端
-   cd backend
-   npm run dev
-   
-   # 启动前端
-   cd ../frontend
-   npm run dev
-   ```
-
-2. **访问应用：**
-   - 前端：http://localhost:5173
-   - 后端API：http://localhost:3000/api
-
-3. **代码提交规范**
-   - 采用 Conventional Commits 规范
-   - 提交信息格式：`type(scope): description`
-   - 示例：`feat(auth): 添加登录验证码功能`
-
-## 构建和部署
-
-### 构建项目
 ```bash
-cd scripts
-bash build.sh
+git clone <repository-url> AITY_VIP
+cd AITY_VIP
 ```
 
-### 部署到腾讯云
-1. **配置部署脚本**
-   - 修改 `scripts/deploy.sh` 中的服务器配置
-   ```bash
-   SERVER_IP="your-server-ip"
-   SERVER_USER="ubuntu"
-   ```
+#### 2. 安装后端依赖
 
-2. **执行部署**
-   ```bash
-   cd scripts
-   bash deploy.sh
-   ```
+```bash
+cd backend
+npm install
+```
 
-3. **服务器配置**
-   - 安装 Node.js、PM2、Nginx
-   - 配置 Nginx 反向代理
-   - 配置防火墙规则
+#### 3. 配置后端环境
 
-## Git 分支管理
+```bash
+# 复制环境变量文件
+cp .env.example .env
 
-采用 Git Flow 工作流：
-- **main**：稳定版本，用于生产部署
-- **develop**：开发分支，集成所有功能开发
-- **feature/xxx**：新功能开发分支
-- **hotfix/xxx**：生产环境紧急修复分支
-- **release/xxx**：版本发布分支
+# 编辑配置
+# DB_HOST=localhost
+# DB_PORT=3306
+# DB_USER=root
+# DB_PASSWORD=your-password
+# DB_NAME=aity_vip
+```
 
-## 功能模块
+#### 4. 初始化数据库
+
+```bash
+node init-test-data.js
+```
+
+#### 5. 安装小程序依赖
+
+```bash
+cd ../aity-uni-app-v2
+npm install
+```
+
+---
+
+## 🏃 运行项目
+
+### 本地开发
+
+#### 启动后端
+
+```bash
+cd backend
+npm run dev
+# 后端运行在 http://localhost:3001
+```
+
+#### 启动小程序
+
+```bash
+cd aity-uni-app-v2
+npm run dev:mp-weixin
+```
+
+#### 微信开发者工具
+
+1. 打开微信开发者工具
+2. 导入项目: `aity-uni-app-v2`
+3. 勾选"不校验合法域名"
+4. **⚠️ 注意**: 本地开发时API连接本地后端
+
+---
+
+## 📦 生产部署
+
+### 环境配置
+
+#### 生产环境API地址
+
+```javascript
+// aity-uni-app-v2/src/utils/request.js
+const API_BASE_URL = 'https://aity88.online:8443/api'  // 生产环境
+```
+
+#### 服务器信息
+
+```
+地址: aity88.online
+SSH端口: 22
+HTTPS端口: 8443
+后端端口: 3001
+```
+
+### 部署步骤
+
+#### 1. 部署后端
+
+```bash
+# 连接到服务器
+ssh root@aity88.online
+
+# 进入后端目录
+cd /root/AITY_VIP/backend
+
+# 拉取最新代码
+git pull origin feature/iteration-1
+
+# 安装依赖（如有新增）
+npm install
+
+# 重启服务
+pm2 restart aity-vip-backend
+
+# 查看状态
+pm2 status
+pm2 logs aity-vip-backend --lines 50
+```
+
+#### 2. 部署小程序
+
+```bash
+# 编译小程序
+cd aity-uni-app-v2
+npm run build:mp-weixin
+
+# 微信开发者工具上传
+# 项目路径: dist/build/mp-weixin
+# 版本号: 1.6.1
+# 版本描述: 更新说明
+```
+
+**⚠️ 重要**:
+- 小程序编译后自动连接生产环境
+- 真机预览和正式版都连接 `https://aity88.online:8443`
+- 后端代码修改后必须同步更新服务器
+
+---
+
+## 🔄 Git工作流
+
+### 分支策略
+
+- **main**: 稳定版本，用于生产部署
+- **feature/iteration-1**: 当前开发分支
+- **feature/xxx**: 新功能开发分支
+
+### 提交规范
+
+采用 Conventional Commits 规范:
+
+```bash
+# 新功能
+git commit -m "feat(message): 添加消息置顶功能"
+
+# Bug修复
+git commit -m "fix(auth): 修复登录过期问题"
+
+# 文档更新
+git commit -m "docs(readme): 更新部署说明"
+```
+
+### 代码流程
+
+```bash
+# 1. 修改代码
+# 2. 提交到Git
+git add .
+git commit -m "feat: 功能描述"
+git push origin feature/iteration-1
+
+# 3. 如修改了后端，部署到服务器
+ssh root@aity88.online
+cd /root/AITY_VIP/backend
+git pull origin feature/iteration-1
+pm2 restart aity-vip-backend
+
+# 4. 如修改了小程序，编译并上传
+cd aity-uni-app-v2
+npm run build:mp-weixin
+# 微信开发者工具上传
+```
+
+---
+
+## 📚 文档
+
+### 核心文档
+
+- [AI协作规则](.claude/AI协作规则.md) - ⚠️ **必读**
+- [需求文档](docs/core/需求文档.md)
+- [API文档](docs/core/API文档.md)
+- [部署手册](docs/core/部署手册.md)
+- [开发指南](docs/core/开发指南.md)
+
+### 配置文档
+
+- [环境配置](docs/config/环境配置.md)
+- [服务器部署](docs/config/服务器部署详细指令.md)
+- [微信小程序部署](docs/config/微信小程序部署指南.md)
+
+### 版本文档
+
+- [v1.6.1部署指南](aity-uni-app-v2/docs/v1.6.1部署指南.md)
+- [Markdown编辑器优化说明](aity-uni-app-v2/docs/Markdown编辑器优化说明-v1.6.1.md)
+- [更新日志](aity-uni-app-v2/docs/更新日志-v1.6.0.md)
+
+---
+
+## ✅ 功能清单
 
 ### 核心功能
-- **消息管理**：发布、编辑、删除消息，支持定时发布
-- **讨论功能**：发起讨论、回复讨论，支持私密讨论
-- **用户管理**：用户注册、登录、权限控制
-- **分组管理**：用户分组、消息分组
-- **统计分析**：消息统计、用户活跃度统计
 
-### 权限管理
-- **super_admin**：超级管理员（所有权限）
-- **admin**：管理员（内容管理权限）
-- **vip_mid**：VIP用户（中线策略）
-- **vip_short**：VIP用户（短线策略）
-- **trial**：体验用户（试用期7天）
+- ✅ 用户认证与权限管理
+  - 5级用户角色 (super_admin, admin, vip_mid, vip_short, trial)
+  - JWT Token认证
+  - 权限控制
 
-## 配置说明
+- ✅ 消息系统
+  - 10种消息类型
+  - Markdown编辑器 (参考mdnice设计)
+  - 消息搜索、筛选、收藏
+  - 消息置顶功能
+  - 图片上传（支持粘贴）
 
-### 前端配置
-- **API地址**：修改 `frontend/src/utils/request.js` 中的 `baseURL`
-- **构建配置**：修改 `frontend/vite.config.js`
+- ✅ 讨论系统
+  - 发起讨论
+  - 回复讨论
+  - 公开/私密讨论
 
-### 后端配置
-- **环境变量**：修改 `backend/.env` 文件
-- **PM2配置**：修改 `backend/ecosystem.config.js`
+- ✅ 管理员功能
+  - 发布消息
+  - 编辑/删除消息
+  - 草稿保存
+  - 数据统计
 
-## 常见问题
+- ✅ 用户管理
+  - 用户列表
+  - 创建/编辑/删除用户
+  - 用户搜索
 
-### 1. 数据库连接失败
-- 检查 `.env` 文件中的数据库配置
-- 确保 MySQL 服务正在运行
-- 确保数据库用户有正确的权限
+### 功能完成度: 95%
 
-### 2. 前端无法访问后端API
-- 检查后端服务是否启动
-- 检查前端 `baseURL` 配置
-- 检查服务器防火墙规则
+详见: [功能清单](aity-uni-app-v2/docs/features.md)
 
-### 3. 部署后页面空白
-- 检查 Nginx 配置
-- 检查前端构建文件是否正确部署
-- 检查浏览器控制台错误信息
+---
 
-## 开发规范
+## 🧪 测试
 
-### 代码规范
-- **前端**：遵循 Vue 风格指南
-- **后端**：遵循 Node.js 代码规范
-- **命名**：采用小驼峰命名法
-- **缩进**：使用 2 个空格缩进
+### 测试账号
 
-### 文档规范
-- **API文档**：使用 RESTful 风格
-- **代码注释**：关键代码添加注释
-- **提交信息**：遵循 Conventional Commits 规范
+```
+超级管理员: admin@example.com / 123456
+管理员: subadmin@example.com / 123456
+VIP中线: vip_mid@example.com / 123456
+VIP短线: vip_short@example.com / 123456
+体验用户: trial@example.com / 123456
+```
 
-## 版本历史
+### 功能测试
 
-### v1.0.0
-- 初始版本
-- 实现消息发布、讨论功能
-- 实现用户管理、权限控制
-- 实现基本统计分析
+详见: [功能测试指南](docs/iteration/功能测试指南.md)
 
-## 联系方式
+---
 
-- **项目负责人**：__________
-- **技术负责人**：__________
-- **产品负责人**：__________
+## 📞 支持
 
-## 许可证
+### 问题反馈
+
+- GitHub Issues
+- 技术负责人: ___________
+- 紧急联系: ___________
+
+---
+
+## 📄 许可证
 
 MIT License
+
+---
+
+## 🎯 版本历史
+
+### v1.6.1 (2025-02-04)
+
+**修复**:
+- 修复消息发布400错误 (groupId验证问题)
+
+**优化**:
+- Markdown编辑器优化 (参考mdnice设计)
+- 发布按钮固定底部
+- 图片附件优化
+- 粘贴图片功能
+
+**详见**: [v1.6.1部署指南](aity-uni-app-v2/docs/v1.6.1部署指南.md)
+
+### v1.6.0 (2025-02-03)
+
+**新增**:
+- 消息置顶功能
+- 动画性能优化
+
+**优化**:
+- 完善文档体系
+
+### v1.5.1 (2025-02-02)
+
+**优化**:
+- UI全面优化
+- 设计系统建立
+
+---
+
+## ⚠️ 重要提示
+
+### 开发注意事项
+
+1. **生产环境配置**
+   - 小程序默认连接生产环境
+   - API地址: `https://aity88.online:8443/api`
+   - 本地调试需临时修改配置
+
+2. **后端更新流程**
+   - 修改后端代码后必须同步更新服务器
+   - 使用 `pm2 restart` 重启服务
+   - 查看日志确认无错误
+
+3. **小程序部署**
+   - 编译后自动连接生产环境
+   - 真机预览前确认后端已更新
+   - 上传前测试所有功能
+
+4. **AI协作**
+   - 使用Claude Code前必读 [.claude/AI协作规则.md](.claude/AI协作规则.md)
+   - 遵循Git提交规范
+   - 同步更新相关文档
+
+---
+
+**文档版本**: v2.0.0
+**最后更新**: 2025-02-04
+**项目版本**: v1.6.1

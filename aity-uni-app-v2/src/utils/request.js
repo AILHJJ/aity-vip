@@ -1,18 +1,33 @@
 /**
  * 网络请求封装
  * 基于 uni.request 封装，支持 H5 和小程序
+ *
+ * ⚠️ 重要配置说明：
+ * 1. 生产环境：小程序编译后始终连接远程服务器
+ * 2. API地址：https://aity88.online:8443/api
+ * 3. 后端更新：每次修改后端代码后，需更新服务器部署
+ * 4. 本地开发：如需本地调试，请临时修改API地址
  */
 
-// API 基础地址配置
-// 开发环境：
-//   - H5: 使用 '/api' 代理到本地后端
-//   - 小程序: 使用本机 IP 地址（需要在微信开发者工具中勾选"不校验合法域名"）
-// 生产环境：使用实际的 HTTPS 域名
-const BASE_URL = process.env.NODE_ENV === 'development'
-  ? (typeof window !== 'undefined' && window.location.protocol === 'http:'
-      ? '/api'  // H5 开发环境使用代理
-      : 'http://192.168.2.140:3001/api')  // 小程序开发环境使用本机 IP
-  : 'https://aity88.online:8443/api'  // 生产环境使用实际地址
+// ============================================
+// 生产环境配置（正式发布使用）
+// ============================================
+const PRODUCTION_API_URL = 'https://aity88.online:8443/api'
+
+// ============================================
+// 开发环境配置（仅在本地开发时使用）
+// ============================================
+const DEVELOPMENT_API_URL = 'http://192.168.2.140:3001/api'  // 本地后端
+
+// ============================================
+// 环境判断
+// ============================================
+// 小程序编译后始终使用生产环境地址
+// 真机预览和正式版都连接远程服务器
+const API_BASE_URL = PRODUCTION_API_URL
+
+// 如需本地调试，请临时注释上面的代码，使用下面的代码：
+// const API_BASE_URL = DEVELOPMENT_API_URL
 
 // 友好的错误提示映射
 const ERROR_MESSAGES = {
@@ -57,7 +72,7 @@ export function request(options) {
 
     // 构建请求配置
     const config = {
-      url: BASE_URL + options.url,
+      url: API_BASE_URL + options.url,
       method: options.method || 'GET',
       data: options.data || {},
       header: {
