@@ -56,7 +56,7 @@ function validateCreateMessage() {
     body('title').notEmpty().withMessage('Title is required').isLength({ min: 1, max: 255 }).withMessage('Title must be between 1 and 255 characters'),
     body('content').notEmpty().withMessage('Content is required'),
     body('type').notEmpty().withMessage('Type is required').isIn(validTypes).withMessage('Invalid type'),
-    body('groupId').notEmpty().withMessage('Group ID is required'),
+    body('groupId').optional().isLength({ max: 50 }).withMessage('Group ID must be at most 50 characters'),
     body('attachments').optional().isArray().withMessage('Attachments must be an array'),
     body('tags').optional().isArray().withMessage('Tags must be an array'),
     body('publishTime').optional().isISO8601().withMessage('Publish time must be a valid date'),

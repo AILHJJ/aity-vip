@@ -244,10 +244,12 @@ async function createMessage(req, res) {
 
     // 计算接收消息的用户数量
     let totalCount = 0;
-    if (groupId === 'all') {
+    const targetGroupId = groupId || user.groupId || 'all'; // 如果没有指定groupId,使用用户自己的groupId或'all'
+
+    if (targetGroupId === 'all') {
       totalCount = await User.count({ where: { status: 'active' } });
     } else {
-      totalCount = await User.count({ where: { groupId, status: 'active' } });
+      totalCount = await User.count({ where: { groupId: targetGroupId, status: 'active' } });
     }
 
     // 确定消息状态
@@ -272,7 +274,7 @@ async function createMessage(req, res) {
       type,
       sender: user.name,
       senderId: userId,
-      groupId,
+      groupId: targetGroupId,
       totalCount,
       tags: tags || null,
       publishTime: messagePublishTime,

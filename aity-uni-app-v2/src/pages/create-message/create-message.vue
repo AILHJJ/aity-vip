@@ -50,7 +50,7 @@
 				</view>
 
 				<!-- 内容 -->
-				<view class="form-item">
+				<view class="form-item content-item">
 					<view class="form-label-row">
 						<text class="form-label">消息内容 *</text>
 						<view class="mode-switch">
@@ -77,33 +77,41 @@
 						<view class="markdown-toolbar">
 							<text class="toolbar-btn" @click="insertMarkdown('**', '**')" title="粗体">B</text>
 							<text class="toolbar-btn" @click="insertMarkdown('*', '*')" title="斜体">I</text>
-							<text class="toolbar-btn" @click="insertMarkdown('# ', '')" title="标题">H</text>
+							<text class="toolbar-btn" @click="insertMarkdown('## ', '')" title="标题">H</text>
 							<text class="toolbar-btn" @click="insertMarkdown('- ', '')" title="列表">≡</text>
 							<text class="toolbar-btn" @click="insertMarkdown('`', '`')" title="代码">&lt;/&gt;</text>
 							<text class="toolbar-btn" @click="insertMarkdown('[', '](url)')" title="链接">🔗</text>
 							<text class="toolbar-btn" @click="insertMarkdown('> ', '')" title="引用">"</text>
 						</view>
 						<textarea
-							class="form-textarea"
+							class="form-textarea markdown-editor"
 							v-model="formData.content"
-							placeholder="支持 Markdown 格式，使用工具栏快速插入格式"
+							placeholder="支持 Markdown 格式&#10;提示：可直接粘贴图片（Ctrl+V）"
 							placeholder-style="color: #999999"
 							:maxlength="5000"
 							:show-confirm-bar="false"
 							@paste="handlePaste"
+							auto-height
 						/>
-						<text class="char-count">{{ formData.content.length }}/5000</text>
+						<view class="editor-footer">
+							<text class="char-count">{{ formData.content.length }}/5000</text>
+							<text class="hint-text-mini">💡 支持粘贴图片</text>
+						</view>
 					</view>
 
 					<!-- 预览模式 -->
 					<view v-else class="preview-container">
-						<view class="markdown-preview" v-html="renderedHtml"></view>
-						<text class="char-count">{{ formData.content.length }}/5000</text>
+						<scroll-view class="preview-scroll" scroll-y>
+							<view class="markdown-preview" v-html="renderedHtml"></view>
+						</scroll-view>
+						<view class="editor-footer">
+							<text class="char-count">{{ formData.content.length }}/5000</text>
+						</view>
 					</view>
 				</view>
 
 				<!-- 附件上传 -->
-				<view class="form-item">
+				<view class="form-item attachment-item">
 					<text class="form-label">附件（可选）</text>
 					<view class="upload-container">
 						<view
@@ -111,28 +119,36 @@
 							:key="index"
 							class="file-item"
 						>
-							<text class="file-name">{{ file.name }}</text>
+							<image v-if="file.path" :src="file.path" class="file-thumb" mode="aspectFill"></image>
+							<text v-else class="file-name">{{ file.name }}</text>
 							<text class="file-remove" @click="handleRemoveFile(index)">×</text>
 						</view>
-						<view class="upload-btn" @click="handleUpload">
+						<view
+							v-if="formData.attachments.length < 9"
+							class="upload-btn"
+							@click="handleUpload"
+						>
 							<text class="upload-icon">+</text>
 							<text class="upload-text">上传图片</text>
 						</view>
 					</view>
 					<view class="form-hint">
-						<text class="hint-text">💡 提示：支持选择或粘贴图片（Ctrl+V），单次最多9张，每张不超过10MB</text>
+						<text class="hint-text">支持选择或粘贴图片，单次最多9张，每张不超过10MB</text>
 					</view>
 				</view>
 
-				<!-- 提交按钮 -->
-				<view class="button-group">
-					<button class="cancel-btn" @click="handleCancel">取消</button>
-					<button class="submit-btn" :disabled="submitting" @click="handleSubmit">
-						{{ submitting ? '发布中...' : '发布消息' }}
-					</button>
-				</view>
+				<!-- 底部占位，防止内容被按钮遮挡 -->
+				<view class="bottom-spacer"></view>
 			</view>
 		</scroll-view>
+
+		<!-- 固定底部按钮 -->
+		<view class="fixed-bottom-bar">
+			<button class="cancel-btn" @click="handleCancel">取消</button>
+			<button class="submit-btn" :disabled="submitting" @click="handleSubmit">
+				{{ submitting ? '发布中...' : '发布消息' }}
+			</button>
+		</view>
 	</view>
 </template>
 
@@ -1154,5 +1170,182 @@ onBeforeUnmount(() => {
 
 .submit-btn[disabled] {
 	opacity: 0.6;
+}
+
+/* === 新增样式：固定底部按钮和编辑器优化 === */
+
+/* 底部占位 */
+.bottom-spacer {
+	height: 180rpx;
+}
+
+/* 固定底部按钮栏 */
+.fixed-bottom-bar {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	display: flex;
+	gap: 20rpx;
+	padding: 20rpx 30rpx;
+	background: #ffffff;
+	border-top: 2rpx solid #e5e5e5;
+	box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
+	z-index: 100;
+	// 安全区域适配
+	padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+}
+
+/* 内容编辑区域优化 */
+.content-item {
+	margin-bottom: 40rpx;
+}
+
+/* 编辑器容器 */
+.editor-container {
+	border: 2rpx solid #e0e0e0;
+	border-radius: 12rpx;
+	overflow: hidden;
+	background: #ffffff;
+}
+
+/* Markdown编辑器 */
+.markdown-editor {
+	min-height: 400rpx;
+	max-height: 800rpx;
+	border: none;
+	border-radius: 0;
+	padding: 24rpx;
+	font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+	font-size: 28rpx;
+	line-height: 1.8;
+}
+
+/* 编辑器底部 */
+.editor-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 12rpx 24rpx;
+	background: #fafafa;
+	border-top: 1rpx solid #e5e5e5;
+	font-size: 24rpx;
+	color: #999999;
+}
+
+.hint-text-mini {
+	font-size: 24rpx;
+	color: #667eea;
+}
+
+/* 预览容器 */
+.preview-container {
+	border: 2rpx solid #e0e0e0;
+	border-radius: 12rpx;
+	overflow: hidden;
+	background: #ffffff;
+	min-height: 400rpx;
+	max-height: 800rpx;
+}
+
+.preview-scroll {
+	height: 100%;
+	max-height: 750rpx;
+	padding: 24rpx;
+}
+
+/* 附件区域 */
+.attachment-item {
+	margin-bottom: 40rpx;
+}
+
+/* 文件项优化 */
+.file-item {
+	position: relative;
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	width: 160rpx;
+	height: 160rpx;
+	margin-right: 20rpx;
+	margin-bottom: 20rpx;
+	padding: 0;
+	background: #f5f5f5;
+	border: 2rpx solid #e0e0e0;
+	border-radius: 12rpx;
+	overflow: hidden;
+}
+
+.file-thumb {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.file-name {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	padding: 8rpx;
+	font-size: 22rpx;
+	color: #333333;
+	background: rgba(255, 255, 255, 0.9);
+	text-align: center;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.file-remove {
+	position: absolute;
+	top: 8rpx;
+	right: 8rpx;
+	width: 40rpx;
+	height: 40rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 32rpx;
+	color: #ffffff;
+	background: rgba(0, 0, 0, 0.6);
+	border-radius: 50%;
+	cursor: pointer;
+	transition: all 0.2s;
+
+	&:active {
+		background: rgba(0, 0, 0, 0.8);
+		transform: scale(0.95);
+	}
+}
+
+/* 按钮组优化 */
+.button-group {
+	display: flex;
+	gap: 20rpx;
+}
+
+.cancel-btn,
+.submit-btn {
+	flex: 1;
+	height: 88rpx;
+	line-height: 88rpx;
+	border-radius: 12rpx;
+	font-size: 32rpx;
+	border: none;
+}
+
+/* Markdown预览增强 */
+.markdown-preview {
+	font-size: 30rpx;
+	line-height: 1.8;
+	color: #333333;
+	word-wrap: break-word;
+	word-break: break-all;
+}
+
+/* 滚动容器高度调整 */
+.form-scroll {
+	height: calc(100vh - 140rpx); // 减去底部按钮栏高度
 }
 </style>
