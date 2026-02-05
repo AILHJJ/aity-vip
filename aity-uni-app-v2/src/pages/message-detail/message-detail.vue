@@ -153,7 +153,8 @@ const loadMessageDetail = async () => {
 	try {
 		const res = await getMessageDetailApi(messageId.value)
 
-		if (res.success) {
+		// 兼容 success 和 code 两种格式
+		if (res.success || res.code === 200) {
 			message.value = res.data
 			isFavorited.value = res.data.isFavorited || false
 
