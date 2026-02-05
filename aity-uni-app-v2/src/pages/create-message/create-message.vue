@@ -156,6 +156,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useUserStore } from '../../store/user'
 import { createMessageApi, updateMessageApi, getMessageDetailApi } from '../../api/message'
+import { uploadImageApi } from '../../api/upload'
 import { MESSAGE_TYPES, MESSAGE_TAGS, MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 
 const userStore = useUserStore()
@@ -443,18 +444,67 @@ const handleSubmit = async () => {
 	submitting.value = true
 
 	try {
+		// 先上传图片附件
+		let uploadedAttachments = []
+
+		if (formData.value.attachments.length > 0) {
+			console.log('开始上传', formData.value.attachments.length, '个附件')
+
+			for (let i = 0; i < formData.value.attachments.length; i++) {
+				const attach = formData.value.attachments[i]
+
+				try {
+					console.log(`上传第 ${i + 1} 个附件:`, attach.name)
+
+					// 检查是否是blob URL (H5) 或临时文件路径 (小程序)
+					if (attach.path && (attach.path.startsWith('blob:') || attach.path.startsWith('wxfile://'))) {
+						// 需要上传到服务器
+						uni.showLoading({
+							title: `上传图片 ${i + 1}/${formData.value.attachments.length}`,
+							mask: true
+						})
+
+						const uploadResult = await uploadImageApi(attach.path)
+
+						uploadedAttachments.push({
+							name: attach.name,
+							url: uploadResult.url, // 使用服务器返回的URL
+							type: 'image',
+							size: attach.size
+						})
+
+						console.log(`第 ${i + 1} 个附件上传成功:`, uploadResult)
+					} else if (attach.url) {
+						// 已经是服务器URL，直接使用
+						uploadedAttachments.push({
+							name: attach.name,
+							url: attach.url,
+							type: attach.type || 'image',
+							size: attach.size
+						})
+					}
+				} catch (uploadErr) {
+					console.error(`第 ${i + 1} 个附件上传失败:`, uploadErr)
+					uni.showToast({
+						title: `图片 ${i + 1} 上传失败`,
+						icon: 'none',
+						duration: 2000
+					})
+					// 继续上传其他图片，不中断流程
+				}
+			}
+
+			uni.hideLoading()
+			console.log('所有附件上传完成，成功', uploadedAttachments.length, '个')
+		}
+
 		// 将Vue的Proxy对象转换为纯JavaScript对象
 		const data = {
 			title: formData.value.title.trim(),
 			type: formData.value.type,
 			tags: Array.isArray(formData.value.tags) ? [...formData.value.tags] : [],
 			content: formData.value.content.trim(),
-			attachments: formData.value.attachments.map(attach => ({
-				name: attach.name,
-				path: attach.path,
-				size: attach.size,
-				type: attach.type || 'image'
-			}))
+			attachments: uploadedAttachments
 		}
 
 		// 调试日志
@@ -479,7 +529,8 @@ const handleSubmit = async () => {
 
 		console.log('API响应:', res)
 
-		if (res.success) {
+		// 判断响应是否成功 (code: 200 或 success: true)
+		if (res.code === 200 || res.success) {
 			// 清除草稿
 			uni.removeStorageSync(DRAFT_KEY)
 
@@ -513,6 +564,7 @@ const handleSubmit = async () => {
 		})
 	} finally {
 		submitting.value = false
+		uni.hideLoading()
 	}
 }
 
