@@ -47,7 +47,17 @@
 				</view>
 
 				<!-- 关联消息（可选） -->
-				<view class="form-item">
+				<!-- 如果从消息详情页跳转过来，显示已关联的消息 -->
+				<view v-if="!showMessagePicker && linkedMessage" class="form-item">
+					<text class="form-label">关联消息</text>
+					<view class="linked-message">
+						<text class="linked-message-title">{{ linkedMessage.title }}</text>
+						<text class="linked-message-hint">已自动关联此消息</text>
+					</view>
+				</view>
+
+				<!-- 否则显示消息选择器 -->
+				<view v-else class="form-item">
 					<text class="form-label">关联消息 *</text>
 					<picker
 						mode="selector"
@@ -96,6 +106,10 @@ const formData = ref({
 
 const submitting = ref(false)
 const messages = ref([])
+const linkedMessage = ref(null) // 存储关联的消息详情
+
+// 计算属性：是否显示消息选择器
+const showMessagePicker = ref(true)
 
 // 可见性选项
 const visibilityOptions = [
@@ -242,10 +256,28 @@ onMounted(() => {
 
 	if (messageId) {
 		formData.value.messageId = parseInt(messageId)
+		showMessagePicker.value = false // 隐藏选择器
+
+		// 加载关联的消息详情
+		loadLinkedMessage(parseInt(messageId))
 	}
 
 	loadMessages()
 })
+
+// 加载关联的消息详情
+const loadLinkedMessage = async (id) => {
+	try {
+		const { getMessageDetailApi } = require('../../api/message')
+		const res = await getMessageDetailApi(id)
+
+		if (res.code === 200 || res.success) {
+			linkedMessage.value = res.data
+		}
+	} catch (error) {
+		console.error('加载关联消息失败:', error)
+	}
+}
 </script>
 
 <style lang="scss" scoped>
@@ -388,6 +420,28 @@ onMounted(() => {
 	font-size: 24rpx;
 	color: #999999;
 	line-height: 1.5;
+}
+
+.linked-message {
+	padding: 24rpx;
+	background: #f0f2ff;
+	border-radius: 12rpx;
+	border-left: 4rpx solid #667eea;
+}
+
+.linked-message-title {
+	display: block;
+	font-size: 28rpx;
+	color: #333333;
+	font-weight: 500;
+	margin-bottom: 8rpx;
+	line-height: 1.5;
+}
+
+.linked-message-hint {
+	display: block;
+	font-size: 24rpx;
+	color: #667eea;
 }
 
 .button-group {

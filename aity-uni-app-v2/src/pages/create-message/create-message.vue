@@ -753,13 +753,25 @@ onMounted(async () => {
 
 		try {
 			const res = await getMessageDetailApi(editMessageId.value)
-			if (res.success && res.data) {
+			// 兼容两种响应格式
+			if ((res.success || res.code === 200) && res.data) {
+				// 处理附件数据，转换path为统一格式
+				const processedAttachments = (res.data.attachments || []).map(att => ({
+					name: att.name,
+					path: att.url.startsWith('/uploads/')
+						? 'https://aity88.online:8443' + att.url
+						: att.url,
+					url: att.url,
+					type: att.type,
+					size: att.size || 0
+				}))
+
 				formData.value = {
 					title: res.data.title || '',
 					type: res.data.type || '',
 					tags: res.data.tags || [],
 					content: res.data.content || '',
-					attachments: res.data.attachments || []
+					attachments: processedAttachments
 				}
 			} else {
 				uni.showToast({
