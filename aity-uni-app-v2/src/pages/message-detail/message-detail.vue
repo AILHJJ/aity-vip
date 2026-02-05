@@ -155,27 +155,48 @@ const loadMessageDetail = async () => {
 
 		// 兼容 success 和 code 两种格式
 		if (res.success || res.code === 200) {
-			message.value = res.data
-			isFavorited.value = res.data.isFavorited || false
+			const messageData = res.data
+
+			// 处理附件数据：转换为images格式
+			if (messageData.attachments && messageData.attachments.length > 0) {
+				messageData.images = messageData.attachments
+					.filter(att => att.type === 'image')
+					.map(att => {
+						// 如果是相对路径，补全服务器地址
+						let url = att.url
+						if (url.startsWith('/uploads/')) {
+							url = 'https://aity88.online:8443' + url
+						}
+						return url
+					})
+			}
+
+			message.value = messageData
+			isFavorited.value = messageData.isFavorited || false
 
 			// 标记为已读
 			markMessageAsReadApi(messageId.value).catch(err => {
-				console.error('标记已读失败:', err)
+				console.warn('标记已读失败:', err)
+				// 不影响用户体验，静默失败
 			})
 
 			// 加载相关讨论
 			loadDiscussions()
 		} else {
-			uni.showToast({
-				title: res.message || '加载失败',
-				icon: 'none'
-			})
+			throw new Error(res.message || '加载失败')
 		}
 	} catch (error) {
 		console.error('加载消息详情失败:', error)
-		uni.showToast({
+
+		// 更友好的错误提示
+		uni.showModal({
 			title: '加载失败',
-			icon: 'none'
+			content: error.message || '消息加载失败，请返回重试',
+			showCancel: false,
+			confirmText: '返回',
+			success: () => {
+				uni.navigateBack()
+			}
 		})
 	} finally {
 		loading.value = false
@@ -200,30 +221,35 @@ const loadDiscussions = async () => {
 
 // 切换收藏
 const toggleFavorite = async () => {
+	// 乐观更新 - 先更新UI，再发送请求
+	const oldValue = isFavorited.value
+	isFavorited.value = !oldValue
+
 	try {
+		let res
 		if (isFavorited.value) {
-			const res = await unfavoriteMessageApi(messageId.value)
-			if (res.success) {
-				isFavorited.value = false
-				uni.showToast({
-					title: '已取消收藏',
-					icon: 'success'
-				})
-			}
+			res = await favoriteMessageApi(messageId.value)
 		} else {
-			const res = await favoriteMessageApi(messageId.value)
-			if (res.success) {
-				isFavorited.value = true
-				uni.showToast({
-					title: '收藏成功',
-					icon: 'success'
-				})
-			}
+			res = await unfavoriteMessageApi(messageId.value)
+		}
+
+		// 兼容两种响应格式
+		if (res.success || res.code === 200) {
+			uni.showToast({
+				title: isFavorited.value ? '已收藏' : '已取消收藏',
+				icon: 'success',
+				duration: 1500
+			})
+		} else {
+			throw new Error(res.message || '操作失败')
 		}
 	} catch (error) {
+		// 失败时回滚UI
+		isFavorited.value = oldValue
+
 		console.error('收藏操作失败:', error)
 		uni.showToast({
-			title: '操作失败',
+			title: '操作失败，请稍后重试',
 			icon: 'none'
 		})
 	}
@@ -286,29 +312,50 @@ const handleDelete = () => {
 		title: '确认删除',
 		content: '删除后无法恢复，是否继续？',
 		confirmColor: '#ff5252',
+		confirmText: '删除',
+		cancelText: '取消',
 		success: async (res) => {
 			if (res.confirm) {
+				uni.showLoading({ title: '删除中...', mask: true })
+
 				try {
 					const result = await deleteMessageApi(messageId.value)
-					if (result.success) {
+
+					// 兼容两种响应格式
+					if (result.success || result.code === 200) {
+						uni.hideLoading()
+
+						// 成功提示
 						uni.showToast({
 							title: '删除成功',
-							icon: 'success'
+							icon: 'success',
+							duration: 1500
 						})
+
+						// 延迟返回，让用户看到成功提示
 						setTimeout(() => {
+							// 返回上一页并通知刷新
+							const pages = getCurrentPages()
+							if (pages.length > 1) {
+								// 通知列表页刷新
+								const prevPage = pages[pages.length - 2]
+								if (prevPage.$vm && prevPage.$vm.refreshList) {
+									prevPage.$vm.refreshList()
+								}
+							}
 							uni.navigateBack()
 						}, 1500)
 					} else {
-						uni.showToast({
-							title: result.message || '删除失败',
-							icon: 'none'
-						})
+						throw new Error(result.message || '删除失败')
 					}
 				} catch (error) {
+					uni.hideLoading()
 					console.error('删除消息失败:', error)
+
 					uni.showToast({
-						title: '删除失败',
-						icon: 'none'
+						title: error.message || '删除失败，请稍后重试',
+						icon: 'none',
+						duration: 2000
 					})
 				}
 			}
