@@ -6,6 +6,8 @@ const MessageAttachment = require('../models/MessageAttachment');
 const UserMessageRead = require('../models/UserMessageRead');
 const User = require('../models/User');
 const Group = require('../models/Group');
+const Discussion = require('../models/Discussion');
+const DiscussionReply = require('../models/DiscussionReply');
 
 // 统一响应格式
 function success(data, message = 'Success') {
@@ -398,7 +400,6 @@ async function deleteMessage(req, res) {
 
     try {
       // 1. 删除消息的讨论回复
-      const { Discussion, DiscussionReply } = require('../models');
       const discussions = await Discussion.findAll({ where: { messageId: id } });
       console.log('找到讨论数量:', discussions.length);
 
