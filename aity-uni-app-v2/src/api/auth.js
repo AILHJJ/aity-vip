@@ -1,7 +1,7 @@
 /**
  * 认证相关 API
  */
-import { post } from '../utils/request'
+import { get, post } from '../utils/request'
 
 /**
  * 用户登录
@@ -29,7 +29,7 @@ export function logoutApi() {
  * @returns {Promise}
  */
 export function getCurrentUserApi() {
-  return post('/auth/me')
+  return get('/auth/me')
 }
 
 export default {
