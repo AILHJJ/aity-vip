@@ -391,27 +391,49 @@ async function deleteMessage(req, res) {
       return res.status(404).json(notFound('Message not found'));
     }
 
-    // 删除相关的讨论回复（需要先删除，因为有外键约束）
-    const Discussion = require('../models/Discussion');
-    const DiscussionReply = require('../models/DiscussionReply');
-    const discussions = await Discussion.findAll({ where: { messageId: id } });
-    for (const discussion of discussions) {
-      await DiscussionReply.destroy({ where: { discussionId: discussion.id } });
+    console.log('开始删除消息:', id);
+
+    // 使用事务确保数据一致性
+    const t = await sequelize.transaction();
+
+    try {
+      // 1. 删除消息的讨论回复
+      const { Discussion, DiscussionReply } = require('../models');
+      const discussions = await Discussion.findAll({ where: { messageId: id } });
+      console.log('找到讨论数量:', discussions.length);
+
+      for (const discussion of discussions) {
+        await DiscussionReply.destroy({
+          where: { discussionId: discussion.id },
+          transaction: t
+        });
+      }
+
+      // 2. 删除讨论
+      await Discussion.destroy({ where: { messageId: id }, transaction: t });
+
+      // 3. 删除附件
+      await MessageAttachment.destroy({ where: { messageId: id }, transaction: t });
+
+      // 4. 删除用户阅读记录
+      await UserMessageRead.destroy({ where: { messageId: id }, transaction: t });
+
+      // 5. 删除消息
+      await message.destroy({ transaction: t });
+
+      // 提交事务
+      await t.commit();
+
+      console.log('消息删除成功:', id);
+
+      res.json(success(null, 'Message deleted successfully'));
+    } catch (error) {
+      // 回滚事务
+      await t.rollback();
+      throw error;
     }
-    await Discussion.destroy({ where: { messageId: id } });
-
-    // 删除附件
-    await MessageAttachment.destroy({ where: { messageId: id } });
-
-    // 删除用户阅读记录
-    await UserMessageRead.destroy({ where: { messageId: id } });
-
-    // 删除消息
-    await message.destroy();
-
-    res.json(success(null, 'Message deleted successfully'));
   } catch (err) {
-    console.error(err);
+    console.error('删除消息失败:', err);
     res.status(500).json(error('Server error'));
   }
 }
