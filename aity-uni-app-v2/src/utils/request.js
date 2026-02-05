@@ -102,8 +102,8 @@ export function request(options) {
           console.log('Data:', res.data)
         }
 
-        // 请求成功
-        if (res.statusCode === 200) {
+        // 请求成功 (200 OK, 201 Created, 204 No Content)
+        if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data)
         } else if (res.statusCode === 401) {
           // token 过期，清除登录信息

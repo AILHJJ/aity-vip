@@ -170,7 +170,7 @@ const previewMode = ref(false)
 const formData = ref({
 	title: '',
 	type: '',
-	tags: [],
+	tags: [MESSAGE_TAGS.SHORT_TERM], // 默认选择短线策略
 	content: '',
 	attachments: []
 })
@@ -443,22 +443,41 @@ const handleSubmit = async () => {
 	submitting.value = true
 
 	try {
+		// 将Vue的Proxy对象转换为纯JavaScript对象
 		const data = {
 			title: formData.value.title.trim(),
 			type: formData.value.type,
-			tags: formData.value.tags,
+			tags: Array.isArray(formData.value.tags) ? [...formData.value.tags] : [],
 			content: formData.value.content.trim(),
-			attachments: formData.value.attachments
+			attachments: formData.value.attachments.map(attach => ({
+				name: attach.name,
+				path: attach.path,
+				size: attach.size,
+				type: attach.type || 'image'
+			}))
 		}
+
+		// 调试日志
+		console.log('=== 提交消息数据 ===')
+		console.log('完整数据:', JSON.stringify(data, null, 2))
+		console.log('标题:', data.title)
+		console.log('类型:', data.type)
+		console.log('标签:', data.tags, '类型:', typeof data.tags, '是数组?', Array.isArray(data.tags))
+		console.log('内容长度:', data.content.length)
+		console.log('附件数量:', data.attachments.length)
 
 		let res
 		if (editMode.value) {
 			// 编辑模式
+			console.log('编辑模式, messageId:', editMessageId.value)
 			res = await updateMessageApi(editMessageId.value, data)
 		} else {
 			// 新建模式
+			console.log('新建模式')
 			res = await createMessageApi(data)
 		}
+
+		console.log('API响应:', res)
 
 		if (res.success) {
 			// 清除草稿
@@ -473,13 +492,21 @@ const handleSubmit = async () => {
 				uni.navigateBack()
 			}, 1500)
 		} else {
+			console.error('业务失败:', res)
 			uni.showToast({
 				title: res.message || (editMode.value ? '修改失败' : '发布失败'),
 				icon: 'none'
 			})
 		}
 	} catch (error) {
-		console.error('提交消息失败:', error)
+		console.error('提交消息异常:')
+		console.error('错误对象:', error)
+		console.error('错误消息:', error.message)
+		console.error('错误堆栈:', error.stack)
+		if (error.response) {
+			console.error('响应状态:', error.response.status)
+			console.error('响应数据:', error.response.data)
+		}
 		uni.showToast({
 			title: editMode.value ? '修改失败' : '发布失败',
 			icon: 'none'
