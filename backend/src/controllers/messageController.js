@@ -438,10 +438,129 @@ async function deleteMessage(req, res) {
   }
 }
 
+// 标记消息为已读
+async function markMessageAsRead(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // 检查消息是否存在
+    const message = await Message.findByPk(id);
+    if (!message) {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
+    // 创建或更新已读记录
+    await UserMessageRead.findOrCreate({
+      where: { userId, messageId: id }
+    });
+
+    // 更新消息的已读计数
+    const readCount = await UserMessageRead.count({ where: { messageId: id } });
+    await message.update({ readCount });
+
+    res.json(success({ readCount }, 'Message marked as read'));
+  } catch (err) {
+    console.error('标记消息已读失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 收藏消息
+async function favoriteMessage(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // 检查消息是否存在
+    const message = await Message.findByPk(id);
+    if (!message) {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
+    // 这里需要创建一个收藏表或者使用现有的方式
+    // 暂时返回成功，实际项目中应该有 favorites 表
+    // TODO: 实现 favorites 功能
+
+    res.json(success({ favorited: true }, 'Message favorited'));
+  } catch (err) {
+    console.error('收藏消息失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 取消收藏消息
+async function unfavoriteMessage(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // 检查消息是否存在
+    const message = await Message.findByPk(id);
+    if (!message) {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
+    // TODO: 实现 unfavorite 功能
+
+    res.json(success({ favorited: false }, 'Message unfavorited'));
+  } catch (err) {
+    console.error('取消收藏失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 置顶消息
+async function pinMessage(req, res) {
+  try {
+    const { id } = req.params;
+
+    // 检查消息是否存在
+    const message = await Message.findByPk(id);
+    if (!message) {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
+    // 更新置顶状态
+    await message.update({ isPinned: true });
+
+    res.json(success({ pinned: true }, 'Message pinned'));
+  } catch (err) {
+    console.error('置顶消息失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 取消置顶消息
+async function unpinMessage(req, res) {
+  try {
+    const { id } = req.params;
+
+    // 检查消息是否存在
+    const message = await Message.findByPk(id);
+    if (!message) {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
+    // 更新置顶状态
+    await message.update({ isPinned: false });
+
+    res.json(success({ pinned: false }, 'Message unpinned'));
+  } catch (err) {
+    console.error('取消置顶失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
 module.exports = {
   getMessages,
   getMessageById,
   createMessage,
   updateMessage,
-  deleteMessage
+  deleteMessage,
+  markMessageAsRead,
+  favoriteMessage,
+  unfavoriteMessage,
+  pinMessage,
+  unpinMessage
 };

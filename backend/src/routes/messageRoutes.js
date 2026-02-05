@@ -42,4 +42,43 @@ router.delete('/:id',
   messageController.deleteMessage
 );
 
+// 标记消息为已读
+router.post('/:id/read',
+  authenticateToken,
+  ...validateIdParam(),
+  messageController.markMessageAsRead
+);
+
+// 收藏消息
+router.post('/:id/favorite',
+  authenticateToken,
+  ...validateIdParam(),
+  messageController.favoriteMessage
+);
+
+// 取消收藏消息
+router.delete('/:id/favorite',
+  authenticateToken,
+  ...validateIdParam(),
+  messageController.unfavoriteMessage
+);
+
+// 置顶消息
+router.post('/:id/pin',
+  authenticateToken,
+  checkAdmin,
+  ...validateIdParam(),
+  clearCache('messages:*'),
+  messageController.pinMessage
+);
+
+// 取消置顶消息
+router.delete('/:id/pin',
+  authenticateToken,
+  checkAdmin,
+  ...validateIdParam(),
+  clearCache('messages:*'),
+  messageController.unpinMessage
+);
+
 module.exports = router;
