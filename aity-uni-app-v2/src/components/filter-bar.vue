@@ -171,10 +171,8 @@ const getActiveFilterCount = () => {
 const getFilterSummary = () => {
 	const parts = []
 
-	if (filters.value.type !== 'all') {
-		const type = typeOptions.value.find(opt => opt.value === filters.value.type)
-		if (type) parts.push(type.label)
-	}
+	// 基础筛选摘要（不包含在这里，因为基础筛选始终可见）
+	// 只显示高级筛选的激活状态
 
 	if (parts.length === 0) {
 		return '点击展开高级筛选'
