@@ -1,36 +1,10 @@
 /**
  * AI投顾API服务
  * 负责与通达信AI接口的交互
- * 使用uni.request替代fetch，兼容H5和小程序
+ * 使用SSE流式处理，支持GLM模型
  */
 
 import { buildApiEndpoint, getAuthHeaders, buildRequestBody, saveThreadId } from '@/utils/ai-advisor-config'
-
-// 检测是否为小程序环境
-const isMiniProgram = typeof wx !== 'undefined' || (typeof uni !== 'undefined' && uni.getSystemInfoSync)
-
-/**
- * AbortController polyfill for mini-programs
- * 小程序不支持AbortController，使用简单的取消标志替代
- */
-class AbortControllerPolyfill {
-  constructor() {
-    this.signal = {
-      aborted: false,
-      addEventListener: () => {},
-      removeEventListener: () => {}
-    }
-  }
-
-  abort() {
-    this.signal.aborted = true
-  }
-}
-
-// 根据环境选择AbortController
-const AbortControllerImpl = isMiniProgram
-  ? AbortControllerPolyfill
-  : (typeof AbortController !== 'undefined' ? AbortController : AbortControllerPolyfill)
 
 /**
  * 发送消息到AI并获取流式回复
@@ -46,174 +20,272 @@ export function sendAIMessage(content, onMessage, onError, onComplete) {
   const body = buildRequestBody(content, threadId)
   const headers = getAuthHeaders()
 
-  // 创建AbortController用于取消请求（兼容小程序）
-  const abortController = new AbortControllerImpl()
-  const signal = abortController.signal
+  // 创建SSE解析器
+  const parser = new SSEParser(onMessage, onError, onComplete)
 
-  // 启动异步请求
-  fetchAIMessageInternal(url, body, headers, signal, onMessage, onError, onComplete)
+  // 发送请求
+  fetchSSE(url, body, headers, parser)
 
-  // 返回取消函数
-  return () => {
-    abortController.abort()
-  }
+  // 返回取消函数（暂不支持）
+  return () => {}
 }
 
 /**
- * 内部函数：处理流式请求
- * 使用uni.request进行请求，兼容H5和小程序
+ * 发送SSE请求
  */
-async function fetchAIMessageInternal(url, body, headers, signal, onMessage, onError, onComplete) {
-  let accumulatedContent = '' // 累积内容
-  let accumulatedReasoning = '' // 累积推理内容
-
-  try {
-    // 检查是否已被取消（小程序兼容）
-    if (signal.aborted) {
-      console.log('AI请求已取消（请求前）')
-      return
+function fetchSSE(url, body, headers, parser) {
+  // 使用uni.request发送请求
+  uni.request({
+    url: url,
+    method: 'POST',
+    header: headers,
+    data: body,
+    timeout: 60000,
+    responseType: 'text',  // 重要：接收文本响应
+    success: (response) => {
+      if (response.statusCode === 200) {
+        // 解析SSE流
+        parser.parse(response.data)
+      } else {
+        parser.onError(`HTTP ${response.statusCode}: ${response.errMsg}`)
+      }
+    },
+    fail: (error) => {
+      parser.onError(error.errMsg || '网络请求失败')
     }
+  })
+}
 
-    // 使用uni.request替代fetch
-    uni.request({
-      url: url,
-      method: 'POST',
-      header: headers,
-      data: body,
-      timeout: 60000,
-      success: (response) => {
-        console.log('AI响应状态:', response.statusCode)
+/**
+ * SSE流解析器
+ * 负责解析SSE协议并分发事件
+ */
+class SSEParser {
+  constructor(onMessage, onError, onComplete) {
+    this.onMessage = onMessage
+    this.onError = onError
+    this.onComplete = onComplete
 
-        // 处理响应数据
-        if (response.statusCode === 200) {
-          try {
-            // uni.request会将JSON响应自动解析为对象
-            const data = response.data
+    // 状态记录（用于计算增量）
+    this.curAllContent = ''
+    this.curAllReasoning = ''
 
-            // 检查数据格式
-            if (Array.isArray(data) && data.length > 0) {
-              // 处理数组格式的响应
-              for (const item of data) {
-                processAIMessage(item, accumulatedContent, accumulatedReasoning, onMessage, saveThreadId)
-              }
+    // 工具调用状态
+    this.pendingToolCalls = []
+  }
 
-              // 完成
-              if (onComplete) {
-                onComplete({
-                  content: accumulatedContent,
-                  reasoning: accumulatedReasoning
-                })
-              }
-            } else if (typeof data === 'object' && data !== null) {
-              // 处理单个对象
-              processAIMessage(data, accumulatedContent, accumulatedReasoning, onMessage, saveThreadId)
+  /**
+   * 解析SSE响应文本
+   */
+  parse(sseText) {
+    try {
+      // SSE事件用 \n\n 分隔
+      const events = sseText.split('\n\n')
 
-              // 完成
-              if (onComplete) {
-                onComplete({
-                  content: accumulatedContent,
-                  reasoning: accumulatedReasoning
-                })
-              }
-            } else {
-              console.warn('未知响应格式:', data)
-              if (onError) {
-                onError('响应格式错误')
-              }
-            }
-          } catch (error) {
-            console.error('处理AI响应失败:', error)
-            if (onError) {
-              onError('处理响应失败: ' + error.message)
-            }
-          }
-        } else {
-          console.error('AI请求失败:', response.statusCode, response.errMsg)
-          if (onError) {
-            onError(`HTTP ${response.statusCode}: ${response.errMsg}`)
-          }
-        }
-      },
-      fail: (error) => {
-        console.error('AI请求失败:', error)
-        if (onError) {
-          onError(error.errMsg || '网络请求失败')
+      for (const eventBlock of events) {
+        if (!eventBlock.trim()) continue
+
+        const event = this.parseEventBlock(eventBlock)
+        if (event.type && event.data) {
+          this.dispatch(event)
         }
       }
-    })
 
-  } catch (error) {
-    console.error('AI请求异常:', error)
-    if (onError) {
-      onError(error.message || '请求失败')
+      // 完成
+      if (this.onComplete) {
+        this.onComplete()
+      }
+    } catch (error) {
+      console.error('解析SSE失败:', error)
+      if (this.onError) {
+        this.onError('解析响应失败: ' + error.message)
+      }
     }
   }
-}
 
-/**
- * 处理单条AI消息
- */
-function processAIMessage(message, accumulatedContent, accumulatedReasoning, onMessage, saveThreadId) {
-  // 处理thread_id保存
-  if (message.metadata && message.metadata.thread_id) {
-    saveThreadId(message.metadata.thread_id)
+  /**
+   * 解析单个SSE事件块
+   */
+  parseEventBlock(block) {
+    const lines = block.split('\n')
+    const event = { type: null, data: null, id: null }
+
+    for (const line of lines) {
+      if (line.startsWith('event:')) {
+        event.type = line.substring(6).trim()
+      } else if (line.startsWith('data:')) {
+        event.data = line.substring(5).trim()
+      } else if (line.startsWith('id:')) {
+        event.id = line.substring(3).trim()
+      }
+    }
+
+    return event
   }
 
-  // 处理主内容
-  if (message.content) {
-    // 获取新增内容
-    const newContent = message.content.substring(accumulatedContent.length)
-    if (newContent) {
-      accumulatedContent = message.content
+  /**
+   * 分发事件到对应处理器
+   */
+  dispatch(event) {
+    const { type, data } = event
 
-      // 回调新内容
-      if (onMessage) {
-        onMessage({
-          type: 'content',
-          content: newContent,
-          fullContent: accumulatedContent
+    try {
+      switch (type) {
+        case 'messages/partial':
+          this.handlePartial(data)
+          break
+        case 'messages/complete':
+          this.handleComplete(data)
+          break
+        case 'messages/metadata':
+          this.handleMetadata(data)
+          break
+        case 'error':
+        case 'messages/invalid':
+          console.warn('SSE错误事件:', type, data)
+          break
+        default:
+          console.log('未知SSE事件:', type, data)
+      }
+    } catch (error) {
+      console.error(`处理事件 ${type} 失败:`, error)
+    }
+  }
+
+  /**
+   * 处理部分消息（增量更新）
+   */
+  handlePartial(data) {
+    const obj = JSON.parse(data)
+    if (!Array.isArray(obj) || obj.length === 0) return
+
+    const message = obj[0]
+
+    // 处理主内容增量
+    if (message.content) {
+      const newContent = this.calculateDelta(
+        message.content,
+        this.curAllContent
+      )
+      if (newContent) {
+        this.curAllContent = message.content
+
+        // 回调新内容
+        if (this.onMessage) {
+          this.onMessage({
+            type: 'content',
+            content: newContent,
+            fullContent: this.curAllContent
+          })
+        }
+      }
+    }
+
+    // 处理思考过程（GLM模型特有）
+    if (message.additional_kwargs?.reasoning_content) {
+      const reasoning = message.additional_kwargs.reasoning_content
+      const newReasoning = this.calculateDelta(
+        reasoning,
+        this.curAllReasoning
+      )
+      if (newReasoning) {
+        this.curAllReasoning = reasoning
+
+        // 回调思考过程
+        if (this.onMessage) {
+          this.onMessage({
+            type: 'reasoning',
+            content: newReasoning,
+            fullReasoning: this.curAllReasoning
+          })
+        }
+      }
+    }
+
+    // 处理工具调用
+    if (message.tool_calls && message.tool_calls.length > 0) {
+      if (this.onMessage) {
+        this.onMessage({
+          type: 'tool_calls',
+          tool_calls: message.tool_calls,
+          finish_reason: message.response_metadata?.finish_reason || ''
         })
       }
     }
   }
 
-  // 处理推理过程（深度思考）
-  if (message.additional_kwargs && message.additional_kwargs.reasoning_content) {
-    const newReasoning = message.additional_kwargs.reasoning_content.substring(
-      accumulatedReasoning.length
-    )
-    if (newReasoning) {
-      accumulatedReasoning = message.additional_kwargs.reasoning_content
+  /**
+   * 处理完整消息（块结束）
+   */
+  handleComplete(data) {
+    const obj = JSON.parse(data)
+    if (!Array.isArray(obj) || obj.length === 0) return
 
-      // 回调推理内容
-      if (onMessage) {
-        onMessage({
-          type: 'reasoning',
-          content: newReasoning,
-          fullReasoning: accumulatedReasoning
+    const message = obj[0]
+
+    // 重置位置计数（为下一块准备）
+    this.curAllContent = ''
+    this.curAllReasoning = ''
+
+    // 处理工具结果
+    if (message.type === 'tool') {
+      if (this.onMessage) {
+        this.onMessage({
+          type: 'tool_result',
+          tool_name: message.name,
+          tool_result: message.content,
+          status: message.status || 'success'
         })
       }
     }
   }
 
-  // 处理工具调用
-  if (message.tool_calls && message.tool_calls.length > 0) {
-    const responseMetadata = message.response_metadata || {}
-    const finishReason = responseMetadata.finish_reason || ''
+  /**
+   * 处理元数据
+   */
+  handleMetadata(data) {
+    try {
+      const metadata = JSON.parse(data)
+      const threadData = Object.values(metadata)[0]
 
-    if (onMessage) {
-      onMessage({
-        type: 'tool_calls',
-        tool_calls: message.tool_calls,
-        finish_reason: finishReason
-      })
+      if (threadData && threadData.metadata) {
+        const { thread_id, run_id } = threadData.metadata
+
+        // 保存thread_id
+        if (thread_id) {
+          saveThreadId(thread_id)
+        }
+
+        // 回调元数据
+        if (this.onMessage && thread_id) {
+          this.onMessage({
+            type: 'metadata',
+            thread_id: thread_id,
+            run_id: run_id
+          })
+        }
+      }
+    } catch (error) {
+      console.error('解析元数据失败:', error)
     }
   }
-}
 
-/**
- * 获取threadId
- */
-function getThreadId() {
-  return uni.getStorageSync('ai_advisor_thread_id') || ''
+  /**
+   * 计算增量内容
+   * @param {String} fullContent - 完整内容
+   * @param {String} lastContent - 上次的内容
+   * @returns {String} - 新增的部分
+   */
+  calculateDelta(fullContent, lastContent) {
+    if (!fullContent) return ''
+
+    const lastLen = lastContent.length
+    const fullLen = fullContent.length
+
+    if (fullLen <= lastLen) {
+      return ''
+    }
+
+    return fullContent.substring(lastLen, fullLen)
+  }
 }
