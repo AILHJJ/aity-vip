@@ -45,29 +45,82 @@
 			</view>
 		</view>
 
-		<!-- 三级筛选栏（仅管理员显示，默认收起） -->
+		<!-- 基础筛选栏（所有用户显示） -->
+		<view class="basic-filter-bar">
+			<!-- 时间筛选 -->
+			<view class="filter-section">
+				<scroll-view class="filter-scroll" scroll-x show-scrollbar="false">
+					<view class="filter-items">
+						<view
+							v-for="option in timeRangeOptions"
+							:key="option.value"
+							class="filter-chip"
+							:class="{ active: basicFilters.timeRange === option.value }"
+							@click="handleTimeRangeChange(option.value)"
+						>
+							{{ option.label }}
+						</view>
+					</view>
+				</scroll-view>
+			</view>
+
+			<!-- 策略筛选 -->
+			<view class="filter-section">
+				<scroll-view class="filter-scroll" scroll-x show-scrollbar="false">
+					<view class="filter-items">
+						<view
+							v-for="tag in filterTags"
+							:key="tag.value"
+							class="filter-chip"
+							:class="{ active: activeTag === tag.value }"
+							@click="handleTagFilter(tag.value)"
+						>
+							{{ tag.label }}
+						</view>
+					</view>
+				</scroll-view>
+			</view>
+
+			<!-- 自定义时间选择器（仅在选择了自定义时显示） -->
+			<view v-if="basicFilters.timeRange === 'custom'" class="custom-date-picker">
+				<view class="date-row">
+					<text class="date-label">开始</text>
+					<picker
+						mode="date"
+						:value="basicFilters.customStartDate"
+						:end="basicFilters.customEndDate"
+						@change="handleStartDateChange"
+					>
+						<view class="date-picker-btn">
+							<text class="date-text">{{ basicFilters.customStartDate || '选择日期' }}</text>
+							<text class="date-icon">📅</text>
+						</view>
+					</picker>
+				</view>
+				<view class="date-row">
+					<text class="date-label">结束</text>
+					<picker
+						mode="date"
+						:value="basicFilters.customEndDate"
+						:start="basicFilters.customStartDate"
+						:end="today"
+						@change="handleEndDateChange"
+					>
+						<view class="date-picker-btn">
+							<text class="date-text">{{ basicFilters.customEndDate || '选择日期' }}</text>
+							<text class="date-icon">📅</text>
+						</view>
+					</picker>
+				</view>
+			</view>
+		</view>
+
+		<!-- 高级筛选栏（仅管理员显示，默认收起） -->
 		<filter-bar
 			v-if="userInfoLoaded && userStore.isAdmin"
 			:total-count="filteredMessages.length"
 			@filter-change="handleFilterChange"
 		/>
-
-		<!-- 筛选栏（所有用户显示） -->
-		<view class="filter-bar">
-			<scroll-view class="filter-scroll" scroll-x show-scrollbar="false">
-				<view class="filter-items">
-					<view
-						v-for="tag in filterTags"
-						:key="tag.value"
-						class="filter-item"
-						:class="{ active: activeTag === tag.value }"
-						@click="handleTagFilter(tag.value)"
-					>
-						{{ tag.label }}
-					</view>
-				</view>
-			</scroll-view>
-		</view>
 
 		<!-- 消息列表 -->
 		<scroll-view
@@ -188,8 +241,16 @@ const searchKeyword = ref('')
 const userInfoLoaded = ref(false) // 用户信息加载状态
 const showSearchHistory = ref(false) // 显示搜索历史
 const searchHistory = ref([]) // 搜索历史列表
+const today = ref('') // 今天的日期
 
-// 三级筛选条件
+// 基础筛选条件（所有用户）
+const basicFilters = ref({
+	timeRange: 'all', // all, today, week, month, custom
+	customStartDate: null,
+	customEndDate: null
+})
+
+// 高级筛选条件（仅管理员）
 const filters = ref({
 	strategy: 'all',
 	type: 'all',
@@ -225,6 +286,15 @@ const filterTags = computed(() => {
 
 	return tags
 })
+
+// 基础时间范围选项
+const timeRangeOptions = computed(() => [
+	{ label: '全部时间', value: 'all' },
+	{ label: '今天', value: 'today' },
+	{ label: '近一周', value: 'week' },
+	{ label: '近一月', value: 'month' },
+	{ label: '自定义', value: 'custom' }
+])
 
 // 根据用户角色和搜索关键词过滤消息
 const filteredMessages = computed(() => {
@@ -265,8 +335,37 @@ const filteredMessages = computed(() => {
 		})
 	}
 
-	// 三级筛选：时间筛选
-	if (filters.value.timeRange !== 'all') {
+	// 基础时间筛选（所有用户）
+	if (basicFilters.value.timeRange !== 'all') {
+		const now = dayjs()
+		let startDate = null
+
+		if (basicFilters.value.timeRange === 'today') {
+			startDate = now.startOf('day')
+		} else if (basicFilters.value.timeRange === 'week') {
+			startDate = now.subtract(7, 'day').startOf('day')
+		} else if (basicFilters.value.timeRange === 'month') {
+			startDate = now.subtract(30, 'day').startOf('day')
+		} else if (basicFilters.value.timeRange === 'custom') {
+			if (basicFilters.value.customStartDate) {
+				startDate = dayjs(basicFilters.value.customStartDate).startOf('day')
+			}
+		}
+
+		if (startDate) {
+			filtered = filtered.filter(msg => {
+				const msgDate = dayjs(msg.createdAt)
+				// 如果有自定义结束日期，使用它；否则使用当前时间
+				const endDate = basicFilters.value.customEndDate
+					? dayjs(basicFilters.value.customEndDate).endOf('day')
+					: now
+				return msgDate.isAfter(startDate) && msgDate.isBefore(endDate.add(1, 'day'))
+			})
+		}
+	}
+
+	// 管理员三级筛选：时间筛选（优先级更高）
+	if (userStore.isAdmin && filters.value.timeRange !== 'all') {
 		const now = dayjs()
 		let startDate = null
 
@@ -509,6 +608,51 @@ const handleRemoveHistory = (keyword) => {
 	searchHistory.value = getSearchHistory()
 }
 
+// 处理基础时间范围变化
+const handleTimeRangeChange = (value) => {
+	basicFilters.value.timeRange = value
+	if (value !== 'custom') {
+		basicFilters.value.customStartDate = null
+		basicFilters.value.customEndDate = null
+	}
+	// 保存到本地存储
+	saveBasicFilters()
+}
+
+// 处理开始日期变化
+const handleStartDateChange = (e) => {
+	basicFilters.value.customStartDate = e.detail.value
+	saveBasicFilters()
+}
+
+// 处理结束日期变化
+const handleEndDateChange = (e) => {
+	basicFilters.value.customEndDate = e.detail.value
+	saveBasicFilters()
+}
+
+// 保存基础筛选条件
+const saveBasicFilters = () => {
+	try {
+		uni.setStorageSync('basic_message_filters', JSON.stringify(basicFilters.value))
+	} catch (error) {
+		console.error('保存基础筛选条件失败:', error)
+	}
+}
+
+// 加载基础筛选条件
+const loadBasicFilters = () => {
+	try {
+		const saved = uni.getStorageSync('basic_message_filters')
+		if (saved) {
+			const savedFilters = JSON.parse(saved)
+			basicFilters.value = { ...basicFilters.value, ...savedFilters }
+		}
+	} catch (error) {
+		console.error('加载基础筛选条件失败:', error)
+	}
+}
+
 // 处理三级筛选变化
 const handleFilterChange = (newFilters) => {
 	filters.value = { ...filters.value, ...newFilters }
@@ -542,8 +686,15 @@ onMounted(async () => {
 		return
 	}
 
+	// 设置今天的日期
+	const now = new Date()
+	today.value = now.toISOString().split('T')[0]
+
 	// 加载搜索历史
 	searchHistory.value = getSearchHistory()
+
+	// 加载基础筛选条件
+	loadBasicFilters()
 
 	// 强制刷新用户信息，确保权限正确
 	try {
@@ -658,6 +809,101 @@ onMounted(async () => {
 	border: none;
 	border-radius: 35rpx;
 	text-align: center;
+}
+
+// 基础筛选栏
+.basic-filter-bar {
+	background: #ffffff;
+	border-bottom: 1rpx solid #e0e0e0;
+}
+
+.filter-section {
+	padding: 20rpx 0;
+	border-bottom: 1rpx solid #f5f5f5;
+
+	&:last-child {
+		border-bottom: none;
+	}
+}
+
+.filter-scroll {
+	white-space: nowrap;
+}
+
+.filter-items {
+	display: inline-flex;
+	padding: 0 20rpx;
+}
+
+.filter-chip {
+	display: inline-block;
+	padding: 12rpx 28rpx;
+	margin-right: 16rpx;
+	font-size: 26rpx;
+	color: #666666;
+	background: #f5f5f5;
+	border-radius: 30rpx;
+	transition: all 0.3s;
+	white-space: nowrap;
+
+	&:active {
+		transform: scale(0.95);
+	}
+
+	&.active {
+		color: #ffffff;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+	}
+}
+
+.custom-date-picker {
+	padding: 20rpx;
+	background: #fafafa;
+}
+
+.date-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 16rpx;
+
+	&:last-child {
+		margin-bottom: 0;
+	}
+}
+
+.date-label {
+	font-size: 26rpx;
+	color: #666666;
+	width: 80rpx;
+	flex-shrink: 0;
+}
+
+.date-picker-btn {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16rpx 20rpx;
+	background: #ffffff;
+	border-radius: 12rpx;
+	border: 1rpx solid #e0e0e0;
+	transition: all 0.3s;
+
+	&:active {
+		background: #f5f5f5;
+		border-color: #667eea;
+	}
+}
+
+.date-text {
+	font-size: 26rpx;
+	color: #333333;
+}
+
+.date-icon {
+	font-size: 28rpx;
 }
 
 .filter-bar {

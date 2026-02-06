@@ -70,9 +70,15 @@
 
 				<!-- 提交按钮 -->
 				<view class="button-group">
-					<button class="cancel-btn" @click="handleCancel">取消</button>
+					<button class="cancel-btn" :disabled="submitting" @click="handleCancel">
+						{{ submitting ? '提交中...' : '取消' }}
+					</button>
 					<button class="submit-btn" :disabled="submitting" @click="handleSubmit">
-						{{ submitting ? '创建中...' : '创建讨论' }}
+						<text v-if="!submitting">创建讨论</text>
+						<view v-else class="submitting-content">
+							<view class="submitting-spinner"></view>
+							<text class="submitting-text">创建中{{ submitTimeout ? '，请稍候...' : '...' }}</text>
+						</view>
 					</button>
 				</view>
 			</view>
@@ -95,6 +101,7 @@ const formData = ref({
 })
 
 const submitting = ref(false)
+const submitTimeout = ref(false) // 是否超时
 const messages = ref([])
 const linkedMessage = ref(null) // 存储关联的消息详情
 const showMessagePicker = ref(true) // 是否显示消息选择器
@@ -149,6 +156,18 @@ const handleSubmit = async () => {
 	if (!validateForm()) return
 
 	submitting.value = true
+	submitTimeout.value = false
+
+	// 设置超时提示定时器（45秒后显示提示）
+	const timeoutTimer = setTimeout(() => {
+		if (submitting.value) {
+			submitTimeout.value = true
+			uni.showLoading({
+				title: '服务器响应较慢，请耐心等待...',
+				mask: true
+			})
+		}
+	}, 45000)
 
 	try {
 		// 获取关联消息的标题作为讨论标题
@@ -176,6 +195,14 @@ const handleSubmit = async () => {
 
 		const res = await createDiscussionApi(data)
 
+		// 清除超时定时器
+		clearTimeout(timeoutTimer)
+
+		// 隐藏loading（如果显示了）
+		if (submitTimeout.value) {
+			uni.hideLoading()
+		}
+
 		if (res.success) {
 			uni.showToast({
 				title: '创建成功',
@@ -189,17 +216,37 @@ const handleSubmit = async () => {
 		} else {
 			uni.showToast({
 				title: res.message || '创建失败',
-				icon: 'none'
+				icon: 'none',
+				duration: 3000
 			})
 		}
 	} catch (error) {
+		// 清除超时定时器
+		clearTimeout(timeoutTimer)
+
+		// 隐藏loading（如果显示了）
+		if (submitTimeout.value) {
+			uni.hideLoading()
+		}
+
 		console.error('创建讨论失败:', error)
+
+		// 判断错误类型
+		let errorMsg = '创建失败，请重试'
+		if (error.message && error.message.includes('timeout')) {
+			errorMsg = '请求超时，请检查网络连接后重试'
+		} else if (error.message && error.message.includes('Network')) {
+			errorMsg = '网络连接失败，请检查网络设置'
+		}
+
 		uni.showToast({
-			title: '创建失败，请重试',
-			icon: 'none'
+			title: errorMsg,
+			icon: 'none',
+			duration: 3000
 		})
 	} finally {
 		submitting.value = false
+		submitTimeout.value = false
 	}
 }
 
@@ -507,6 +554,13 @@ const loadLinkedMessage = async (id) => {
 	border: none;
 	text-align: center;
 	font-weight: 500;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.cancel-btn[disabled] {
+	opacity: 0.5;
 }
 
 .cancel-btn {
@@ -524,5 +578,30 @@ const loadLinkedMessage = async (id) => {
 
 .submit-btn[disabled] {
 	opacity: 0.6;
+}
+
+// 提交中动画
+.submitting-content {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12rpx;
+}
+
+.submitting-spinner {
+	width: 32rpx;
+	height: 32rpx;
+	border: 3rpx solid rgba(255, 255, 255, 0.3);
+	border-top-color: #ffffff;
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
+
+.submitting-text {
+	font-size: 32rpx;
 }
 </style>

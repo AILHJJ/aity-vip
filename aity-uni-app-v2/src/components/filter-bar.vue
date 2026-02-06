@@ -19,34 +19,16 @@
 		<view v-else class="filter-panel">
 			<!-- 筛选面板头部 -->
 			<view class="filter-panel-header" @click="toggleExpand">
-				<text class="header-title">高级筛选</text>
+				<text class="header-title">高级筛选（管理员）</text>
 				<view class="header-right">
 					<text class="collapse-text">收起</text>
 					<text class="collapse-icon">▲</text>
 				</view>
 			</view>
 
-			<!-- 策略筛选（横向滚动，直接选择） -->
+			<!-- 消息类型筛选（横向滚动，直接选择） -->
 			<view class="filter-section-inline">
-				<view class="filter-section-title-inline">策略</view>
-				<scroll-view class="filter-options-scroll" scroll-x show-scrollbar="false">
-					<view class="filter-options">
-						<view
-							v-for="option in strategyOptions"
-							:key="option.value"
-							class="filter-option-chip"
-							:class="{ active: filters.strategy === option.value }"
-							@click="selectStrategy(option.value)"
-						>
-							{{ option.label }}
-						</view>
-					</view>
-				</scroll-view>
-			</view>
-
-			<!-- 类型筛选（横向滚动，直接选择） -->
-			<view class="filter-section-inline">
-				<view class="filter-section-title-inline">类型</view>
+				<view class="filter-section-title-inline">消息类型</view>
 				<scroll-view class="filter-options-scroll" scroll-x show-scrollbar="false">
 					<view class="filter-options">
 						<view
@@ -60,57 +42,6 @@
 						</view>
 					</view>
 				</scroll-view>
-			</view>
-
-			<!-- 时间筛选（横向滚动，直接选择） -->
-			<view class="filter-section-inline">
-				<view class="filter-section-title-inline">时间</view>
-				<scroll-view class="filter-options-scroll" scroll-x show-scrollbar="false">
-					<view class="filter-options">
-						<view
-							v-for="option in timeRangeOptions"
-							:key="option.value"
-							class="filter-option-chip"
-							:class="{ active: filters.timeRange === option.value }"
-							@click="selectTimeRange(option.value)"
-						>
-							{{ option.label }}
-						</view>
-					</view>
-				</scroll-view>
-			</view>
-
-			<!-- 自定义时间范围（仅在选择了自定义时显示） -->
-			<view v-if="filters.timeRange === 'custom'" class="custom-date-range">
-				<view class="date-input-wrapper">
-					<text class="date-label">开始日期</text>
-					<picker
-						mode="date"
-						:value="filters.customStartDate"
-						:end="filters.customEndDate"
-						@change="handleStartDateChange"
-					>
-						<view class="date-picker">
-							<text class="date-text">{{ filters.customStartDate || '选择日期' }}</text>
-							<text class="picker-icon">📅</text>
-						</view>
-					</picker>
-				</view>
-				<view class="date-input-wrapper">
-					<text class="date-label">结束日期</text>
-					<picker
-						mode="date"
-						:value="filters.customEndDate"
-						:start="filters.customStartDate"
-						:end="today"
-						@change="handleEndDateChange"
-					>
-						<view class="date-picker">
-							<text class="date-text">{{ filters.customEndDate || '选择日期' }}</text>
-							<text class="picker-icon">📅</text>
-						</view>
-					</picker>
-				</view>
 			</view>
 
 			<!-- 操作按钮 -->
@@ -141,24 +72,11 @@ const emit = defineEmits(['filter-change'])
 
 // 筛选条件
 const filters = ref({
-	strategy: 'all',
-	type: 'all',
-	timeRange: 'all',
-	customStartDate: null,
-	customEndDate: null
+	type: 'all'
 })
-
-const today = ref('')
 
 // 展开/收起状态
 const isExpanded = ref(false)
-
-// 策略选项
-const strategyOptions = computed(() => [
-	{ label: '全部', value: 'all' },
-	{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.SHORT_TERM], value: MESSAGE_TAGS.SHORT_TERM },
-	{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.MID_TERM], value: MESSAGE_TAGS.MID_TERM }
-])
 
 // 类型选项
 const typeOptions = computed(() => [
@@ -175,21 +93,9 @@ const typeOptions = computed(() => [
 	{ label: '其他', value: 'other' }
 ])
 
-// 时间范围选项
-const timeRangeOptions = computed(() => [
-	{ label: '全部', value: 'all' },
-	{ label: '今天', value: 'today' },
-	{ label: '最近3天', value: '3days' },
-	{ label: '最近7天', value: '7days' },
-	{ label: '最近30天', value: '30days' },
-	{ label: '自定义', value: 'custom' }
-])
-
 // 是否有激活的筛选条件
 const hasActiveFilters = computed(() => {
-	return filters.value.strategy !== 'all' ||
-	       filters.value.type !== 'all' ||
-	       filters.value.timeRange !== 'all'
+	return filters.value.type !== 'all'
 })
 
 // 筛选后的消息数量
@@ -197,48 +103,16 @@ const filteredCount = computed(() => {
 	return props.totalCount
 })
 
-// 选择策略
-const selectStrategy = (value) => {
-	filters.value.strategy = value
-	emitFilterChange()
-}
-
 // 选择类型
 const selectType = (value) => {
 	filters.value.type = value
 	emitFilterChange()
 }
 
-// 选择时间范围
-const selectTimeRange = (value) => {
-	filters.value.timeRange = value
-	if (value !== 'custom') {
-		filters.value.customStartDate = null
-		filters.value.customEndDate = null
-	}
-	emitFilterChange()
-}
-
-// 处理开始日期变化
-const handleStartDateChange = (e) => {
-	filters.value.customStartDate = e.detail.value
-	emitFilterChange()
-}
-
-// 处理结束日期变化
-const handleEndDateChange = (e) => {
-	filters.value.customEndDate = e.detail.value
-	emitFilterChange()
-}
-
 // 重置所有筛选条件
 const resetFilters = () => {
 	filters.value = {
-		strategy: 'all',
-		type: 'all',
-		timeRange: 'all',
-		customStartDate: null,
-		customEndDate: null
+		type: 'all'
 	}
 	emitFilterChange()
 }
@@ -273,10 +147,6 @@ const loadFilters = () => {
 
 // 初始化
 onMounted(() => {
-	// 设置今天的日期
-	const now = new Date()
-	today.value = now.toISOString().split('T')[0]
-
 	// 加载保存的筛选条件
 	loadFilters()
 
@@ -293,9 +163,7 @@ const toggleExpand = () => {
 // 获取激活的筛选条件数量
 const getActiveFilterCount = () => {
 	let count = 0
-	if (filters.value.strategy !== 'all') count++
 	if (filters.value.type !== 'all') count++
-	if (filters.value.timeRange !== 'all') count++
 	return count
 }
 
@@ -303,23 +171,9 @@ const getActiveFilterCount = () => {
 const getFilterSummary = () => {
 	const parts = []
 
-	if (filters.value.strategy !== 'all') {
-		const strategy = strategyOptions.value.find(opt => opt.value === filters.value.strategy)
-		if (strategy) parts.push(strategy.label)
-	}
-
 	if (filters.value.type !== 'all') {
 		const type = typeOptions.value.find(opt => opt.value === filters.value.type)
 		if (type) parts.push(type.label)
-	}
-
-	if (filters.value.timeRange !== 'all') {
-		if (filters.value.timeRange === 'custom') {
-			parts.push('自定义时间')
-		} else {
-			const time = timeRangeOptions.value.find(opt => opt.value === filters.value.timeRange)
-			if (time) parts.push(time.label)
-		}
 	}
 
 	if (parts.length === 0) {
@@ -374,11 +228,12 @@ defineExpose({
 	align-items: center;
 	justify-content: space-between;
 	padding: 20rpx 24rpx;
-	background: #ffffff;
+	background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+	border-bottom: 1rpx solid rgba(102, 126, 234, 0.2);
 	transition: all 0.3s;
 
 	&:active {
-		background: #f8f8f8;
+		background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
 	}
 }
 
@@ -393,6 +248,7 @@ defineExpose({
 	font-size: 28rpx;
 	margin-right: 12rpx;
 	flex-shrink: 0;
+	color: #667eea;
 }
 
 .summary-text {
@@ -570,13 +426,9 @@ defineExpose({
 	}
 }
 
-.date-text {
-	font-size: 28rpx;
-	color: #333333;
-}
-
-.picker-icon {
-	font-size: 32rpx;
+.reset-text {
+	font-size: 26rpx;
+	color: #667eea;
 }
 
 .action-buttons {
@@ -606,10 +458,5 @@ defineExpose({
 	&:active {
 		background: rgba(102, 126, 234, 0.2);
 	}
-}
-
-.reset-text {
-	font-size: 26rpx;
-	color: #667eea;
 }
 </style>
