@@ -3,7 +3,7 @@
 		<!-- 收起状态：简洁的筛选状态条 -->
 		<view v-if="!isExpanded" class="filter-summary-bar" @click="toggleExpand">
 			<view class="summary-left">
-				<text class="summary-icon">🔍</text>
+				<text class="summary-icon">📢</text>
 				<text class="summary-text">{{ getFilterSummary() }}</text>
 				<view v-if="hasActiveFilters" class="active-filter-badge">
 					<text class="badge-text">{{ getActiveFilterCount() }}</text>
@@ -19,29 +19,34 @@
 		<view v-else class="filter-panel">
 			<!-- 筛选面板头部 -->
 			<view class="filter-panel-header" @click="toggleExpand">
-				<text class="header-title">高级筛选（管理员）</text>
+				<text class="header-title">推送范围筛选（管理员）</text>
 				<view class="header-right">
 					<text class="collapse-text">收起</text>
 					<text class="collapse-icon">▲</text>
 				</view>
 			</view>
 
-			<!-- 消息类型筛选（横向滚动，直接选择） -->
+			<!-- 推送范围筛选（横向滚动，直接选择） -->
 			<view class="filter-section-inline">
-				<view class="filter-section-title-inline">消息类型</view>
+				<view class="filter-section-title-inline">推送范围</view>
 				<scroll-view class="filter-options-scroll" scroll-x show-scrollbar="false">
 					<view class="filter-options">
 						<view
-							v-for="option in typeOptions"
+							v-for="option in pushScopeOptions"
 							:key="option.value"
 							class="filter-option-chip"
-							:class="{ active: filters.type === option.value }"
-							@click="selectType(option.value)"
+							:class="{ active: filters.pushScope === option.value }"
+							@click="selectPushScope(option.value)"
 						>
 							{{ option.label }}
 						</view>
 					</view>
 				</scroll-view>
+			</view>
+
+			<!-- 说明文字 -->
+			<view class="filter-description">
+				<text class="description-text">💡 提示：这些标签表示消息的推送范围，与消息类型无关</text>
 			</view>
 
 			<!-- 操作按钮 -->
@@ -59,7 +64,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { MESSAGE_TAGS, MESSAGE_TAG_LABELS, MESSAGE_TYPE_LABELS } from '../utils/constants'
+import { MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../utils/constants'
 
 const props = defineProps({
 	totalCount: {
@@ -72,30 +77,23 @@ const emit = defineEmits(['filter-change'])
 
 // 筛选条件
 const filters = ref({
-	type: 'all'
+	pushScope: 'all' // 推送范围: all, short_term, mid_term, all_users
 })
 
 // 展开/收起状态
 const isExpanded = ref(false)
 
-// 类型选项
-const typeOptions = computed(() => [
+// 推送范围选项
+const pushScopeOptions = computed(() => [
 	{ label: '全部', value: 'all' },
-	{ label: '盘前点评', value: 'pre_market_comment' },
-	{ label: '早盘关注', value: 'morning_focus' },
-	{ label: '午盘点评', value: 'afternoon_comment' },
-	{ label: '尾盘关注', value: 'afternoon_focus' },
-	{ label: '涨停分析', value: 'limit_up_analysis' },
-	{ label: '龙虎榜分析', value: 'dragon_tiger_analysis' },
-	{ label: '个股研究', value: 'stock_research' },
-	{ label: '行业分析', value: 'industry_analysis' },
-	{ label: '宏观经济', value: 'macro_economy' },
-	{ label: '其他', value: 'other' }
+	{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.SHORT_TERM], value: MESSAGE_TAGS.SHORT_TERM },
+	{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.MID_TERM], value: MESSAGE_TAGS.MID_TERM },
+	{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.ALL_USERS], value: MESSAGE_TAGS.ALL_USERS }
 ])
 
 // 是否有激活的筛选条件
 const hasActiveFilters = computed(() => {
-	return filters.value.type !== 'all'
+	return filters.value.pushScope !== 'all'
 })
 
 // 筛选后的消息数量
@@ -103,16 +101,16 @@ const filteredCount = computed(() => {
 	return props.totalCount
 })
 
-// 选择类型
-const selectType = (value) => {
-	filters.value.type = value
+// 选择推送范围
+const selectPushScope = (value) => {
+	filters.value.pushScope = value
 	emitFilterChange()
 }
 
 // 重置所有筛选条件
 const resetFilters = () => {
 	filters.value = {
-		type: 'all'
+		pushScope: 'all'
 	}
 	emitFilterChange()
 }
@@ -126,7 +124,7 @@ const emitFilterChange = () => {
 // 保存筛选条件到 localStorage
 const saveFilters = () => {
 	try {
-		uni.setStorageSync('message_filters', JSON.stringify(filters.value))
+		uni.setStorageSync('push_scope_filters', JSON.stringify(filters.value))
 	} catch (error) {
 		console.error('保存筛选条件失败:', error)
 	}
@@ -135,7 +133,7 @@ const saveFilters = () => {
 // 从 localStorage 加载筛选条件
 const loadFilters = () => {
 	try {
-		const saved = uni.getStorageSync('message_filters')
+		const saved = uni.getStorageSync('push_scope_filters')
 		if (saved) {
 			const savedFilters = JSON.parse(saved)
 			filters.value = { ...filters.value, ...savedFilters }
@@ -163,7 +161,7 @@ const toggleExpand = () => {
 // 获取激活的筛选条件数量
 const getActiveFilterCount = () => {
 	let count = 0
-	if (filters.value.type !== 'all') count++
+	if (filters.value.pushScope !== 'all') count++
 	return count
 }
 
@@ -171,11 +169,15 @@ const getActiveFilterCount = () => {
 const getFilterSummary = () => {
 	const parts = []
 
-	// 基础筛选摘要（不包含在这里，因为基础筛选始终可见）
-	// 只显示高级筛选的激活状态
+	if (filters.value.pushScope !== 'all') {
+		const option = pushScopeOptions.value.find(opt => opt.value === filters.value.pushScope)
+		if (option) {
+			parts.push(`推送范围: ${option.label}`)
+		}
+	}
 
 	if (parts.length === 0) {
-		return '点击展开高级筛选'
+		return '点击展开推送范围筛选'
 	}
 
 	return parts.join(' · ')
@@ -184,7 +186,7 @@ const getFilterSummary = () => {
 // 保存展开状态
 const saveExpandState = () => {
 	try {
-		uni.setStorageSync('filter_bar_expanded', isExpanded.value)
+		uni.setStorageSync('push_scope_filter_expanded', isExpanded.value)
 	} catch (error) {
 		console.error('保存展开状态失败:', error)
 	}
@@ -193,7 +195,7 @@ const saveExpandState = () => {
 // 加载展开状态
 const loadExpandState = () => {
 	try {
-		const saved = uni.getStorageSync('filter_bar_expanded')
+		const saved = uni.getStorageSync('push_scope_filter_expanded')
 		if (saved !== null && saved !== undefined) {
 			isExpanded.value = saved
 		}
@@ -456,5 +458,15 @@ defineExpose({
 	&:active {
 		background: rgba(102, 126, 234, 0.2);
 	}
+}
+
+.filter-description {
+	padding: 16rpx 20rpx 0;
+}
+
+.description-text {
+	font-size: 24rpx;
+	color: #999999;
+	line-height: 1.5;
 }
 </style>
