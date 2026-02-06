@@ -57,13 +57,10 @@
 					<view class="visibility-notice">
 						<view class="notice-header">
 							<text class="notice-icon">🔒</text>
-							<text class="notice-title">关于讨论可见性</text>
+							<text class="notice-title">私密讨论</text>
 						</view>
 						<view class="notice-content">
-							<text class="notice-text">• 默认为私密讨论，仅您和管理员可见</text>
-							<text class="notice-text">• 发帖后可在详情页申请公开</text>
-							<text class="notice-text">• 管理员审核通过后将公开给所有用户</text>
-							<text class="notice-text highlight">• 这样可以确保内容质量，保护投资者决策</text>
+							<text class="notice-text">为避免不同投资风格的影响，讨论默认私密。优质内容经管理员审核后公开，确保合规性与内容质量。</text>
 						</view>
 					</view>
 				</view>

@@ -153,7 +153,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { MESSAGE_TYPE_LABELS } from '../utils/constants'
+import { MESSAGE_TYPES, MESSAGE_TYPE_LABELS } from '../utils/constants'
 
 const props = defineProps({
 	totalCount: {
@@ -190,19 +190,19 @@ const timeRangeOptions = computed(() => [
 	{ label: '自定义', value: 'custom' }
 ])
 
-// 消息类型选项（分组显示）
+// 消息类型选项（与constants.js保持一致）
 const messageTypeOptions = computed(() => [
 	{ label: '全部', value: 'all' },
-	{ label: '盘前点评', value: 'pre_market_comment' },
-	{ label: '早盘关注', value: 'morning_focus' },
-	{ label: '午盘点评', value: 'afternoon_comment' },
-	{ label: '尾盘关注', value: 'afternoon_focus' },
-	{ label: '涨停分析', value: 'limit_up_analysis' },
-	{ label: '龙虎榜分析', value: 'dragon_tiger_analysis' },
-	{ label: '个股研究', value: 'stock_research' },
-	{ label: '行业分析', value: 'industry_analysis' },
-	{ label: '宏观经济', value: 'macro_economy' },
-	{ label: '其他', value: 'other' }
+	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.PRE_MARKET_COMMENT], value: MESSAGE_TYPES.PRE_MARKET_COMMENT },
+	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.MORNING_COMMENT], value: MESSAGE_TYPES.MORNING_COMMENT },
+	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.MORNING_FOCUS], value: MESSAGE_TYPES.MORNING_FOCUS },
+	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.AFTERNOON_COMMENT], value: MESSAGE_TYPES.AFTERNOON_COMMENT },
+	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.AFTERNOON_FOCUS], value: MESSAGE_TYPES.AFTERNOON_FOCUS },
+	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.CLOSE_COMMENT], value: MESSAGE_TYPES.CLOSE_COMMENT },
+	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.RISK_WARNING], value: MESSAGE_TYPES.RISK_WARNING },
+	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.SYSTEM], value: MESSAGE_TYPES.SYSTEM },
+	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.IMPORTANT], value: MESSAGE_TYPES.IMPORTANT },
+	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.DAILY], value: MESSAGE_TYPES.DAILY }
 ])
 
 // 快捷筛选组合
