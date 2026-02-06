@@ -100,7 +100,7 @@ const userStore = useUserStore()
 const formData = ref({
 	title: '',
 	content: '',
-	visibility: 'public',
+	visibility: 'private', // 默认私密，保证合规性
 	messageId: null
 })
 
@@ -116,13 +116,13 @@ const visibilityOptions = [
 	{
 		value: 'public',
 		label: '公开',
-		desc: '所有用户可见',
+		desc: '所有用户可见（需管理员审核后）',
 		icon: '🌐'
 	},
 	{
 		value: 'private',
 		label: '私密',
-		desc: '仅管理员可见',
+		desc: '仅管理员和发起者可见（推荐）',
 		icon: '🔒'
 	}
 ]

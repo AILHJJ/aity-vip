@@ -310,20 +310,57 @@ async function addDiscussionReply(req, res) {
 async function getDiscussionReplies(req, res) {
   try {
     const { id } = req.params;
-    
+
     // 检查讨论是否存在
     const discussion = await Discussion.findByPk(id);
     if (!discussion) {
       return res.status(404).json(notFound('Discussion not found'));
     }
-    
+
     // 获取回复
     const replies = await DiscussionReply.findAll({
       where: { discussionId: id },
       order: [['createdAt', 'ASC']]
     });
-    
+
     res.json(success(replies));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 更新讨论可见性
+async function updateDiscussionVisibility(req, res) {
+  try {
+    const { id } = req.params;
+    const { visibility } = req.body;
+    const currentUserId = req.user.userId;
+    const currentUserRole = req.user.role;
+
+    // 验证可见性值
+    if (!['public', 'private'].includes(visibility)) {
+      return res.status(400).json(badRequest('Invalid visibility value'));
+    }
+
+    // 只有管理员可以修改可见性
+    if (currentUserRole !== 'super_admin' && currentUserRole !== 'admin') {
+      return res.status(403).json(forbidden('Only administrators can change visibility'));
+    }
+
+    // 获取讨论
+    const discussion = await Discussion.findByPk(id);
+    if (!discussion) {
+      return res.status(404).json(notFound('Discussion not found'));
+    }
+
+    // 更新可见性
+    await discussion.update({ visibility });
+
+    res.json(success({
+      id: discussion.id,
+      visibility: discussion.visibility
+    }, 'Visibility updated successfully'));
   } catch (err) {
     console.error(err);
     res.status(500).json(error('Server error'));
@@ -335,5 +372,6 @@ module.exports = {
   getDiscussionById,
   createDiscussion,
   addDiscussionReply,
-  getDiscussionReplies
+  getDiscussionReplies,
+  updateDiscussionVisibility
 };

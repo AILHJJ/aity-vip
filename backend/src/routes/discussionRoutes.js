@@ -10,5 +10,6 @@ router.get('/:id', authenticateToken, validateIdParam, discussionController.getD
 router.post('/', authenticateToken, validateCreateDiscussion, discussionController.createDiscussion);
 router.post('/:id/replies', authenticateToken, validateAddReply, discussionController.addDiscussionReply);
 router.get('/:id/replies', authenticateToken, validateIdParam, discussionController.getDiscussionReplies);
+router.put('/:id/visibility', authenticateToken, validateIdParam, discussionController.updateDiscussionVisibility);
 
 module.exports = router;
