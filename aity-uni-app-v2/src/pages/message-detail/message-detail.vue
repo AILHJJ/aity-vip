@@ -82,13 +82,6 @@
 				</view>
 			</view>
 
-			<!-- 图片空状态 -->
-			<view v-else-if="message && !message.images" class="image-empty-state">
-				<text class="image-empty-icon">🖼️</text>
-				<text class="image-empty-title">暂无图片</text>
-				<text class="image-empty-description">该消息没有图片附件</text>
-			</view>
-
 			<!-- 消息统计 -->
 			<view class="message-stats">
 				<view class="stat-item">
@@ -819,7 +812,9 @@ onMounted(() => {
 	display: flex;
 	flex-direction: column;
 	gap: 20rpx;
-	margin-bottom: 30rpx;
+	margin: 0;
+	display: block;
+	padding: 20rpx 0;
 }
 
 .image-wrapper {
@@ -1147,35 +1142,4 @@ onMounted(() => {
 	border: none;
 }
 
-.image-empty-state {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	padding: 80rpx 40rpx;
-	background: #f8f9fa;
-	border-radius: 16rpx;
-	margin: 20rpx 0;
-	min-height: 200rpx;
-}
-
-.image-empty-icon {
-	font-size: 80rpx;
-	margin-bottom: 20rpx;
-	opacity: 0.7;
-}
-
-.image-empty-title {
-	font-size: 28rpx;
-	font-weight: 600;
-	color: #333333;
-	margin-bottom: 15rpx;
-}
-
-.image-empty-description {
-	font-size: 26rpx;
-	color: #999999;
-	line-height: 1.5;
-	text-align: center;
-}
 </style>

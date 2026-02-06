@@ -36,18 +36,6 @@
 					<text class="form-hint">💡 讨论基于消息内容，选择消息后可参考该内容发表观点</text>
 				</view>
 
-				<!-- 标题 -->
-				<view class="form-item">
-					<text class="form-label">讨论标题</text>
-					<input
-						class="form-input"
-						v-model="formData.title"
-						placeholder="请输入讨论标题"
-						placeholder-style="color: #999999"
-						:maxlength="100"
-					/>
-				</view>
-
 				<!-- 内容 -->
 				<view class="form-item">
 					<text class="form-label">讨论内容 *</text>
@@ -102,7 +90,6 @@ const userStore = useUserStore()
 
 // 表单数据
 const formData = ref({
-	title: '',
 	content: '',
 	messageId: null
 })
@@ -146,14 +133,6 @@ const validateForm = () => {
 		return false
 	}
 
-	if (!formData.value.title.trim()) {
-		uni.showToast({
-			title: '请输入讨论标题',
-			icon: 'none'
-		})
-		return false
-	}
-
 	if (!formData.value.content.trim()) {
 		uni.showToast({
 			title: '请输入讨论内容',
@@ -172,8 +151,20 @@ const handleSubmit = async () => {
 	submitting.value = true
 
 	try {
+		// 获取关联消息的标题作为讨论标题
+		let discussionTitle = '讨论'
+		if (linkedMessage.value && linkedMessage.value.title) {
+			discussionTitle = linkedMessage.value.title
+		} else if (formData.value.messageId) {
+			// 如果没有加载到关联消息，从消息列表中查找
+			const message = messages.value.find(m => m.id === formData.value.messageId)
+			if (message && message.title) {
+				discussionTitle = message.title
+			}
+		}
+
 		const data = {
-			title: formData.value.title.trim(),
+			title: discussionTitle,
 			content: formData.value.content.trim(),
 			visibility: 'private' // 默认私密
 		}

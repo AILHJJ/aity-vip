@@ -1,7 +1,31 @@
 <template>
 	<view class="filter-bar-container">
-		<!-- 筛选面板（始终展开，直接选择） -->
-		<view class="filter-panel">
+		<!-- 收起状态：简洁的筛选状态条 -->
+		<view v-if="!isExpanded" class="filter-summary-bar" @click="toggleExpand">
+			<view class="summary-left">
+				<text class="summary-icon">🔍</text>
+				<text class="summary-text">{{ getFilterSummary() }}</text>
+				<view v-if="hasActiveFilters" class="active-filter-badge">
+					<text class="badge-text">{{ getActiveFilterCount() }}</text>
+				</view>
+			</view>
+			<view class="summary-right">
+				<text class="expand-text">展开筛选</text>
+				<text class="expand-icon">▼</text>
+			</view>
+		</view>
+
+		<!-- 展开状态：完整的筛选面板 -->
+		<view v-else class="filter-panel">
+			<!-- 筛选面板头部 -->
+			<view class="filter-panel-header" @click="toggleExpand">
+				<text class="header-title">高级筛选</text>
+				<view class="header-right">
+					<text class="collapse-text">收起</text>
+					<text class="collapse-icon">▲</text>
+				</view>
+			</view>
+
 			<!-- 策略筛选（横向滚动，直接选择） -->
 			<view class="filter-section-inline">
 				<view class="filter-section-title-inline">策略</view>
@@ -94,7 +118,7 @@
 				<view class="result-tip">
 					<text class="result-text">找到 {{ filteredCount }} 条消息</text>
 				</view>
-				<view class="reset-btn-inline" @click="resetFilters">
+				<view class="reset-btn-inline" @click.stop="resetFilters">
 					<text class="reset-text">重置筛选</text>
 				</view>
 			</view>
@@ -125,6 +149,9 @@ const filters = ref({
 })
 
 const today = ref('')
+
+// 展开/收起状态
+const isExpanded = ref(false)
 
 // 策略选项
 const strategyOptions = computed(() => [
@@ -257,9 +284,81 @@ onMounted(() => {
 	emit('filter-change', { ...filters.value })
 })
 
+// 切换展开/收起状态
+const toggleExpand = () => {
+	isExpanded.value = !isExpanded.value
+	saveExpandState()
+}
+
+// 获取激活的筛选条件数量
+const getActiveFilterCount = () => {
+	let count = 0
+	if (filters.value.strategy !== 'all') count++
+	if (filters.value.type !== 'all') count++
+	if (filters.value.timeRange !== 'all') count++
+	return count
+}
+
+// 获取筛选摘要文本
+const getFilterSummary = () => {
+	const parts = []
+
+	if (filters.value.strategy !== 'all') {
+		const strategy = strategyOptions.value.find(opt => opt.value === filters.value.strategy)
+		if (strategy) parts.push(strategy.label)
+	}
+
+	if (filters.value.type !== 'all') {
+		const type = typeOptions.value.find(opt => opt.value === filters.value.type)
+		if (type) parts.push(type.label)
+	}
+
+	if (filters.value.timeRange !== 'all') {
+		if (filters.value.timeRange === 'custom') {
+			parts.push('自定义时间')
+		} else {
+			const time = timeRangeOptions.value.find(opt => opt.value === filters.value.timeRange)
+			if (time) parts.push(time.label)
+		}
+	}
+
+	if (parts.length === 0) {
+		return '点击展开高级筛选'
+	}
+
+	return parts.join(' · ')
+}
+
+// 保存展开状态
+const saveExpandState = () => {
+	try {
+		uni.setStorageSync('filter_bar_expanded', isExpanded.value)
+	} catch (error) {
+		console.error('保存展开状态失败:', error)
+	}
+}
+
+// 加载展开状态
+const loadExpandState = () => {
+	try {
+		const saved = uni.getStorageSync('filter_bar_expanded')
+		if (saved !== null && saved !== undefined) {
+			isExpanded.value = saved
+		}
+	} catch (error) {
+		console.error('加载展开状态失败:', error)
+	}
+}
+
+// 在初始化时加载展开状态
+onMounted(() => {
+	loadExpandState()
+})
+
 // 暴露方法给父组件
 defineExpose({
-	resetFilters
+	resetFilters,
+	toggleExpand
 })
 </script>
 
@@ -269,8 +368,117 @@ defineExpose({
 	border-bottom: 1rpx solid #e0e0e0;
 }
 
+// 收起状态的简洁筛选条
+.filter-summary-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 20rpx 24rpx;
+	background: #ffffff;
+	transition: all 0.3s;
+
+	&:active {
+		background: #f8f8f8;
+	}
+}
+
+.summary-left {
+	display: flex;
+	align-items: center;
+	flex: 1;
+	overflow: hidden;
+}
+
+.summary-icon {
+	font-size: 28rpx;
+	margin-right: 12rpx;
+	flex-shrink: 0;
+}
+
+.summary-text {
+	flex: 1;
+	font-size: 28rpx;
+	color: #666666;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.active-filter-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 36rpx;
+	height: 36rpx;
+	padding: 0 8rpx;
+	margin-left: 12rpx;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border-radius: 18rpx;
+	flex-shrink: 0;
+}
+
+.badge-text {
+	font-size: 22rpx;
+	color: #ffffff;
+	font-weight: 500;
+}
+
+.summary-right {
+	display: flex;
+	align-items: center;
+	margin-left: 16rpx;
+	flex-shrink: 0;
+}
+
+.expand-text {
+	font-size: 26rpx;
+	color: #667eea;
+	margin-right: 8rpx;
+}
+
+.expand-icon {
+	font-size: 20rpx;
+	color: #667eea;
+}
+
+// 展开状态的筛选面板
 .filter-panel {
-	padding: 20rpx 0;
+	padding: 0 0 20rpx 0;
+}
+
+.filter-panel-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 20rpx 24rpx;
+	border-bottom: 1rpx solid #f0f0f0;
+	transition: all 0.3s;
+
+	&:active {
+		background: #f8f8f8;
+	}
+}
+
+.header-title {
+	font-size: 28rpx;
+	font-weight: 600;
+	color: #333333;
+}
+
+.header-right {
+	display: flex;
+	align-items: center;
+}
+
+.collapse-text {
+	font-size: 26rpx;
+	color: #999999;
+	margin-right: 8rpx;
+}
+
+.collapse-icon {
+	font-size: 20rpx;
+	color: #999999;
 }
 
 .filter-section-inline {

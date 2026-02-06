@@ -5,6 +5,30 @@
 
 import { buildApiEndpoint, getAuthHeaders, buildRequestBody, saveThreadId } from '@/utils/ai-advisor-config'
 
+// 检测是否为小程序环境
+const isMiniProgram = typeof wx !== 'undefined' || (typeof uni !== 'undefined' && uni.getSystemInfoSync)
+
+/**
+ * AbortController polyfill for mini-programs
+ * 小程序不支持AbortController，使用简单的取消标志替代
+ */
+class AbortControllerPolyfill {
+  constructor() {
+    this.signal = {
+      aborted: false,
+      addEventListener: () => {},
+      removeEventListener: () => {}
+    }
+  }
+
+  abort() {
+    this.signal.aborted = true
+  }
+}
+
+// 根据环境选择AbortController
+const AbortControllerImpl = isMiniProgram ? AbortControllerPolyfill : (typeof AbortController !== 'undefined' ? AbortController : AbortControllerPolyfill)
+
 /**
  * 发送消息到AI并获取流式回复
  * @param {String} content - 用户消息内容
@@ -19,8 +43,8 @@ export function sendAIMessage(content, onMessage, onError, onComplete) {
   const body = buildRequestBody(content, threadId)
   const headers = getAuthHeaders()
 
-  // 创建AbortController用于取消请求
-  const abortController = new AbortController()
+  // 创建AbortController用于取消请求（兼容小程序）
+  const abortController = new AbortControllerImpl()
   const signal = abortController.signal
 
   // 启动异步请求
@@ -42,12 +66,24 @@ async function fetchAIMessageInternal(url, body, headers, signal, onMessage, onE
   let buffer = '' // SSE缓冲区
 
   try {
-    const response = await fetch(url, {
+    // 检查是否已被取消（小程序兼容）
+    if (signal.aborted) {
+      console.log('AI请求已取消（请求前）')
+      return
+    }
+
+    const fetchOptions = {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify(body),
-      signal: signal
-    })
+      body: JSON.stringify(body)
+    }
+
+    // 只在非小程序环境添加signal参数
+    if (!isMiniProgram) {
+      fetchOptions.signal = signal
+    }
+
+    const response = await fetch(url, fetchOptions)
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
@@ -58,6 +94,17 @@ async function fetchAIMessageInternal(url, body, headers, signal, onMessage, onE
 
     // 读取流
     while (true) {
+      // 每次读取前检查取消状态（小程序兼容）
+      if (signal.aborted) {
+        console.log('AI请求已取消（读取中）')
+        try {
+          reader.cancel()
+        } catch (e) {
+          // 忽略取消错误
+        }
+        return
+      }
+
       const { done, value } = await reader.read()
 
       if (done) {
@@ -157,7 +204,7 @@ async function fetchAIMessageInternal(url, body, headers, signal, onMessage, onE
 
   } catch (error) {
     // 处理取消
-    if (error.name === 'AbortError') {
+    if (error.name === 'AbortError' || signal.aborted) {
       console.log('AI请求已取消')
       return
     }

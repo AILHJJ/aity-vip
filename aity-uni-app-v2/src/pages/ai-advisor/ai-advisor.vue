@@ -1,14 +1,34 @@
 <template>
 	<view class="ai-advisor-container">
-		<!-- 顶部标题栏 -->
+		<!-- 顶部操作栏 -->
 		<view class="header">
-			<text class="header-title">AI投顾助手</text>
-			<text class="header-subtitle">专业智能问答</text>
-			<!-- 管理员开关：显示工具调用 -->
-			<view v-if="isAdmin" class="admin-toggle" @click="toggleToolVisibility">
-				<text class="toggle-text">{{ showTools ? '隐藏工具调用' : '显示工具调用' }}</text>
-				<view class="toggle-switch" :class="{ active: showTools }">
-					<view class="toggle-dot"></view>
+			<view class="header-title-section">
+				<text class="header-title">AI投顾助手</text>
+				<text class="header-subtitle">专业智能问答</text>
+			</view>
+
+			<view class="header-actions">
+				<!-- 新会话按钮 -->
+				<view class="action-button" @click="handleNewSession">
+					<text class="action-icon">🔄</text>
+					<text class="action-text">新会话</text>
+				</view>
+
+				<!-- 深度思考模式开关 -->
+				<view class="action-button think-toggle" @click="toggleThinkMode">
+					<text class="action-icon">🧠</text>
+					<text class="action-text">深度思考</text>
+					<view class="toggle-switch" :class="{ active: thinkMode }">
+						<view class="toggle-dot"></view>
+					</view>
+				</view>
+
+				<!-- 管理员开关：显示工具调用 -->
+				<view v-if="isAdmin" class="admin-toggle" @click="toggleToolVisibility">
+					<text class="toggle-text">{{ showTools ? '隐藏工具调用' : '显示工具调用' }}</text>
+					<view class="toggle-switch" :class="{ active: showTools }">
+						<view class="toggle-dot"></view>
+					</view>
 				</view>
 			</view>
 		</view>
@@ -124,10 +144,15 @@
 					{{ isLoading ? '发送中' : '发送' }}
 				</button>
 			</view>
-			<!-- 清空历史按钮 -->
-			<view v-if="messages.length > 0" class="clear-history" @click="handleClearHistory">
-				<text class="clear-text">清空对话</text>
+		</view>
+
+		<!-- 底部操作栏 -->
+		<view v-if="messages.length > 0" class="bottom-actions">
+			<view class="secondary-button" @click="handleClearHistory">
+				<text class="secondary-button-icon">🗑️</text>
+				<text class="secondary-button-text">清空对话</text>
 			</view>
+		</view>
 		</view>
 	</view>
 </template>
@@ -135,7 +160,7 @@
 <script setup>
 import { ref, nextTick, onMounted, computed } from 'vue'
 import { sendAIMessage } from '@/api/ai-advisor'
-import { getChatHistory, saveChatHistory, saveThreadId, clearChatHistory } from '@/utils/ai-advisor-config'
+import { getChatHistory, saveChatHistory, saveThreadId, clearChatHistory, getThinkMode, setThinkMode } from '@/utils/ai-advisor-config'
 
 // 数据
 const messages = ref([])
@@ -147,6 +172,9 @@ const abortController = ref(null)
 const currentToolCalls = ref([]) // 当前消息的工具调用
 const currentReasoning = ref('') // 当前消息的推理过程
 const isFinancialQuery = ref(false) // 是否是金融查询工具
+
+// 深度思考模式状态
+const thinkMode = ref(false)
 
 // 管理员设置
 const showTools = ref(false) // 是否显示工具调用
@@ -169,193 +197,42 @@ function toggleToolVisibility() {
 	uni.setStorageSync('ai_show_tools', showTools.value)
 }
 
-// 渲染Markdown（完整实现，支持表格、代码块等）
+// 切换深度思考模式
+function toggleThinkMode() {
+	const newMode = !thinkMode.value
+	setThinkMode(newMode)
+	thinkMode.value = newMode
+}
+
+// 新会话功能
+function handleNewSession() {
+	uni.showModal({
+		title: '确认新会话',
+		content: '确定要开始新会话吗？当前对话将被清空。',
+		success: (res) => {
+			if (res.confirm) {
+				messages.value = []
+				clearChatHistory()
+				errorMessage.value = ''
+				thinkMode.value = getThinkMode() // 重置为保存的思考模式
+			}
+		}
+	})
+}
+
+// 渲染Markdown - 使用增强的渲染器
 function renderMarkdown(content) {
-	if (!content) return ''
-
-	// 首先过滤所有 @@替换串@@
-	content = content.replace(/@@.+?@@/g, '')
-
-	// 转义HTML（但保留我们需要的标签）
-	let html = content
-		.replace(/&/g, '&amp;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-
-	// 处理代码块 ```code```
-	html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
-		return `<pre><code class="${lang}">${code.trim()}</code></pre>`
-	})
-
-	// 处理行内代码 `code`
-	html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
-
-	// 处理粗体 **text**
-	html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-
-	// 处理斜体 *text*
-	html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>')
-
-	// 处理表格 |列1|列2|
-	// 先处理分隔行 |---|---|
-	const lines = html.split('\n')
-	let inTable = false
-	let tableRows = []
-	const processedLines = []
-
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i].trim()
-
-		// 检测表格行（以|开头和结尾）
-		if (line.startsWith('|') && line.endsWith('|')) {
-			// 移除首尾的|
-			const cells = line.substring(1, line.length - 1).split('|').map(cell => cell.trim())
-
-			// 检查是否是分隔行（全部是---）
-			const isSeparator = cells.every(cell => /^-+$/.test(cell))
-
-			if (!isSeparator) {
-				if (!inTable) {
-					inTable = true
-					tableRows = []
-				}
-				// 判断是否是表头（第一行）
-				const isHeader = tableRows.length === 0
-				const tag = isHeader ? 'th' : 'td'
-				const rowHtml = cells.map(cell => `<${tag}>${cell}</${tag}>`).join('')
-				tableRows.push(`<tr>${rowHtml}</tr>`)
-			}
-			continue
-		}
-
-		// 如果在表格中，遇到非表格行，先输出表格
-		if (inTable) {
-			if (tableRows.length > 0) {
-				processedLines.push(`<table>${tableRows.join('')}</table>`)
-			}
-			inTable = false
-			tableRows = []
-		}
-
-		processedLines.push(line)
-	}
-
-	// 处理最后的表格
-	if (inTable && tableRows.length > 0) {
-		processedLines.push(`<table>${tableRows.join('')}</table>`)
-	}
-
-	html = processedLines.join('\n')
-
-	// 处理无序列表 - item
-	html = html.replace(/^[\s]*-[\s]+(.+)$/gm, '<li>$1</li>')
-	html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-
-	// 处理有序列表 1. item
-	html = html.replace(/^[\s]*\d+[\s.]+(.+)$/gm, '<li>$1</li>')
-
-	// 处理换行（但不在pre标签中的）
-	html = html.replace(/\n/g, '<br>')
-
-	// 修复pre和code标签中的<br>
-	html = html.replace(/<pre>(.*?)<\/pre>/gs, (match, content) => {
-		return `<pre>${content.replace(/<br>/g, '\n')}</pre>`
-	})
-
-	return html
+	return MarkdownRenderer.render(content)
 }
 
 // 解析金融选股工具返回的JSON表格数据
 function parseFinancialTable(content) {
-	try {
-		// 尝试解析JSON格式的表格数据
-		const data = JSON.parse(content)
-
-		if (!Array.isArray(data) || data.length === 0) {
-			return null
-		}
-
-		// 根据参考项目的逻辑解析
-		// 数据格式：第一行是表头，最后一行第一个元素是总数
-		let headers = []
-		let rows = []
-		let total = 0
-
-		// 找到最后一个元素（总数）
-		if (data.length > 1) {
-			const lastRow = data[data.length - 1]
-			if (Array.isArray(lastRow) && lastRow.length >= 2) {
-				total = lastRow[1] // 第二个元素是总数
-			}
-		}
-
-		// 解析表头和数据行
-		const endIndex = data.length > 7 ? 7 : data.length - 1
-		const tableData = data.slice(0, endIndex)
-
-		tableData.forEach((row, index) => {
-			if (index === 0) {
-				// 第一行是表头
-				headers = row.map(cell => {
-					// 处理特殊列名
-					if (typeof cell === 'string') {
-						// 移除HTML标签和日期
-						return cell.replace(/<br>.*$/, '').trim()
-					}
-					return String(cell).trim()
-				})
-			} else {
-				// 数据行
-				rows.push(row)
-			}
-		})
-
-		return { headers, rows, total }
-	} catch (e) {
-		// 不是JSON格式，返回null
-		return null
-	}
+	return FinancialTableParser.parse(content)
 }
 
 // 渲染金融查询表格
 function renderFinancialTable(tableData) {
-	if (!tableData || !tableData.headers || !tableData.rows) {
-		return ''
-	}
-
-	const { headers, rows, total } = tableData
-
-	// 构建表格HTML
-	let html = '<div class="financial-table-container">'
-
-	// 总数提示
-	if (total > 0) {
-		html += `<div class="table-info">共找到 ${total} 条结果，显示前 ${rows.length} 条</div>`
-	}
-
-	html += '<table class="financial-table">'
-
-	// 表头
-	html += '<thead><tr>'
-	headers.forEach(header => {
-		html += `<th>${header}</th>`
-	})
-	html += '</tr></thead>'
-
-	// 数据行
-	html += '<tbody>'
-	rows.forEach(row => {
-		html += '<tr>'
-		row.forEach(cell => {
-			html += `<td>${cell}</td>`
-		})
-		html += '</tr>'
-	})
-	html += '</tbody>'
-
-	html += '</table></div>'
-
-	return html
+	return FinancialTableParser.render(tableData)
 }
 
 // 格式化时间
@@ -537,6 +414,9 @@ onMounted(() => {
 	if (savedShowTools !== null) {
 		showTools.value = savedShowTools
 	}
+
+	// 加载深度思考模式状态
+	thinkMode.value = getThinkMode()
 })
 </script>
 
@@ -546,14 +426,21 @@ onMounted(() => {
 	flex-direction: column;
 	height: 100vh;
 	background: #f5f5f5;
+	padding-bottom: 80rpx; /* 为底部操作栏留出空间 */
 }
 
-/* 顶部标题栏 */
+/* 顶部操作栏 */
 .header {
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	padding: 40rpx 30rpx 30rpx;
+	padding: 30rpx 20rpx;
 	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.2);
 	position: relative;
+}
+
+.header-title-section {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
 }
 
 .header-title {
@@ -568,6 +455,49 @@ onMounted(() => {
 	display: block;
 	font-size: 24rpx;
 	color: rgba(255, 255, 255, 0.8);
+}
+
+.header-actions {
+	display: flex;
+	align-items: center;
+	gap: 16rpx;
+}
+
+.action-button {
+	display: flex;
+	align-items: center;
+	gap: 8rpx;
+	padding: 12rpx 20rpx;
+	background: rgba(255, 255, 255, 0.15);
+	border-radius: 20rpx;
+	backdrop-filter: blur(10rpx);
+	border: 1rpx solid rgba(255, 255, 255, 0.2);
+	transition: all 0.3s ease;
+}
+
+.action-button:active {
+	background: rgba(255, 255, 255, 0.25);
+	transform: scale(0.95);
+}
+
+.action-icon {
+	font-size: 24rpx;
+}
+
+.action-text {
+	font-size: 24rpx;
+	color: #ffffff;
+	font-weight: 500;
+}
+
+.think-toggle {
+	background: rgba(255, 255, 255, 0.2);
+	border-color: rgba(255, 255, 255, 0.3);
+}
+
+.think-toggle.active {
+	background: rgba(255, 255, 255, 0.3);
+	border-color: rgba(255, 255, 255, 0.5);
 }
 
 /* 管理员开关 */
@@ -829,47 +759,213 @@ onMounted(() => {
 	white-space: pre-wrap;
 }
 
-/* Markdown内容 */
+/* Markdown内容 - 增强样式 */
 .content-area {
 	word-break: break-word;
+	line-height: 1.8;
+}
+
+.markdown-content ::v-deep h1,
+.markdown-content ::v-deep h2,
+.markdown-content ::v-deep h3,
+.markdown-content ::v-deep h4,
+.markdown-content ::v-deep h5,
+.markdown-content ::v-deep h6 {
+	font-weight: 600;
+	line-height: 1.4;
+	margin: 24rpx 0 16rpx;
+	color: #333333;
+}
+
+.markdown-content ::v-deep h1 {
+	font-size: 40rpx;
+	border-bottom: 2rpx solid #e0e0e0;
+	padding-bottom: 12rpx;
+}
+
+.markdown-content ::v-deep h2 {
+	font-size: 36rpx;
+	border-bottom: 1rpx solid #e0e0e0;
+	padding-bottom: 8rpx;
+}
+
+.markdown-content ::v-deep h3 {
+	font-size: 32rpx;
+}
+
+.markdown-content ::v-deep h4 {
+	font-size: 30rpx;
+}
+
+.markdown-content ::v-deep h5 {
+	font-size: 28rpx;
+}
+
+.markdown-content ::v-deep h6 {
+	font-size: 26rpx;
+	color: #666666;
 }
 
 .markdown-content ::v-deep table {
 	width: 100%;
 	border-collapse: collapse;
-	margin: 16rpx 0;
+	margin: 24rpx 0;
+	border: 1rpx solid #e0e0e0;
+	border-radius: 8rpx;
+	overflow: hidden;
 }
 
-.markdown-content ::v-deep td {
+.markdown-content ::v-deep .markdown-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 24rpx 0;
 	border: 1rpx solid #e0e0e0;
-	padding: 12rpx;
+	border-radius: 8rpx;
+	overflow: hidden;
+}
+
+.markdown-content ::v-deep td,
+.markdown-content ::v-deep th {
+	border: 1rpx solid #e0e0e0;
+	padding: 12rpx 16rpx;
 	text-align: left;
 }
 
 .markdown-content ::v-deep th {
-	border: 1rpx solid #e0e0e0;
-	padding: 12rpx;
-	text-align: left;
-	background: #f5f5f5;
-	font-weight: bold;
+	background: linear-gradient(to bottom, #f8f9fa, #f5f5f5);
+	font-weight: 600;
+	color: #333333;
+}
+
+.markdown-content ::v-deep tr:nth-child(even) {
+	background: #fafafa;
+}
+
+.markdown-content ::v-deep tr:hover {
+	background: #f0f2ff;
 }
 
 .markdown-content ::v-deep pre {
-	background: #f5f5f5;
-	padding: 16rpx;
+	background: #f6f8fa;
+	padding: 20rpx;
 	border-radius: 8rpx;
 	overflow-x: auto;
-	margin: 12rpx 0;
+	margin: 16rpx 0;
+	border: 1rpx solid #e1e4e8;
+}
+
+.markdown-content ::v-deep .code-block {
+	background: #282c34;
+	color: #abb2bf;
+	padding: 20rpx;
+	border-radius: 8rpx;
+	overflow-x: auto;
+	margin: 16rpx 0;
+	font-family: 'Consolas', 'Monaco', monospace;
+	font-size: 26rpx;
+	line-height: 1.6;
+}
+
+.markdown-content ::v-deep .inline-code {
+	background: #f6f8fa;
+	color: #e83e8c;
+	padding: 4rpx 8rpx;
+	border-radius: 4rpx;
+	font-family: 'Consolas', 'Monaco', monospace;
+	font-size: 28rpx;
+	border: 1rpx solid #e1e4e8;
 }
 
 .markdown-content ::v-deep code {
-	background: #f5f5f5;
+	background: #f6f8fa;
 	padding: 4rpx 8rpx;
 	border-radius: 4rpx;
 	font-family: monospace;
+	font-size: 28rpx;
+	color: #e83e8c;
 }
 
-.markdown-content ::v-deep strong {
+.markdown-content ::v-deed strong {
+	font-weight: 600;
+	color: #333333;
+}
+
+.markdown-content ::v-deep em {
+	font-style: italic;
+	color: #555555;
+}
+
+.markdown-content ::v-deep del {
+	text-decoration: line-through;
+	color: #999999;
+}
+
+.markdown-content ::v-deep blockquote {
+	margin: 16rpx 0;
+	padding: 16rpx 20rpx;
+	background: #f0f2ff;
+	border-left: 4rpx solid #667eea;
+	color: #555555;
+	font-style: italic;
+}
+
+.markdown-content ::v-deep ul,
+.markdown-content ::v-deep ol {
+	padding-left: 40rpx;
+	margin: 16rpx 0;
+}
+
+.markdown-content ::v-deep li {
+	margin: 8rpx 0;
+	line-height: 1.6;
+}
+
+.markdown-content ::v-deep .list-item,
+.markdown-content ::v-deep .list-item-ordered {
+	margin: 8rpx 0;
+	line-height: 1.8;
+}
+
+.markdown-content ::v-deep .link {
+	color: #667eea;
+	text-decoration: none;
+	border-bottom: 1rpx dashed #667eea;
+}
+
+.markdown-content ::v-deep .link:active {
+	color: #764ba2;
+	border-bottom-style: solid;
+}
+
+.markdown-content ::v-deep .markdown-image {
+	max-width: 100%;
+	height: auto;
+	border-radius: 8rpx;
+	margin: 16rpx 0;
+}
+
+.markdown-content ::v-deep .divider {
+	border: none;
+	border-top: 2rpx solid #e0e0e0;
+	margin: 32rpx 0;
+}
+
+/* 金融数据颜色 */
+.markdown-content ::v-deep .text-up {
+	color: #ff4d4f;
+	font-weight: 600;
+}
+
+.markdown-content ::v-deep .text-down {
+	color: #52c41a;
+	font-weight: 600;
+}
+
+.markdown-content ::v-deep .text-neutral {
+	color: #666666;
+}
+
+.markdown-content ::v-deed strong {
 	font-weight: bold;
 }
 
@@ -976,6 +1072,7 @@ onMounted(() => {
 	background: #ffffff;
 	border-top: 1rpx solid #e0e0e0;
 	padding: 20rpx;
+	margin-bottom: 80rpx; /* 为底部操作栏留出空间 */
 }
 
 .error-message {
@@ -1024,13 +1121,47 @@ onMounted(() => {
 }
 
 .clear-history {
-	text-align: center;
-	margin-top: 16rpx;
+	display: none; /* 隐藏原来的清空按钮 */
 }
 
-.clear-text {
-	font-size: 26rpx;
-	color: #999999;
-	text-decoration: underline;
+/* 底部操作栏 */
+.bottom-actions {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background: rgba(255, 255, 255, 0.95);
+	backdrop-filter: blur(10rpx);
+	border-top: 1rpx solid #e0e0e0;
+	padding: 16rpx 20rpx;
+	display: flex;
+	justify-content: center;
+	z-index: 100;
+}
+
+.secondary-button {
+	display: flex;
+	align-items: center;
+	gap: 8rpx;
+	padding: 12rpx 24rpx;
+	background: rgba(102, 126, 234, 0.1);
+	border: 1rpx solid rgba(102, 126, 234, 0.2);
+	border-radius: 16rpx;
+	transition: all 0.3s ease;
+}
+
+.secondary-button:active {
+	background: rgba(102, 126, 234, 0.2);
+	transform: scale(0.95);
+}
+
+.secondary-button-icon {
+	font-size: 24rpx;
+}
+
+.secondary-button-text {
+	font-size: 24rpx;
+	color: #667eea;
+	font-weight: 500;
 }
 </style>

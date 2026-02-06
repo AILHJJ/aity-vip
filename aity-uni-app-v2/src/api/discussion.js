@@ -33,7 +33,8 @@ export function getDiscussionDetailApi(id) {
  * @returns {Promise}
  */
 export function createDiscussionApi(data) {
-  return post('/discussions', data)
+  // 小程序环境需要更长的超时时间（60秒）
+  return post('/discussions', data, { timeout: 60000 })
 }
 
 /**

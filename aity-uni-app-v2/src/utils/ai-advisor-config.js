@@ -22,6 +22,20 @@ export const AI_ADVISOR_CONFIG = {
   TIMEOUT: 60000,
 }
 
+// 获取深度思考模式状态
+export function getThinkMode() {
+  return uni.getStorageSync('ai_advisor_think_mode') || AI_ADVISOR_CONFIG.ENABLE_THINK
+}
+
+// 设置深度思考模式状态
+export function setThinkMode(enabled) {
+  uni.setStorageSync('ai_advisor_think_mode', enabled)
+  AI_ADVISOR_CONFIG.ENABLE_THINK = enabled
+  return enabled
+}
+
+}
+
 /**
  * 构建完整的API端点URL
  */

@@ -45,13 +45,14 @@
 			</view>
 		</view>
 
-		<!-- 三级筛选栏 -->
+		<!-- 三级筛选栏（仅管理员显示，默认收起） -->
 		<filter-bar
+			v-if="userInfoLoaded && userStore.isAdmin"
 			:total-count="filteredMessages.length"
 			@filter-change="handleFilterChange"
 		/>
 
-		<!-- 筛选栏 -->
+		<!-- 筛选栏（所有用户显示） -->
 		<view class="filter-bar">
 			<scroll-view class="filter-scroll" scroll-x show-scrollbar="false">
 				<view class="filter-items">
