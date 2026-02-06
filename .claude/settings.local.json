@@ -35,7 +35,14 @@
       "Bash(if not exist backendscripts mkdir backendscripts)",
       "Bash(git push:*)",
       "Bash(git log:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(pm2 status:*)",
+      "Bash(ssh:*)",
+      "Bash(cat:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjksImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoic3VwZXJfYWRtaW4iLCJpYXQiOjE3NzAyNjU1MDAsImV4cCI6MTc3MDM1MTkwMH0.stb6XJ2GHlw1-p4l38kR3sZWYlCrECOhL-4Mq0XUPlk\")",
+      "Bash(npm run start)",
+      "Bash(npm run build:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

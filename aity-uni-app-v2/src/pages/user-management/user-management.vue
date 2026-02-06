@@ -13,6 +13,10 @@
 				/>
 				<text class="search-icon" @click="handleSearch">🔍</text>
 			</view>
+			<button class="add-user-btn" @click="handleAddUser">
+				<text class="add-icon">+</text>
+				<text class="add-text">新增用户</text>
+			</button>
 		</view>
 
 		<!-- 用户列表 -->
@@ -145,6 +149,90 @@
 				</view>
 			</view>
 		</view>
+
+		<!-- 新增用户弹窗 -->
+		<view v-if="showAddModal" class="modal-overlay" @click="closeAddModal">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">新增用户</text>
+					<text class="modal-close" @click="closeAddModal">×</text>
+				</view>
+
+				<view class="modal-body">
+					<!-- 用户名 -->
+					<view class="form-item">
+						<text class="form-label">用户名 *</text>
+						<input
+							class="form-input"
+							v-model="addForm.username"
+							placeholder="请输入用户名"
+						/>
+					</view>
+
+					<!-- 邮箱 -->
+					<view class="form-item">
+						<text class="form-label">邮箱 *</text>
+						<input
+							class="form-input"
+							v-model="addForm.email"
+							type="email"
+							placeholder="请输入邮箱"
+						/>
+					</view>
+
+					<!-- 密码 -->
+					<view class="form-item">
+						<text class="form-label">初始密码 *</text>
+						<input
+							class="form-input"
+							v-model="addForm.password"
+							type="password"
+							placeholder="请输入初始密码"
+						/>
+						<text class="form-hint">建议使用6位以上包含字母和数字的密码</text>
+					</view>
+
+					<!-- 角色 -->
+					<view class="form-item">
+						<text class="form-label">角色 *</text>
+						<picker
+							mode="selector"
+							:range="roleOptions"
+							range-key="label"
+							:value="getRoleIndex(addForm.role)"
+							@change="handleAddRoleChange"
+						>
+							<view class="picker-view">
+								<text class="picker-text">{{ getRoleLabel(addForm.role) || '选择角色' }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+
+					<!-- 到期时间 -->
+					<view class="form-item">
+						<text class="form-label">到期时间</text>
+						<picker
+							mode="date"
+							:value="addForm.expiresAt"
+							@change="handleAddDateChange"
+						>
+							<view class="picker-view">
+								<text class="picker-text">{{ addForm.expiresAt || '永久有效' }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+				</view>
+
+				<view class="modal-footer">
+					<button class="modal-btn cancel-btn" @click="closeAddModal">取消</button>
+					<button class="modal-btn confirm-btn" :disabled="submitting" @click="handleAddSave">
+						{{ submitting ? '创建中...' : '创建用户' }}
+					</button>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -175,6 +263,16 @@ const editForm = ref({
 	expiresAt: ''
 })
 const submitting = ref(false)
+
+// 新增用户相关
+const showAddModal = ref(false)
+const addForm = ref({
+	username: '',
+	email: '',
+	password: '',
+	role: 'trial',
+	expiresAt: ''
+})
 
 // 角色选项
 const roleOptions = computed(() => {
@@ -390,6 +488,110 @@ const handleDelete = async (id) => {
 	}
 }
 
+// 新增用户
+const handleAddUser = () => {
+	addForm.value = {
+		username: '',
+		email: '',
+		password: '',
+		role: 'trial',
+		expiresAt: ''
+	}
+	showAddModal.value = true
+}
+
+// 关闭新增弹窗
+const closeAddModal = () => {
+	showAddModal.value = false
+	addForm.value = {
+		username: '',
+		email: '',
+		password: '',
+		role: 'trial',
+		expiresAt: ''
+	}
+}
+
+// 处理新增用户角色选择
+const handleAddRoleChange = (e) => {
+	const index = e.detail.value
+	addForm.value.role = roleOptions.value[index].value
+}
+
+// 处理新增用户日期选择
+const handleAddDateChange = (e) => {
+	addForm.value.expiresAt = e.detail.value
+}
+
+// 保存新增用户
+const handleAddSave = async () => {
+	// 验证必填项
+	if (!addForm.value.username || !addForm.value.email || !addForm.value.password) {
+		uni.showToast({
+			title: '请填写必填项',
+			icon: 'none'
+		})
+		return
+	}
+
+	// 验证邮箱格式
+	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+	if (!emailRegex.test(addForm.value.email)) {
+		uni.showToast({
+			title: '邮箱格式不正确',
+			icon: 'none'
+		})
+		return
+	}
+
+	// 验证密码长度
+	if (addForm.value.password.length < 6) {
+		uni.showToast({
+			title: '密码至少6位',
+			icon: 'none'
+		})
+		return
+	}
+
+	submitting.value = true
+
+	try {
+		const data = {
+			username: addForm.value.username,
+			email: addForm.value.email,
+			password: addForm.value.password,
+			role: addForm.value.role
+		}
+
+		if (addForm.value.expiresAt) {
+			data.expiresAt = addForm.value.expiresAt
+		}
+
+		const { createUserApi } = require('../../api/user')
+		const res = await createUserApi(data)
+
+		if (res.success || res.code === 200) {
+			uni.showToast({
+				title: '创建成功',
+				icon: 'success'
+			})
+
+			closeAddModal()
+			loadUsers(true) // 刷新列表
+		} else {
+			throw new Error(res.message || '创建失败')
+		}
+	} catch (error) {
+		console.error('创建用户失败:', error)
+		uni.showToast({
+			title: error.message || '创建失败',
+			icon: 'none'
+		})
+	} finally {
+		submitting.value = false
+	}
+}
+
 // 页面加载
 onMounted(() => {
 	// 检查管理员权限
@@ -440,6 +642,29 @@ onMounted(() => {
 .search-icon {
 	font-size: 32rpx;
 	margin-left: 10rpx;
+}
+
+.add-user-btn {
+	display: flex;
+	align-items: center;
+	gap: 8rpx;
+	padding: 16rpx 24rpx;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #ffffff;
+	border-radius: 35rpx;
+	border: none;
+	font-size: 26rpx;
+	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+	white-space: nowrap;
+}
+
+.add-icon {
+	font-size: 32rpx;
+	font-weight: bold;
+}
+
+.add-text {
+	font-size: 26rpx;
 }
 
 .users-scroll {
@@ -661,6 +886,24 @@ onMounted(() => {
 	color: #333333;
 	margin-bottom: 15rpx;
 	font-weight: 500;
+}
+
+.form-input {
+	width: 100%;
+	height: 80rpx;
+	padding: 0 20rpx;
+	background: #f5f5f5;
+	border-radius: 8rpx;
+	font-size: 28rpx;
+	color: #333333;
+	box-sizing: border-box;
+}
+
+.form-hint {
+	display: block;
+	font-size: 24rpx;
+	color: #999999;
+	margin-top: 8rpx;
 }
 
 .picker-view {
