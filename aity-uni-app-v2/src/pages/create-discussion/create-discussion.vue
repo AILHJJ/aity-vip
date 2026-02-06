@@ -268,11 +268,17 @@ onMounted(() => {
 // 加载关联的消息详情
 const loadLinkedMessage = async (id) => {
 	try {
+		console.log('加载关联消息, ID:', id)
 		const { getMessageDetailApi } = require('../../api/message')
 		const res = await getMessageDetailApi(id)
 
+		console.log('关联消息响应:', res)
+
 		if (res.code === 200 || res.success) {
 			linkedMessage.value = res.data
+			console.log('关联消息已设置:', linkedMessage.value)
+		} else {
+			console.warn('加载关联消息失败:', res.message)
 		}
 	} catch (error) {
 		console.error('加载关联消息失败:', error)

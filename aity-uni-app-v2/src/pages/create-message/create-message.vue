@@ -766,13 +766,31 @@ onMounted(async () => {
 					size: att.size || 0
 				}))
 
+				// 确保tags是数组
+				let tags = []
+				if (Array.isArray(res.data.tags)) {
+					tags = res.data.tags
+				} else if (typeof res.data.tags === 'string') {
+					try {
+						tags = JSON.parse(res.data.tags)
+					} catch (e) {
+						console.warn('tags解析失败,使用默认值:', e)
+						tags = [MESSAGE_TAGS.SHORT_TERM]
+					}
+				}
+
+				console.log('编辑模式 - 加载的消息数据:', res.data)
+				console.log('编辑模式 - 解析后的tags:', tags)
+
 				formData.value = {
 					title: res.data.title || '',
 					type: res.data.type || '',
-					tags: res.data.tags || [],
+					tags: tags.length > 0 ? tags : [MESSAGE_TAGS.SHORT_TERM],
 					content: res.data.content || '',
 					attachments: processedAttachments
 				}
+
+				console.log('编辑模式 - formData已设置:', formData.value)
 			} else {
 				uni.showToast({
 					title: '加载消息失败',
