@@ -34,8 +34,6 @@ export function setThinkMode(enabled) {
   return enabled
 }
 
-}
-
 /**
  * 构建完整的API端点URL
  */

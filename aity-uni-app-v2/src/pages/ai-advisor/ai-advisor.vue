@@ -153,7 +153,6 @@
 				<text class="secondary-button-text">清空对话</text>
 			</view>
 		</view>
-		</view>
 	</view>
 </template>
 
