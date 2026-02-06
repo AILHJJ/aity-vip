@@ -8,7 +8,7 @@
 						v-model="formData.title"
 						label="讨论标题"
 						placeholder="请输入讨论标题"
-						maxlength="100"
+						:maxlength="100"
 					/>
 				</view>
 
@@ -91,7 +91,7 @@
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
 import { createDiscussionApi } from '../../api/discussion'
-import { getMessagesApi } from '../../api/message'
+import { getMessagesApi, getMessageDetailApi } from '../../api/message'
 import { Input } from '@/components/common'
 
 const userStore = useUserStore()
@@ -269,7 +269,6 @@ onMounted(() => {
 const loadLinkedMessage = async (id) => {
 	try {
 		console.log('加载关联消息, ID:', id)
-		const { getMessageDetailApi } = require('../../api/message')
 		const res = await getMessageDetailApi(id)
 
 		console.log('关联消息响应:', res)

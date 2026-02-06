@@ -11,7 +11,7 @@
 						placeholder="请输入消息标题"
 						placeholder-style="color: #999999"
 						class="form-input"
-						maxlength="100"
+						:maxlength="100"
 					/>
 				</view>
 
