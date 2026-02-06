@@ -210,9 +210,9 @@ npm run dev:h5
 ## 联系支持
 
 如有任何问题，请查看：
-- 详细文档：`MARKDOWN_GUIDE.md`
-- 实施报告：`MARKDOWN_IMPLEMENTATION_REPORT.md`
-- 测试样本：`test-markdown-samples.txt`
+- **文档索引**: [docs/README.md](./docs/README.md)
+- **Markdown功能文档**: [docs/02-功能文档/其他功能/Markdown渲染规范.md](./docs/02-功能文档/其他功能/Markdown渲染规范.md)
+- **Markdown实施报告**: [docs/02-功能文档/其他功能/Markdown编辑器优化说明-v1.6.1.md](./docs/02-功能文档/其他功能/Markdown编辑器优化说明-v1.6.1.md)
 
 ---
 
