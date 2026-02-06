@@ -37,14 +37,26 @@
 
 			<!-- 消息图片 -->
 			<view v-if="message.images && message.images.length > 0" class="message-images">
-				<image
+				<view
 					v-for="(img, index) in message.images"
 					:key="index"
-					:src="img"
-					class="message-image"
-					mode="widthFix"
+					class="image-wrapper"
 					@click="previewImage(index)"
-				/>
+				>
+					<image
+						:src="img"
+						class="message-image"
+						mode="widthFix"
+						:lazy-load="true"
+						@error="handleImageError(index)"
+						@load="handleImageLoad(index)"
+						:show-loading="true"
+						:show-error="true"
+					/>
+					<view class="image-mask">
+						<text class="image-hint">点击预览</text>
+					</view>
+				</view>
 			</view>
 
 			<!-- 消息统计 -->
@@ -259,8 +271,29 @@ const toggleFavorite = async () => {
 const previewImage = (index) => {
 	uni.previewImage({
 		urls: message.value.images,
-		current: index
+		current: index,
+		fail: (err) => {
+			console.error('预览图片失败:', err)
+			uni.showToast({
+				title: '预览失败',
+				icon: 'none'
+			})
+		}
 	})
+}
+
+// 处理图片加载错误
+const handleImageError = (index) => {
+	console.error(`图片 ${index} 加载失败`)
+	uni.showToast({
+		title: '图片加载失败',
+		icon: 'none'
+	})
+}
+
+// 处理图片加载成功
+const handleImageLoad = (index) => {
+	console.log(`图片 ${index} 加载成功`)
 }
 
 // 分享消息
@@ -505,13 +538,59 @@ onMounted(() => {
 }
 
 .message-images {
+	display: flex;
+	flex-direction: column;
+	gap: 20rpx;
 	margin-bottom: 30rpx;
+}
+
+.image-wrapper {
+	position: relative;
+	width: 100%;
+	border-radius: 12rpx;
+	overflow: hidden;
+	background: #f5f5f5;
+	cursor: pointer;
+	transition: transform 0.2s ease;
+
+	&:active {
+		transform: scale(0.98);
+	}
 }
 
 .message-image {
 	width: 100%;
+	display: block;
 	border-radius: 12rpx;
-	margin-bottom: 20rpx;
+	transition: opacity 0.3s ease;
+
+	&:hover {
+		opacity: 0.95;
+	}
+}
+
+.image-mask {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	padding: 20rpx;
+	background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+	opacity: 0;
+	transition: opacity 0.3s ease;
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+
+	.image-wrapper:hover &,
+	.image-wrapper:active & {
+		opacity: 1;
+	}
+}
+
+.image-hint {
+	color: #ffffff;
+	font-size: 24rpx;
 }
 
 .message-stats {

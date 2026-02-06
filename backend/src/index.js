@@ -81,8 +81,14 @@ app.use(fileUpload({
   tempFileDir: '/tmp/'
 }));
 
-// 静态文件服务
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// 静态文件服务 (带CORS支持)
+app.use('/uploads', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
 
 // 路由配置
 app.use('/api/auth', authRoutes);
