@@ -88,33 +88,25 @@
 	],
 	"tabBar": {
 		"color": "#7A7E83",
-		"selectedColor": "#007AFF",
+		"selectedColor": "#667eea",
 		"borderStyle": "black",
 		"backgroundColor": "#F8F8F8",
 		"list": [
 			{
 				"pagePath": "pages/messages/messages",
-				"text": "消息",
-				"iconPath": "static/tabbar/message.png",
-				"selectedIconPath": "static/tabbar/message-active.png"
+				"text": "消息"
 			},
 			{
 				"pagePath": "pages/discussions/discussions",
-				"text": "讨论",
-				"iconPath": "static/tabbar/discussion.png",
-				"selectedIconPath": "static/tabbar/discussion-active.png"
+				"text": "讨论"
 			},
 			{
 				"pagePath": "pages/ai-advisor/ai-advisor",
-				"text": "AI投顾",
-				"iconPath": "static/tabbar/ai-advisor.png",
-				"selectedIconPath": "static/tabbar/ai-advisor-active.png"
+				"text": "AI投顾"
 			},
 			{
 				"pagePath": "pages/profile/profile",
-				"text": "我的",
-				"iconPath": "static/tabbar/profile.png",
-				"selectedIconPath": "static/tabbar/profile-active.png"
+				"text": "我的"
 			}
 		]
 	},
