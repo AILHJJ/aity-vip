@@ -450,6 +450,8 @@ const handleSubmit = async () => {
 		if (formData.value.attachments.length > 0) {
 			console.log('开始上传', formData.value.attachments.length, '个附件')
 
+			let hasShownLoading = false
+
 			for (let i = 0; i < formData.value.attachments.length; i++) {
 				const attach = formData.value.attachments[i]
 
@@ -459,10 +461,13 @@ const handleSubmit = async () => {
 					// 检查是否是blob URL (H5) 或临时文件路径 (小程序)
 					if (attach.path && (attach.path.startsWith('blob:') || attach.path.startsWith('wxfile://'))) {
 						// 需要上传到服务器
-						uni.showLoading({
-							title: `上传图片 ${i + 1}/${formData.value.attachments.length}`,
-							mask: true
-						})
+						if (!hasShownLoading) {
+							uni.showLoading({
+								title: `上传图片 ${i + 1}/${formData.value.attachments.length}`,
+								mask: true
+							})
+							hasShownLoading = true
+						}
 
 						const uploadResult = await uploadImageApi(attach.path)
 
@@ -516,6 +521,12 @@ const handleSubmit = async () => {
 		console.log('内容长度:', data.content.length)
 		console.log('附件数量:', data.attachments.length)
 
+		// 显示提交loading
+		uni.showLoading({
+			title: editMode.value ? '保存中...' : '发布中...',
+			mask: true
+		})
+
 		let res
 		if (editMode.value) {
 			// 编辑模式
@@ -534,14 +545,44 @@ const handleSubmit = async () => {
 			// 清除草稿
 			uni.removeStorageSync(DRAFT_KEY)
 
+			// 如果是编辑模式,通知详情页刷新
+			if (editMode.value) {
+				const pages = getCurrentPages()
+				if (pages.length > 1) {
+					const prevPage = pages[pages.length - 2]
+					// 检查上一页是否是详情页
+					if (prevPage.route && prevPage.route.includes('message-detail')) {
+						// 通知详情页刷新
+						if (prevPage.$vm && prevPage.$vm.loadMessageDetail) {
+							console.log('通知详情页刷新数据')
+							prevPage.$vm.loadMessageDetail()
+						}
+					} else if (prevPage.$vm && prevPage.$vm.refreshList) {
+						// 如果是列表页,刷新列表
+						prevPage.$vm.refreshList()
+					}
+				}
+			} else {
+				// 新建模式,通知列表页刷新
+				const pages = getCurrentPages()
+				if (pages.length > 1) {
+					const prevPage = pages[pages.length - 2]
+					if (prevPage.$vm && prevPage.$vm.refreshList) {
+						prevPage.$vm.refreshList()
+					}
+				}
+			}
+
 			uni.showToast({
 				title: editMode.value ? '修改成功' : '发布成功',
-				icon: 'success'
+				icon: 'success',
+				duration: 1500
 			})
 
+			// 立即返回,不等待
 			setTimeout(() => {
 				uni.navigateBack()
-			}, 1500)
+			}, 500)
 		} else {
 			console.error('业务失败:', res)
 			uni.showToast({

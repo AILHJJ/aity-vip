@@ -83,10 +83,19 @@ app.use(fileUpload({
 
 // 静态文件服务 (带CORS支持)
 app.use('/uploads', (req, res, next) => {
+  // CORS 头
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Range');
+  res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Range');
+
+  // CORP 头 (解决 OpaqueResponseBlocking)
   res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.header('Cross-Origin-Embedder-Policy', 'credentialless');
+
+  // 允许图片缓存
+  res.header('Cache-Control', 'public, max-age=31536000');
+
   next();
 }, express.static(path.join(__dirname, 'uploads')));
 
