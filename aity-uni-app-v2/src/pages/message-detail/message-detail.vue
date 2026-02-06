@@ -2,8 +2,31 @@
 	<view class="detail-container">
 		<!-- 加载中 -->
 		<view v-if="loading" class="loading-container">
-			<view class="loading-spinner"></view>
-			<text class="loading-text">加载中...</text>
+			<!-- 骨架屏 -->
+			<view class="skeleton-screen">
+				<view class="skeleton-header">
+					<view class="skeleton-badge"></view>
+					<view class="skeleton-time"></view>
+				</view>
+				<view class="skeleton-title"></view>
+				<view class="skeleton-tags">
+					<view class="skeleton-tag"></view>
+					<view class="skeleton-tag"></view>
+				</view>
+				<view class="skeleton-content">
+					<view class="skeleton-line"></view>
+					<view class="skeleton-line"></view>
+					<view class="skeleton-line"></view>
+				</view>
+				<view class="skeleton-images">
+					<view class="skeleton-image"></view>
+					<view class="skeleton-image"></view>
+				</view>
+				<view class="skeleton-stats">
+					<view class="skeleton-stat"></view>
+					<view class="skeleton-stat"></view>
+				</view>
+			</view>
 		</view>
 
 		<!-- 消息详情 -->
@@ -59,6 +82,13 @@
 				</view>
 			</view>
 
+			<!-- 图片空状态 -->
+			<view v-else-if="message && !message.images" class="image-empty-state">
+				<text class="image-empty-icon">🖼️</text>
+				<text class="image-empty-title">暂无图片</text>
+				<text class="image-empty-description">该消息没有图片附件</text>
+			</view>
+
 			<!-- 消息统计 -->
 			<view class="message-stats">
 				<view class="stat-item">
@@ -73,13 +103,29 @@
 
 			<!-- 操作按钮 -->
 			<view class="action-buttons">
-				<button class="action-btn" :class="{ active: isFavorited }" @click="toggleFavorite">
-					<text class="btn-icon">{{ isFavorited ? '⭐' : '☆' }}</text>
-					<text class="btn-text">{{ isFavorited ? '已收藏' : '收藏' }}</text>
+				<button
+					class="action-btn"
+					:class="{ active: isFavorited, loading: favoriteLoading }"
+					:disabled="favoriteLoading"
+					@click="toggleFavorite"
+				>
+					<text v-if="favoriteLoading" class="btn-text">处理中...</text>
+					<template v-else>
+						<text class="btn-icon">{{ isFavorited ? '⭐' : '☆' }}</text>
+						<text class="btn-text">{{ isFavorited ? '已收藏' : '收藏' }}</text>
+					</template>
 				</button>
-				<button class="action-btn" @click="handleShare">
-					<text class="btn-icon">📤</text>
-					<text class="btn-text">分享</text>
+				<button
+					class="action-btn"
+					:class="{ loading: shareLoading }"
+					:disabled="shareLoading"
+					@click="handleShare"
+				>
+					<text v-if="shareLoading" class="btn-text">复制中...</text>
+					<template v-else>
+						<text class="btn-icon">📤</text>
+						<text class="btn-text">分享</text>
+					</template>
 				</button>
 				<button class="action-btn primary" @click="goToDiscuss">
 					<text class="btn-icon">💬</text>
@@ -89,17 +135,33 @@
 
 			<!-- 管理员操作按钮 -->
 			<view v-if="userStore.isAdmin" class="admin-actions">
-				<button class="admin-btn pin" :class="{ pinned: message.isPinned }" @click="handleTogglePin">
-					<text class="admin-btn-icon">{{ message.isPinned ? '📌' : '📍' }}</text>
-					<text>{{ message.isPinned ? '取消置顶' : '置顶' }}</text>
+				<button
+					class="admin-btn pin"
+					:class="{ pinned: message.isPinned, loading: pinLoading }"
+					:disabled="pinLoading"
+					@click="handleTogglePin"
+				>
+					<text v-if="pinLoading">{{ message.isPinned ? '取消中...' : '置顶中...' }}</text>
+					<template v-else>
+						<text class="admin-btn-icon">{{ message.isPinned ? '📌' : '📍' }}</text>
+						<text>{{ message.isPinned ? '取消置顶' : '置顶' }}</text>
+					</template>
 				</button>
 				<button class="admin-btn edit" @click="handleEdit">
 					<text class="admin-btn-icon">✏️</text>
 					<text>编辑</text>
 				</button>
-				<button class="admin-btn delete" @click="handleDelete">
-					<text class="admin-btn-icon">🗑️</text>
-					<text>删除</text>
+				<button
+					class="admin-btn delete"
+					:class="{ loading: deleteLoading }"
+					:disabled="deleteLoading"
+					@click="handleDelete"
+				>
+					<text v-if="deleteLoading">删除中...</text>
+					<template v-else>
+						<text class="admin-btn-icon">🗑️</text>
+						<text>删除</text>
+					</template>
 				</button>
 			</view>
 
@@ -129,9 +191,21 @@
 
 		<!-- 错误状态 -->
 		<view v-else class="error-state">
-			<text class="error-icon">😕</text>
-			<text class="error-text">消息不存在或已被删除</text>
-			<button class="back-btn" @click="goBack">返回</button>
+			<text class="error-icon">🔍</text>
+			<text class="error-title">消息不存在或已被删除</text>
+			<text class="error-description">
+				很抱歉，您查看的消息可能已经被删除或不存在
+			</text>
+			<view class="error-actions">
+				<button class="action-btn secondary" @click="goBack">
+					<text class="btn-icon">🏠</text>
+					<text class="btn-text">返回首页</text>
+				</button>
+				<button class="action-btn primary" @click="retryLoad">
+					<text class="btn-icon">🔄</text>
+					<text class="btn-text">重新加载</text>
+				</button>
+			</view>
 		</view>
 	</view>
 </template>
@@ -152,6 +226,12 @@ const discussions = ref([])
 const loading = ref(true)
 const isFavorited = ref(false)
 const messageId = ref(0)
+
+// 防重复点击loading状态
+const favoriteLoading = ref(false)
+const shareLoading = ref(false)
+const deleteLoading = ref(false)
+const pinLoading = ref(false)
 
 // 获取消息类型标签
 const getMessageTypeLabel = (type) => {
@@ -233,7 +313,24 @@ const loadDiscussions = async () => {
 
 // 切换收藏
 const toggleFavorite = async () => {
-	// 乐观更新 - 先更新UI，再发送请求
+	// 防止重复点击
+	if (favoriteLoading.value) return
+
+	// 添加登录检查
+	if (!userStore.isLoggedIn) {
+		uni.showToast({
+			title: '请先登录',
+			icon: 'none'
+		})
+		setTimeout(() => {
+			uni.navigateTo({
+				url: '/pages/login/login'
+			})
+		}, 1500)
+		return
+	}
+
+	favoriteLoading.value = true
 	const oldValue = isFavorited.value
 	isFavorited.value = !oldValue
 
@@ -264,6 +361,8 @@ const toggleFavorite = async () => {
 			title: '操作失败，请稍后重试',
 			icon: 'none'
 		})
+	} finally {
+		favoriteLoading.value = false
 	}
 }
 
@@ -293,28 +392,74 @@ const handleImageError = (index) => {
 
 // 处理图片加载成功
 const handleImageLoad = (index) => {
-	console.log(`图片 ${index} 加载成功`)
+	// 图片加载成功，不需要日志
 }
 
 // 分享消息
-const handleShare = () => {
-	// 复制消息链接和标题到剪贴板
-	const shareText = `${message.value.title}\n\n${message.value.content.substring(0, 100)}...`
+const handleShare = async () => {
+	// 防止重复点击
+	if (shareLoading.value) return
 
-	uni.setClipboardData({
-		data: shareText,
-		success: () => {
-			uni.showModal({
-				title: '分享成功',
-				content: '内容已复制到剪贴板，可以粘贴分享给好友',
-				showCancel: false
+	// 添加登录检查
+	if (!userStore.isLoggedIn) {
+		uni.showToast({
+			title: '请先登录',
+			icon: 'none'
+		})
+		setTimeout(() => {
+			uni.navigateTo({
+				url: '/pages/login/login'
 			})
-		}
-	})
+		}, 1500)
+		return
+	}
+
+	shareLoading.value = true
+
+	try {
+		// 复制消息链接和标题到剪贴板
+		const shareText = `${message.value.title}\n\n${message.value.content.substring(0, 100)}...`
+
+		uni.setClipboardData({
+			data: shareText,
+			success: () => {
+				uni.showModal({
+					title: '分享成功',
+					content: '内容已复制到剪贴板，可以粘贴分享给好友',
+					showCancel: false
+				})
+			},
+			fail: () => {
+				uni.showToast({
+					title: '复制失败',
+					icon: 'none'
+				})
+			}
+		})
+	} finally {
+		// 分享是异步操作，但clipboard操作很快，延迟重置loading
+		setTimeout(() => {
+			shareLoading.value = false
+		}, 500)
+	}
 }
 
 // 发起讨论
 const goToDiscuss = () => {
+	// 添加登录检查
+	if (!userStore.isLoggedIn) {
+		uni.showToast({
+			title: '请先登录',
+			icon: 'none'
+		})
+		setTimeout(() => {
+			uni.navigateTo({
+				url: '/pages/login/login'
+			})
+		}, 1500)
+		return
+	}
+
 	uni.navigateTo({
 		url: `/pages/create-discussion/create-discussion?messageId=${messageId.value}`
 	})
@@ -332,6 +477,11 @@ const goBack = () => {
 	uni.navigateBack()
 }
 
+// 重新加载
+const retryLoad = () => {
+	loadMessageDetail()
+}
+
 // 编辑消息
 const handleEdit = () => {
 	uni.navigateTo({
@@ -341,6 +491,9 @@ const handleEdit = () => {
 
 // 删除消息
 const handleDelete = () => {
+	// 防止重复点击
+	if (deleteLoading.value) return
+
 	uni.showModal({
 		title: '确认删除',
 		content: '删除后无法恢复，是否继续？',
@@ -349,6 +502,7 @@ const handleDelete = () => {
 		cancelText: '取消',
 		success: async (res) => {
 			if (res.confirm) {
+				deleteLoading.value = true
 				uni.showLoading({ title: '删除中...', mask: true })
 
 				try {
@@ -391,6 +545,8 @@ const handleDelete = () => {
 						icon: 'none',
 						duration: 2000
 					})
+				} finally {
+					deleteLoading.value = false
 				}
 			}
 		}
@@ -399,6 +555,11 @@ const handleDelete = () => {
 
 // 切换置顶
 const handleTogglePin = async () => {
+	// 防止重复点击
+	if (pinLoading.value) return
+
+	pinLoading.value = true
+
 	try {
 		const api = message.value.isPinned ? unpinMessageApi : pinMessageApi
 		const action = message.value.isPinned ? '取消置顶' : '置顶'
@@ -423,8 +584,31 @@ const handleTogglePin = async () => {
 			title: '操作失败',
 			icon: 'none'
 		})
+	} finally {
+		pinLoading.value = false
 	}
 }
+
+// 下拉刷新
+onPullDownRefresh(async () => {
+	try {
+		await loadMessageDetail()
+		await loadDiscussions()
+		uni.showToast({
+			title: '刷新成功',
+			icon: 'success',
+			duration: 1500
+		})
+	} catch (error) {
+		console.error('刷新失败:', error)
+		uni.showToast({
+			title: '刷新失败',
+			icon: 'none'
+		})
+	} finally {
+		uni.stopPullDownRefresh()
+	}
+})
 
 // 页面加载
 onMounted(() => {
@@ -453,30 +637,122 @@ onMounted(() => {
 }
 
 .loading-container {
+	background: #ffffff;
+	padding: 30rpx;
+}
+
+.skeleton-screen {
+	background: #ffffff;
+}
+
+.skeleton-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 30rpx;
+}
+
+.skeleton-badge {
+	width: 120rpx;
+	height: 40rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 20rpx;
+}
+
+.skeleton-time {
+	width: 100rpx;
+	height: 30rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 15rpx;
+}
+
+.skeleton-title {
+	width: 100%;
+	height: 50rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 8rpx;
+	margin-bottom: 20rpx;
+}
+
+.skeleton-tags {
+	display: flex;
+	gap: 12rpx;
+	margin-bottom: 30rpx;
+}
+
+.skeleton-tag {
+	width: 80rpx;
+	height: 32rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 16rpx;
+}
+
+.skeleton-content {
+	margin-bottom: 30rpx;
+}
+
+.skeleton-line {
+	width: 100%;
+	height: 30rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 6rpx;
+	margin-bottom: 15rpx;
+}
+
+.skeleton-line:last-child {
+	width: 70%;
+}
+
+.skeleton-images {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	padding: 200rpx 0;
+	gap: 20rpx;
+	margin-bottom: 30rpx;
 }
 
-.loading-spinner {
-	width: 60rpx;
-	height: 60rpx;
-	border: 4rpx solid #e0e0e0;
-	border-top-color: #667eea;
-	border-radius: 50%;
-	animation: spin 1s linear infinite;
+.skeleton-image {
+	width: 100%;
+	height: 200rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 12rpx;
 }
 
-@keyframes spin {
-	to { transform: rotate(360deg); }
+.skeleton-stats {
+	display: flex;
+	gap: 40rpx;
+	padding: 30rpx 0;
+	border-top: 1rpx solid #f0f0f0;
+	border-bottom: 1rpx solid #f0f0f0;
 }
 
-.loading-text {
-	margin-top: 20rpx;
-	font-size: 28rpx;
-	color: #999999;
+.skeleton-stat {
+	width: 120rpx;
+	height: 30rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 15rpx;
+}
+
+@keyframes loading {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
 }
 
 .detail-content {
@@ -636,6 +912,27 @@ onMounted(() => {
 	border-radius: 12rpx;
 	font-size: 28rpx;
 	color: #333333;
+	transition: all 0.3s ease;
+	position: relative;
+	overflow: hidden;
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	&.loading {
+		animation: pulse 1.5s ease-in-out infinite;
+	}
+}
+
+@keyframes pulse {
+	0%, 100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.7;
+	}
 }
 
 .action-btn.active {
@@ -746,6 +1043,18 @@ onMounted(() => {
 	border: none;
 	font-size: 28rpx;
 	font-weight: 500;
+	transition: all 0.3s ease;
+	position: relative;
+	overflow: hidden;
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	&.loading {
+		animation: pulse 1.5s ease-in-out infinite;
+	}
 
 	&.pin {
 		background: #fff9e6;
@@ -782,28 +1091,90 @@ onMounted(() => {
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	padding: 200rpx 0;
+	padding: 200rpx 60rpx;
+	background: #f8f9fa;
+	border-radius: 20rpx;
+	margin: 20rpx;
 }
 
 .error-icon {
-	font-size: 120rpx;
-	margin-bottom: 30rpx;
-}
-
-.error-text {
-	font-size: 28rpx;
-	color: #999999;
+	font-size: 160rpx;
 	margin-bottom: 40rpx;
+	animation: float 3s ease-in-out infinite;
 }
 
-.back-btn {
-	width: 200rpx;
-	height: 70rpx;
-	line-height: 70rpx;
-	background: #667eea;
-	color: #ffffff;
+@keyframes float {
+	0%, 100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-20rpx);
+	}
+}
+
+.error-title {
+	font-size: 32rpx;
+	font-weight: 600;
+	color: #333333;
+	margin-bottom: 20rpx;
+	text-align: center;
+}
+
+.error-description {
 	font-size: 28rpx;
-	border-radius: 35rpx;
+	color: #666666;
+	line-height: 1.6;
+	text-align: center;
+	margin-bottom: 50rpx;
+	max-width: 500rpx;
+}
+
+.error-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 20rpx;
+	width: 100%;
+	max-width: 400rpx;
+}
+
+.secondary {
+	background: #f5f5f5;
+	color: #333333;
+}
+
+.secondary::after {
 	border: none;
+}
+
+.image-empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 80rpx 40rpx;
+	background: #f8f9fa;
+	border-radius: 16rpx;
+	margin: 20rpx 0;
+	min-height: 200rpx;
+}
+
+.image-empty-icon {
+	font-size: 80rpx;
+	margin-bottom: 20rpx;
+	opacity: 0.7;
+}
+
+.image-empty-title {
+	font-size: 28rpx;
+	font-weight: 600;
+	color: #333333;
+	margin-bottom: 15rpx;
+}
+
+.image-empty-description {
+	font-size: 26rpx;
+	color: #999999;
+	line-height: 1.5;
+	text-align: center;
 }
 </style>

@@ -2,6 +2,7 @@
  * 上传相关 API
  */
 import { post } from '../utils/request'
+import { API_BASE_URL } from '../utils/config'
 
 /**
  * 上传图片
@@ -12,7 +13,7 @@ import { post } from '../utils/request'
 export function uploadImageApi(filePath, options = {}) {
   return new Promise((resolve, reject) => {
     uni.uploadFile({
-      url: 'https://aity88.online:8443/api/upload',
+      url: API_BASE_URL + '/upload',
       filePath: filePath,
       name: 'file',
       formData: {

@@ -158,6 +158,7 @@ import { useUserStore } from '../../store/user'
 import { createMessageApi, updateMessageApi, getMessageDetailApi } from '../../api/message'
 import { uploadImageApi } from '../../api/upload'
 import { MESSAGE_TYPES, MESSAGE_TAGS, MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS } from '../../utils/constants'
+import { BASE_URL } from '../../utils/config'
 
 const userStore = useUserStore()
 
@@ -800,7 +801,7 @@ onMounted(async () => {
 				const processedAttachments = (res.data.attachments || []).map(att => ({
 					name: att.name,
 					path: att.url.startsWith('/uploads/')
-						? 'https://aity88.online:8443' + att.url
+						? BASE_URL + att.url
 						: att.url,
 					url: att.url,
 					type: att.type,

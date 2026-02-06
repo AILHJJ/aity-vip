@@ -17,7 +17,8 @@
 		{
 			"path": "pages/message-detail/message-detail",
 			"style": {
-				"navigationBarTitleText": "消息详情"
+				"navigationBarTitleText": "消息详情",
+				"enablePullDownRefresh": true
 			}
 		},
 		{

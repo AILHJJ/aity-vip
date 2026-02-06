@@ -66,7 +66,11 @@
 
 					<!-- 空状态 -->
 					<view v-if="replies.length === 0" class="empty-replies">
-						<text class="empty-text">暂无回复</text>
+						<empty-state
+							type="discussion"
+							action-text="发起回复"
+							@action="focusReplyInput"
+						/>
 					</view>
 
 					<!-- 回复列表 -->
@@ -120,6 +124,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
+import EmptyState from '../../components/empty-state.vue'
 import {
 	getDiscussionDetailApi,
 	getDiscussionRepliesApi,
@@ -260,6 +265,22 @@ const handleReply = async () => {
 	} finally {
 		submitting.value = false
 	}
+}
+
+// 聚焦回复输入框
+const focusReplyInput = () => {
+	uni.showToast({
+		title: '请在下方输入回复内容',
+		icon: 'none',
+		duration: 1500
+	})
+	// 滚动到输入框位置
+	setTimeout(() => {
+		uni.pageScrollTo({
+			scrollTop: 1000,
+			duration: 300
+		})
+	}, 500)
 }
 
 // 修改可见性
