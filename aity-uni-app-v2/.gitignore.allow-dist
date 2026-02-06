@@ -1,0 +1,36 @@
+# .gitignore.allow-dist
+# 这是方案2的Git配置文件（用于提交编译产物到Git）
+#
+# 使用方法:
+# 1. 将此文件复制为 .gitignore
+# 2. 执行 npm run build:h5 && npm run build:mp-weixin
+# 3. 提交编译产物: git add dist/ && git commit -m "chore: 添加编译产物"
+# 4. 推送: git push origin feature/iteration-1
+# 5. 服务器端拉取: git pull（自动包含编译产物）
+#
+# 注意:
+# - 此方案会导致Git仓库体积增大
+# - 不推荐用于大型项目或频繁提交
+# - 仅适用于SSH不可用等特殊情况
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+.DS_Store
+# dist  <-- 移除了这行，允许提交编译产物
+*.local
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?nul
