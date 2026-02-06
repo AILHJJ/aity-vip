@@ -100,11 +100,11 @@ async function getMessages(req, res) {
 
     // 标签权限过滤（trial用户和管理员不受限制）
     if (currentUser.role !== 'trial' && currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
-      // vip_mid 只能看到包含"中线策略"或"全部用户"标签的消息
-      // vip_short 只能看到包含"短线策略"或"全部用户"标签的消息
+      // vip_mid 只能看到包含"mid_term"或"all_users"标签的消息
+      // vip_short 只能看到包含"short_term"或"all_users"标签的消息
       const allowedTags = currentUser.role === 'vip_mid'
-        ? ['中线策略', '全部用户']
-        : ['短线策略', '全部用户'];
+        ? ['mid_term', 'all_users']
+        : ['short_term', 'all_users'];
 
       andConditions.push({
         [Op.or]: [
@@ -185,11 +185,11 @@ async function getMessageById(req, res) {
         break;
       case 'vip_mid':
         // 只能查看中线策略或全部用户的消息
-        hasPermission = message.tags.includes('mid_term') || message.tags.includes('all');
+        hasPermission = message.tags.includes('mid_term') || message.tags.includes('all_users');
         break;
       case 'vip_short':
         // 只能查看短线策略或全部用户的消息
-        hasPermission = message.tags.includes('short_term') || message.tags.includes('all');
+        hasPermission = message.tags.includes('short_term') || message.tags.includes('all_users');
         break;
       default:
         hasPermission = false;
