@@ -2,57 +2,18 @@
 	<view class="create-discussion-container">
 		<scroll-view class="form-scroll" scroll-y>
 			<view class="form-container">
-				<!-- 标题 -->
-				<view class="form-item">
-					<Input
-						v-model="formData.title"
-						label="讨论标题"
-						placeholder="请输入讨论标题"
-						:maxlength="100"
-					/>
-				</view>
-
-				<!-- 内容 -->
-				<view class="form-item">
-					<text class="form-label">讨论内容 *</text>
-					<textarea
-						class="form-textarea"
-						v-model="formData.content"
-						placeholder="请输入讨论内容"
-						placeholder-style="color: #999999"
-						:maxlength="2000"
-						:show-confirm-bar="false"
-					/>
-					<text class="char-count">{{ formData.content.length }}/2000</text>
-				</view>
-
-				<!-- 可见性 -->
-				<view class="form-item">
-					<text class="form-label">可见性 *</text>
-					<view class="visibility-container">
-						<view
-							v-for="option in visibilityOptions"
-							:key="option.value"
-							class="visibility-item"
-							:class="{ active: formData.visibility === option.value }"
-							@click="formData.visibility = option.value"
-						>
-							<text class="visibility-icon">{{ option.icon }}</text>
-							<view class="visibility-info">
-								<text class="visibility-label">{{ option.label }}</text>
-								<text class="visibility-desc">{{ option.desc }}</text>
-							</view>
-						</view>
-					</view>
-				</view>
-
-				<!-- 关联消息（可选） -->
+				<!-- 关联消息（放在最前面） -->
 				<!-- 如果从消息详情页跳转过来，显示已关联的消息 -->
 				<view v-if="!showMessagePicker && linkedMessage" class="form-item">
 					<text class="form-label">关联消息</text>
-					<view class="linked-message">
+					<view class="linked-message-card">
+						<view class="linked-message-header">
+							<text class="linked-message-badge">已关联</text>
+							<text class="linked-message-type">{{ linkedMessage.type }}</text>
+						</view>
 						<text class="linked-message-title">{{ linkedMessage.title }}</text>
-						<text class="linked-message-hint">已自动关联此消息</text>
+						<text class="linked-message-content">{{ linkedMessage.content }}</text>
+						<text class="linked-message-hint">💬 基于此消息发起讨论</text>
 					</view>
 				</view>
 
@@ -72,7 +33,51 @@
 							<text class="picker-arrow">▼</text>
 						</view>
 					</picker>
-					<text class="form-hint">必须关联一条消息，讨论将显示在该消息的讨论区</text>
+					<text class="form-hint">💡 讨论基于消息内容，选择消息后可参考该内容发表观点</text>
+				</view>
+
+				<!-- 标题 -->
+				<view class="form-item">
+					<text class="form-label">讨论标题</text>
+					<input
+						class="form-input"
+						v-model="formData.title"
+						placeholder="请输入讨论标题"
+						placeholder-style="color: #999999"
+						:maxlength="100"
+					/>
+				</view>
+
+				<!-- 内容 -->
+				<view class="form-item">
+					<text class="form-label">讨论内容 *</text>
+					<textarea
+						class="form-textarea"
+						v-model="formData.content"
+						placeholder="请输入您的观点和分析..."
+						placeholder-style="color: #999999"
+						:maxlength="2000"
+						:show-confirm-bar="false"
+					/>
+					<view class="char-count-wrapper">
+						<text class="char-count">{{ formData.content.length }}/2000</text>
+					</view>
+				</view>
+
+				<!-- 可见性说明 -->
+				<view class="form-item">
+					<view class="visibility-notice">
+						<view class="notice-header">
+							<text class="notice-icon">🔒</text>
+							<text class="notice-title">关于讨论可见性</text>
+						</view>
+						<view class="notice-content">
+							<text class="notice-text">• 默认为私密讨论，仅您和管理员可见</text>
+							<text class="notice-text">• 发帖后可在详情页申请公开</text>
+							<text class="notice-text">• 管理员审核通过后将公开给所有用户</text>
+							<text class="notice-text highlight">• 这样可以确保内容质量，保护投资者决策</text>
+						</view>
+					</view>
 				</view>
 
 				<!-- 提交按钮 -->
@@ -92,7 +97,6 @@ import { ref, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
 import { createDiscussionApi } from '../../api/discussion'
 import { getMessagesApi, getMessageDetailApi } from '../../api/message'
-import { Input } from '@/components/common'
 
 const userStore = useUserStore()
 
@@ -100,32 +104,13 @@ const userStore = useUserStore()
 const formData = ref({
 	title: '',
 	content: '',
-	visibility: 'private', // 默认私密，保证合规性
 	messageId: null
 })
 
 const submitting = ref(false)
 const messages = ref([])
 const linkedMessage = ref(null) // 存储关联的消息详情
-
-// 计算属性：是否显示消息选择器
-const showMessagePicker = ref(true)
-
-// 可见性选项
-const visibilityOptions = [
-	{
-		value: 'public',
-		label: '公开',
-		desc: '所有用户可见（需管理员审核后）',
-		icon: '🌐'
-	},
-	{
-		value: 'private',
-		label: '私密',
-		desc: '仅管理员和发起者可见（推荐）',
-		icon: '🔒'
-	}
-]
+const showMessagePicker = ref(true) // 是否显示消息选择器
 
 // 获取消息标题
 const getMessageTitle = (id) => {
@@ -153,6 +138,14 @@ const loadMessages = async () => {
 
 // 表单验证
 const validateForm = () => {
+	if (!formData.value.messageId) {
+		uni.showToast({
+			title: '请选择关联消息',
+			icon: 'none'
+		})
+		return false
+	}
+
 	if (!formData.value.title.trim()) {
 		uni.showToast({
 			title: '请输入讨论标题',
@@ -164,14 +157,6 @@ const validateForm = () => {
 	if (!formData.value.content.trim()) {
 		uni.showToast({
 			title: '请输入讨论内容',
-			icon: 'none'
-		})
-		return false
-	}
-
-	if (!formData.value.messageId) {
-		uni.showToast({
-			title: '请选择关联消息',
 			icon: 'none'
 		})
 		return false
@@ -190,10 +175,10 @@ const handleSubmit = async () => {
 		const data = {
 			title: formData.value.title.trim(),
 			content: formData.value.content.trim(),
-			visibility: formData.value.visibility
+			visibility: 'private' // 默认私密
 		}
 
-		// 如果选择了关联消息
+		// 关联消息ID
 		if (formData.value.messageId) {
 			data.messageId = formData.value.messageId
 		}
@@ -203,7 +188,8 @@ const handleSubmit = async () => {
 		if (res.success) {
 			uni.showToast({
 				title: '创建成功',
-				icon: 'success'
+				icon: 'success',
+				duration: 2000
 			})
 
 			setTimeout(() => {
@@ -218,7 +204,7 @@ const handleSubmit = async () => {
 	} catch (error) {
 		console.error('创建讨论失败:', error)
 		uni.showToast({
-			title: '创建失败',
+			title: '创建失败，请重试',
 			icon: 'none'
 		})
 	} finally {
@@ -231,6 +217,8 @@ const handleCancel = () => {
 	uni.showModal({
 		title: '提示',
 		content: '确定要取消吗？未保存的内容将丢失。',
+		confirmText: '确定取消',
+		cancelText: '继续编辑',
 		success: (res) => {
 			if (res.confirm) {
 				uni.navigateBack()
@@ -260,24 +248,25 @@ onMounted(() => {
 
 		// 加载关联的消息详情
 		loadLinkedMessage(parseInt(messageId))
+	} else {
+		// 如果没有消息ID，加载消息列表供选择
+		loadMessages()
 	}
-
-	loadMessages()
 })
 
 // 加载关联的消息详情
 const loadLinkedMessage = async (id) => {
 	try {
-		console.log('加载关联消息, ID:', id)
 		const res = await getMessageDetailApi(id)
-
-		console.log('关联消息响应:', res)
 
 		if (res.code === 200 || res.success) {
 			linkedMessage.value = res.data
-			console.log('关联消息已设置:', linkedMessage.value)
 		} else {
 			console.warn('加载关联消息失败:', res.message)
+			uni.showToast({
+				title: '加载消息失败',
+				icon: 'none'
+			})
 		}
 	} catch (error) {
 		console.error('加载关联消息失败:', error)
@@ -305,85 +294,54 @@ const loadLinkedMessage = async (id) => {
 
 .form-label {
 	display: block;
-	font-size: 28rpx;
+	font-size: 30rpx;
 	color: #333333;
 	margin-bottom: 20rpx;
-	font-weight: 500;
+	font-weight: 600;
 }
 
 .form-input {
 	width: 100%;
 	height: 88rpx;
 	padding: 0 24rpx;
-	font-size: 28rpx;
+	font-size: 30rpx;
 	color: #333333;
 	background-color: #ffffff;
 	border: 2rpx solid #e0e0e0;
-	border-radius: 8rpx;
+	border-radius: 12rpx;
 	box-sizing: border-box;
+	transition: border-color 0.3s;
+
+	&:focus {
+		border-color: #667eea;
+	}
 }
 
 .form-textarea {
 	width: 100%;
 	min-height: 300rpx;
 	padding: 24rpx;
-	font-size: 28rpx;
+	font-size: 30rpx;
 	color: #333333;
 	background-color: #ffffff;
 	border: 2rpx solid #e0e0e0;
-	border-radius: 8rpx;
+	border-radius: 12rpx;
 	box-sizing: border-box;
 	line-height: 1.6;
+	transition: border-color 0.3s;
+
+	&:focus {
+		border-color: #667eea;
+	}
+}
+
+.char-count-wrapper {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 10rpx;
 }
 
 .char-count {
-	display: block;
-	margin-top: 10rpx;
-	font-size: 24rpx;
-	color: #999999;
-	text-align: right;
-}
-
-.visibility-container {
-	display: flex;
-	flex-direction: column;
-	gap: 20rpx;
-}
-
-.visibility-item {
-	display: flex;
-	align-items: center;
-	padding: 24rpx;
-	background: #ffffff;
-	border: 2rpx solid #e0e0e0;
-	border-radius: 8rpx;
-	transition: all 0.3s;
-}
-
-.visibility-item.active {
-	border-color: #667eea;
-	background: #f0f2ff;
-}
-
-.visibility-icon {
-	font-size: 48rpx;
-	margin-right: 20rpx;
-}
-
-.visibility-info {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-}
-
-.visibility-label {
-	font-size: 30rpx;
-	color: #333333;
-	font-weight: 500;
-	margin-bottom: 8rpx;
-}
-
-.visibility-desc {
 	font-size: 24rpx;
 	color: #999999;
 }
@@ -396,11 +354,16 @@ const loadLinkedMessage = async (id) => {
 	padding: 0 24rpx;
 	background-color: #ffffff;
 	border: 2rpx solid #e0e0e0;
-	border-radius: 8rpx;
+	border-radius: 12rpx;
+	transition: border-color 0.3s;
+
+	&:active {
+		border-color: #667eea;
+	}
 }
 
 .picker-text {
-	font-size: 28rpx;
+	font-size: 30rpx;
 	color: #333333;
 	flex: 1;
 	overflow: hidden;
@@ -409,7 +372,7 @@ const loadLinkedMessage = async (id) => {
 }
 
 .picker-placeholder {
-	font-size: 28rpx;
+	font-size: 30rpx;
 	color: #999999;
 }
 
@@ -421,32 +384,119 @@ const loadLinkedMessage = async (id) => {
 
 .form-hint {
 	display: block;
-	margin-top: 10rpx;
-	font-size: 24rpx;
-	color: #999999;
-	line-height: 1.5;
+	margin-top: 12rpx;
+	font-size: 26rpx;
+	color: #667eea;
+	line-height: 1.6;
 }
 
-.linked-message {
+// 关联消息卡片
+.linked-message-card {
 	padding: 24rpx;
-	background: #f0f2ff;
-	border-radius: 12rpx;
+	background: linear-gradient(135deg, #f0f2ff 0%, #f5f3ff 100%);
+	border-radius: 16rpx;
 	border-left: 4rpx solid #667eea;
+}
+
+.linked-message-header {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	margin-bottom: 16rpx;
+}
+
+.linked-message-badge {
+	display: inline-block;
+	padding: 6rpx 16rpx;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #ffffff;
+	font-size: 22rpx;
+	border-radius: 20rpx;
+	font-weight: 500;
+}
+
+.linked-message-type {
+	display: inline-block;
+	padding: 6rpx 16rpx;
+	background: rgba(102, 126, 234, 0.1);
+	color: #667eea;
+	font-size: 22rpx;
+	border-radius: 20rpx;
+	font-weight: 500;
 }
 
 .linked-message-title {
 	display: block;
-	font-size: 28rpx;
+	font-size: 30rpx;
 	color: #333333;
-	font-weight: 500;
-	margin-bottom: 8rpx;
+	font-weight: 600;
+	margin-bottom: 12rpx;
 	line-height: 1.5;
+}
+
+.linked-message-content {
+	display: block;
+	font-size: 26rpx;
+	color: #666666;
+	line-height: 1.6;
+	margin-bottom: 12rpx;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
 }
 
 .linked-message-hint {
 	display: block;
 	font-size: 24rpx;
 	color: #667eea;
+	font-weight: 500;
+}
+
+// 可见性说明
+.visibility-notice {
+	padding: 24rpx;
+	background: #fff9e6;
+	border-radius: 16rpx;
+	border: 2rpx solid #ffe7ba;
+}
+
+.notice-header {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	margin-bottom: 16rpx;
+}
+
+.notice-icon {
+	font-size: 32rpx;
+}
+
+.notice-title {
+	font-size: 28rpx;
+	color: #d48806;
+	font-weight: 600;
+}
+
+.notice-content {
+	display: flex;
+	flex-direction: column;
+	gap: 10rpx;
+}
+
+.notice-text {
+	display: block;
+	font-size: 26rpx;
+	color: #666666;
+	line-height: 1.6;
+	padding-left: 10rpx;
+
+	&.highlight {
+		color: #667eea;
+		font-weight: 500;
+		margin-top: 8rpx;
+	}
 }
 
 .button-group {
@@ -462,9 +512,10 @@ const loadLinkedMessage = async (id) => {
 	height: 88rpx;
 	line-height: 88rpx;
 	font-size: 32rpx;
-	border-radius: 8rpx;
+	border-radius: 12rpx;
 	border: none;
 	text-align: center;
+	font-weight: 500;
 }
 
 .cancel-btn {
@@ -476,7 +527,8 @@ const loadLinkedMessage = async (id) => {
 .submit-btn {
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	color: #ffffff;
-	font-weight: bold;
+	font-weight: 600;
+	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
 }
 
 .submit-btn[disabled] {

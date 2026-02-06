@@ -1,29 +1,16 @@
 <template>
 	<view class="filter-bar-container">
-		<!-- 筛选栏头部 -->
-		<view class="filter-header" @click="toggleExpanded">
-			<view class="filter-header-left">
-				<text class="filter-icon">🔽</text>
-				<text class="filter-title">消息筛选</text>
-				<text v-if="hasActiveFilters" class="filter-count">{{ filteredCount }}</text>
-			</view>
-			<view class="filter-header-right">
-				<text v-if="hasActiveFilters" class="reset-btn" @click.stop="resetFilters">重置</text>
-				<text class="expand-icon" :class="{ expanded: isExpanded }">▼</text>
-			</view>
-		</view>
-
-		<!-- 筛选面板 -->
-		<view v-if="isExpanded" class="filter-panel">
-			<!-- 策略筛选 -->
-			<view class="filter-section">
-				<view class="filter-section-title">策略</view>
+		<!-- 筛选面板（始终展开，直接选择） -->
+		<view class="filter-panel">
+			<!-- 策略筛选（横向滚动，直接选择） -->
+			<view class="filter-section-inline">
+				<view class="filter-section-title-inline">策略</view>
 				<scroll-view class="filter-options-scroll" scroll-x show-scrollbar="false">
 					<view class="filter-options">
 						<view
 							v-for="option in strategyOptions"
 							:key="option.value"
-							class="filter-option"
+							class="filter-option-chip"
 							:class="{ active: filters.strategy === option.value }"
 							@click="selectStrategy(option.value)"
 						>
@@ -33,15 +20,15 @@
 				</scroll-view>
 			</view>
 
-			<!-- 类型筛选 -->
-			<view class="filter-section">
-				<view class="filter-section-title">类型</view>
+			<!-- 类型筛选（横向滚动，直接选择） -->
+			<view class="filter-section-inline">
+				<view class="filter-section-title-inline">类型</view>
 				<scroll-view class="filter-options-scroll" scroll-x show-scrollbar="false">
 					<view class="filter-options">
 						<view
 							v-for="option in typeOptions"
 							:key="option.value"
-							class="filter-option"
+							class="filter-option-chip"
 							:class="{ active: filters.type === option.value }"
 							@click="selectType(option.value)"
 						>
@@ -51,15 +38,15 @@
 				</scroll-view>
 			</view>
 
-			<!-- 时间筛选 -->
-			<view class="filter-section">
-				<view class="filter-section-title">时间</view>
+			<!-- 时间筛选（横向滚动，直接选择） -->
+			<view class="filter-section-inline">
+				<view class="filter-section-title-inline">时间</view>
 				<scroll-view class="filter-options-scroll" scroll-x show-scrollbar="false">
 					<view class="filter-options">
 						<view
 							v-for="option in timeRangeOptions"
 							:key="option.value"
-							class="filter-option"
+							class="filter-option-chip"
 							:class="{ active: filters.timeRange === option.value }"
 							@click="selectTimeRange(option.value)"
 						>
@@ -67,51 +54,56 @@
 						</view>
 					</view>
 				</scroll-view>
+			</view>
 
-				<!-- 自定义时间范围 -->
-				<view v-if="filters.timeRange === 'custom'" class="custom-date-range">
-					<view class="date-input-wrapper">
-						<text class="date-label">开始日期</text>
-						<picker
-							mode="date"
-							:value="filters.customStartDate"
-							:end="filters.customEndDate"
-							@change="handleStartDateChange"
-						>
-							<view class="date-picker">
-								<text class="date-text">{{ filters.customStartDate || '选择日期' }}</text>
-								<text class="picker-icon">📅</text>
-							</view>
-						</picker>
-					</view>
-					<view class="date-input-wrapper">
-						<text class="date-label">结束日期</text>
-						<picker
-							mode="date"
-							:value="filters.customEndDate"
-							:start="filters.customStartDate"
-							:end="today"
-							@change="handleEndDateChange"
-						>
-							<view class="date-picker">
-								<text class="date-text">{{ filters.customEndDate || '选择日期' }}</text>
-								<text class="picker-icon">📅</text>
-							</view>
-						</picker>
-					</view>
+			<!-- 自定义时间范围（仅在选择了自定义时显示） -->
+			<view v-if="filters.timeRange === 'custom'" class="custom-date-range">
+				<view class="date-input-wrapper">
+					<text class="date-label">开始日期</text>
+					<picker
+						mode="date"
+						:value="filters.customStartDate"
+						:end="filters.customEndDate"
+						@change="handleStartDateChange"
+					>
+						<view class="date-picker">
+							<text class="date-text">{{ filters.customStartDate || '选择日期' }}</text>
+							<text class="picker-icon">📅</text>
+						</view>
+					</picker>
+				</view>
+				<view class="date-input-wrapper">
+					<text class="date-label">结束日期</text>
+					<picker
+						mode="date"
+						:value="filters.customEndDate"
+						:start="filters.customStartDate"
+						:end="today"
+						@change="handleEndDateChange"
+					>
+						<view class="date-picker">
+							<text class="date-text">{{ filters.customEndDate || '选择日期' }}</text>
+							<text class="picker-icon">📅</text>
+						</view>
+					</picker>
 				</view>
 			</view>
 
-			<!-- 筛选结果提示 -->
-			<view v-if="hasActiveFilters" class="filter-result-tip">
-				<text class="result-text">找到 {{ filteredCount }} 条消息</text>
+			<!-- 操作按钮 -->
+			<view v-if="hasActiveFilters" class="action-buttons">
+				<view class="result-tip">
+					<text class="result-text">找到 {{ filteredCount }} 条消息</text>
+				</view>
+				<view class="reset-btn-inline" @click="resetFilters">
+					<text class="reset-text">重置筛选</text>
+				</view>
 			</view>
 		</view>
 	</view>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { MESSAGE_TAGS, MESSAGE_TAG_LABELS, MESSAGE_TYPE_LABELS } from '../utils/constants'
 
 const props = defineProps({
@@ -132,8 +124,6 @@ const filters = ref({
 	customEndDate: null
 })
 
-// 是否展开筛选面板
-const isExpanded = ref(false)
 const today = ref('')
 
 // 策略选项
@@ -179,11 +169,6 @@ const hasActiveFilters = computed(() => {
 const filteredCount = computed(() => {
 	return props.totalCount
 })
-
-// 切换展开/收起
-const toggleExpanded = () => {
-	isExpanded.value = !isExpanded.value
-}
 
 // 选择策略
 const selectStrategy = (value) => {
@@ -259,14 +244,6 @@ const loadFilters = () => {
 	}
 }
 
-// 监听筛选条件变化
-watch(filters, (newFilters) => {
-	// 如果有激活的筛选条件，自动展开面板
-	if (hasActiveFilters.value && !isExpanded.value) {
-		isExpanded.value = true
-	}
-}, { deep: true })
-
 // 初始化
 onMounted(() => {
 	// 设置今天的日期
@@ -276,19 +253,13 @@ onMounted(() => {
 	// 加载保存的筛选条件
 	loadFilters()
 
-	// 如果有激活的筛选条件，自动展开面板
-	if (hasActiveFilters.value) {
-		isExpanded.value = true
-	}
-
 	// 发送初始筛选条件
 	emit('filter-change', { ...filters.value })
 })
 
 // 暴露方法给父组件
 defineExpose({
-	resetFilters,
-	toggleExpanded
+	resetFilters
 })
 </script>
 
@@ -298,112 +269,45 @@ defineExpose({
 	border-bottom: 1rpx solid #e0e0e0;
 }
 
-.filter-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 24rpx 30rpx;
-	transition: background 0.3s;
-
-	&:active {
-		background: #f5f5f5;
-	}
-}
-
-.filter-header-left {
-	display: flex;
-	align-items: center;
-	gap: 12rpx;
-}
-
-.filter-icon {
-	font-size: 28rpx;
-	transition: transform 0.3s;
-}
-
-.filter-title {
-	font-size: 30rpx;
-	font-weight: 500;
-	color: #333333;
-}
-
-.filter-count {
-	display: inline-flex;
-	align-items: center;
-	padding: 4rpx 12rpx;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	color: #ffffff;
-	font-size: 22rpx;
-	border-radius: 20rpx;
-	font-weight: 500;
-}
-
-.filter-header-right {
-	display: flex;
-	align-items: center;
-	gap: 20rpx;
-}
-
-.reset-btn {
-	font-size: 26rpx;
-	color: #667eea;
-	padding: 8rpx 16rpx;
-	background: rgba(102, 126, 234, 0.1);
-	border-radius: 20rpx;
-	transition: all 0.3s;
-
-	&:active {
-		background: rgba(102, 126, 234, 0.2);
-	}
-}
-
-.expand-icon {
-	font-size: 24rpx;
-	color: #999999;
-	transition: transform 0.3s;
-
-	&.expanded {
-		transform: rotate(180deg);
-	}
-}
-
 .filter-panel {
-	background: #fafafa;
-	padding: 20rpx 0 30rpx;
+	padding: 20rpx 0;
 }
 
-.filter-section {
-	margin-bottom: 30rpx;
+.filter-section-inline {
+	display: flex;
+	align-items: center;
+	margin-bottom: 20rpx;
+	padding: 0 20rpx;
 
 	&:last-child {
 		margin-bottom: 0;
 	}
 }
 
-.filter-section-title {
+.filter-section-title-inline {
 	font-size: 26rpx;
 	color: #666666;
-	padding: 0 30rpx;
-	margin-bottom: 16rpx;
+	margin-right: 16rpx;
+	white-space: nowrap;
+	flex-shrink: 0;
 }
 
 .filter-options-scroll {
+	flex: 1;
 	white-space: nowrap;
 }
 
 .filter-options {
 	display: inline-flex;
-	padding: 0 30rpx;
 }
 
-.filter-option {
+.filter-option-chip {
 	display: inline-block;
-	padding: 14rpx 28rpx;
+	padding: 12rpx 24rpx;
 	margin-right: 16rpx;
 	font-size: 26rpx;
 	color: #666666;
-	background: #ffffff;
-	border: 1rpx solid #e0e0e0;
+	background: #f5f5f5;
 	border-radius: 30rpx;
 	white-space: nowrap;
 	transition: all 0.3s;
@@ -415,7 +319,6 @@ defineExpose({
 	&.active {
 		color: #ffffff;
 		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		border-color: transparent;
 		box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
 	}
 }
@@ -424,10 +327,12 @@ defineExpose({
 	display: flex;
 	flex-direction: column;
 	gap: 20rpx;
-	padding: 20rpx 30rpx;
-	background: #ffffff;
-	border-radius: 16rpx;
-	margin-top: 16rpx;
+	padding: 20rpx;
+	background: #fafafa;
+	border-radius: 12rpx;
+	margin-top: 10rpx;
+	margin-left: 20rpx;
+	margin-right: 20rpx;
 }
 
 .date-input-wrapper {
@@ -447,13 +352,13 @@ defineExpose({
 	align-items: center;
 	justify-content: space-between;
 	padding: 20rpx 24rpx;
-	background: #f5f5f5;
+	background: #ffffff;
 	border-radius: 12rpx;
 	margin-left: 20rpx;
 	transition: all 0.3s;
 
 	&:active {
-		background: #e0e0e0;
+		background: #f5f5f5;
 	}
 }
 
@@ -466,19 +371,37 @@ defineExpose({
 	font-size: 32rpx;
 }
 
-.filter-result-tip {
+.action-buttons {
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	padding: 20rpx 30rpx;
+	justify-content: space-between;
+	padding: 20rpx;
 	margin-top: 10rpx;
-	background: #ffffff;
-	border-radius: 12rpx;
+}
+
+.result-tip {
+	flex: 1;
 }
 
 .result-text {
 	font-size: 26rpx;
 	color: #667eea;
 	font-weight: 500;
+}
+
+.reset-btn-inline {
+	padding: 12rpx 24rpx;
+	background: rgba(102, 126, 234, 0.1);
+	border-radius: 30rpx;
+	transition: all 0.3s;
+
+	&:active {
+		background: rgba(102, 126, 234, 0.2);
+	}
+}
+
+.reset-text {
+	font-size: 26rpx;
+	color: #667eea;
 }
 </style>
