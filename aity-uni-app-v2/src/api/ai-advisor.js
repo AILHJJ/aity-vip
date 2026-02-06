@@ -1,6 +1,7 @@
 /**
  * AI投顾API服务
  * 负责与通达信AI接口的交互
+ * 使用uni.request替代fetch，兼容H5和小程序
  */
 
 import { buildApiEndpoint, getAuthHeaders, buildRequestBody, saveThreadId } from '@/utils/ai-advisor-config'
@@ -27,7 +28,9 @@ class AbortControllerPolyfill {
 }
 
 // 根据环境选择AbortController
-const AbortControllerImpl = isMiniProgram ? AbortControllerPolyfill : (typeof AbortController !== 'undefined' ? AbortController : AbortControllerPolyfill)
+const AbortControllerImpl = isMiniProgram
+  ? AbortControllerPolyfill
+  : (typeof AbortController !== 'undefined' ? AbortController : AbortControllerPolyfill)
 
 /**
  * 发送消息到AI并获取流式回复
@@ -58,12 +61,11 @@ export function sendAIMessage(content, onMessage, onError, onComplete) {
 
 /**
  * 内部函数：处理流式请求
- * 使用缓冲区处理SSE流，避免JSON解析错误
+ * 使用uni.request进行请求，兼容H5和小程序
  */
 async function fetchAIMessageInternal(url, body, headers, signal, onMessage, onError, onComplete) {
   let accumulatedContent = '' // 累积内容
   let accumulatedReasoning = '' // 累积推理内容
-  let buffer = '' // SSE缓冲区
 
   try {
     // 检查是否已被取消（小程序兼容）
@@ -72,220 +74,141 @@ async function fetchAIMessageInternal(url, body, headers, signal, onMessage, onE
       return
     }
 
-    const fetchOptions = {
+    // 使用uni.request替代fetch
+    uni.request({
+      url: url,
       method: 'POST',
-      headers: headers,
-      body: JSON.stringify(body)
-    }
+      header: headers,
+      data: body,
+      timeout: 60000,
+      success: (response) => {
+        console.log('AI响应状态:', response.statusCode)
 
-    // 只在非小程序环境添加signal参数
-    if (!isMiniProgram) {
-      fetchOptions.signal = signal
-    }
+        // 处理响应数据
+        if (response.statusCode === 200) {
+          try {
+            // uni.request会将JSON响应自动解析为对象
+            const data = response.data
 
-    const response = await fetch(url, fetchOptions)
+            // 检查数据格式
+            if (Array.isArray(data) && data.length > 0) {
+              // 处理数组格式的响应
+              for (const item of data) {
+                processAIMessage(item, accumulatedContent, accumulatedReasoning, onMessage, saveThreadId)
+              }
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder('utf-8')
-
-    // 读取流
-    while (true) {
-      // 每次读取前检查取消状态（小程序兼容）
-      if (signal.aborted) {
-        console.log('AI请求已取消（读取中）')
-        try {
-          reader.cancel()
-        } catch (e) {
-          // 忽略取消错误
-        }
-        return
-      }
-
-      const { done, value } = await reader.read()
-
-      if (done) {
-        // 流结束
-        if (onComplete) {
-          onComplete({
-            content: accumulatedContent,
-            reasoning: accumulatedReasoning
-          })
-        }
-        break
-      }
-
-      // 解码数据块并添加到缓冲区
-      const chunk = decoder.decode(value, { stream: true })
-      buffer += chunk
-
-      // 处理缓冲区中的完整事件
-      buffer = processBuffer(buffer, onMessage, (data, eventType) => {
-        try {
-          const obj = JSON.parse(data)
-
-          // 检查数据格式
-          if (!obj || !Array.isArray(obj) || obj.length === 0) {
-            return
-          }
-
-          const message = obj[0]
-
-          // 处理thread_id保存
-          if (message.metadata && message.metadata.thread_id) {
-            saveThreadId(message.metadata.thread_id)
-          }
-
-          // 处理内容增量
-          if (message.content) {
-            const newContent = message.content.substring(accumulatedContent.length)
-            if (newContent) {
-              accumulatedContent = message.content
-
-              // 回调新内容（不过滤，因为可能包含表格JSON）
-              if (newContent) {
-                onMessage({
-                  type: 'content',
-                  content: newContent,
-                  fullContent: accumulatedContent
+              // 完成
+              if (onComplete) {
+                onComplete({
+                  content: accumulatedContent,
+                  reasoning: accumulatedReasoning
                 })
               }
+            } else if (typeof data === 'object' && data !== null) {
+              // 处理单个对象
+              processAIMessage(data, accumulatedContent, accumulatedReasoning, onMessage, saveThreadId)
+
+              // 完成
+              if (onComplete) {
+                onComplete({
+                  content: accumulatedContent,
+                  reasoning: accumulatedReasoning
+                })
+              }
+            } else {
+              console.warn('未知响应格式:', data)
+              if (onError) {
+                onError('响应格式错误')
+              }
+            }
+          } catch (error) {
+            console.error('处理AI响应失败:', error)
+            if (onError) {
+              onError('处理响应失败: ' + error.message)
             }
           }
-
-          // 处理推理过程（深度思考）
-          if (message.additional_kwargs && message.additional_kwargs.reasoning_content) {
-            const newReasoning = message.additional_kwargs.reasoning_content.substring(
-              accumulatedReasoning.length
-            )
-            if (newReasoning) {
-              accumulatedReasoning = message.additional_kwargs.reasoning_content
-
-              // 回调推理内容
-              onMessage({
-                type: 'reasoning',
-                content: newReasoning,
-                fullReasoning: accumulatedReasoning
-              })
-            }
+        } else {
+          console.error('AI请求失败:', response.statusCode, response.errMsg)
+          if (onError) {
+            onError(`HTTP ${response.statusCode}: ${response.errMsg}`)
           }
-
-          // 处理工具调用
-          if (message.tool_calls && message.tool_calls.length > 0) {
-            const responseMetadata = message.response_metadata || {}
-            const finishReason = responseMetadata.finish_reason || ''
-
-            onMessage({
-              type: 'tool_calls',
-              tool_calls: message.tool_calls,
-              finish_reason: finishReason
-            })
-          }
-
-          // 处理完成事件
-          if (eventType === 'messages/complete') {
-            onComplete({
-              content: accumulatedContent,
-              reasoning: accumulatedReasoning
-            })
-          }
-
-        } catch (parseError) {
-          console.error('解析SSE数据失败:', parseError, data)
         }
-      })
-
-      // 保留未处理的部分到缓冲区
-      buffer = getRemainingBuffer(buffer)
-    }
+      },
+      fail: (error) => {
+        console.error('AI请求失败:', error)
+        if (onError) {
+          onError(error.errMsg || '网络请求失败')
+        }
+      }
+    })
 
   } catch (error) {
-    // 处理取消
-    if (error.name === 'AbortError' || signal.aborted) {
-      console.log('AI请求已取消')
-      return
-    }
-
-    // 处理其他错误
-    console.error('AI请求失败:', error)
+    console.error('AI请求异常:', error)
     if (onError) {
-      onError(error)
+      onError(error.message || '请求失败')
     }
   }
 }
 
 /**
- * 处理缓冲区中的完整SSE事件
- * @param {String} buffer - 缓冲区内容
- * @param {Function} onMessage - 消息回调
- * @param {Function} processData - 处理单个事件的回调
- * @returns {String} - 剩余的缓冲区内容
+ * 处理单条AI消息
  */
-function processBuffer(buffer, onMessage, processData) {
-  // SSE事件以 \n\n 分隔
-  const events = buffer.split('\n\n')
+function processAIMessage(message, accumulatedContent, accumulatedReasoning, onMessage, saveThreadId) {
+  // 处理thread_id保存
+  if (message.metadata && message.metadata.thread_id) {
+    saveThreadId(message.metadata.thread_id)
+  }
 
-  // 处理除最后一个之外的所有事件（最后一个可能不完整）
-  for (let i = 0; i < events.length - 1; i++) {
-    const eventBlock = events[i]
-    if (!eventBlock.trim()) continue
+  // 处理主内容
+  if (message.content) {
+    // 获取新增内容
+    const newContent = message.content.substring(accumulatedContent.length)
+    if (newContent) {
+      accumulatedContent = message.content
 
-    const event = parseEventBlock(eventBlock)
-    if (event.type && event.data) {
-      processData(event.data, event.type)
+      // 回调新内容
+      if (onMessage) {
+        onMessage({
+          type: 'content',
+          content: newContent,
+          fullContent: accumulatedContent
+        })
+      }
     }
   }
 
-  // 返回剩余部分（最后一个可能不完整的事件）
-  return events[events.length - 1] || ''
-}
+  // 处理推理过程（深度思考）
+  if (message.additional_kwargs && message.additional_kwargs.reasoning_content) {
+    const newReasoning = message.additional_kwargs.reasoning_content.substring(
+      accumulatedReasoning.length
+    )
+    if (newReasoning) {
+      accumulatedReasoning = message.additional_kwargs.reasoning_content
 
-/**
- * 解析单个SSE事件块
- * @param {String} block - 事件块
- * @returns {Object} - { type, data, id }
- */
-function parseEventBlock(block) {
-  const lines = block.split('\n')
-  const event = { type: null, data: null, id: null }
-
-  for (const line of lines) {
-    if (line.startsWith('event:')) {
-      event.type = line.substring(6).trim()
-    }
-    if (line.startsWith('data:')) {
-      event.data = line.substring(5).trim()
-    }
-    if (line.startsWith('id:')) {
-      event.id = line.substring(3).trim()
+      // 回调推理内容
+      if (onMessage) {
+        onMessage({
+          type: 'reasoning',
+          content: newReasoning,
+          fullReasoning: accumulatedReasoning
+        })
+      }
     }
   }
 
-  return event
-}
+  // 处理工具调用
+  if (message.tool_calls && message.tool_calls.length > 0) {
+    const responseMetadata = message.response_metadata || {}
+    const finishReason = responseMetadata.finish_reason || ''
 
-/**
- * 获取剩余的缓冲区内容（不完整的事件）
- * @param {String} buffer - 缓冲区内容
- * @returns {String} - 剩余内容
- */
-function getRemainingBuffer(buffer) {
-  const lastNewlineIndex = buffer.lastIndexOf('\n\n')
-  return lastNewlineIndex !== -1 ? buffer.substring(lastNewlineIndex + 2) : buffer
-}
-
-/**
- * 过滤 @@@@ 替换字符串（不支持）
- * @param {String} content - 内容
- * @returns {String} - 过滤后的内容
- */
-function filterReplacementStrings(content) {
-  if (!content) return ''
-  // 移除 @@@@@...@@@@ 格式的替换字符串
-  return content.replace(/@@.+?@@/g, '')
+    if (onMessage) {
+      onMessage({
+        type: 'tool_calls',
+        tool_calls: message.tool_calls,
+        finish_reason: finishReason
+      })
+    }
+  }
 }
 
 /**
