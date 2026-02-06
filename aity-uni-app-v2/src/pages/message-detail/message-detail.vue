@@ -358,26 +358,27 @@ const handleDelete = () => {
 					if (result.success || result.code === 200) {
 						uni.hideLoading()
 
-						// 成功提示
-						uni.showToast({
-							title: '删除成功',
-							icon: 'success',
-							duration: 1500
-						})
-
-						// 延迟返回，让用户看到成功提示
-						setTimeout(() => {
-							// 返回上一页并通知刷新
-							const pages = getCurrentPages()
-							if (pages.length > 1) {
-								// 通知列表页刷新
-								const prevPage = pages[pages.length - 2]
-								if (prevPage.$vm && prevPage.$vm.refreshList) {
-									prevPage.$vm.refreshList()
-								}
+						// 立即返回上一页，避免用户在等待时点击其他操作
+						const pages = getCurrentPages()
+						if (pages.length > 1) {
+							// 通知列表页刷新
+							const prevPage = pages[pages.length - 2]
+							if (prevPage.$vm && prevPage.$vm.refreshList) {
+								prevPage.$vm.refreshList()
 							}
-							uni.navigateBack()
-						}, 1500)
+						}
+
+						// 立即返回,不等待
+						uni.navigateBack()
+
+						// 返回后显示成功提示
+						setTimeout(() => {
+							uni.showToast({
+								title: '删除成功',
+								icon: 'success',
+								duration: 1500
+							})
+						}, 100)
 					} else {
 						throw new Error(result.message || '删除失败')
 					}
