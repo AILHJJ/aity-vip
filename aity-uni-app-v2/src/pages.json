@@ -87,15 +87,27 @@
 		"list": [
 			{
 				"pagePath": "pages/messages/messages",
-				"text": "消息"
+				"text": "消息",
+				"iconPath": "static/tabbar/message.png",
+				"selectedIconPath": "static/tabbar/message-active.png"
 			},
 			{
 				"pagePath": "pages/discussions/discussions",
-				"text": "讨论"
+				"text": "讨论",
+				"iconPath": "static/tabbar/discussion.png",
+				"selectedIconPath": "static/tabbar/discussion-active.png"
+			},
+			{
+				"pagePath": "pages/stats/stats",
+				"text": "数据分析",
+				"iconPath": "static/tabbar/stats.png",
+				"selectedIconPath": "static/tabbar/stats-active.png"
 			},
 			{
 				"pagePath": "pages/profile/profile",
-				"text": "我的"
+				"text": "我的",
+				"iconPath": "static/tabbar/profile.png",
+				"selectedIconPath": "static/tabbar/profile-active.png"
 			}
 		]
 	},

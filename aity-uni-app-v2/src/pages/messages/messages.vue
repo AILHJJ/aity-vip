@@ -45,6 +45,12 @@
 			</view>
 		</view>
 
+		<!-- 三级筛选栏 -->
+		<filter-bar
+			:total-count="filteredMessages.length"
+			@filter-change="handleFilterChange"
+		/>
+
 		<!-- 筛选栏 -->
 		<view class="filter-bar">
 			<scroll-view class="filter-scroll" scroll-x show-scrollbar="false">
@@ -117,15 +123,15 @@
 					<view class="message-content">{{ message.content }}</view>
 
 					<view class="message-footer">
-						<view class="message-tags">
+						<view v-if="getDisplayTags(message.tags).length > 0" class="message-tags">
 							<view
-								v-for="tag in message.tags"
-								:key="tag"
+								v-for="tag in getDisplayTags(message.tags)"
+								:key="tag.key"
 								class="message-tag"
-								:class="getTagClass(tag)"
+								:class="tag.class"
 							>
-								<text class="tag-icon">{{ getTagIcon(tag) }}</text>
-								<text class="tag-text">{{ getTagLabel(tag) }}</text>
+								<text class="tag-icon">{{ tag.icon }}</text>
+								<text class="tag-text">{{ tag.label }}</text>
 							</view>
 						</view>
 						<view class="message-stats">
@@ -162,8 +168,10 @@ import { MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../uti
 import { formatFriendlyTime } from '../../utils/time'
 import { getSearchHistory, addSearchHistory, clearSearchHistory, removeSearchHistory } from '../../utils/search-history'
 import { isMessageRead, markAsRead, getUnreadCount } from '../../utils/read-status'
+import dayjs from 'dayjs'
 import MessageSkeleton from '@/components/message-skeleton.vue'
 import EmptyState from '@/components/empty-state.vue'
+import FilterBar from '@/components/filter-bar.vue'
 
 const userStore = useUserStore()
 
@@ -179,6 +187,15 @@ const searchKeyword = ref('')
 const userInfoLoaded = ref(false) // 用户信息加载状态
 const showSearchHistory = ref(false) // 显示搜索历史
 const searchHistory = ref([]) // 搜索历史列表
+
+// 三级筛选条件
+const filters = ref({
+	strategy: 'all',
+	type: 'all',
+	timeRange: 'all',
+	customStartDate: null,
+	customEndDate: null
+})
 
 // 筛选标签
 const filterTags = computed(() => {
@@ -233,6 +250,51 @@ const filteredMessages = computed(() => {
 	}
 	// trial、admin、super_admin 显示所有消息，不需要过滤
 
+	// 三级筛选：策略筛选
+	if (filters.value.strategy !== 'all') {
+		filtered = filtered.filter(msg => {
+			return msg.tags && msg.tags.includes(filters.value.strategy)
+		})
+	}
+
+	// 三级筛选：类型筛选
+	if (filters.value.type !== 'all') {
+		filtered = filtered.filter(msg => {
+			return msg.type === filters.value.type
+		})
+	}
+
+	// 三级筛选：时间筛选
+	if (filters.value.timeRange !== 'all') {
+		const now = dayjs()
+		let startDate = null
+
+		if (filters.value.timeRange === 'today') {
+			startDate = now.startOf('day')
+		} else if (filters.value.timeRange === '3days') {
+			startDate = now.subtract(3, 'day').startOf('day')
+		} else if (filters.value.timeRange === '7days') {
+			startDate = now.subtract(7, 'day').startOf('day')
+		} else if (filters.value.timeRange === '30days') {
+			startDate = now.subtract(30, 'day').startOf('day')
+		} else if (filters.value.timeRange === 'custom') {
+			if (filters.value.customStartDate) {
+				startDate = dayjs(filters.value.customStartDate).startOf('day')
+			}
+		}
+
+		if (startDate) {
+			filtered = filtered.filter(msg => {
+				const msgDate = dayjs(msg.createdAt)
+				// 如果有自定义结束日期，使用它；否则使用当前时间
+				const endDate = filters.value.customEndDate
+					? dayjs(filters.value.customEndDate).endOf('day')
+					: now
+				return msgDate.isAfter(startDate) && msgDate.isBefore(endDate.add(1, 'day'))
+			})
+		}
+	}
+
 	// 搜索过滤：根据关键词过滤标题和内容
 	if (searchKeyword.value.trim()) {
 		const keyword = searchKeyword.value.trim().toLowerCase()
@@ -251,34 +313,69 @@ const getMessageTypeLabel = (type) => {
 	return MESSAGE_TYPE_LABELS[type] || type
 }
 
-// 获取标签标签
-const getTagLabel = (tag) => {
-	return MESSAGE_TAG_LABELS[tag] || tag
-}
-
-// 获取标签样式类名
-const getTagClass = (tag) => {
-	// 处理不同的tag值格式
-	const tagMap = {
-		'short_term': 'tag-short-term',
-		'mid_term': 'tag-mid-term',
-		'all_users': 'tag-all-users',
-		// 兼容旧格式
-		[MESSAGE_TAGS.SHORT_TERM]: 'tag-short-term',
-		[MESSAGE_TAGS.MID_TERM]: 'tag-mid-term',
-		[MESSAGE_TAGS.ALL_USERS]: 'tag-all-users'
+// 获取显示的标签列表（根据用户权限和业务规则）
+const getDisplayTags = (tags) => {
+	if (!tags || !Array.isArray(tags)) {
+		return []
 	}
-	return tagMap[tag] || 'tag-default'
-}
 
-// 获取标签图标
-const getTagIcon = (tag) => {
-	const iconMap = {
-		'short_term': '⚡',
-		'mid_term': '📈',
-		'all_users': '👥'
+	const displayTags = []
+	const hasShortTerm = tags.includes(MESSAGE_TAGS.SHORT_TERM)
+	const hasMidTerm = tags.includes(MESSAGE_TAGS.MID_TERM)
+
+	// VIP用户：只显示策略标签（短线/中线），不显示推送对象标签
+	if (!userStore.isAdmin) {
+		// 如果同时有短线和中线标签，显示为"短线+中线"
+		if (hasShortTerm && hasMidTerm) {
+			displayTags.push({
+				key: 'combined',
+				label: '短线+中线',
+				icon: '⚡📈',
+				class: 'tag-short-term tag-mid-term tag-combined'
+			})
+		} else if (hasShortTerm) {
+			displayTags.push({
+				key: MESSAGE_TAGS.SHORT_TERM,
+				label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.SHORT_TERM],
+				icon: '⚡',
+				class: 'tag-short-term'
+			})
+		} else if (hasMidTerm) {
+			displayTags.push({
+				key: MESSAGE_TAGS.MID_TERM,
+				label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.MID_TERM],
+				icon: '📈',
+				class: 'tag-mid-term'
+			})
+		}
+	} else {
+		// 管理员：显示所有标签（除了all_users）
+		for (const tag of tags) {
+			// 跳过 all_users 标签
+			if (tag === MESSAGE_TAGS.ALL_USERS) {
+				continue
+			}
+
+			// 处理策略标签
+			if (tag === MESSAGE_TAGS.SHORT_TERM) {
+				displayTags.push({
+					key: MESSAGE_TAGS.SHORT_TERM,
+					label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.SHORT_TERM],
+					icon: '⚡',
+					class: 'tag-short-term'
+				})
+			} else if (tag === MESSAGE_TAGS.MID_TERM) {
+				displayTags.push({
+					key: MESSAGE_TAGS.MID_TERM,
+					label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.MID_TERM],
+					icon: '📈',
+					class: 'tag-mid-term'
+				})
+			}
+		}
 	}
-	return iconMap[tag] || ''
+
+	return displayTags
 }
 
 // 加载消息列表
@@ -409,6 +506,11 @@ const handleClearHistory = () => {
 const handleRemoveHistory = (keyword) => {
 	removeSearchHistory(keyword)
 	searchHistory.value = getSearchHistory()
+}
+
+// 处理三级筛选变化
+const handleFilterChange = (newFilters) => {
+	filters.value = { ...filters.value, ...newFilters }
 }
 
 // 跳转到详情
@@ -864,6 +966,32 @@ onMounted(async () => {
 		background: linear-gradient(135deg, rgba(67, 233, 123, 0.12) 0%, rgba(56, 249, 215, 0.12) 100%);
 		color: #43e97b;
 		border: 1rpx solid rgba(67, 233, 123, 0.25);
+	}
+
+	// 组合标签 - 短线+中线
+	&.tag-combined {
+		background: linear-gradient(135deg, rgba(67, 233, 123, 0.15) 0%, rgba(79, 172, 254, 0.15) 100%);
+		color: #43e97b;
+		border: 1rpx solid rgba(67, 233, 123, 0.3);
+		position: relative;
+
+		&::before {
+			content: '';
+			position: absolute;
+			left: 0;
+			top: 0;
+			bottom: 0;
+			width: 50%;
+			background: linear-gradient(135deg, rgba(67, 233, 123, 0.2) 0%, rgba(56, 249, 215, 0.2) 100%);
+			border-radius: 16rpx 0 0 16rpx;
+			z-index: 0;
+		}
+
+		.tag-icon,
+		.tag-text {
+			position: relative;
+			z-index: 1;
+		}
 	}
 }
 

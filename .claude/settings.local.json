@@ -42,7 +42,9 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjksImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoic3VwZXJfYWRtaW4iLCJpYXQiOjE3NzAyNjU1MDAsImV4cCI6MTc3MDM1MTkwMH0.stb6XJ2GHlw1-p4l38kR3sZWYlCrECOhL-4Mq0XUPlk\")",
       "Bash(npm run start)",
       "Bash(npm run build:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npm run lint:fix:*)",
+      "Bash(npm run)"
     ],
     "deny": [],
     "ask": []

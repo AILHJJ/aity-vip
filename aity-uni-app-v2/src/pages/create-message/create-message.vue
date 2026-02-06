@@ -2,9 +2,75 @@
 	<view class="create-message-container">
 		<scroll-view class="form-scroll" scroll-y>
 			<view class="form-container">
+				<!-- 策略类型（置顶，必填，核心字段） -->
+				<view class="form-item strategy-section">
+					<view class="form-label-required">
+						<text class="form-label">策略类型 *</text>
+						<text class="required-star">★</text>
+					</view>
+					<view class="radio-group">
+						<view
+							v-for="strategy in strategyTypes"
+							:key="strategy.value"
+							class="radio-item"
+							:class="{ active: formData.strategy === strategy.value }"
+							@click="handleStrategyChange(strategy.value)"
+						>
+							<view class="radio-icon">
+								<text v-if="formData.strategy === strategy.value">◉</text>
+								<text v-else>○</text>
+							</view>
+							<text class="radio-label">{{ strategy.label }}</text>
+						</view>
+					</view>
+				</view>
+
+				<!-- 推送对象（仅管理员可见） -->
+				<view v-if="userStore.isAdmin" class="form-item">
+					<text class="form-label">推送对象 *</text>
+					<view class="radio-group">
+						<view
+							v-for="target in pushTargets"
+							:key="target.value"
+							class="radio-item"
+							:class="{ active: formData.pushTarget === target.value }"
+							@click="handlePushTargetChange(target.value)"
+						>
+							<view class="radio-icon">
+								<text v-if="formData.pushTarget === target.value">◉</text>
+								<text v-else>○</text>
+							</view>
+							<text class="radio-label">{{ target.label }}</text>
+						</view>
+					</view>
+				</view>
+
+				<!-- 消息类型（多选） -->
+				<view class="form-item">
+					<text class="form-label">消息类型</text>
+					<view class="checkbox-group">
+						<view
+							v-for="type in messageTypes"
+							:key="type.value"
+							class="checkbox-item"
+							:class="{ active: formData.messageTypes.includes(type.value) }"
+							@click="handleMessageTypeToggle(type.value)"
+						>
+							<view class="checkbox-icon">
+								<text v-if="formData.messageTypes.includes(type.value)">☑</text>
+								<text v-else>☐</text>
+							</view>
+							<text class="checkbox-label">{{ type.label }}</text>
+						</view>
+					</view>
+					<view class="form-hint">
+						<text class="hint-text">可选择多个或全不选</text>
+					</view>
+				</view>
+
 				<!-- 标题 -->
 				<view class="form-item">
-					<text class="form-label">消息标题</text>
+					<text class="form-label">消息标题 *</text>
 					<input
 						v-model="formData.title"
 						type="text"
@@ -13,40 +79,6 @@
 						class="form-input"
 						:maxlength="100"
 					/>
-				</view>
-
-				<!-- 类型 -->
-				<view class="form-item">
-					<text class="form-label">消息类型 *</text>
-					<picker
-						mode="selector"
-						:range="messageTypes"
-						range-key="label"
-						@change="handleTypeChange"
-					>
-						<view class="picker-view">
-							<text :class="formData.type ? 'picker-text' : 'picker-placeholder'">
-								{{ formData.type ? getTypeLabel(formData.type) : '请选择消息类型' }}
-							</text>
-							<text class="picker-arrow">▼</text>
-						</view>
-					</picker>
-				</view>
-
-				<!-- 标签 -->
-				<view class="form-item">
-					<text class="form-label">目标用户 *</text>
-					<view class="tags-container">
-						<view
-							v-for="tag in availableTags"
-							:key="tag.value"
-							class="tag-item"
-							:class="{ active: formData.tags.includes(tag.value) }"
-							@click="handleTagToggle(tag.value)"
-						>
-							{{ tag.label }}
-						</view>
-					</view>
 				</view>
 
 				<!-- 内容 -->
@@ -157,22 +189,24 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useUserStore } from '../../store/user'
 import { createMessageApi, updateMessageApi, getMessageDetailApi } from '../../api/message'
 import { uploadImageApi } from '../../api/upload'
-import { MESSAGE_TYPES, MESSAGE_TAGS, MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS } from '../../utils/constants'
+import { MESSAGE_TYPES, MESSAGE_TAGS, MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS, USER_ROLES } from '../../utils/constants'
 import { BASE_URL } from '../../utils/config'
 
 const userStore = useUserStore()
 
-// 草稿存储key
+// localStorage key
 const DRAFT_KEY = 'message_draft'
+const STRATEGY_KEY = 'last_selected_strategy'
 
 // 预览模式
 const previewMode = ref(false)
 
 // 表单数据
 const formData = ref({
+	strategy: MESSAGE_TAGS.SHORT_TERM, // 策略类型（单选）
+	pushTarget: MESSAGE_TAGS.SHORT_TERM, // 推送对象（单选，管理员）
+	messageTypes: [], // 消息类型（多选）
 	title: '',
-	type: '',
-	tags: [MESSAGE_TAGS.SHORT_TERM], // 默认选择短线策略
 	content: '',
 	attachments: []
 })
@@ -182,39 +216,62 @@ const editMode = ref(false)
 const editMessageId = ref(0)
 const draftTimer = ref(null)
 
-// 消息类型选项
-const messageTypes = computed(() => {
-	return Object.keys(MESSAGE_TYPES).map(key => ({
-		value: MESSAGE_TYPES[key],
-		label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES[key]]
-	}))
-})
-
-// 可用标签
-const availableTags = [
-	{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.ALL_USERS], value: MESSAGE_TAGS.ALL_USERS },
-	{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.SHORT_TERM], value: MESSAGE_TAGS.SHORT_TERM },
-	{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.MID_TERM], value: MESSAGE_TAGS.MID_TERM }
+// 策略类型选项
+const strategyTypes = [
+	{ label: '短线策略', value: MESSAGE_TAGS.SHORT_TERM },
+	{ label: '中线策略', value: MESSAGE_TAGS.MID_TERM }
 ]
 
-// 获取类型标签
-const getTypeLabel = (type) => {
-	return MESSAGE_TYPE_LABELS[type] || type
+// 推送对象选项（仅管理员可见）
+const pushTargets = [
+	{ label: '短线VIP', value: MESSAGE_TAGS.SHORT_TERM },
+	{ label: '中线VIP', value: MESSAGE_TAGS.MID_TERM },
+	{ label: '全部用户', value: MESSAGE_TAGS.ALL_USERS }
+]
+
+// 消息类型选项（多选）
+const messageTypes = computed(() => {
+	// 扩展更多消息类型
+	const types = [
+		{ label: '盘前点评', value: 'pre_market_comment' },
+		{ label: '早盘关注', value: 'morning_focus' },
+		{ label: '午盘点评', value: 'afternoon_comment' },
+		{ label: '尾盘关注', value: 'afternoon_focus' },
+		{ label: '涨停分析', value: 'limit_up_analysis' },
+		{ label: '龙虎榜分析', value: 'dragon_tiger_analysis' },
+		{ label: '个股研究', value: 'stock_research' },
+		{ label: '行业分析', value: 'industry_analysis' },
+		{ label: '宏观经济', value: 'macro_economy' },
+		{ label: '其他', value: 'other' }
+	]
+	return types
+})
+
+// 处理策略类型选择
+const handleStrategyChange = (value) => {
+	formData.value.strategy = value
+	// 保存到localStorage
+	uni.setStorageSync(STRATEGY_KEY, value)
+	// 同时更新推送对象为默认值（短线策略对应短线VIP，中线策略对应中线VIP）
+	if (value === MESSAGE_TAGS.SHORT_TERM && userStore.isAdmin) {
+		formData.value.pushTarget = MESSAGE_TAGS.SHORT_TERM
+	} else if (value === MESSAGE_TAGS.MID_TERM && userStore.isAdmin) {
+		formData.value.pushTarget = MESSAGE_TAGS.MID_TERM
+	}
 }
 
-// 处理类型选择
-const handleTypeChange = (e) => {
-	const index = e.detail.value
-	formData.value.type = messageTypes.value[index].value
+// 处理推送对象选择
+const handlePushTargetChange = (value) => {
+	formData.value.pushTarget = value
 }
 
-// 处理标签切换
-const handleTagToggle = (tag) => {
-	const index = formData.value.tags.indexOf(tag)
+// 处理消息类型切换（多选）
+const handleMessageTypeToggle = (value) => {
+	const index = formData.value.messageTypes.indexOf(value)
 	if (index > -1) {
-		formData.value.tags.splice(index, 1)
+		formData.value.messageTypes.splice(index, 1)
 	} else {
-		formData.value.tags.push(tag)
+		formData.value.messageTypes.push(value)
 	}
 }
 
@@ -403,6 +460,25 @@ const handleRemoveFile = (index) => {
 
 // 表单验证
 const validateForm = () => {
+	// 验证策略类型（必填）
+	if (!formData.value.strategy) {
+		uni.showToast({
+			title: '请选择策略类型',
+			icon: 'none'
+		})
+		return false
+	}
+
+	// 管理员必须选择推送对象
+	if (userStore.isAdmin && !formData.value.pushTarget) {
+		uni.showToast({
+			title: '请选择推送对象',
+			icon: 'none'
+		})
+		return false
+	}
+
+	// 验证标题（必填）
 	if (!formData.value.title.trim()) {
 		uni.showToast({
 			title: '请输入消息标题',
@@ -411,22 +487,7 @@ const validateForm = () => {
 		return false
 	}
 
-	if (!formData.value.type) {
-		uni.showToast({
-			title: '请选择消息类型',
-			icon: 'none'
-		})
-		return false
-	}
-
-	if (formData.value.tags.length === 0) {
-		uni.showToast({
-			title: '请选择目标用户',
-			icon: 'none'
-		})
-		return false
-	}
-
+	// 验证内容（必填）
 	if (!formData.value.content.trim()) {
 		uni.showToast({
 			title: '请输入消息内容',
@@ -504,11 +565,28 @@ const handleSubmit = async () => {
 			console.log('所有附件上传完成，成功', uploadedAttachments.length, '个')
 		}
 
+		// 构建提交数据
+		// 将新表单结构转换为后端API需要的格式
+		const tags = []
+
+		// 1. 添加策略标签（必填）
+		tags.push(formData.value.strategy)
+
+		// 2. 添加推送对象标签（管理员）
+		if (userStore.isAdmin && formData.value.pushTarget) {
+			tags.push(formData.value.pushTarget)
+		}
+
+		// 3. 添加消息类型标签（可选，多选）
+		if (formData.value.messageTypes.length > 0) {
+			tags.push(...formData.value.messageTypes)
+		}
+
 		// 将Vue的Proxy对象转换为纯JavaScript对象
 		const data = {
 			title: formData.value.title.trim(),
-			type: formData.value.type,
-			tags: Array.isArray(formData.value.tags) ? [...formData.value.tags] : [],
+			type: formData.value.messageTypes.length > 0 ? formData.value.messageTypes[0] : 'general', // 使用第一个消息类型作为type，保持兼容性
+			tags: tags,
 			content: formData.value.content.trim(),
 			attachments: uploadedAttachments
 		}
@@ -517,8 +595,10 @@ const handleSubmit = async () => {
 		console.log('=== 提交消息数据 ===')
 		console.log('完整数据:', JSON.stringify(data, null, 2))
 		console.log('标题:', data.title)
-		console.log('类型:', data.type)
-		console.log('标签:', data.tags, '类型:', typeof data.tags, '是数组?', Array.isArray(data.tags))
+		console.log('策略类型:', formData.value.strategy)
+		console.log('推送对象:', formData.value.pushTarget)
+		console.log('消息类型:', formData.value.messageTypes)
+		console.log('最终tags:', data.tags)
 		console.log('内容长度:', data.content.length)
 		console.log('附件数量:', data.attachments.length)
 
@@ -642,7 +722,13 @@ const restoreDraft = () => {
 					content: '是否恢复上次编辑的内容？',
 					success: (res) => {
 						if (res.confirm) {
-							formData.value = draftData
+							// 恢复草稿数据
+							formData.value.strategy = draftData.strategy || MESSAGE_TAGS.SHORT_TERM
+							formData.value.pushTarget = draftData.pushTarget || MESSAGE_TAGS.SHORT_TERM
+							formData.value.messageTypes = draftData.messageTypes || []
+							formData.value.title = draftData.title || ''
+							formData.value.content = draftData.content || ''
+							formData.value.attachments = draftData.attachments || []
 							uni.showToast({
 								title: '草稿已恢复',
 								icon: 'success'
@@ -655,6 +741,20 @@ const restoreDraft = () => {
 			}
 		} catch (error) {
 			console.error('恢复草稿失败:', error)
+		}
+	}
+}
+
+// 恢复上次选择的策略类型
+const restoreLastStrategy = () => {
+	const lastStrategy = uni.getStorageSync(STRATEGY_KEY)
+	if (lastStrategy) {
+		formData.value.strategy = lastStrategy
+		// 同时更新推送对象
+		if (lastStrategy === MESSAGE_TAGS.SHORT_TERM && userStore.isAdmin) {
+			formData.value.pushTarget = MESSAGE_TAGS.SHORT_TERM
+		} else if (lastStrategy === MESSAGE_TAGS.MID_TERM && userStore.isAdmin) {
+			formData.value.pushTarget = MESSAGE_TAGS.MID_TERM
 		}
 	}
 }
@@ -824,10 +924,32 @@ onMounted(async () => {
 				console.log('编辑模式 - 加载的消息数据:', res.data)
 				console.log('编辑模式 - 解析后的tags:', tags)
 
+				// 解析tags到新的表单结构
+				// 策略类型（从tags中提取）
+				const strategyTag = tags.find(tag =>
+					tag === MESSAGE_TAGS.SHORT_TERM ||
+					tag === MESSAGE_TAGS.MID_TERM
+				) || MESSAGE_TAGS.SHORT_TERM
+
+				// 推送对象（从tags中提取，管理员）
+				const pushTargetTag = tags.find(tag =>
+					tag === MESSAGE_TAGS.SHORT_TERM ||
+					tag === MESSAGE_TAGS.MID_TERM ||
+					tag === MESSAGE_TAGS.ALL_USERS
+				) || MESSAGE_TAGS.SHORT_TERM
+
+				// 消息类型（从tags中提取，排除策略和推送对象）
+				const messageTypeTags = tags.filter(tag =>
+					tag !== MESSAGE_TAGS.SHORT_TERM &&
+					tag !== MESSAGE_TAGS.MID_TERM &&
+					tag !== MESSAGE_TAGS.ALL_USERS
+				)
+
 				formData.value = {
+					strategy: strategyTag,
+					pushTarget: pushTargetTag,
+					messageTypes: messageTypeTags,
 					title: res.data.title || '',
-					type: res.data.type || '',
-					tags: tags.length > 0 ? tags : [MESSAGE_TAGS.SHORT_TERM],
 					content: res.data.content || '',
 					attachments: processedAttachments
 				}
@@ -849,7 +971,9 @@ onMounted(async () => {
 			setTimeout(() => uni.navigateBack(), 1500)
 		}
 	} else {
-		// 新建模式：检查是否有草稿
+		// 新建模式：恢复上次选择的策略
+		restoreLastStrategy()
+		// 检查是否有草稿
 		restoreDraft()
 	}
 
@@ -889,6 +1013,139 @@ onBeforeUnmount(() => {
 	color: #333333;
 	margin-bottom: 20rpx;
 	font-weight: 500;
+}
+
+// 策略类型区域特殊样式
+.strategy-section {
+	background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+	padding: 32rpx;
+	border-radius: 16rpx;
+	border: 2rpx solid #667eea;
+	margin-bottom: 50rpx;
+	box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.15);
+}
+
+.form-label-required {
+	display: flex;
+	align-items: center;
+	margin-bottom: 24rpx;
+}
+
+.required-star {
+	font-size: 32rpx;
+	color: #ff4757;
+	margin-left: 8rpx;
+	animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+	0%, 100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.7;
+		transform: scale(1.1);
+	}
+}
+
+// 单选按钮组
+.radio-group {
+	display: flex;
+	flex-direction: column;
+	gap: 20rpx;
+}
+
+.radio-item {
+	display: flex;
+	align-items: center;
+	padding: 24rpx 32rpx;
+	background: #ffffff;
+	border: 2rpx solid #e0e0e0;
+	border-radius: 12rpx;
+	transition: all 0.3s;
+	cursor: pointer;
+}
+
+.radio-item:active {
+	transform: scale(0.98);
+}
+
+.radio-item.active {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border-color: transparent;
+	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+}
+
+.radio-icon {
+	font-size: 36rpx;
+	margin-right: 16rpx;
+	color: #667eea;
+	min-width: 48rpx;
+}
+
+.radio-item.active .radio-icon {
+	color: #ffffff;
+}
+
+.radio-label {
+	flex: 1;
+	font-size: 30rpx;
+	color: #333333;
+	font-weight: 500;
+}
+
+.radio-item.active .radio-label {
+	color: #ffffff;
+}
+
+// 复选框组
+.checkbox-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 20rpx;
+}
+
+.checkbox-item {
+	display: flex;
+	align-items: center;
+	padding: 20rpx 28rpx;
+	background: #ffffff;
+	border: 2rpx solid #e0e0e0;
+	border-radius: 10rpx;
+	transition: all 0.3s;
+	cursor: pointer;
+	min-width: 200rpx;
+}
+
+.checkbox-item:active {
+	transform: scale(0.98);
+}
+
+.checkbox-item.active {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border-color: transparent;
+}
+
+.checkbox-icon {
+	font-size: 32rpx;
+	margin-right: 12rpx;
+	color: #667eea;
+	min-width: 40rpx;
+}
+
+.checkbox-item.active .checkbox-icon {
+	color: #ffffff;
+}
+
+.checkbox-label {
+	flex: 1;
+	font-size: 28rpx;
+	color: #333333;
+}
+
+.checkbox-item.active .checkbox-label {
+	color: #ffffff;
 }
 
 .form-label-row {
@@ -961,28 +1218,6 @@ onBeforeUnmount(() => {
 .picker-arrow {
 	font-size: 20rpx;
 	color: #999999;
-}
-
-.tags-container {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 20rpx;
-}
-
-.tag-item {
-	padding: 16rpx 32rpx;
-	font-size: 28rpx;
-	color: #666666;
-	background: #ffffff;
-	border: 2rpx solid #e0e0e0;
-	border-radius: 8rpx;
-	transition: all 0.3s;
-}
-
-.tag-item.active {
-	color: #ffffff;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	border-color: transparent;
 }
 
 .form-textarea {

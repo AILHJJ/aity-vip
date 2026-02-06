@@ -212,6 +212,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import { getMessageDetailApi, markMessageAsReadApi, favoriteMessageApi, unfavoriteMessageApi, deleteMessageApi, pinMessageApi, unpinMessageApi } from '../../api/message'
 import { getDiscussionsApi } from '../../api/discussion'
