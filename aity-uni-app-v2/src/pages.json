@@ -8,6 +8,13 @@
 			}
 		},
 		{
+			"path": "pages/ai-advisor/ai-advisor",
+			"style": {
+				"navigationBarTitleText": "AI投顾",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/messages/messages",
 			"style": {
 				"navigationBarTitleText": "消息中心",
@@ -98,10 +105,10 @@
 				"selectedIconPath": "static/tabbar/discussion-active.png"
 			},
 			{
-				"pagePath": "pages/stats/stats",
-				"text": "数据分析",
-				"iconPath": "static/tabbar/stats.png",
-				"selectedIconPath": "static/tabbar/stats-active.png"
+				"pagePath": "pages/ai-advisor/ai-advisor",
+				"text": "AI投顾",
+				"iconPath": "static/tabbar/ai-advisor.png",
+				"selectedIconPath": "static/tabbar/ai-advisor-active.png"
 			},
 			{
 				"pagePath": "pages/profile/profile",
