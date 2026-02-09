@@ -47,7 +47,14 @@
       "Bash(npm run)",
       "Read(//d/your-mcp-proxy/问小达网页代码/3.0版本/tdx-wenda-ai/**)",
       "Bash(timeout:*)",
-      "Bash(npm run build:h5:*)"
+      "Bash(npm run build:h5:*)",
+      "Bash(test:*)",
+      "Bash(tree:*)",
+      "Bash(awk:*)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(head:*)",
+      "Bash(done:*)"
     ],
     "deny": [],
     "ask": []
