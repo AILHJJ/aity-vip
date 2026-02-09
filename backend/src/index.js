@@ -32,9 +32,17 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGIN
 // CORS配置
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || ALLOWED_ORIGINS.indexOf(origin) !== -1) {
+    // 微信小程序请求不带origin头，直接允许
+    // H5请求需要验证origin
+    if (!origin) {
+      // 没有origin头（微信小程序、移动应用等），允许访问
+      callback(null, true);
+    } else if (ALLOWED_ORIGINS.indexOf(origin) !== -1) {
+      // origin在白名单中，允许访问
       callback(null, true);
     } else {
+      // 其他情况，拒绝访问
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
