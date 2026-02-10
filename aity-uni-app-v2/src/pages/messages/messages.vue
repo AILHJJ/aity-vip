@@ -464,9 +464,6 @@ onMounted(async () => {
 	const now = new Date()
 	today.value = now.toISOString().split('T')[0]
 
-	// 加载用户信息
-	await loadUserInfo()
-
 	// 加载消息列表
 	await loadMessages()
 
