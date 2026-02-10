@@ -185,7 +185,8 @@ const basicFilters = ref({
 	timeRange: 'all', // all, today, week, month, custom
 	customStartDate: null,
 	customEndDate: null,
-	messageType: 'all' // 消息类型
+	messageType: 'all', // 消息类型
+	quickType: 'all' // 快捷筛选类型: all, today_opportunity, morning_focus, afternoon_focus, morning_comment, afternoon_comment
 })
 
 // 高级筛选条件（仅管理员）
@@ -217,6 +218,42 @@ const filteredMessages = computed(() => {
 		})
 	}
 	// trial、admin、super_admin 显示所有消息，不需要过滤
+
+	// ========== 快捷筛选（完全独立） ==========
+	if (basicFilters.value.quickType !== 'all') {
+		const now = dayjs()
+		const todayStart = now.startOf('day')
+
+		if (basicFilters.value.quickType === 'today_opportunity') {
+			// 今日机会：今天的早盘关注 + 尾盘关注
+			filtered = filtered.filter(msg => {
+				const msgDate = dayjs(msg.createdAt)
+				const isToday = msgDate.isAfter(todayStart)
+				const isOpportunity = msg.type === 'morning_focus' || msg.type === 'afternoon_focus'
+				return isToday && isOpportunity
+			})
+		} else if (basicFilters.value.quickType === 'morning_focus') {
+			// 早盘关注
+			filtered = filtered.filter(msg => {
+				return msg.type === 'morning_focus'
+			})
+		} else if (basicFilters.value.quickType === 'afternoon_focus') {
+			// 尾盘关注
+			filtered = filtered.filter(msg => {
+				return msg.type === 'afternoon_focus'
+			})
+		} else if (basicFilters.value.quickType === 'morning_comment') {
+			// 早盘点评
+			filtered = filtered.filter(msg => {
+				return msg.type === 'morning_comment'
+			})
+		} else if (basicFilters.value.quickType === 'afternoon_comment') {
+			// 尾盘点评
+			filtered = filtered.filter(msg => {
+				return msg.type === 'afternoon_comment'
+			})
+		}
+	}
 
 	// 推送范围筛选（仅管理员）
 	if (userStore.isAdmin && filters.value.pushScope && filters.value.pushScope !== 'all') {
@@ -316,7 +353,10 @@ const getDisplayTags = (tags) => {
 		}
 	} else {
 		// 管理员：显示所有标签（除了all_users）
-		for (const tag of tags) {
+		// 使用 Set 避免重复标签
+		const uniqueTags = [...new Set(tags)]
+
+		for (const tag of uniqueTags) {
 			// 跳过 all_users 标签
 			if (tag === MESSAGE_TAGS.ALL_USERS) {
 				continue
@@ -407,6 +447,38 @@ const updateUnreadCount = () => {
 	const unreadCount = getUnreadCount(allMessageIds)
 	userStore.setUnreadCount(unreadCount)
 }
+
+// ========== 页面生命周期 ==========
+
+// 页面加载时初始化
+onMounted(async () => {
+	// 检查登录状态
+	if (!userStore.isLoggedIn) {
+		uni.reLaunch({
+			url: '/pages/login/login'
+		})
+		return
+	}
+
+	// 设置今天的日期
+	const now = new Date()
+	today.value = now.toISOString().split('T')[0]
+
+	// 加载用户信息
+	await loadUserInfo()
+
+	// 加载消息列表
+	await loadMessages()
+
+	// 恢复筛选条件
+	loadFiltersFromStorage()
+
+	// 恢复搜索历史
+	searchHistory.value = getSearchHistory()
+
+	// 标记页面加载完成
+	userInfoLoaded.value = true
+})
 
 // 检查消息是否未读
 const isMessageUnread = (messageId) => {
@@ -537,6 +609,20 @@ onMounted(async () => {
 
 	loadMessages(true)
 })
+</script>
+
+<script>
+export default {
+	onShow() {
+		// 页面显示时刷新（用于从详情页或其他页面返回时自动刷新）
+		// 通过页面实例访问setup中的数据和方法
+		const pages = getCurrentPages()
+		const currentPage = pages[pages.length - 1]
+		if (currentPage.$vm.userInfoLoaded) {
+			currentPage.$vm.loadMessages(true)
+		}
+	}
+}
 </script>
 
 <style lang="scss" scoped>
