@@ -1,7 +1,7 @@
 /**
  * 讨论相关 API
  */
-import { get, post, put, del } from '../utils/request'
+import { get, post, put, del, requestWithRetry } from '../utils/request'
 
 /**
  * 获取讨论列表
@@ -33,8 +33,14 @@ export function getDiscussionDetailApi(id) {
  * @returns {Promise}
  */
 export function createDiscussionApi(data) {
-  // 小程序环境需要更长的超时时间（60秒）
-  return post('/discussions', data, { timeout: 60000 })
+  // 使用带重试的请求，90秒超时，最多重试1次
+  // 考虑慢速网络和服务器响应时间
+  return requestWithRetry({
+    url: '/discussions',
+    method: 'POST',
+    data,
+    timeout: 90000  // 从60秒增加到90秒
+  }, 1)
 }
 
 /**

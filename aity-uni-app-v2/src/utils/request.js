@@ -43,6 +43,43 @@ function getErrorMessage(error) {
 }
 
 /**
+ * 带重试的网络请求
+ * @param {Object} options 请求配置
+ * @param {Number} retryCount 重试次数（默认1次）
+ * @returns {Promise}
+ */
+export function requestWithRetry(options, retryCount = 1) {
+  return new Promise((resolve, reject) => {
+    let retries = 0
+    const maxRetries = retryCount
+
+    const attemptRequest = () => {
+      request(options)
+        .then(resolve)
+        .catch((err) => {
+          // 只对网络错误或超时进行重试
+          const shouldRetry =
+            retries < maxRetries &&
+            (err.errMsg?.includes('timeout') ||
+             err.errMsg?.includes('fail') ||
+             err.errMsg?.includes('network'))
+
+          if (shouldRetry) {
+            retries++
+            console.log(`请求重试 ${retries}/${maxRetries}:`, options.url)
+            // 延迟1秒后重试
+            setTimeout(attemptRequest, 1000)
+          } else {
+            reject(err)
+          }
+        })
+    }
+
+    attemptRequest()
+  })
+}
+
+/**
  * 发起网络请求
  * @param {Object} options 请求配置
  * @returns {Promise}
@@ -62,7 +99,9 @@ export function request(options) {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options.header
       },
-      timeout: options.timeout || 30000
+      // 增加超时时间到90秒，考虑慢速网络和服务器响应时间
+      // 小程序环境的网络请求可能比H5慢
+      timeout: options.timeout || 90000
     }
 
     // 开发环境打印请求信息
@@ -118,20 +157,29 @@ export function request(options) {
         // 开发环境打印错误信息
         if (process.env.NODE_ENV === 'development') {
           console.error('=== 请求失败 ===')
+          console.error('URL:', config.url)
+          console.error('Method:', config.method)
           console.error('Error:', err)
         }
 
-        // 请求失败
-        const errorMsg = err.errMsg?.includes('timeout')
-          ? ERROR_MESSAGES['timeout']
-          : ERROR_MESSAGES['Network Error']
+        // 请求失败 - 提供更详细的错误信息
+        let errorMsg = ERROR_MESSAGES['Network Error']
+        if (err.errMsg) {
+          if (err.errMsg.includes('timeout')) {
+            errorMsg = '请求超时，请检查网络后重试'
+          } else if (err.errMsg.includes('fail')) {
+            errorMsg = '网络连接失败，请检查网络设置'
+          } else if (err.errMsg.includes('request:fail')) {
+            errorMsg = '网络请求失败，请稍后重试'
+          }
+        }
 
-        uni.showToast({
-          title: errorMsg,
-          icon: 'none',
-          duration: 2000
+        // 不在这里显示toast，让调用方处理
+        reject({
+          ...err,
+          message: errorMsg,
+          isNetworkError: true
         })
-        reject(err)
       }
     })
   })

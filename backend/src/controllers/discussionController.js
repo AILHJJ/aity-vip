@@ -186,33 +186,77 @@ async function getDiscussionById(req, res) {
 
 // 创建讨论
 async function createDiscussion(req, res) {
+  const startTime = Date.now(); // 记录开始时间
+
   try {
     const { messageId, title, content, visibility = 'private' } = req.body;
     const userId = req.user.userId;
-    
-    // 获取用户信息
-    const user = await User.findByPk(userId);
-    if (!user) {
-      return res.status(404).json(notFound('User not found'));
-    }
-    
-    // 检查消息是否存在
-    const message = await Message.findByPk(messageId);
-    if (!message) {
-      return res.status(404).json(notFound('Message not found'));
-    }
-    
-    // 创建讨论 - 默认可见性为私密，状态为待回复
-    const discussion = await Discussion.create({
-      messageId,
-      userId,
-      userName: user.name,
-      title,
-      content,
-      visibility,
-      status: 'pending' // 默认状态为待回复
+
+    console.log(`[创建讨论] 开始处理 - 用户ID: ${userId}, 消息ID: ${messageId}, 标题: ${title}`);
+
+    // 设置请求超时时间（总体90秒）
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('请求超时')), 90000);
     });
-    
+
+    // 异步执行数据库操作
+    const dbOperation = async () => {
+      // 获取用户信息（添加超时）
+      const user = await Promise.race([
+        User.findByPk(userId, {
+          attributes: ['id', 'name', 'avatar', 'role', 'groupId']
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('用户查询超时')), 10000)
+        )
+      ]);
+
+      if (!user) {
+        console.warn(`[创建讨论] 用户不存在 - 用户ID: ${userId}, 耗时: ${Date.now() - startTime}ms`);
+        throw new Error('User not found');
+      }
+      console.log(`[创建讨论] 用户查询完成 - 用户: ${user.name}, 耗时: ${Date.now() - startTime}ms`);
+
+      // 检查消息是否存在（添加超时）
+      const message = await Promise.race([
+        Message.findByPk(messageId, {
+          attributes: ['id', 'title', 'type', 'status']
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('消息查询超时')), 10000)
+        )
+      ]);
+
+      if (!message) {
+        console.warn(`[创建讨论] 消息不存在 - 消息ID: ${messageId}, 耗时: ${Date.now() - startTime}ms`);
+        throw new Error('Message not found');
+      }
+      console.log(`[创建讨论] 消息查询完成 - 消息: ${message.title}, 耗时: ${Date.now() - startTime}ms`);
+
+      // 创建讨论 - 默认可见性为私密，状态为待回复（添加超时）
+      const discussion = await Promise.race([
+        Discussion.create({
+          messageId,
+          userId,
+          userName: user.name,
+          title,
+          content,
+          visibility,
+          status: 'pending' // 默认状态为待回复
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('创建讨论超时')), 10000)
+        )
+      ]);
+
+      console.log(`[创建讨论] 创建完成 - 讨论ID: ${discussion.id}, 总耗时: ${Date.now() - startTime}ms`);
+
+      return { user, discussion };
+    };
+
+    // 执行操作或超时
+    const { user, discussion } = await Promise.race([dbOperation(), timeoutPromise]);
+
     const discussionData = {
       ...discussion.toJSON(),
       replies: [],
@@ -220,10 +264,25 @@ async function createDiscussion(req, res) {
       user_name: user.name,
       user_avatar: user.avatar
     };
-    
+
     res.status(201).json(success(discussionData, 'Discussion created successfully'));
   } catch (err) {
-    console.error(err);
+    const elapsed = Date.now() - startTime;
+    console.error(`[创建讨论] 错误 - 耗时: ${elapsed}ms`, err.message);
+
+    // 根据错误类型返回不同的响应
+    if (err.message === '请求超时' || err.message.includes('超时')) {
+      return res.status(504).json(error('操作超时，请稍后重试', 504));
+    }
+
+    if (err.message === 'User not found') {
+      return res.status(404).json(notFound('User not found'));
+    }
+
+    if (err.message === 'Message not found') {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
     res.status(500).json(error('Server error'));
   }
 }

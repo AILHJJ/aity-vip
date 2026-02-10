@@ -155,7 +155,7 @@ const handleSubmit = async () => {
 	submitting.value = true
 	submitTimeout.value = false
 
-	// 设置超时提示定时器（45秒后显示提示）
+	// 设置超时提示定时器（30秒后显示提示）
 	const timeoutTimer = setTimeout(() => {
 		if (submitting.value) {
 			submitTimeout.value = true
@@ -164,7 +164,7 @@ const handleSubmit = async () => {
 				mask: true
 			})
 		}
-	}, 45000)
+	}, 30000)  // 从45秒改为30秒
 
 	try {
 		// 获取关联消息的标题作为讨论标题
@@ -227,13 +227,24 @@ const handleSubmit = async () => {
 		}
 
 		console.error('创建讨论失败:', error)
+		console.error('错误详情:', JSON.stringify(error))
+		console.error('错误对象完整信息:', {
+			message: error.message,
+			errMsg: error.errMsg,
+			code: error.code,
+			errno: error.errno
+		})
 
-		// 判断错误类型
+		// 判断错误类型，提供更详细的信息
 		let errorMsg = '创建失败，请重试'
-		if (error.message && error.message.includes('timeout')) {
-			errorMsg = '请求超时，请检查网络连接后重试'
-		} else if (error.message && error.message.includes('Network')) {
+		if (error.errMsg && error.errMsg.includes('timeout')) {
+			errorMsg = '请求超时，可能是网络较慢或服务器繁忙，请稍后重试'
+		} else if (error.errMsg && error.errMsg.includes('Network')) {
 			errorMsg = '网络连接失败，请检查网络设置'
+		} else if (error.message && error.message.includes('timeout')) {
+			errorMsg = '请求超时，请稍后重试'
+		} else if (error.message) {
+			errorMsg = `创建失败: ${error.message}`
 		}
 
 		uni.showToast({
