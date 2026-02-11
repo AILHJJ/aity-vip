@@ -98,12 +98,26 @@ async function getDiscussions(req, res) {
           attributes: ['name', 'avatar']
         });
 
+        const discussionData = discussion.toJSON();
+
+        // 使用第一条回复的内容作为标题（如果没有回复则显示原讨论内容）
+        const firstReply = replies.length > 0 ? replies[0] : null;
+        const displayTitle = firstReply ? firstReply.content : discussionData.content;
+
         return {
-          ...discussion.toJSON(),
-          replies,
-          replies_count: replies.length,
-          user_name: sender?.name,
-          user_avatar: sender?.avatar
+          id: discussionData.id,
+          title: displayTitle, // 使用回复内容作为标题
+          content: discussionData.content, // 原始讨论内容
+          userName: sender?.name || '匿名用户', // 驼峰命名
+          userAvatar: sender?.avatar,
+          status: discussionData.status,
+          visibility: discussionData.visibility,
+          replyCount: replies.length, // 驼峰命名
+          createdAt: discussionData.createdAt,
+          updatedAt: discussionData.updatedAt,
+          messageId: discussionData.messageId,
+          userId: discussionData.userId,
+          replies // 完整的回复列表
         };
       })
     );
