@@ -201,15 +201,17 @@ const handleSubmit = async () => {
 		}
 
 		if (res.success) {
+			// 显示成功提示
 			uni.showToast({
-				title: '创建成功',
+				title: '讨论创建成功',
 				icon: 'success',
-				duration: 2000
+				duration: 1500
 			})
 
+			// 立即返回上一页,用户体验更流畅
 			setTimeout(() => {
 				uni.navigateBack()
-			}, 1500)
+			}, 1000)
 		} else {
 			uni.showToast({
 				title: res.message || '创建失败',
