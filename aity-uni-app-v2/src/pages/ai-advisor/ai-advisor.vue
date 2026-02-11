@@ -1,22 +1,18 @@
 <template>
 	<view class="ai-advisor-container">
-		<!-- 顶部操作栏 -->
+		<!-- 极简顶部栏 -->
 		<view class="header">
-			<view class="header-title-section">
+			<view class="header-left">
 				<text class="header-title">图灵</text>
-				<text class="header-subtitle">深度思考</text>
+				<text class="header-divider">|</text>
+				<text class="header-subtitle">智能金融</text>
 			</view>
 			<view class="header-actions">
-				<view class="action-button" @click="handleNewSession">
-					<text class="action-icon">🔄</text>
-					<text class="action-text">新会话</text>
+				<view class="icon-btn" :class="{ active: thinkMode }" @click="toggleThinkMode">
+					<text class="icon-btn-text">🧠</text>
 				</view>
-				<view class="action-button think-toggle" :class="{ active: thinkMode }" @click="toggleThinkMode">
-					<text class="action-icon">🧠</text>
-					<text class="action-text">深度思考</text>
-				</view>
-				<view v-if="isAdmin" class="admin-toggle" @click="toggleToolVisibility">
-					<text class="toggle-text">{{ showTools ? '隐藏工具' : '显示工具' }}</text>
+				<view class="icon-btn" @click="handleNewSession">
+					<text class="icon-btn-text">🔄</text>
 				</view>
 			</view>
 		</view>
@@ -45,38 +41,13 @@
 		>
 			<!-- 欢迎消息 -->
 			<view v-if="messages.length === 0" class="welcome-container">
-				<view class="welcome-icon">🤖</view>
-				<view class="welcome-title">我是图灵</view>
-				<view class="welcome-subtitle">专注于投资问答的AI助手</view>
-
-				<!-- 功能卡片 -->
-				<view class="feature-cards">
-					<view class="feature-card" @click="quickAction('diagnose')">
-						<text class="feature-icon">📊</text>
-						<text class="feature-name">诊股</text>
-					</view>
-					<view class="feature-card" @click="quickAction('select')">
-						<text class="feature-icon">📈</text>
-						<text class="feature-name">选股</text>
-					</view>
-					<view class="feature-card" @click="quickAction('news')">
-						<text class="feature-icon">📰</text>
-						<text class="feature-name">查资讯</text>
-					</view>
+				<view class="welcome-icon-wrapper">
+					<view class="welcome-icon-bg"></view>
+					<text class="welcome-icon">✦</text>
 				</view>
-
-				<!-- 快捷问题 (横向) -->
-				<view class="quick-questions-horizontal">
-					<view class="quick-q" @click="sendQuickQuestion('今日市场行情如何?')">
-						今日市场行情
-					</view>
-					<view class="quick-q" @click="sendQuickQuestion('帮我筛选科技板块龙头股')">
-						筛选科技股
-					</view>
-					<view class="quick-q" @click="sendQuickQuestion('分析一下当前市场走势')">
-						市场分析
-					</view>
-				</view>
+				<view class="welcome-title">图灵</view>
+				<view class="welcome-subtitle">智能金融助手</view>
+				<view class="welcome-hint">开始提问，探索AI金融</view>
 			</view>
 
 			<!-- 消息列表 -->
@@ -98,15 +69,6 @@
 					<view class="ai-message">
 						<view class="message-avatar">🤖</view>
 						<view class="message-content">
-							<!-- 工具调用展示（管理员可见） -->
-							<view v-if="showTools && message.toolCalls && message.toolCalls.length > 0" class="tool-calls">
-								<view class="tool-title">🔧 工具调用：</view>
-								<view v-for="(tool, idx) in message.toolCalls" :key="idx" class="tool-item">
-									<text class="tool-name">{{ tool.function?.name || '未知工具' }}</text>
-									<text class="tool-args">{{ tool.function?.arguments || '' }}</text>
-								</view>
-							</view>
-
 							<!-- 推理过程（深度思考） -->
 							<view v-if="message.reasoning" class="reasoning-content">
 								<view class="reasoning-title">💭 思考过程：</view>
@@ -135,33 +97,22 @@
 						</view>
 					</view>
 
-					<!-- 时间戳 -->
-					<view class="message-time">{{ formatTime(message.timestamp) }}</view>
+					<!-- 风险提示 + 时间戳 + 刷新按钮 -->
+					<view class="message-footer" v-if="!message.isStreaming">
+						<view class="risk-tip">
+							<text class="risk-icon">⚠️</text>
+							<text class="risk-text">仅供参考，不构成投资建议</text>
+						</view>
+						<view class="message-actions">
+							<text class="message-time">{{ formatTime(message.timestamp) }}</text>
+							<view class="refresh-btn" @click="handleRefreshMessage(index)">
+								<text class="refresh-icon">🔄</text>
+							</view>
+						</view>
+					</view>
 				</view>
 			</view>
 		</scroll-view>
-
-		<!-- 工具栏 -->
-		<view class="toolbar-container">
-			<view class="toolbar">
-				<view class="tool-item" @click="toggleTool('market')">
-					<text class="tool-icon">📊</text>
-					<text class="tool-text">行情</text>
-				</view>
-				<view class="tool-item" @click="toggleTool('stock')">
-					<text class="tool-icon">📈</text>
-					<text class="tool-text">选股</text>
-				</view>
-				<view class="tool-item" @click="toggleThinkMode">
-					<text class="tool-icon">🧠</text>
-					<text class="tool-text" :class="{ active: thinkMode }">深度</text>
-				</view>
-				<view class="tool-item" @click="handleClearHistory">
-					<text class="tool-icon">📋</text>
-					<text class="tool-text">历史</text>
-				</view>
-			</view>
-		</view>
 
 		<!-- 输入区域 -->
 		<view class="input-container">
@@ -185,18 +136,9 @@
 					:disabled="!inputText.trim() || isLoading"
 					@click="handleSend"
 				>
-					<text v-if="!isLoading" class="send-icon">▶</text>
+					<text v-if="!isLoading" class="send-icon">↑</text>
 					<view v-else class="loading-spinner"></view>
 				</button>
-			</view>
-		</view>
-
-		<!-- 免责声明 (底部折叠) -->
-		<view class="disclaimer-footer" v-if="!disclaimerAccepted">
-			<view class="disclaimer-content" @click="showDisclaimerModal = true">
-				<text class="disclaimer-icon">⚠️</text>
-				<text class="disclaimer-text">本服务仅供参考,不构成投资建议</text>
-				<text class="disclaimer-more">查看详情 ></text>
 			</view>
 		</view>
 
@@ -229,7 +171,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { sendAIMessage } from '@/api/ai-advisor'
 import { getChatHistory, saveChatHistory, saveThreadId, clearChatHistory, getThinkMode, setThinkMode } from '@/utils/ai-advisor-config'
 import { MarkdownRenderer, FinancialTableParser } from '@/utils/markdown-renderer'
@@ -240,21 +182,12 @@ const inputText = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
 const scrollIntoView = ref('')
-const abortController = ref(null)
-const currentToolCalls = ref([]) // 当前消息的工具调用
-const currentReasoning = ref('') // 当前消息的推理过程
-const isFinancialQuery = ref(false) // 是否是金融查询工具
+const currentToolCalls = ref([])
+const currentReasoning = ref('')
+const isFinancialQuery = ref(false)
 
 // 深度思考模式状态
 const thinkMode = ref(false)
-
-// 管理员设置
-const showTools = ref(false) // 是否显示工具调用
-const isAdmin = computed(() => {
-	// 从用户信息中判断是否是管理员
-	const userInfo = uni.getStorageSync('userInfo')
-	return userInfo && (userInfo.role === 'super_admin' || userInfo.role === 'admin')
-})
 
 // 行情数据
 const marketData = ref([])
@@ -263,12 +196,6 @@ let marketRefreshTimer = null
 // 免责声明
 const disclaimerAccepted = ref(false)
 const showDisclaimerModal = ref(false)
-
-// 切换工具显示
-function toggleToolVisibility() {
-	showTools.value = !showTools.value
-	uni.setStorageSync('ai_show_tools', showTools.value)
-}
 
 // 切换深度思考模式
 function toggleThinkMode() {
@@ -279,41 +206,19 @@ function toggleThinkMode() {
 
 // 新会话功能
 function handleNewSession() {
-	uni.showModal({
-		title: '确认新会话',
-		content: '确定要开始新会话吗？当前对话将被清空。',
-		success: (res) => {
-			if (res.confirm) {
-				messages.value = []
-				clearChatHistory()
-				errorMessage.value = ''
-				thinkMode.value = getThinkMode() // 重置为保存的思考模式
-			}
-		}
-	})
-}
-
-// 切换工具栏功能
-function toggleTool(type) {
-	const prompts = {
-		market: '今日大盘行情如何?',
-		stock: '帮我筛选市盈率小于20的科技股'
-	}
-	if (prompts[type]) {
-		inputText.value = prompts[type]
-		handleSend()
-	}
+	messages.value = []
+	clearChatHistory()
+	errorMessage.value = ''
+	thinkMode.value = getThinkMode()
 }
 
 // 加载行情数据
 async function loadMarketData() {
 	try {
-		// 调用后端代理接口(避免跨域)
 		const res = await uni.request({
 			url: 'https://aity88.online:8443/api/market/ticker',
 			method: 'GET'
 		})
-
 		if (res.data.code === 200) {
 			marketData.value = res.data.data
 		}
@@ -338,7 +243,7 @@ function getChangeClass(value) {
 	return 'neutral'
 }
 
-// 渲染Markdown - 使用增强的渲染器
+// 渲染Markdown
 function renderMarkdown(content) {
 	return MarkdownRenderer.render(content)
 }
@@ -402,7 +307,6 @@ function completeAIMessage() {
 	const lastMessage = messages.value[messages.value.length - 1]
 	if (lastMessage && lastMessage.role === 'ai') {
 		lastMessage.isStreaming = false
-		// 保存threadId（如果有）
 		saveChatHistory(messages.value)
 	}
 }
@@ -412,44 +316,30 @@ async function handleSend() {
 	const content = inputText.value.trim()
 	if (!content || isLoading.value) return
 
-	// 清空输入
 	inputText.value = ''
-
-	// 添加用户消息
 	addUserMessage(content)
-
-	// 添加AI占位消息
 	addAIMessagePlaceholder()
-
-	// 设置加载状态
 	isLoading.value = true
 	errorMessage.value = ''
 
 	try {
-		// 发送到AI
-		const cancel = sendAIMessage(
+		sendAIMessage(
 			content,
-			// onMessage - 接收流式数据
 			(data) => {
 				const lastMessage = messages.value[messages.value.length - 1]
 
 				if (data.type === 'content') {
-					// 更新内容
 					updateAIMessage(data.fullContent)
 				} else if (data.type === 'reasoning') {
-					// 更新推理过程
 					currentReasoning.value = data.fullReasoning
 					if (lastMessage) {
 						lastMessage.reasoning = data.fullReasoning
 					}
 				} else if (data.type === 'tool_calls') {
-					// 更新工具调用
 					if (data.tool_calls && data.tool_calls.length > 0) {
 						currentToolCalls.value.push(...data.tool_calls)
 						if (lastMessage) {
 							lastMessage.toolCalls = [...currentToolCalls.value]
-
-							// 检查是否是金融选股工具
 							const hasFinancialTool = data.tool_calls.some(tool =>
 								tool.function?.name === '金融选股'
 							)
@@ -461,24 +351,18 @@ async function handleSend() {
 					}
 				}
 			},
-			// onError - 错误处理
 			(error) => {
 				console.error('AI请求失败:', error)
 				errorMessage.value = '请求失败，请稍后重试'
 				completeAIMessage()
 				isLoading.value = false
 			},
-			// onComplete - 完成处理
 			(result) => {
 				console.log('AI回复完成:', result)
 				completeAIMessage()
 				isLoading.value = false
 			}
 		)
-
-		// 保存取消函数
-		abortController.value = cancel
-
 	} catch (error) {
 		console.error('发送消息失败:', error)
 		errorMessage.value = '发送失败，请重试'
@@ -486,43 +370,20 @@ async function handleSend() {
 	}
 }
 
-// 快捷操作
-function quickAction(type) {
-	const prompts = {
-		diagnose: '帮我分析一下贵州茅台的投资价值',
-		select: '帮我筛选市盈率小于20的科技股',
-		news: '今天有什么重要的财经新闻?'
-	}
-	inputText.value = prompts[type]
-	handleSend()
-}
-
-// 发送快捷问题
-function sendQuickQuestion(question) {
-	inputText.value = question
-	handleSend()
-}
-
-// 清空对话历史
-function handleClearHistory() {
-	uni.showModal({
-		title: '确认清空',
-		content: '确定要清空所有对话记录吗？',
-		success: (res) => {
-			if (res.confirm) {
-				messages.value = []
-				clearChatHistory()
-				errorMessage.value = ''
-			}
-		}
-	})
-}
-
 // 接受免责声明
 function handleAcceptDisclaimer() {
 	disclaimerAccepted.value = true
 	showDisclaimerModal.value = false
 	uni.setStorageSync('disclaimer_accepted', true)
+}
+
+// 刷新单条消息
+function handleRefreshMessage(index) {
+	// TODO: 实现重新生成该条消息的功能
+	uni.showToast({
+		title: '重新生成中...',
+		icon: 'none'
+	})
 }
 
 // 滚动到底部
@@ -536,7 +397,6 @@ function scrollToBottom() {
 
 // 页面加载
 onMounted(() => {
-	// 检查是否已接受免责声明
 	const accepted = uni.getStorageSync('disclaimer_accepted')
 	if (!accepted) {
 		showDisclaimerModal.value = true
@@ -544,13 +404,9 @@ onMounted(() => {
 		disclaimerAccepted.value = true
 	}
 
-	// 加载行情数据
 	loadMarketData()
-
-	// 每30秒刷新行情
 	marketRefreshTimer = setInterval(loadMarketData, 30000)
 
-	// 加载历史对话
 	const history = getChatHistory()
 	if (history && history.length > 0) {
 		messages.value = history
@@ -559,13 +415,6 @@ onMounted(() => {
 		})
 	}
 
-	// 加载管理员设置
-	const savedShowTools = uni.getStorageSync('ai_show_tools')
-	if (savedShowTools !== null) {
-		showTools.value = savedShowTools
-	}
-
-	// 加载深度思考模式状态
 	thinkMode.value = getThinkMode()
 })
 
@@ -582,38 +431,45 @@ onUnmounted(() => {
 	display: flex;
 	flex-direction: column;
 	height: 100vh;
-	background: #f5f5f5;
-	padding-bottom: 0;
+	background: #fafafa;
 }
 
-/* 顶部操作栏 */
+/* 极简顶部栏 */
 .header {
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	padding: 30rpx 20rpx;
-	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.2);
+	background: #ffffff;
+	padding: 24rpx 32rpx;
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	border-bottom: 1rpx solid #f0f0f0;
+	position: relative;
 }
 
-.header-title-section {
-	flex: 1;
+.header-left {
 	display: flex;
-	flex-direction: column;
+	align-items: center;
+	gap: 12rpx;
 }
 
 .header-title {
-	display: block;
 	font-size: 40rpx;
 	font-weight: bold;
-	color: #ffffff;
-	margin-bottom: 8rpx;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+}
+
+.header-divider {
+	font-size: 28rpx;
+	color: #e0e0e0;
+	font-weight: 300;
 }
 
 .header-subtitle {
-	display: block;
-	font-size: 24rpx;
-	color: rgba(255, 255, 255, 0.8);
+	font-size: 26rpx;
+	color: #999999;
+	font-weight: 400;
 }
 
 .header-actions {
@@ -622,57 +478,29 @@ onUnmounted(() => {
 	gap: 16rpx;
 }
 
-.action-button {
+.icon-btn {
+	width: 64rpx;
+	height: 64rpx;
 	display: flex;
 	align-items: center;
-	gap: 8rpx;
-	padding: 12rpx 20rpx;
-	background: rgba(255, 255, 255, 0.15);
-	border-radius: 20rpx;
-	backdrop-filter: blur(10rpx);
-	border: 1rpx solid rgba(255, 255, 255, 0.2);
-	transition: all 0.3s ease;
+	justify-content: center;
+	background: #f8f9fa;
+	border-radius: 16rpx;
+	transition: all 0.2s ease;
 }
 
-.action-button:active {
-	background: rgba(255, 255, 255, 0.25);
-	transform: scale(0.95);
+.icon-btn:active {
+	transform: scale(0.92);
+	background: #f0f2ff;
 }
 
-.action-icon {
-	font-size: 24rpx;
+.icon-btn.active {
+	background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+	border: 2rpx solid rgba(102, 126, 234, 0.3);
 }
 
-.action-text {
-	font-size: 24rpx;
-	color: #ffffff;
-	font-weight: 500;
-}
-
-.think-toggle {
-	background: rgba(255, 255, 255, 0.2);
-	border-color: rgba(255, 255, 255, 0.3);
-}
-
-.think-toggle.active {
-	background: rgba(255, 255, 255, 0.3);
-	border-color: rgba(255, 255, 255, 0.5);
-}
-
-/* 管理员开关 */
-.admin-toggle {
-	display: flex;
-	align-items: center;
-	gap: 16rpx;
-	padding: 12rpx 20rpx;
-	background: rgba(255, 255, 255, 0.15);
-	border-radius: 20rpx;
-	border: 1rpx solid rgba(255, 255, 255, 0.2);
-}
-
-.toggle-text {
-	font-size: 24rpx;
-	color: #ffffff;
+.icon-btn-text {
+	font-size: 32rpx;
 }
 
 /* 行情指数条 */
@@ -738,18 +566,53 @@ onUnmounted(() => {
 	overflow-y: auto;
 }
 
-/* 欢迎区域 */
+/* 欢迎区域 - 极简设计 */
 .welcome-container {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	padding: 80rpx 40rpx 60rpx;
+	padding: 120rpx 40rpx 80rpx;
+}
+
+.welcome-icon-wrapper {
+	position: relative;
+	width: 140rpx;
+	height: 140rpx;
+	margin-bottom: 48rpx;
+}
+
+.welcome-icon-bg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border-radius: 50%;
+	opacity: 0.08;
+	animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+	0%, 100% {
+		transform: scale(1);
+		opacity: 0.08;
+	}
+	50% {
+		transform: scale(1.08);
+		opacity: 0.12;
+	}
 }
 
 .welcome-icon {
-	font-size: 120rpx;
-	margin-bottom: 30rpx;
-	animation: float 3s ease-in-out infinite;
+	position: relative;
+	font-size: 64rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	color: #667eea;
+	animation: float 4s ease-in-out infinite;
 }
 
 @keyframes float {
@@ -757,80 +620,30 @@ onUnmounted(() => {
 		transform: translateY(0);
 	}
 	50% {
-		transform: translateY(-20rpx);
+		transform: translateY(-8rpx);
 	}
 }
 
 .welcome-title {
-	font-size: 40rpx;
-	font-weight: bold;
+	font-size: 48rpx;
+	font-weight: 600;
 	color: #333333;
-	margin-bottom: 16rpx;
+	margin-bottom: 12rpx;
+	letter-spacing: 2rpx;
 }
 
 .welcome-subtitle {
-	font-size: 28rpx;
-	color: #666666;
+	font-size: 26rpx;
+	color: #999999;
 	margin-bottom: 60rpx;
+	font-weight: 300;
 }
 
-/* 功能卡片 */
-.feature-cards {
-	display: flex;
-	gap: 20rpx;
-	margin-bottom: 50rpx;
-	width: 100%;
-}
-
-.feature-card {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 16rpx;
-	padding: 32rpx 20rpx;
-	background: #ffffff;
-	border-radius: 16rpx;
-	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
-	transition: all 0.3s;
-}
-
-.feature-card:active {
-	transform: translateY(-4rpx);
-	box-shadow: 0 8rpx 20rpx rgba(102, 126, 234, 0.3);
-}
-
-.feature-icon {
-	font-size: 48rpx;
-}
-
-.feature-name {
-	font-size: 26rpx;
-	color: #333333;
-	font-weight: 500;
-}
-
-/* 快捷问题(横向) */
-.quick-questions-horizontal {
-	display: flex;
-	gap: 16rpx;
-	flex-wrap: wrap;
-	justify-content: center;
-	width: 100%;
-}
-
-.quick-q {
-	padding: 16rpx 32rpx;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	color: #ffffff;
-	border-radius: 24rpx;
-	font-size: 26rpx;
-	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
-	transition: all 0.3s;
-}
-
-.quick-q:active {
-	transform: scale(0.95);
+.welcome-hint {
+	font-size: 24rpx;
+	color: #cccccc;
+	font-weight: 300;
+	letter-spacing: 1rpx;
 }
 
 /* 消息项 */
@@ -855,24 +668,26 @@ onUnmounted(() => {
 	display: flex;
 	flex-direction: row-reverse;
 	align-items: flex-start;
+	justify-content: flex-end;
 }
 
 .user-message .message-content {
-	max-width: 70%;
-	padding: 24rpx 32rpx;
+	max-width: 75%;
+	padding: 20rpx 28rpx;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	color: #ffffff;
-	border-radius: 24rpx 24rpx 4rpx 24rpx;
+	border-radius: 20rpx 20rpx 4rpx 20rpx;
 	font-size: 30rpx;
 	line-height: 1.6;
 	word-wrap: break-word;
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.15);
 }
 
 .user-message .message-avatar {
-	width: 72rpx;
-	height: 72rpx;
-	margin-left: 20rpx;
-	font-size: 48rpx;
+	width: 64rpx;
+	height: 64rpx;
+	margin-left: 16rpx;
+	font-size: 36rpx;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -894,67 +709,30 @@ onUnmounted(() => {
 }
 
 .ai-message .message-avatar {
-	width: 72rpx;
-	height: 72rpx;
-	margin-right: 20rpx;
-	font-size: 48rpx;
+	width: 64rpx;
+	height: 64rpx;
+	margin-right: 16rpx;
+	font-size: 36rpx;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	border-radius: 50%;
 	flex-shrink: 0;
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.2);
 }
 
 .ai-message .message-content {
-	max-width: 70%;
-	padding: 24rpx 32rpx;
+	flex: 1;
+	max-width: 75%;
+	padding: 20rpx 28rpx;
 	background: #ffffff;
-	border-radius: 24rpx 24rpx 24rpx 4rpx;
+	border-radius: 20rpx 20rpx 20rpx 4rpx;
 	font-size: 30rpx;
-	line-height: 1.6;
+	line-height: 1.7;
 	word-wrap: break-word;
-	box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
-}
-
-/* 工具调用 */
-.tool-calls {
-	padding: 16rpx;
-	background: #f0f2ff;
-	border-radius: 8rpx;
-	margin-bottom: 16rpx;
-	border: 1rpx solid #d0d7ff;
-}
-
-.tool-title {
-	font-size: 24rpx;
-	font-weight: bold;
-	color: #667eea;
-	margin-bottom: 12rpx;
-}
-
-.tool-item {
-	padding: 12rpx;
-	background: #ffffff;
-	border-radius: 6rpx;
-	margin-bottom: 8rpx;
-	border-left: 3rpx solid #667eea;
-}
-
-.tool-name {
-	display: block;
-	font-size: 26rpx;
-	font-weight: bold;
-	color: #333333;
-	margin-bottom: 6rpx;
-}
-
-.tool-args {
-	display: block;
-	font-size: 24rpx;
-	color: #666666;
-	font-family: monospace;
-	word-break: break-all;
+	box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+	border: 1rpx solid #f5f5f5;
 }
 
 /* 推理过程 */
@@ -980,7 +758,7 @@ onUnmounted(() => {
 	white-space: pre-wrap;
 }
 
-/* Markdown内容 - 增强样式 */
+/* Markdown内容 - ChatGPT风格 */
 .content-area {
 	word-break: break-word;
 	line-height: 1.8;
@@ -994,24 +772,27 @@ onUnmounted(() => {
 .markdown-content ::v-deep h6 {
 	font-weight: 600;
 	line-height: 1.4;
-	margin: 24rpx 0 16rpx;
-	color: #333333;
+	margin: 32rpx 0 16rpx;
+	color: #1a1a1a;
 }
 
 .markdown-content ::v-deep h1 {
 	font-size: 40rpx;
-	border-bottom: 2rpx solid #e0e0e0;
-	padding-bottom: 12rpx;
+	border-bottom: 1rpx solid #e5e5e5;
+	padding-bottom: 16rpx;
+	margin-top: 48rpx;
 }
 
 .markdown-content ::v-deep h2 {
 	font-size: 36rpx;
-	border-bottom: 1rpx solid #e0e0e0;
-	padding-bottom: 8rpx;
+	border-bottom: 1rpx solid #f0f0f0;
+	padding-bottom: 12rpx;
+	margin-top: 40rpx;
 }
 
 .markdown-content ::v-deep h3 {
 	font-size: 32rpx;
+	margin-top: 32rpx;
 }
 
 .markdown-content ::v-deep h4 {
@@ -1027,11 +808,16 @@ onUnmounted(() => {
 	color: #666666;
 }
 
+.markdown-content ::v-deep p {
+	margin: 16rpx 0;
+	line-height: 1.8;
+}
+
 .markdown-content ::v-deep table {
 	width: 100%;
 	border-collapse: collapse;
 	margin: 24rpx 0;
-	border: 1rpx solid #e0e0e0;
+	border: 1rpx solid #e5e5e5;
 	border-radius: 8rpx;
 	overflow: hidden;
 }
@@ -1040,80 +826,78 @@ onUnmounted(() => {
 	width: 100%;
 	border-collapse: collapse;
 	margin: 24rpx 0;
-	border: 1rpx solid #e0e0e0;
+	border: 1rpx solid #e5e5e5;
 	border-radius: 8rpx;
 	overflow: hidden;
 }
 
 .markdown-content ::v-deep td,
 .markdown-content ::v-deep th {
-	border: 1rpx solid #e0e0e0;
+	border: 1rpx solid #e5e5e5;
 	padding: 12rpx 16rpx;
 	text-align: left;
 }
 
 .markdown-content ::v-deep th {
-	background: linear-gradient(to bottom, #f8f9fa, #f5f5f5);
+	background: #f8f9fa;
 	font-weight: 600;
-	color: #333333;
+	color: #1a1a1a;
 }
 
 .markdown-content ::v-deep tr:nth-child(even) {
-	background: #fafafa;
+	background: #fafbfc;
 }
 
 .markdown-content ::v-deep tr:hover {
-	background: #f0f2ff;
+	background: #f0f7ff;
 }
 
 .markdown-content ::v-deep pre {
-	background: #f6f8fa;
-	padding: 20rpx;
+	background: #1e1e1e;
+	padding: 24rpx;
 	border-radius: 8rpx;
 	overflow-x: auto;
-	margin: 16rpx 0;
-	border: 1rpx solid #e1e4e8;
+	margin: 20rpx 0;
 }
 
 .markdown-content ::v-deep .code-block {
-	background: #282c34;
-	color: #abb2bf;
-	padding: 20rpx;
+	background: #1e1e1e;
+	color: #d4d4d4;
+	padding: 24rpx;
 	border-radius: 8rpx;
 	overflow-x: auto;
-	margin: 16rpx 0;
-	font-family: 'Consolas', 'Monaco', monospace;
+	margin: 20rpx 0;
+	font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 	font-size: 26rpx;
 	line-height: 1.6;
 }
 
 .markdown-content ::v-deep .inline-code {
-	background: #f6f8fa;
+	background: #f0f0f0;
 	color: #e83e8c;
-	padding: 4rpx 8rpx;
-	border-radius: 4rpx;
+	padding: 4rpx 10rpx;
+	border-radius: 6rpx;
 	font-family: 'Consolas', 'Monaco', monospace;
 	font-size: 28rpx;
-	border: 1rpx solid #e1e4e8;
 }
 
 .markdown-content ::v-deep code {
-	background: #f6f8fa;
-	padding: 4rpx 8rpx;
-	border-radius: 4rpx;
-	font-family: monospace;
+	background: #f0f0f0;
+	padding: 4rpx 10rpx;
+	border-radius: 6rpx;
+	font-family: 'Consolas', 'Monaco', monospace;
 	font-size: 28rpx;
 	color: #e83e8c;
 }
 
-.markdown-content ::v-deed strong {
+.markdown-content ::v-deep strong {
 	font-weight: 600;
-	color: #333333;
+	color: #1a1a1a;
 }
 
 .markdown-content ::v-deep em {
 	font-style: italic;
-	color: #555555;
+	color: #4a4a4a;
 }
 
 .markdown-content ::v-deep del {
@@ -1122,12 +906,11 @@ onUnmounted(() => {
 }
 
 .markdown-content ::v-deep blockquote {
-	margin: 16rpx 0;
+	margin: 20rpx 0;
 	padding: 16rpx 20rpx;
-	background: #f0f2ff;
+	background: #f8f9fa;
 	border-left: 4rpx solid #667eea;
-	color: #555555;
-	font-style: italic;
+	color: #4a4a4a;
 }
 
 .markdown-content ::v-deep ul,
@@ -1138,7 +921,7 @@ onUnmounted(() => {
 
 .markdown-content ::v-deep li {
 	margin: 8rpx 0;
-	line-height: 1.6;
+	line-height: 1.8;
 }
 
 .markdown-content ::v-deep .list-item,
@@ -1150,12 +933,12 @@ onUnmounted(() => {
 .markdown-content ::v-deep .link {
 	color: #667eea;
 	text-decoration: none;
-	border-bottom: 1rpx dashed #667eea;
+	border-bottom: 1rpx solid #667eea;
 }
 
 .markdown-content ::v-deep .link:active {
 	color: #764ba2;
-	border-bottom-style: solid;
+	border-bottom-color: #764ba2;
 }
 
 .markdown-content ::v-deep .markdown-image {
@@ -1167,7 +950,7 @@ onUnmounted(() => {
 
 .markdown-content ::v-deep .divider {
 	border: none;
-	border-top: 2rpx solid #e0e0e0;
+	border-top: 1rpx solid #e5e5e5;
 	margin: 32rpx 0;
 }
 
@@ -1184,10 +967,6 @@ onUnmounted(() => {
 
 .markdown-content ::v-deep .text-neutral {
 	color: #666666;
-}
-
-.markdown-content ::v-deed strong {
-	font-weight: bold;
 }
 
 /* 金融表格 */
@@ -1288,50 +1067,69 @@ onUnmounted(() => {
 	text-align: center;
 }
 
-/* 工具栏 */
-.toolbar-container {
-	background: #ffffff;
-	border-top: 1rpx solid #e0e0e0;
-}
-
-.toolbar {
-	display: flex;
-	justify-content: space-around;
-	padding: 20rpx 0;
-}
-
-.tool-item {
+/* 消息底部 - 风险提示 + 操作 */
+.message-footer {
+	margin-top: 16rpx;
+	margin-left: 80rpx;
 	display: flex;
 	flex-direction: column;
+	gap: 12rpx;
+}
+
+.risk-tip {
+	display: flex;
 	align-items: center;
 	gap: 8rpx;
-	transition: all 0.3s;
+	padding: 12rpx 16rpx;
+	background: #fff9e6;
+	border-radius: 8rpx;
+	border-left: 3rpx solid #d48806;
 }
 
-.tool-item:active {
-	transform: scale(0.9);
+.risk-icon {
+	font-size: 20rpx;
+	flex-shrink: 0;
 }
 
-.tool-icon {
-	font-size: 36rpx;
-}
-
-.tool-text {
+.risk-text {
 	font-size: 22rpx;
-	color: #666666;
+	color: #8c6800;
+	line-height: 1.4;
 }
 
-.tool-text.active {
-	color: #667eea;
-	font-weight: bold;
+.message-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16rpx;
 }
 
-/* 输入区域 */
+.refresh-btn {
+	width: 48rpx;
+	height: 48rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #f8f9fa;
+	border-radius: 12rpx;
+	transition: all 0.2s ease;
+}
+
+.refresh-btn:active {
+	transform: scale(0.92);
+	background: #f0f2ff;
+}
+
+.refresh-icon {
+	font-size: 24rpx;
+}
+
+/* 输入区域 - 极简设计 */
 .input-container {
 	background: #ffffff;
-	border-top: 1rpx solid #e0e0e0;
-	padding: 20rpx;
-	padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+	border-top: 1rpx solid #f0f0f0;
+	padding: 0;
+	padding-bottom: env(safe-area-inset-bottom);
 }
 
 .error-message {
@@ -1340,48 +1138,69 @@ onUnmounted(() => {
 	color: #ff4d4f;
 	border-radius: 8rpx;
 	font-size: 26rpx;
-	margin-bottom: 16rpx;
+	margin: 20rpx;
 	text-align: center;
 }
 
 .input-wrapper {
 	display: flex;
 	align-items: flex-end;
-	gap: 16rpx;
+	gap: 12rpx;
+	padding: 16rpx 24rpx;
+	padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
 }
 
 .chat-input {
 	flex: 1;
-	min-height: 80rpx;
+	min-height: 72rpx;
 	max-height: 200rpx;
-	padding: 16rpx 24rpx;
-	background: #f5f5f5;
-	border-radius: 12rpx;
+	padding: 16rpx 20rpx;
+	background: #f8f9fa;
+	border-radius: 20rpx;
 	font-size: 30rpx;
 	line-height: 1.5;
+	border: 2rpx solid transparent;
+	transition: all 0.2s ease;
+}
+
+.chat-input:focus {
+	background: #ffffff;
+	border-color: #667eea;
+	box-shadow: 0 0 0 4rpx rgba(102, 126, 234, 0.1);
 }
 
 .send-button {
-	min-width: 80rpx;
-	height: 80rpx;
+	width: 72rpx;
+	height: 72rpx;
 	padding: 0;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	color: #ffffff;
 	font-size: 28rpx;
 	font-weight: bold;
-	border-radius: 12rpx;
+	border-radius: 20rpx;
 	border: none;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.25);
+	transition: all 0.2s ease;
+	flex-shrink: 0;
+}
+
+.send-button:active {
+	transform: scale(0.92);
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
 }
 
 .send-button[disabled] {
-	opacity: 0.5;
+	opacity: 0.4;
+	transform: none;
+	box-shadow: none;
 }
 
 .send-icon {
-	font-size: 24rpx;
+	font-size: 28rpx;
+	font-weight: bold;
 }
 
 .loading-spinner {
@@ -1397,38 +1216,6 @@ onUnmounted(() => {
 	to {
 		transform: rotate(360deg);
 	}
-}
-
-/* 免责声明底部 */
-.disclaimer-footer {
-	background: #fff9e6;
-	border-top: 1rpx solid #ffe58f;
-	padding: 16rpx 20rpx;
-	padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
-}
-
-.disclaimer-content {
-	display: flex;
-	align-items: center;
-	gap: 12rpx;
-}
-
-.disclaimer-icon {
-	font-size: 28rpx;
-	flex-shrink: 0;
-}
-
-.disclaimer-text {
-	flex: 1;
-	font-size: 22rpx;
-	color: #8c6800;
-	line-height: 1.4;
-}
-
-.disclaimer-more {
-	font-size: 22rpx;
-	color: #667eea;
-	flex-shrink: 0;
 }
 
 /* 免责声明弹窗 */
