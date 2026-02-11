@@ -30,12 +30,12 @@
       </view>
       
       <view class="message-tags">
-        <view 
-          v-for="tag in message.tags" 
+        <view
+          v-for="tag in message.tags"
           :key="tag"
           class="message-tag"
         >
-          {{ tag }}
+          {{ MESSAGE_TAG_LABELS[tag] || tag }}
         </view>
       </view>
       
@@ -118,6 +118,7 @@ import { useUserStore } from '../../store/user'
 import { getMessageDetailApi } from '../../api/message'
 import { getDiscussionsApi } from '../../api/discussion'
 import { formatTime } from '../../utils/time'
+import { MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { navigateTo, navigateBack } from '../../utils/navigation'
 
 const route = useRoute()

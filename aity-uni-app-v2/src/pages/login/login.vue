@@ -32,14 +32,16 @@
 					/>
 				</view>
 
-				<!-- 记住我 -->
-				<view class="remember-wrapper">
+				<!-- 记住我和忘记密码 -->
+				<view class="form-actions">
 					<checkbox-group @change="handleRememberChange">
 						<label class="checkbox-label">
 							<checkbox :checked="formData.rememberMe" color="#667eea" />
 							<text class="checkbox-text">记住我</text>
 						</label>
 					</checkbox-group>
+					<!-- 预留忘记密码链接 -->
+					<text class="forgot-password">忘记密码？</text>
 				</view>
 
 				<!-- 登录按钮 -->
@@ -212,19 +214,32 @@ const handleLogin = async () => {
 	}
 }
 
-.remember-wrapper {
-	margin-bottom: 40rpx;
+.form-actions {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 30rpx;
+	min-height: 40rpx;
 }
 
 .checkbox-label {
 	display: flex;
 	align-items: center;
+	cursor: pointer;
 }
 
 .checkbox-text {
 	margin-left: 10rpx;
-	font-size: 28rpx;
+	font-size: 26rpx;
 	color: #666666;
+}
+
+.forgot-password {
+	font-size: 26rpx;
+	color: #667eea;
+	text-decoration: none;
+	opacity: 0.6;
+	cursor: not-allowed;
 }
 
 .login-btn {
@@ -238,6 +253,7 @@ const handleLogin = async () => {
 	border-radius: 8rpx;
 	border: none;
 	text-align: center;
+	margin-top: 10rpx;
 }
 
 .login-btn[disabled] {

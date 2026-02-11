@@ -239,7 +239,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
-import { getUsersApi, updateUserApi, deleteUserApi } from '../../api/user'
+import { getUsersApi, createUserApi, updateUserApi, deleteUserApi } from '../../api/user'
 import { USER_ROLES, USER_ROLE_LABELS } from '../../utils/constants'
 import { formatDate } from '../../utils/time'
 
@@ -557,17 +557,16 @@ const handleAddSave = async () => {
 
 	try {
 		const data = {
-			username: addForm.value.username,
+			name: addForm.value.username,
 			email: addForm.value.email,
 			password: addForm.value.password,
 			role: addForm.value.role
 		}
 
 		if (addForm.value.expiresAt) {
-			data.expiresAt = addForm.value.expiresAt
+			data.expireDate = addForm.value.expiresAt
 		}
 
-		const { createUserApi } = require('../../api/user')
 		const res = await createUserApi(data)
 
 		if (res.success || res.code === 200) {

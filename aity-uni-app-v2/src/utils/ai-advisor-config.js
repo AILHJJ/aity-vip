@@ -56,10 +56,13 @@ export function getAuthHeaders() {
  * 构建请求体
  */
 export function buildRequestBody(content, threadId = null) {
+  // 获取当前的深度思考模式状态（而不是使用配置中的静态值）
+  const currentThinkMode = getThinkMode()
+
   const body = {
     content: content,
     agent: AI_ADVISOR_CONFIG.AGENT_TYPE,
-    think: AI_ADVISOR_CONFIG.ENABLE_THINK
+    think: currentThinkMode
   }
 
   // 如果有threadId，添加到请求体

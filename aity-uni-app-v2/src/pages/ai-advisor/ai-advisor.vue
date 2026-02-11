@@ -3,8 +3,8 @@
 		<!-- 顶部操作栏 -->
 		<view class="header">
 			<view class="header-title-section">
-				<text class="header-title">AI投顾助手</text>
-				<text class="header-subtitle">专业智能问答</text>
+				<text class="header-title">图灵</text>
+				<text class="header-subtitle">智能问答服务</text>
 			</view>
 
 			<view class="header-actions">
@@ -33,6 +33,15 @@
 			</view>
 		</view>
 
+		<!-- 免责声明 -->
+		<view class="disclaimer-banner">
+			<text class="disclaimer-icon">⚠️</text>
+			<view class="disclaimer-content">
+				<text class="disclaimer-title">免责声明</text>
+				<text class="disclaimer-text">本服务仅为智能信息查询工具,所提供内容仅供参考,不构成任何投资建议。投资有风险,入市需谨慎。</text>
+			</view>
+		</view>
+
 		<!-- 对话消息区域 -->
 		<scroll-view
 			class="chat-container"
@@ -43,7 +52,7 @@
 			<!-- 欢迎消息 -->
 			<view v-if="messages.length === 0" class="welcome-message">
 				<view class="welcome-icon">🤖</view>
-				<view class="welcome-text">您好！我是AI投顾助手</view>
+				<view class="welcome-text">您好！我是图灵</view>
 				<view class="welcome-hint">有什么可以帮您的吗？</view>
 				<view class="quick-questions">
 					<view
@@ -160,6 +169,7 @@
 import { ref, nextTick, onMounted, computed } from 'vue'
 import { sendAIMessage } from '@/api/ai-advisor'
 import { getChatHistory, saveChatHistory, saveThreadId, clearChatHistory, getThinkMode, setThinkMode } from '@/utils/ai-advisor-config'
+import { MarkdownRenderer, FinancialTableParser } from '@/utils/markdown-renderer'
 
 // 数据
 const messages = ref([])
@@ -185,9 +195,9 @@ const isAdmin = computed(() => {
 
 // 快捷问题
 const quickQuestions = ref([
-	'今天股市行情怎么样？',
-	'有什么热门板块？',
-	'推荐几只优质股票'
+	'今天股市行情怎么样?',
+	'有什么热门板块?',
+	'帮我筛选科技板块股票'
 ])
 
 // 切换工具显示
@@ -434,6 +444,42 @@ onMounted(() => {
 	padding: 30rpx 20rpx;
 	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.2);
 	position: relative;
+}
+
+/* 免责声明 */
+.disclaimer-banner {
+	margin: 20rpx;
+	padding: 20rpx;
+	background: linear-gradient(135deg, #fff9e6 0%, #ffe7ba 100%);
+	border-radius: 12rpx;
+	border-left: 4rpx solid #ff9800;
+	display: flex;
+	gap: 16rpx;
+	animation: slideIn 0.5s ease-out;
+}
+
+.disclaimer-icon {
+	font-size: 32rpx;
+	flex-shrink: 0;
+}
+
+.disclaimer-content {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 8rpx;
+}
+
+.disclaimer-title {
+	font-size: 28rpx;
+	font-weight: bold;
+	color: #d48806;
+}
+
+.disclaimer-text {
+	font-size: 24rpx;
+	color: #8c6800;
+	line-height: 1.6;
 }
 
 .header-title-section {

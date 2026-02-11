@@ -140,16 +140,16 @@ async function getMessages(req, res) {
 
     console.log('获取消息列表请求处理完成，总耗时:', Date.now() - startTime, 'ms');
 
-    res.json({
-      success: true,
-      data: rows,
+    // 统一响应格式: { code, message, data: { list, pagination } }
+    res.json(success({
+      list: rows,
       pagination: {
         total: count,
         page: parseInt(page),
         limit: parseInt(limit),
         pages: Math.ceil(count / limit)
       }
-    });
+    }));
   } catch (err) {
     console.error('获取消息列表错误:', err);
     res.status(500).json(error('Server error'));

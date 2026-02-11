@@ -10,7 +10,7 @@
 				<!-- 当前筛选状态 -->
 				<view class="filter-status">
 					<text v-if="activeFilterCount > 0" class="status-badge">{{ activeFilterCount }}</text>
-					<text v-else class="status-text">全部消息</text>
+					<text v-else class="status-text">全部</text>
 				</view>
 
 				<!-- 展开/收起按钮 -->
@@ -31,7 +31,6 @@
 							:class="{ active: isQuickFilterActive(filter) }"
 							@click="applyQuickFilter(filter)"
 						>
-							<text class="quick-filter-icon">{{ filter.icon }}</text>
 							<text class="quick-filter-label">{{ filter.label }}</text>
 						</view>
 					</view>
@@ -172,7 +171,8 @@ const filters = ref({
 	timeRange: 'all',
 	customStartDate: null,
 	customEndDate: null,
-	messageType: 'all'
+	messageType: 'all',
+	quickType: 'all' // 新增：快捷筛选类型
 })
 
 // 今天的日期
@@ -205,48 +205,51 @@ const messageTypeOptions = computed(() => [
 	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.DAILY], value: MESSAGE_TYPES.DAILY }
 ])
 
-// 快捷筛选组合
+// 快捷筛选（完全独立的筛选逻辑）
 const quickFilters = computed(() => [
 	{
 		id: 'all',
 		label: '全部消息',
 		icon: '📋',
-		timeRange: 'all',
-		messageType: 'all'
+		quickType: 'all'
 	},
 	{
-		id: 'today_morning',
-		label: '今天早盘',
-		icon: '🌅',
-		timeRange: 'today',
-		messageType: 'morning_focus'
-	},
-	{
-		id: 'today_all',
-		label: '今天全部',
+		id: 'today_opportunity',
+		label: '今日机会',
 		icon: '📅',
-		timeRange: 'today',
-		messageType: 'all'
+		quickType: 'today_opportunity'
 	},
 	{
-		id: 'week_focus',
-		label: '本周关注',
+		id: 'morning_focus',
+		label: '早盘关注',
+		icon: '🌅',
+		quickType: 'morning_focus'
+	},
+	{
+		id: 'afternoon_focus',
+		label: '尾盘关注',
 		icon: '⭐',
-		timeRange: 'week',
-		messageType: 'morning_focus'
+		quickType: 'afternoon_focus'
 	},
 	{
-		id: 'week_stock',
-		label: '本周个股',
-		icon: '📈',
-		timeRange: 'week',
-		messageType: 'stock_research'
+		id: 'morning_comment',
+		label: '早盘点评',
+		icon: '📝',
+		quickType: 'morning_comment'
+	},
+	{
+		id: 'afternoon_comment',
+		label: '尾盘点评',
+		icon: '💬',
+		quickType: 'afternoon_comment'
 	}
 ])
 
 // 是否有激活的筛选条件
 const hasActiveFilters = computed(() => {
-	return filters.value.timeRange !== 'all' || filters.value.messageType !== 'all'
+	return filters.value.timeRange !== 'all' ||
+		filters.value.messageType !== 'all' ||
+		filters.value.quickType !== 'all'
 })
 
 // 激活的筛选条件数量
@@ -254,6 +257,7 @@ const activeFilterCount = computed(() => {
 	let count = 0
 	if (filters.value.timeRange !== 'all') count++
 	if (filters.value.messageType !== 'all') count++
+	if (filters.value.quickType !== 'all') count++
 	return count
 })
 
@@ -264,20 +268,18 @@ const filteredCount = computed(() => {
 
 // 判断快捷筛选是否激活
 const isQuickFilterActive = (quickFilter) => {
-	return filters.value.timeRange === quickFilter.timeRange &&
-		filters.value.messageType === quickFilter.messageType
+	return filters.value.quickType === quickFilter.quickType
 }
 
 // 应用快捷筛选
 const applyQuickFilter = (quickFilter) => {
-	filters.value.timeRange = quickFilter.timeRange
-	filters.value.messageType = quickFilter.messageType
+	filters.value.quickType = quickFilter.quickType
 
-	// 重置自定义日期
-	if (quickFilter.timeRange !== 'custom') {
-		filters.value.customStartDate = null
-		filters.value.customEndDate = null
-	}
+	// 快捷筛选完全独立，清除其他筛选
+	filters.value.timeRange = 'all'
+	filters.value.messageType = 'all'
+	filters.value.customStartDate = null
+	filters.value.customEndDate = null
 
 	emitFilterChange()
 	addToHistory(quickFilter)
@@ -286,6 +288,9 @@ const applyQuickFilter = (quickFilter) => {
 // 选择时间范围
 const selectTimeRange = (value) => {
 	filters.value.timeRange = value
+
+	// 清除快捷筛选
+	filters.value.quickType = 'all'
 
 	// 重置自定义日期
 	if (value !== 'custom') {
@@ -299,18 +304,30 @@ const selectTimeRange = (value) => {
 // 选择消息类型
 const selectMessageType = (value) => {
 	filters.value.messageType = value
+
+	// 清除快捷筛选
+	filters.value.quickType = 'all'
+
 	emitFilterChange()
 }
 
 // 处理开始日期变化
 const handleStartDateChange = (e) => {
 	filters.value.customStartDate = e.detail.value
+
+	// 清除快捷筛选
+	filters.value.quickType = 'all'
+
 	emitFilterChange()
 }
 
 // 处理结束日期变化
 const handleEndDateChange = (e) => {
 	filters.value.customEndDate = e.detail.value
+
+	// 清除快捷筛选
+	filters.value.quickType = 'all'
+
 	emitFilterChange()
 }
 
@@ -320,7 +337,8 @@ const resetFilters = () => {
 		timeRange: 'all',
 		customStartDate: null,
 		customEndDate: null,
-		messageType: 'all'
+		messageType: 'all',
+		quickType: 'all'
 	}
 	emitFilterChange()
 }
@@ -368,8 +386,7 @@ const addToHistory = (quickFilter) => {
 	filterHistory.value.unshift({
 		id: quickFilter.id,
 		label: quickFilter.label,
-		timeRange: quickFilter.timeRange,
-		messageType: quickFilter.messageType
+		quickType: quickFilter.quickType
 	})
 
 	saveHistory()
@@ -377,8 +394,14 @@ const addToHistory = (quickFilter) => {
 
 // 应用历史记录
 const applyHistory = (historyItem) => {
-	filters.value.timeRange = historyItem.timeRange
-	filters.value.messageType = historyItem.messageType
+	filters.value.quickType = historyItem.quickType
+
+	// 清除其他筛选
+	filters.value.timeRange = 'all'
+	filters.value.messageType = 'all'
+	filters.value.customStartDate = null
+	filters.value.customEndDate = null
+
 	emitFilterChange()
 }
 
@@ -557,56 +580,62 @@ defineExpose({
 	padding: 16rpx 0;
 	background: #ffffff;
 	border-bottom: 1rpx solid #f0f0f0;
+	position: relative;
 }
 
 .quick-filters-scroll {
 	white-space: nowrap;
+	width: 100%;
+	// 隐藏滚动条但保持可滚动
+	&::-webkit-scrollbar {
+		display: none;
+	}
 }
 
 .quick-filter-items {
 	display: inline-flex;
 	padding: 0 24rpx;
+	gap: 12rpx;
 }
 
 .quick-filter-chip {
 	display: inline-flex;
 	align-items: center;
-	gap: 8rpx;
-	padding: 14rpx 24rpx;
-	margin-right: 16rpx;
-	background: #f8f9fa;
-	border-radius: 30rpx;
-	border: 2rpx solid #e9ecef;
+	justify-content: center;
+	min-width: 120rpx;
+	height: 64rpx;
+	padding: 0 28rpx;
+	background: #f5f5f5;
+	border-radius: 32rpx;
+	border: 1rpx solid #e0e0e0;
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	white-space: nowrap;
+	flex-shrink: 0;
+	box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.04);
 
 	&:active {
-		transform: scale(0.95);
+		transform: scale(0.96);
 	}
 
 	&.active {
 		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 		border-color: transparent;
-		box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+		box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.35);
 
-		.quick-filter-icon,
 		.quick-filter-label {
 			color: #ffffff;
+			font-weight: 600;
 		}
 	}
 }
 
-.quick-filter-icon {
-	font-size: 24rpx;
-	color: #667eea;
-	transition: color 0.3s;
-}
-
 .quick-filter-label {
 	font-size: 26rpx;
-	color: #495057;
+	color: #666666;
 	font-weight: 500;
-	transition: color 0.3s;
+	transition: all 0.3s;
+	letter-spacing: 0.5rpx;
+	line-height: 1;
 }
 
 // 完整筛选面板

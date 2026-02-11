@@ -4,7 +4,7 @@
  * 使用SSE流式处理，支持GLM模型
  */
 
-import { buildApiEndpoint, getAuthHeaders, buildRequestBody, saveThreadId } from '@/utils/ai-advisor-config'
+import { buildApiEndpoint, getAuthHeaders, buildRequestBody, saveThreadId, getThreadId } from '@/utils/ai-advisor-config'
 
 /**
  * 发送消息到AI并获取流式回复

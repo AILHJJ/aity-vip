@@ -49,6 +49,13 @@ function badRequest(message = 'Bad request') {
   };
 }
 
+function serverError(message = 'Internal server error') {
+  return {
+    code: 500,
+    message
+  };
+}
+
 // 用户登录
 async function login(req, res) {
   try {

@@ -2,69 +2,63 @@
 	<view class="create-message-container">
 		<scroll-view class="form-scroll" scroll-y>
 			<view class="form-container">
-				<!-- 策略类型（置顶，必填，核心字段） -->
-				<view class="form-item strategy-section">
-					<view class="form-label-required">
-						<text class="form-label">策略类型 *</text>
-						<text class="required-star">★</text>
-					</view>
-					<view class="radio-group">
-						<view
-							v-for="strategy in strategyTypes"
-							:key="strategy.value"
-							class="radio-item"
-							:class="{ active: formData.strategy === strategy.value }"
-							@click="handleStrategyChange(strategy.value)"
-						>
-							<view class="radio-icon">
-								<text v-if="formData.strategy === strategy.value">◉</text>
-								<text v-else>○</text>
-							</view>
-							<text class="radio-label">{{ strategy.label }}</text>
+				<!-- 快捷设置：策略类型和推送对象（优化为单行简洁布局） -->
+				<view class="form-item quick-settings">
+					<view class="quick-setting-row">
+						<!-- 策略类型 -->
+						<view class="quick-setting-item">
+							<text class="quick-label">策略</text>
+							<picker
+								mode="selector"
+								:range="strategyTypes"
+								range-key="label"
+								:value="strategyTypes.findIndex(s => s.value === formData.strategy)"
+								@change="handleStrategyChange"
+							>
+								<view class="quick-picker">
+									<text class="quick-value">{{ strategyTypes.find(s => s.value === formData.strategy)?.label }}</text>
+									<text class="quick-arrow">▼</text>
+								</view>
+							</picker>
+						</view>
+
+						<!-- 推送对象（仅管理员可见） -->
+						<view v-if="userStore.isAdmin" class="quick-setting-item">
+							<text class="quick-label">推送</text>
+							<picker
+								mode="selector"
+								:range="pushTargets"
+								range-key="label"
+								:value="pushTargets.findIndex(t => t.value === formData.pushTarget)"
+								@change="handlePushTargetChange"
+							>
+								<view class="quick-picker">
+									<text class="quick-value">{{ pushTargets.find(t => t.value === formData.pushTarget)?.label }}</text>
+									<text class="quick-arrow">▼</text>
+								</view>
+							</picker>
 						</view>
 					</view>
 				</view>
 
-				<!-- 推送对象（仅管理员可见） -->
-				<view v-if="userStore.isAdmin" class="form-item">
-					<text class="form-label">推送对象 *</text>
-					<view class="radio-group">
-						<view
-							v-for="target in pushTargets"
-							:key="target.value"
-							class="radio-item"
-							:class="{ active: formData.pushTarget === target.value }"
-							@click="handlePushTargetChange(target.value)"
-						>
-							<view class="radio-icon">
-								<text v-if="formData.pushTarget === target.value">◉</text>
-								<text v-else>○</text>
-							</view>
-							<text class="radio-label">{{ target.label }}</text>
-						</view>
-					</view>
-				</view>
-
-				<!-- 消息类型（多选） -->
+				<!-- 消息类型（单选下拉） -->
 				<view class="form-item">
 					<text class="form-label">消息类型</text>
-					<view class="checkbox-group">
-						<view
-							v-for="type in messageTypes"
-							:key="type.value"
-							class="checkbox-item"
-							:class="{ active: formData.messageTypes.includes(type.value) }"
-							@click="handleMessageTypeToggle(type.value)"
-						>
-							<view class="checkbox-icon">
-								<text v-if="formData.messageTypes.includes(type.value)">☑</text>
-								<text v-else>☐</text>
-							</view>
-							<text class="checkbox-label">{{ type.label }}</text>
+					<picker
+						mode="selector"
+						:range="messageTypeOptions"
+						range-key="label"
+						:value="selectedMessageTypeIndex"
+						@change="handleMessageTypeChange"
+					>
+						<view class="picker-view">
+							<text class="picker-text" v-if="formData.messageType">{{ messageTypeOptions.find(t => t.value === formData.messageType)?.label }}</text>
+							<text class="picker-placeholder" v-else>请选择消息类型</text>
+							<text class="picker-arrow">▼</text>
 						</view>
-					</view>
+					</picker>
 					<view class="form-hint">
-						<text class="hint-text">可选择多个或全不选</text>
+						<text class="hint-text">选择消息类型（默认：早盘关注）</text>
 					</view>
 				</view>
 
@@ -203,9 +197,9 @@ const previewMode = ref(false)
 
 // 表单数据
 const formData = ref({
-	strategy: MESSAGE_TAGS.SHORT_TERM, // 策略类型（单选）
-	pushTarget: MESSAGE_TAGS.SHORT_TERM, // 推送对象（单选，管理员）
-	messageTypes: [], // 消息类型（多选）
+	strategy: MESSAGE_TAGS.SHORT_TERM, // 策略类型（默认：短线策略）
+	pushTarget: MESSAGE_TAGS.SHORT_TERM, // 推送对象（默认：短线用户）
+	messageType: MESSAGE_TYPES.MORNING_FOCUS, // 消息类型（默认：早盘关注）
 	title: '',
 	content: '',
 	attachments: []
@@ -229,26 +223,29 @@ const pushTargets = [
 	{ label: '全部用户', value: MESSAGE_TAGS.ALL_USERS }
 ]
 
-// 消息类型选项（多选）
-const messageTypes = computed(() => {
-	// 扩展更多消息类型
-	const types = [
-		{ label: '盘前点评', value: 'pre_market_comment' },
-		{ label: '早盘关注', value: 'morning_focus' },
-		{ label: '午盘点评', value: 'afternoon_comment' },
-		{ label: '尾盘关注', value: 'afternoon_focus' },
-		{ label: '涨停分析', value: 'limit_up_analysis' },
-		{ label: '龙虎榜分析', value: 'dragon_tiger_analysis' },
-		{ label: '个股研究', value: 'stock_research' },
-		{ label: '行业分析', value: 'industry_analysis' },
-		{ label: '宏观经济', value: 'macro_economy' },
-		{ label: '其他', value: 'other' }
-	]
-	return types
+// 消息类型选项（单选，10种标准类型）
+const messageTypeOptions = [
+	{ label: '盘前点评', value: MESSAGE_TYPES.PRE_MARKET_COMMENT },
+	{ label: '早盘点评', value: MESSAGE_TYPES.MORNING_COMMENT },
+	{ label: '早盘关注', value: MESSAGE_TYPES.MORNING_FOCUS },
+	{ label: '尾盘点评', value: MESSAGE_TYPES.AFTERNOON_COMMENT },
+	{ label: '尾盘关注', value: MESSAGE_TYPES.AFTERNOON_FOCUS },
+	{ label: '收盘点评', value: MESSAGE_TYPES.CLOSE_COMMENT },
+	{ label: '风险提示', value: MESSAGE_TYPES.RISK_WARNING },
+	{ label: '系统消息', value: MESSAGE_TYPES.SYSTEM },
+	{ label: '重要消息', value: MESSAGE_TYPES.IMPORTANT },
+	{ label: '日常消息', value: MESSAGE_TYPES.DAILY }
+]
+
+// 当前选中的消息类型索引
+const selectedMessageTypeIndex = computed(() => {
+	return messageTypeOptions.findIndex(t => t.value === formData.value.messageType)
 })
 
 // 处理策略类型选择
-const handleStrategyChange = (value) => {
+const handleStrategyChange = (e) => {
+	const index = e.detail.value
+	const value = strategyTypes[index].value
 	formData.value.strategy = value
 	// 保存到localStorage
 	uni.setStorageSync(STRATEGY_KEY, value)
@@ -261,18 +258,16 @@ const handleStrategyChange = (value) => {
 }
 
 // 处理推送对象选择
-const handlePushTargetChange = (value) => {
+const handlePushTargetChange = (e) => {
+	const index = e.detail.value
+	const value = pushTargets[index].value
 	formData.value.pushTarget = value
 }
 
-// 处理消息类型切换（多选）
-const handleMessageTypeToggle = (value) => {
-	const index = formData.value.messageTypes.indexOf(value)
-	if (index > -1) {
-		formData.value.messageTypes.splice(index, 1)
-	} else {
-		formData.value.messageTypes.push(value)
-	}
+// 处理消息类型选择（单选）
+const handleMessageTypeChange = (e) => {
+	const index = e.detail.value
+	formData.value.messageType = messageTypeOptions[index].value
 }
 
 // 处理粘贴事件
@@ -570,22 +565,22 @@ const handleSubmit = async () => {
 		const tags = []
 
 		// 1. 添加策略标签（必填）
-		tags.push(formData.value.strategy)
-
-		// 2. 添加推送对象标签（管理员）
-		if (userStore.isAdmin && formData.value.pushTarget) {
-			tags.push(formData.value.pushTarget)
+		if (formData.value.strategy) {
+			tags.push(formData.value.strategy)
 		}
 
-		// 3. 添加消息类型标签（可选，多选）
-		if (formData.value.messageTypes.length > 0) {
-			tags.push(...formData.value.messageTypes)
+		// 2. 添加推送对象标签（管理员）- 避免重复
+		if (userStore.isAdmin && formData.value.pushTarget) {
+			// 只有当推送对象标签与策略标签不同时才添加
+			if (!tags.includes(formData.value.pushTarget)) {
+				tags.push(formData.value.pushTarget)
+			}
 		}
 
 		// 将Vue的Proxy对象转换为纯JavaScript对象
 		const data = {
 			title: formData.value.title.trim(),
-			type: formData.value.messageTypes.length > 0 ? formData.value.messageTypes[0] : 'general', // 使用第一个消息类型作为type，保持兼容性
+			type: formData.value.messageType || MESSAGE_TYPES.MORNING_FOCUS, // 使用选中的消息类型
 			tags: tags,
 			content: formData.value.content.trim(),
 			attachments: uploadedAttachments
@@ -597,7 +592,7 @@ const handleSubmit = async () => {
 		console.log('标题:', data.title)
 		console.log('策略类型:', formData.value.strategy)
 		console.log('推送对象:', formData.value.pushTarget)
-		console.log('消息类型:', formData.value.messageTypes)
+		console.log('消息类型:', formData.value.messageType)
 		console.log('最终tags:', data.tags)
 		console.log('内容长度:', data.content.length)
 		console.log('附件数量:', data.attachments.length)
@@ -660,9 +655,12 @@ const handleSubmit = async () => {
 				duration: 1500
 			})
 
-			// 立即返回,不等待
+			// 发布成功后自动返回消息中心并刷新
 			setTimeout(() => {
-				uni.navigateBack()
+				// 使用 reLaunch 返回消息中心，确保页面刷新
+				uni.reLaunch({
+					url: '/pages/messages/messages'
+				})
 			}, 500)
 		} else {
 			console.error('业务失败:', res)
@@ -725,7 +723,7 @@ const restoreDraft = () => {
 							// 恢复草稿数据
 							formData.value.strategy = draftData.strategy || MESSAGE_TAGS.SHORT_TERM
 							formData.value.pushTarget = draftData.pushTarget || MESSAGE_TAGS.SHORT_TERM
-							formData.value.messageTypes = draftData.messageTypes || []
+							formData.value.messageType = draftData.messageType || MESSAGE_TYPES.MORNING_FOCUS
 							formData.value.title = draftData.title || ''
 							formData.value.content = draftData.content || ''
 							formData.value.attachments = draftData.attachments || []
@@ -938,17 +936,13 @@ onMounted(async () => {
 					tag === MESSAGE_TAGS.ALL_USERS
 				) || MESSAGE_TAGS.SHORT_TERM
 
-				// 消息类型（从tags中提取，排除策略和推送对象）
-				const messageTypeTags = tags.filter(tag =>
-					tag !== MESSAGE_TAGS.SHORT_TERM &&
-					tag !== MESSAGE_TAGS.MID_TERM &&
-					tag !== MESSAGE_TAGS.ALL_USERS
-				)
+				// 消息类型（从 type 字段获取，如果没有则使用默认值）
+				const messageType = res.data.type || MESSAGE_TYPES.MORNING_FOCUS
 
 				formData.value = {
 					strategy: strategyTag,
 					pushTarget: pushTargetTag,
-					messageTypes: messageTypeTags,
+					messageType: messageType,
 					title: res.data.title || '',
 					content: res.data.content || '',
 					attachments: processedAttachments
@@ -1015,137 +1009,60 @@ onBeforeUnmount(() => {
 	font-weight: 500;
 }
 
-// 策略类型区域特殊样式
-.strategy-section {
+// 快捷设置区域（优化后）
+.quick-settings {
 	background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
 	padding: 32rpx;
 	border-radius: 16rpx;
 	border: 2rpx solid #667eea;
-	margin-bottom: 50rpx;
+	margin-bottom: 40rpx;
 	box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.15);
 }
 
-.form-label-required {
+.quick-setting-row {
 	display: flex;
-	align-items: center;
-	margin-bottom: 24rpx;
-}
-
-.required-star {
-	font-size: 32rpx;
-	color: #ff4757;
-	margin-left: 8rpx;
-	animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-	0%, 100% {
-		opacity: 1;
-		transform: scale(1);
-	}
-	50% {
-		opacity: 0.7;
-		transform: scale(1.1);
-	}
-}
-
-// 单选按钮组
-.radio-group {
-	display: flex;
-	flex-direction: column;
 	gap: 20rpx;
 }
 
-.radio-item {
+.quick-setting-item {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 16rpx;
+}
+
+.quick-label {
+	font-size: 26rpx;
+	color: #667eea;
+	font-weight: 500;
+	margin-bottom: 4rpx;
+}
+
+.quick-picker {
 	display: flex;
 	align-items: center;
-	padding: 24rpx 32rpx;
+	justify-content: space-between;
+	height: 80rpx;
+	padding: 0 24rpx;
 	background: #ffffff;
-	border: 2rpx solid #e0e0e0;
+	border: 2rpx solid #667eea;
 	border-radius: 12rpx;
 	transition: all 0.3s;
-	cursor: pointer;
 }
 
-.radio-item:active {
-	transform: scale(0.98);
+.quick-picker:active {
+	background: #f0f0f0;
 }
 
-.radio-item.active {
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	border-color: transparent;
-	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
-}
-
-.radio-icon {
-	font-size: 36rpx;
-	margin-right: 16rpx;
-	color: #667eea;
-	min-width: 48rpx;
-}
-
-.radio-item.active .radio-icon {
-	color: #ffffff;
-}
-
-.radio-label {
-	flex: 1;
+.quick-value {
 	font-size: 30rpx;
 	color: #333333;
 	font-weight: 500;
 }
 
-.radio-item.active .radio-label {
-	color: #ffffff;
-}
-
-// 复选框组
-.checkbox-group {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 20rpx;
-}
-
-.checkbox-item {
-	display: flex;
-	align-items: center;
-	padding: 20rpx 28rpx;
-	background: #ffffff;
-	border: 2rpx solid #e0e0e0;
-	border-radius: 10rpx;
-	transition: all 0.3s;
-	cursor: pointer;
-	min-width: 200rpx;
-}
-
-.checkbox-item:active {
-	transform: scale(0.98);
-}
-
-.checkbox-item.active {
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	border-color: transparent;
-}
-
-.checkbox-icon {
-	font-size: 32rpx;
-	margin-right: 12rpx;
+.quick-arrow {
+	font-size: 24rpx;
 	color: #667eea;
-	min-width: 40rpx;
-}
-
-.checkbox-item.active .checkbox-icon {
-	color: #ffffff;
-}
-
-.checkbox-label {
-	flex: 1;
-	font-size: 28rpx;
-	color: #333333;
-}
-
-.checkbox-item.active .checkbox-label {
-	color: #ffffff;
 }
 
 .form-label-row {

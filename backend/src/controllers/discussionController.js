@@ -84,7 +84,7 @@ async function getDiscussions(req, res) {
       where,
       order: [['createdAt', 'DESC']] // 按创建时间倒序排序
     });
-    
+
     // 获取每个讨论的回复
     const discussionsWithReplies = await Promise.all(
       discussions.map(async (discussion) => {
@@ -92,12 +92,12 @@ async function getDiscussions(req, res) {
           where: { discussionId: discussion.id },
           order: [['createdAt', 'ASC']]
         });
-        
+
         // 获取发送者信息
         const sender = await User.findByPk(discussion.userId, {
           attributes: ['name', 'avatar']
         });
-        
+
         return {
           ...discussion.toJSON(),
           replies,
@@ -107,8 +107,11 @@ async function getDiscussions(req, res) {
         };
       })
     );
-    
-    res.json(success(discussionsWithReplies));
+
+    // 返回格式: { code: 200, message: "Success", data: { discussions: [...] } }
+    res.json(success({
+      discussions: discussionsWithReplies
+    }));
   } catch (err) {
     console.error(err);
     res.status(500).json(error('Server error'));
