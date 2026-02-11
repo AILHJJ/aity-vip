@@ -1167,7 +1167,7 @@ onUnmounted(() => {
 }
 
 .error-message {
-	padding: 12rpx 20rpx;
+	padding: 8rpx 20rpx 12rpx 20rpx;
 	background: #fff1f0;
 	color: #ff4d4f;
 	border-radius: 8rpx;

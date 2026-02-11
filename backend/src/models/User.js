@@ -14,8 +14,9 @@ const User = sequelize.define('User', {
   },
   email: {
     type: DataTypes.STRING(100),
-    allowNull: false,
-    unique: true
+    allowNull: true,
+    unique: true,
+    comment: '邮箱地址，可选字段'
   },
   password: {
     type: DataTypes.STRING(255),

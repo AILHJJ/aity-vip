@@ -141,6 +141,15 @@ function validateQueryParams() {
   ];
 }
 
+function validatePasswordReset() {
+  return [
+    param('id').isInt().withMessage('Invalid user ID'),
+    body('newPassword').notEmpty().withMessage('New password is required').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('adminPassword').optional().isLength({ min: 6 }).withMessage('Admin password must be at least 6 characters'),
+    handleValidationErrors
+  ];
+}
+
 module.exports = {
   validateLogin,
   validateCreateUser,
@@ -152,5 +161,6 @@ module.exports = {
   validateCreateDiscussion,
   validateAddReply,
   validateIdParam,
-  validateQueryParams
+  validateQueryParams,
+  validatePasswordReset
 };

@@ -89,6 +89,18 @@ export function deleteGroupApi(id) {
   return del(`/groups/${id}`)
 }
 
+/**
+ * 重置用户密码
+ * @param {Number} id 用户ID
+ * @param {Object} data 密码数据
+ * @param {String} data.newPassword 新密码
+ * @param {String} data.adminPassword 管理员密码（可选）
+ * @returns {Promise}
+ */
+export function resetUserPasswordApi(id, data) {
+  return put(`/users/${id}/password`, data)
+}
+
 export default {
   getUsersApi,
   getUserDetailApi,
@@ -98,5 +110,6 @@ export default {
   getGroupsApi,
   createGroupApi,
   updateGroupApi,
-  deleteGroupApi
+  deleteGroupApi,
+  resetUserPasswordApi
 }

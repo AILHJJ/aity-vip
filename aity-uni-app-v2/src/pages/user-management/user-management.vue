@@ -99,6 +99,9 @@
 						<button class="action-btn edit-btn" @click="handleEdit(user)">
 							<text>编辑</text>
 						</button>
+						<button class="action-btn reset-btn" @click="handleResetPassword(user)">
+							<text>重置密码</text>
+						</button>
 						<button class="action-btn delete-btn" @click="handleDelete(user.id)">
 							<text>删除</text>
 						</button>
@@ -141,14 +144,15 @@
 
 					<!-- 邮箱 -->
 					<view class="form-item">
-						<text class="form-label">邮箱 *</text>
+						<text class="form-label">邮箱（选填）</text>
 						<input
 							class="form-input"
 							v-model="userForm.email"
 							type="email"
-							placeholder="请输入邮箱"
+							placeholder="留空则自动生成默认邮箱"
 							:disabled="showEditDrawer"
 						/>
+						<text class="form-hint">如需邮箱功能（如密码重置），请填写真实邮箱</text>
 					</view>
 
 					<!-- 密码（仅创建时显示） -->
@@ -220,13 +224,72 @@
 				</view>
 			</view>
 		</view>
+
+		<!-- 重置密码弹窗 -->
+		<view v-if="showResetPasswordModal" class="modal-overlay" @click="closeResetPasswordModal">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">重置密码</text>
+					<text class="modal-close" @click="closeResetPasswordModal">×</text>
+				</view>
+
+				<view class="modal-body">
+					<view class="user-info">
+						<text class="info-label">用户</text>
+						<text class="info-value">{{ passwordResetForm.username }}</text>
+					</view>
+					<view class="user-info">
+						<text class="info-label">邮箱</text>
+						<text class="info-value">{{ passwordResetForm.email }}</text>
+					</view>
+
+					<view class="form-item">
+						<text class="form-label">新密码 *</text>
+						<input
+							class="form-input"
+							v-model="passwordResetForm.newPassword"
+							type="password"
+							placeholder="请输入新密码（至少6位）"
+						/>
+					</view>
+
+					<view class="form-item">
+						<text class="form-label">确认新密码 *</text>
+						<input
+							class="form-input"
+							v-model="passwordResetForm.confirmPassword"
+							type="password"
+							placeholder="请再次输入新密码"
+						/>
+					</view>
+
+					<view class="form-item">
+						<text class="form-label">管理员密码（选填）</text>
+						<input
+							class="form-input"
+							v-model="passwordResetForm.adminPassword"
+							type="password"
+							placeholder="填写管理员密码以增加安全性"
+						/>
+						<text class="form-hint">为了安全，建议输入管理员密码确认操作</text>
+					</view>
+				</view>
+
+				<view class="modal-footer">
+					<button class="modal-btn cancel-btn" @click="closeResetPasswordModal">取消</button>
+					<button class="modal-btn confirm-btn" :disabled="resetting" @click="confirmResetPassword">
+						{{ resetting ? '重置中...' : '确认重置' }}
+					</button>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
-import { getUsersApi, createUserApi, updateUserApi, deleteUserApi } from '../../api/user'
+import { getUsersApi, createUserApi, updateUserApi, deleteUserApi, resetUserPasswordApi } from '../../api/user'
 import { USER_ROLES, USER_ROLE_LABELS } from '../../utils/constants'
 import { formatDate } from '../../utils/time'
 
@@ -244,9 +307,10 @@ const currentRoleTab = ref('all')
 
 // 角色标签页
 const roleTabs = computed(() => [
-	{ label: '全部', value: 'all', count: users.value.length },
-	{ label: 'VIP', value: 'vip', count: users.value.filter(u => u.role === 'vip_short' || u.role === 'vip_long' || u.role === 'vip_mid').length },
-	{ label: '普通', value: 'trial', count: users.value.filter(u => u.role === 'trial').length },
+	{ label: '全部用户', value: 'all', count: users.value.length },
+	{ label: 'VIP短线', value: 'vip_short', count: users.value.filter(u => u.role === 'vip_short').length },
+	{ label: 'VIP中线', value: 'vip_medium', count: users.value.filter(u => u.role === 'vip_mid').length },
+	{ label: '试用', value: 'trial', count: users.value.filter(u => u.role === 'trial').length },
 	{ label: '管理员', value: 'admin', count: users.value.filter(u => u.role === 'super_admin' || u.role === 'admin').length }
 ])
 
@@ -254,6 +318,18 @@ const roleTabs = computed(() => [
 const showCreateDrawer = ref(false)
 const showEditDrawer = ref(false)
 const saving = ref(false)
+
+// 重置密码相关
+const showResetPasswordModal = ref(false)
+const resetting = ref(false)
+const passwordResetForm = ref({
+	userId: null,
+	username: '',
+	email: '',
+	newPassword: '',
+	confirmPassword: '',
+	adminPassword: ''
+})
 
 // 用户表单
 const userForm = ref({
@@ -337,8 +413,10 @@ const loadUsers = async (isRefresh = false) => {
 		}
 
 		// 根据当前标签页添加筛选
-		if (currentRoleTab.value === 'vip') {
-			params.role = ['vip_short', 'vip_long', 'vip_mid']
+		if (currentRoleTab.value === 'vip_short') {
+			params.role = ['vip_short']
+		} else if (currentRoleTab.value === 'vip_medium') {
+			params.role = ['vip_mid']
 		} else if (currentRoleTab.value === 'trial') {
 			params.role = ['trial']
 		} else if (currentRoleTab.value === 'admin') {
@@ -469,23 +547,25 @@ const quickExtend = (days) => {
 
 // 保存（创建或编辑）
 const handleSave = async () => {
-	// 验证必填项
-	if (!userForm.value.name || !userForm.value.email) {
+	// 验证必填项（用户名必填，邮箱选填）
+	if (!userForm.value.name) {
 		uni.showToast({
-			title: '请填写必填项',
+			title: '请填写用户名',
 			icon: 'none'
 		})
 		return
 	}
 
-	// 验证邮箱格式
-	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-	if (!emailRegex.test(userForm.value.email)) {
-		uni.showToast({
-			title: '邮箱格式不正确',
-			icon: 'none'
-		})
-		return
+	// 如果填写了邮箱，验证格式
+	if (userForm.value.email) {
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+		if (!emailRegex.test(userForm.value.email)) {
+			uni.showToast({
+				title: '邮箱格式不正确',
+				icon: 'none'
+			})
+			return
+		}
 	}
 
 	// 验证密码（仅创建时）
@@ -510,8 +590,12 @@ const handleSave = async () => {
 	try {
 		const data = {
 			name: userForm.value.name,
-			email: userForm.value.email,
 			role: userForm.value.role
+		}
+
+		// 只有当邮箱不为空时才发送
+		if (userForm.value.email) {
+			data.email = userForm.value.email
 		}
 
 		// 创建时需要密码
@@ -547,15 +631,23 @@ const handleSave = async () => {
 			// 如果创建的用户不符合当前筛选，切换到"全部"标签
 			if (!userForm.value.id && currentRoleTab.value !== 'all') {
 				const newUser = res.data
-				if (currentRoleTab.value === 'vip') {
-					if (!isVipRole(newUser.role)) {
-						currentRoleTab.value = 'all'
-					}
-				} else if (newUser.role !== currentRoleTab.value) {
-					currentRoleTab.value = 'all'
+				let shouldSwitchTab = false
+
+				if (currentRoleTab.value === 'vip_short') {
+					shouldSwitchTab = newUser.role !== 'vip_short'
+				} else if (currentRoleTab.value === 'vip_medium') {
+					shouldSwitchTab = newUser.role !== 'vip_mid'
+				} else if (currentRoleTab.value === 'trial') {
+					shouldSwitchTab = newUser.role !== 'trial'
+				} else if (currentRoleTab.value === 'admin') {
+					shouldSwitchTab = newUser.role !== 'super_admin' && newUser.role !== 'admin'
 				}
-				// 切换后重新加载
-				await loadUsers(true)
+
+				if (shouldSwitchTab) {
+					currentRoleTab.value = 'all'
+					// 切换后重新加载
+					await loadUsers(true)
+				}
 			}
 		} else {
 			throw new Error(res.message || '操作失败')
@@ -603,6 +695,94 @@ const handleDelete = async (id) => {
 			title: '删除失败',
 			icon: 'none'
 		})
+	}
+}
+
+// 打开重置密码弹窗
+const handleResetPassword = (user) => {
+	passwordResetForm.value = {
+		userId: user.id,
+		username: user.username,
+		email: user.email,
+		newPassword: '',
+		confirmPassword: '',
+		adminPassword: ''
+	}
+	showResetPasswordModal.value = true
+}
+
+// 关闭重置密码弹窗
+const closeResetPasswordModal = () => {
+	showResetPasswordModal.value = false
+	passwordResetForm.value = {
+		userId: null,
+		username: '',
+		email: '',
+		newPassword: '',
+		confirmPassword: '',
+		adminPassword: ''
+	}
+}
+
+// 确认重置密码
+const confirmResetPassword = async () => {
+	// 验证新密码
+	if (!passwordResetForm.value.newPassword) {
+		uni.showToast({
+			title: '请输入新密码',
+			icon: 'none'
+		})
+		return
+	}
+
+	if (passwordResetForm.value.newPassword.length < 6) {
+		uni.showToast({
+			title: '密码至少6位',
+			icon: 'none'
+		})
+		return
+	}
+
+	// 验证确认密码
+	if (passwordResetForm.value.newPassword !== passwordResetForm.value.confirmPassword) {
+		uni.showToast({
+			title: '两次输入的密码不一致',
+			icon: 'none'
+		})
+		return
+	}
+
+	resetting.value = true
+
+	try {
+		const data = {
+			newPassword: passwordResetForm.value.newPassword
+		}
+
+		// 如果输入了管理员密码，添加到请求数据中
+		if (passwordResetForm.value.adminPassword) {
+			data.adminPassword = passwordResetForm.value.adminPassword
+		}
+
+		const res = await resetUserPasswordApi(passwordResetForm.value.userId, data)
+
+		if (res.success || res.code === 200) {
+			uni.showToast({
+				title: '密码重置成功',
+				icon: 'success'
+			})
+			closeResetPasswordModal()
+		} else {
+			throw new Error(res.message || '重置失败')
+		}
+	} catch (error) {
+		console.error('重置密码失败:', error)
+		uni.showToast({
+			title: error.message || '重置失败',
+			icon: 'none'
+		})
+	} finally {
+		resetting.value = false
 	}
 }
 
@@ -907,6 +1087,11 @@ onMounted(() => {
 	color: #1890ff;
 }
 
+.reset-btn {
+	background: #fff7e6;
+	color: #fa8c16;
+}
+
 .delete-btn {
 	background: #fff1f0;
 	color: #ff4d4f;
@@ -1125,6 +1310,123 @@ onMounted(() => {
 }
 
 .confirm-btn[disabled] {
+	opacity: 0.6;
+}
+
+/* 重置密码弹窗 */
+.modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+	z-index: 2000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 40rpx;
+}
+
+.modal-content {
+	width: 100%;
+	max-width: 600rpx;
+	background: #ffffff;
+	border-radius: 24rpx;
+	overflow: hidden;
+	animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+	from {
+		opacity: 0;
+		transform: scale(0.9);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+.modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 32rpx;
+	border-bottom: 1rpx solid #e8eaed;
+}
+
+.modal-title {
+	font-size: 36rpx;
+	font-weight: bold;
+	color: #1a1a1a;
+}
+
+.modal-close {
+	font-size: 52rpx;
+	color: #8b95a5;
+	line-height: 1;
+	padding: 0 8rpx;
+}
+
+.modal-body {
+	padding: 32rpx;
+	max-height: 60vh;
+	overflow-y: auto;
+}
+
+.user-info {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 20rpx 0;
+	margin-bottom: 20rpx;
+	background: #f5f7fa;
+	border-radius: 12rpx;
+	padding: 20rpx;
+}
+
+.user-info .info-label {
+	font-size: 28rpx;
+	color: #8b95a5;
+	font-weight: 500;
+}
+
+.user-info .info-value {
+	font-size: 28rpx;
+	color: #1a1a1a;
+	font-weight: 500;
+}
+
+.modal-footer {
+	display: flex;
+	gap: 20rpx;
+	padding: 32rpx;
+	border-top: 1rpx solid #e8eaed;
+}
+
+.modal-btn {
+	flex: 1;
+	height: 88rpx;
+	line-height: 88rpx;
+	font-size: 32rpx;
+	border-radius: 16rpx;
+	border: none;
+	text-align: center;
+	font-weight: 500;
+}
+
+.modal-btn.cancel-btn {
+	background: #f5f7fa;
+	color: #8b95a5;
+}
+
+.modal-btn.confirm-btn {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #ffffff;
+}
+
+.modal-btn.confirm-btn[disabled] {
 	opacity: 0.6;
 }
 </style>
