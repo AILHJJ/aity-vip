@@ -98,25 +98,6 @@ app.use(cors(corsOptions));
 app.use(helmet(securityHeaders));
 app.use(trackRequest);
 
-// 请求日志中间件（开发环境）
-if (NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    const start = Date.now();
-    console.log(`[请求开始] ${req.method} ${req.url}`, {
-      query: req.query,
-      body: req.body ? JSON.stringify(req.body).substring(0, 200) : 'none'
-    });
-
-    // 记录响应完成
-    res.on('finish', () => {
-      const duration = Date.now() - start;
-      console.log(`[请求完成] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
-    });
-
-    next();
-  });
-}
-
 // 增加请求超时限制（2分钟，考虑慢速网络）
 app.use((req, res, next) => {
   res.setTimeout(120000, () => {
@@ -137,6 +118,25 @@ app.use(fileUpload({
   useTempFiles: true,
   tempFileDir: '/tmp/'
 }));
+
+// 请求日志中间件(移到body-parser之后,这样才能正确打印请求体)
+if (NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    const start = Date.now();
+    console.log(`[请求开始] ${req.method} ${req.url}`, {
+      query: req.query,
+      body: req.body ? JSON.stringify(req.body).substring(0, 200) : 'none'
+    });
+
+    // 记录响应完成
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      console.log(`[请求完成] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
+    });
+
+    next();
+  });
+}
 
 // 静态文件服务 (带CORS支持)
 app.use('/uploads', (req, res, next) => {
