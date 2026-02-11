@@ -177,17 +177,29 @@ async function getDiscussionById(req, res) {
         });
         return {
           ...reply.toJSON(),
-          user_name: replySender?.name,
-          user_avatar: replySender?.avatar
+          userName: replySender?.name || '匿名用户',
+          userAvatar: replySender?.avatar
         };
       })
     );
-    
+
     const discussionData = {
-      ...discussion.toJSON(),
-      replies: repliesWithSender,
-      user_name: sender?.name,
-      user_avatar: sender?.avatar
+      id: discussion.id,
+      messageId: discussion.messageId,
+      userId: discussion.userId,
+      creatorId: discussion.userId,
+      creatorName: sender?.name || '匿名用户',
+      userName: sender?.name || '匿名用户',
+      userAvatar: sender?.avatar,
+      title: discussion.title,
+      content: discussion.content,
+      status: discussion.status,
+      visibility: discussion.visibility,
+      viewCount: 0, // 如果需要可以添加浏览统计
+      replyCount: replies.length,
+      createdAt: discussion.createdAt,
+      updatedAt: discussion.updatedAt,
+      replies: repliesWithSender
     };
     
     res.json(success(discussionData));
