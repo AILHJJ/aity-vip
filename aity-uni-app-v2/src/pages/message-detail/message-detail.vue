@@ -179,7 +179,7 @@
 						<text class="discussion-user">{{ discussion.userName }}</text>
 						<text class="discussion-time">{{ formatFriendlyTime(discussion.createdAt) }}</text>
 					</view>
-					<view class="discussion-title">{{ discussion.title }}</view>
+					<view class="discussion-content">{{ discussion.content }}</view>
 					<view class="discussion-footer">
 						<text class="discussion-status" :class="discussion.status">
 							{{ discussion.status === 'replied' ? '已回复' : '待回复' }}
@@ -1028,13 +1028,18 @@ onMounted(() => {
 	color: #999999;
 }
 
-.discussion-title {
+.discussion-content {
 	font-size: 28rpx;
 	color: #333333;
+	line-height: 1.6;
 	margin-bottom: 15rpx;
+	word-wrap: break-word;
+	overflow-wrap: break-word;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 .discussion-footer {

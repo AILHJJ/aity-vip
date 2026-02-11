@@ -100,14 +100,10 @@ async function getDiscussions(req, res) {
 
         const discussionData = discussion.toJSON();
 
-        // 使用第一条回复的内容作为标题（如果没有回复则显示原讨论内容）
-        const firstReply = replies.length > 0 ? replies[0] : null;
-        const displayTitle = firstReply ? firstReply.content : discussionData.content;
-
         return {
           id: discussionData.id,
-          title: displayTitle, // 使用回复内容作为标题
-          content: discussionData.content, // 原始讨论内容
+          title: discussionData.title, // 标题（自动生成的）
+          content: discussionData.content, // 完整的回帖内容（用于显示）
           userName: sender?.name || '匿名用户', // 驼峰命名
           userAvatar: sender?.avatar,
           status: discussionData.status,
@@ -206,10 +202,13 @@ async function createDiscussion(req, res) {
   const startTime = Date.now(); // 记录开始时间
 
   try {
-    const { messageId, title, content, visibility = 'private' } = req.body;
+    const { messageId, content, visibility = 'private' } = req.body;
     const userId = req.user.userId;
 
-    console.log(`[创建讨论] 开始处理 - 用户ID: ${userId}, 消息ID: ${messageId}, 标题: ${title}`);
+    // 自动生成title：使用content的前50个字符
+    const title = content ? (content.length > 50 ? content.substring(0, 50) + '...' : content) : '讨论';
+
+    console.log(`[创建讨论] 开始处理 - 用户ID: ${userId}, 消息ID: ${messageId}, 内容长度: ${content?.length || 0}`);
 
     // 设置请求超时时间（总体90秒）
     const timeoutPromise = new Promise((_, reject) => {

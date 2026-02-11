@@ -8,11 +8,13 @@
 				<text class="header-subtitle">智能金融</text>
 			</view>
 			<view class="header-actions">
-				<view class="icon-btn" :class="{ active: thinkMode }" @click="toggleThinkMode">
-					<text class="icon-btn-text">∞</text>
+				<view class="icon-btn think-btn" :class="{ active: thinkMode }" @click="toggleThinkMode">
+					<text class="icon-btn-text">⟡</text>
+					<text class="icon-btn-label">深度思考</text>
 				</view>
-				<view class="icon-btn" @click="handleNewSession">
-					<text class="icon-btn-text">+</text>
+				<view class="icon-btn new-chat-btn" @click="handleNewSession">
+					<text class="icon-btn-text">⟳</text>
+					<text class="icon-btn-label">新对话</text>
 				</view>
 			</view>
 		</view>
@@ -136,7 +138,7 @@
 					:disabled="!inputText.trim() || isLoading"
 					@click="handleSend"
 				>
-					<text v-if="!isLoading" class="send-icon">↑</text>
+					<text v-if="!isLoading" class="send-icon">→</text>
 					<view v-else class="loading-spinner"></view>
 				</button>
 			</view>
@@ -479,30 +481,56 @@ onUnmounted(() => {
 }
 
 .icon-btn {
-	width: 64rpx;
-	height: 64rpx;
 	display: flex;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
+	gap: 4rpx;
+	padding: 8rpx 16rpx;
 	background: #f8f9fa;
-	border-radius: 16rpx;
-	transition: all 0.2s ease;
+	border-radius: 12rpx;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	border: 1rpx solid transparent;
+	min-width: 64rpx;
 }
 
 .icon-btn:active {
-	transform: scale(0.92);
-	background: #f0f2ff;
+	transform: scale(0.95);
 }
 
 .icon-btn.active {
-	background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
-	border: 2rpx solid rgba(102, 126, 234, 0.3);
+	background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+	border-color: rgba(102, 126, 234, 0.2);
+}
+
+.icon-btn.active .icon-btn-text {
+	color: #667eea;
 }
 
 .icon-btn-text {
-	font-size: 36rpx;
+	font-size: 28rpx;
 	font-weight: 300;
-	letter-spacing: 2rpx;
+	letter-spacing: 1rpx;
+	color: #666666;
+	transition: color 0.3s ease;
+}
+
+.icon-btn-label {
+	font-size: 20rpx;
+	color: #999999;
+	font-weight: 400;
+	letter-spacing: 0.5rpx;
+}
+
+/* 深度思考按钮特殊样式 */
+.think-btn.active .icon-btn-text {
+	color: #667eea;
+	text-shadow: 0 0 20rpx rgba(102, 126, 234, 0.3);
+}
+
+.think-btn.active .icon-btn-label {
+	color: #667eea;
+	opacity: 0.8;
 }
 
 /* 行情指数条 */
@@ -1152,8 +1180,8 @@ onUnmounted(() => {
 	display: flex;
 	align-items: flex-end;
 	gap: 12rpx;
-	padding: 16rpx 24rpx;
-	padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+	padding: 12rpx 24rpx;
+	padding-bottom: calc(8rpx + env(safe-area-inset-bottom));
 }
 
 .chat-input {
@@ -1205,8 +1233,9 @@ onUnmounted(() => {
 }
 
 .send-icon {
-	font-size: 28rpx;
-	font-weight: bold;
+	font-size: 32rpx;
+	font-weight: 300;
+	letter-spacing: 2rpx;
 }
 
 .loading-spinner {
