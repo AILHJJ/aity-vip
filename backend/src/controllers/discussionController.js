@@ -268,7 +268,9 @@ async function createDiscussion(req, res) {
     res.status(201).json(success(discussionData, 'Discussion created successfully'));
   } catch (err) {
     const elapsed = Date.now() - startTime;
-    console.error(`[创建讨论] 错误 - 耗时: ${elapsed}ms`, err.message);
+    console.error(`[创建讨论] 错误 - 耗时: ${elapsed}ms`);
+    console.error('[创建讨论] 错误详情:', err);
+    console.error('[创建讨论] 错误堆栈:', err.stack);
 
     // 根据错误类型返回不同的响应
     if (err.message === '请求超时' || err.message.includes('超时')) {
@@ -283,7 +285,7 @@ async function createDiscussion(req, res) {
       return res.status(404).json(notFound('Message not found'));
     }
 
-    res.status(500).json(error('Server error'));
+    res.status(500).json(error(err.message || 'Server error'));
   }
 }
 
