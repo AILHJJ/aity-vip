@@ -9,10 +9,10 @@
 			</view>
 			<view class="header-actions">
 				<view class="icon-btn" :class="{ active: thinkMode }" @click="toggleThinkMode">
-					<text class="icon-btn-text">🧠</text>
+					<text class="icon-btn-text">∞</text>
 				</view>
 				<view class="icon-btn" @click="handleNewSession">
-					<text class="icon-btn-text">🔄</text>
+					<text class="icon-btn-text">+</text>
 				</view>
 			</view>
 		</view>
@@ -61,13 +61,13 @@
 				<!-- 用户消息 -->
 				<view v-if="message.role === 'user'" class="user-message">
 					<view class="message-content">{{ message.content }}</view>
-					<view class="message-avatar">👤</view>
+					<view class="message-avatar user-avatar">U</view>
 				</view>
 
 				<!-- AI消息 -->
 				<view v-else class="ai-message-wrapper">
 					<view class="ai-message">
-						<view class="message-avatar">🤖</view>
+						<view class="message-avatar ai-avatar">AI</view>
 						<view class="message-content">
 							<!-- 推理过程（深度思考） -->
 							<view v-if="message.reasoning" class="reasoning-content">
@@ -103,10 +103,10 @@
 							<text class="risk-icon">⚠️</text>
 							<text class="risk-text">仅供参考，不构成投资建议</text>
 						</view>
-						<view class="message-actions">
+					<view class="message-actions">
 							<text class="message-time">{{ formatTime(message.timestamp) }}</text>
 							<view class="refresh-btn" @click="handleRefreshMessage(index)">
-								<text class="refresh-icon">🔄</text>
+								<text class="refresh-icon">↻</text>
 							</view>
 						</view>
 					</view>
@@ -500,7 +500,9 @@ onUnmounted(() => {
 }
 
 .icon-btn-text {
-	font-size: 32rpx;
+	font-size: 36rpx;
+	font-weight: 300;
+	letter-spacing: 2rpx;
 }
 
 /* 行情指数条 */
@@ -683,17 +685,20 @@ onUnmounted(() => {
 	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.15);
 }
 
-.user-message .message-avatar {
+.user-message .message-avatar.user-avatar {
 	width: 64rpx;
 	height: 64rpx;
 	margin-left: 16rpx;
-	font-size: 36rpx;
+	font-size: 28rpx;
+	font-weight: bold;
+	color: #ffffff;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: #f0f0f0;
+	background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
 	border-radius: 50%;
 	flex-shrink: 0;
+	box-shadow: 0 2rpx 8rpx rgba(82, 196, 26, 0.3);
 }
 
 /* AI消息 */
@@ -708,11 +713,13 @@ onUnmounted(() => {
 	align-items: flex-start;
 }
 
-.ai-message .message-avatar {
+.ai-message .message-avatar.ai-avatar {
 	width: 64rpx;
 	height: 64rpx;
 	margin-right: 16rpx;
-	font-size: 36rpx;
+	font-size: 22rpx;
+	font-weight: bold;
+	color: #ffffff;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1129,7 +1136,6 @@ onUnmounted(() => {
 	background: #ffffff;
 	border-top: 1rpx solid #f0f0f0;
 	padding: 0;
-	padding-bottom: env(safe-area-inset-bottom);
 }
 
 .error-message {
