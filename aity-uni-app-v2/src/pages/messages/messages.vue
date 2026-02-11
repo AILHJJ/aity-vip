@@ -469,11 +469,10 @@ onMounted(async () => {
 	// 加载消息列表
 	await loadMessages()
 
-	// 恢复筛选条件
-	loadFiltersFromStorage()
-
 	// 恢复搜索历史
 	searchHistory.value = getSearchHistory()
+
+	// 注意: 筛选条件现在通过 filter-bar 和 message-filter-bar 组件内部处理
 
 	// 标记页面加载完成
 	userInfoLoaded.value = true

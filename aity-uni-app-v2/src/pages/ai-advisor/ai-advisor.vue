@@ -4,42 +4,36 @@
 		<view class="header">
 			<view class="header-title-section">
 				<text class="header-title">图灵</text>
-				<text class="header-subtitle">智能问答服务</text>
+				<text class="header-subtitle">深度思考</text>
 			</view>
-
 			<view class="header-actions">
-				<!-- 新会话按钮 -->
 				<view class="action-button" @click="handleNewSession">
 					<text class="action-icon">🔄</text>
 					<text class="action-text">新会话</text>
 				</view>
-
-				<!-- 深度思考模式开关 -->
-				<view class="action-button think-toggle" @click="toggleThinkMode">
+				<view class="action-button think-toggle" :class="{ active: thinkMode }" @click="toggleThinkMode">
 					<text class="action-icon">🧠</text>
 					<text class="action-text">深度思考</text>
-					<view class="toggle-switch" :class="{ active: thinkMode }">
-						<view class="toggle-dot"></view>
-					</view>
 				</view>
-
-				<!-- 管理员开关：显示工具调用 -->
 				<view v-if="isAdmin" class="admin-toggle" @click="toggleToolVisibility">
-					<text class="toggle-text">{{ showTools ? '隐藏工具调用' : '显示工具调用' }}</text>
-					<view class="toggle-switch" :class="{ active: showTools }">
-						<view class="toggle-dot"></view>
-					</view>
+					<text class="toggle-text">{{ showTools ? '隐藏工具' : '显示工具' }}</text>
 				</view>
 			</view>
 		</view>
 
-		<!-- 免责声明 -->
-		<view class="disclaimer-banner">
-			<text class="disclaimer-icon">⚠️</text>
-			<view class="disclaimer-content">
-				<text class="disclaimer-title">免责声明</text>
-				<text class="disclaimer-text">本服务仅为智能信息查询工具,所提供内容仅供参考,不构成任何投资建议。投资有风险,入市需谨慎。</text>
-			</view>
+		<!-- 实时行情指数条 -->
+		<view class="market-ticker" v-if="marketData.length > 0">
+			<scroll-view scroll-x class="ticker-scroll" :show-scrollbar="false">
+				<view class="ticker-item" v-for="(item, index) in marketData" :key="index">
+					<text class="ticker-name">{{ item.name }}</text>
+					<text class="ticker-value" :class="getChangeClass(item.EXT_ZF)">
+						{{ item.now }}
+					</text>
+					<text class="ticker-change" :class="getChangeClass(item.EXT_ZF)">
+						{{ formatChange(item.EXT_ZF) }}%
+					</text>
+				</view>
+			</scroll-view>
 		</view>
 
 		<!-- 对话消息区域 -->
@@ -50,18 +44,37 @@
 			:scroll-with-animation="true"
 		>
 			<!-- 欢迎消息 -->
-			<view v-if="messages.length === 0" class="welcome-message">
+			<view v-if="messages.length === 0" class="welcome-container">
 				<view class="welcome-icon">🤖</view>
-				<view class="welcome-text">您好！我是图灵</view>
-				<view class="welcome-hint">有什么可以帮您的吗？</view>
-				<view class="quick-questions">
-					<view
-						class="quick-question"
-						v-for="(question, index) in quickQuestions"
-						:key="index"
-						@click="sendQuickQuestion(question)"
-					>
-						{{ question }}
+				<view class="welcome-title">我是图灵</view>
+				<view class="welcome-subtitle">专注于投资问答的AI助手</view>
+
+				<!-- 功能卡片 -->
+				<view class="feature-cards">
+					<view class="feature-card" @click="quickAction('diagnose')">
+						<text class="feature-icon">📊</text>
+						<text class="feature-name">诊股</text>
+					</view>
+					<view class="feature-card" @click="quickAction('select')">
+						<text class="feature-icon">📈</text>
+						<text class="feature-name">选股</text>
+					</view>
+					<view class="feature-card" @click="quickAction('news')">
+						<text class="feature-icon">📰</text>
+						<text class="feature-name">查资讯</text>
+					</view>
+				</view>
+
+				<!-- 快捷问题 (横向) -->
+				<view class="quick-questions-horizontal">
+					<view class="quick-q" @click="sendQuickQuestion('今日市场行情如何?')">
+						今日市场行情
+					</view>
+					<view class="quick-q" @click="sendQuickQuestion('帮我筛选科技板块龙头股')">
+						筛选科技股
+					</view>
+					<view class="quick-q" @click="sendQuickQuestion('分析一下当前市场走势')">
+						市场分析
 					</view>
 				</view>
 			</view>
@@ -128,6 +141,28 @@
 			</view>
 		</scroll-view>
 
+		<!-- 工具栏 -->
+		<view class="toolbar-container">
+			<view class="toolbar">
+				<view class="tool-item" @click="toggleTool('market')">
+					<text class="tool-icon">📊</text>
+					<text class="tool-text">行情</text>
+				</view>
+				<view class="tool-item" @click="toggleTool('stock')">
+					<text class="tool-icon">📈</text>
+					<text class="tool-text">选股</text>
+				</view>
+				<view class="tool-item" @click="toggleThinkMode">
+					<text class="tool-icon">🧠</text>
+					<text class="tool-text" :class="{ active: thinkMode }">深度</text>
+				</view>
+				<view class="tool-item" @click="handleClearHistory">
+					<text class="tool-icon">📋</text>
+					<text class="tool-text">历史</text>
+				</view>
+			</view>
+		</view>
+
 		<!-- 输入区域 -->
 		<view class="input-container">
 			<!-- 错误提示 -->
@@ -150,23 +185,51 @@
 					:disabled="!inputText.trim() || isLoading"
 					@click="handleSend"
 				>
-					{{ isLoading ? '发送中' : '发送' }}
+					<text v-if="!isLoading" class="send-icon">▶</text>
+					<view v-else class="loading-spinner"></view>
 				</button>
 			</view>
 		</view>
 
-		<!-- 底部操作栏 -->
-		<view v-if="messages.length > 0" class="bottom-actions">
-			<view class="secondary-button" @click="handleClearHistory">
-				<text class="secondary-button-icon">🗑️</text>
-				<text class="secondary-button-text">清空对话</text>
+		<!-- 免责声明 (底部折叠) -->
+		<view class="disclaimer-footer" v-if="!disclaimerAccepted">
+			<view class="disclaimer-content" @click="showDisclaimerModal = true">
+				<text class="disclaimer-icon">⚠️</text>
+				<text class="disclaimer-text">本服务仅供参考,不构成投资建议</text>
+				<text class="disclaimer-more">查看详情 ></text>
+			</view>
+		</view>
+
+		<!-- 免责声明弹窗 (首次) -->
+		<view v-if="showDisclaimerModal" class="disclaimer-modal" @click.self="handleAcceptDisclaimer">
+			<view class="disclaimer-modal-content" @click.stop>
+				<view class="disclaimer-modal-header">
+					<text class="disclaimer-modal-title">⚠️ 重要提示</text>
+				</view>
+				<view class="disclaimer-modal-body">
+					<view class="disclaimer-item">
+						<text class="disclaimer-label">服务性质:</text>
+						<text class="disclaimer-value">本服务仅为智能信息查询工具,所提供内容仅供参考</text>
+					</view>
+					<view class="disclaimer-item">
+						<text class="disclaimer-label">风险提示:</text>
+						<text class="disclaimer-value">不构成任何投资建议。投资有风险,入市需谨慎</text>
+					</view>
+					<view class="disclaimer-item">
+						<text class="disclaimer-label">免责条款:</text>
+						<text class="disclaimer-value">用户应根据自身情况独立判断,使用本服务所产生的的一切后果由用户自行承担</text>
+					</view>
+				</view>
+				<view class="disclaimer-modal-footer">
+					<button class="disclaimer-btn" @click="handleAcceptDisclaimer">我已阅读并同意</button>
+				</view>
 			</view>
 		</view>
 	</view>
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, computed } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
 import { sendAIMessage } from '@/api/ai-advisor'
 import { getChatHistory, saveChatHistory, saveThreadId, clearChatHistory, getThinkMode, setThinkMode } from '@/utils/ai-advisor-config'
 import { MarkdownRenderer, FinancialTableParser } from '@/utils/markdown-renderer'
@@ -193,12 +256,13 @@ const isAdmin = computed(() => {
 	return userInfo && (userInfo.role === 'super_admin' || userInfo.role === 'admin')
 })
 
-// 快捷问题
-const quickQuestions = ref([
-	'今天股市行情怎么样?',
-	'有什么热门板块?',
-	'帮我筛选科技板块股票'
-])
+// 行情数据
+const marketData = ref([])
+let marketRefreshTimer = null
+
+// 免责声明
+const disclaimerAccepted = ref(false)
+const showDisclaimerModal = ref(false)
 
 // 切换工具显示
 function toggleToolVisibility() {
@@ -227,6 +291,51 @@ function handleNewSession() {
 			}
 		}
 	})
+}
+
+// 切换工具栏功能
+function toggleTool(type) {
+	const prompts = {
+		market: '今日大盘行情如何?',
+		stock: '帮我筛选市盈率小于20的科技股'
+	}
+	if (prompts[type]) {
+		inputText.value = prompts[type]
+		handleSend()
+	}
+}
+
+// 加载行情数据
+async function loadMarketData() {
+	try {
+		// 调用后端代理接口(避免跨域)
+		const res = await uni.request({
+			url: 'https://aity88.online:8443/api/market/ticker',
+			method: 'GET'
+		})
+
+		if (res.data.code === 200) {
+			marketData.value = res.data.data
+		}
+	} catch (error) {
+		console.error('加载行情失败:', error)
+	}
+}
+
+// 格式化涨跌幅
+function formatChange(value) {
+	if (!value) return '0.00'
+	const num = parseFloat(value)
+	return (num >= 0 ? '+' : '') + num.toFixed(2)
+}
+
+// 获取涨跌样式类
+function getChangeClass(value) {
+	if (!value) return 'neutral'
+	const num = parseFloat(value)
+	if (num > 0) return 'up'
+	if (num < 0) return 'down'
+	return 'neutral'
 }
 
 // 渲染Markdown - 使用增强的渲染器
@@ -377,6 +486,17 @@ async function handleSend() {
 	}
 }
 
+// 快捷操作
+function quickAction(type) {
+	const prompts = {
+		diagnose: '帮我分析一下贵州茅台的投资价值',
+		select: '帮我筛选市盈率小于20的科技股',
+		news: '今天有什么重要的财经新闻?'
+	}
+	inputText.value = prompts[type]
+	handleSend()
+}
+
 // 发送快捷问题
 function sendQuickQuestion(question) {
 	inputText.value = question
@@ -398,6 +518,13 @@ function handleClearHistory() {
 	})
 }
 
+// 接受免责声明
+function handleAcceptDisclaimer() {
+	disclaimerAccepted.value = true
+	showDisclaimerModal.value = false
+	uni.setStorageSync('disclaimer_accepted', true)
+}
+
 // 滚动到底部
 function scrollToBottom() {
 	nextTick(() => {
@@ -409,6 +536,20 @@ function scrollToBottom() {
 
 // 页面加载
 onMounted(() => {
+	// 检查是否已接受免责声明
+	const accepted = uni.getStorageSync('disclaimer_accepted')
+	if (!accepted) {
+		showDisclaimerModal.value = true
+	} else {
+		disclaimerAccepted.value = true
+	}
+
+	// 加载行情数据
+	loadMarketData()
+
+	// 每30秒刷新行情
+	marketRefreshTimer = setInterval(loadMarketData, 30000)
+
 	// 加载历史对话
 	const history = getChatHistory()
 	if (history && history.length > 0) {
@@ -427,6 +568,13 @@ onMounted(() => {
 	// 加载深度思考模式状态
 	thinkMode.value = getThinkMode()
 })
+
+// 页面卸载
+onUnmounted(() => {
+	if (marketRefreshTimer) {
+		clearInterval(marketRefreshTimer)
+	}
+})
 </script>
 
 <style lang="scss" scoped>
@@ -435,7 +583,7 @@ onMounted(() => {
 	flex-direction: column;
 	height: 100vh;
 	background: #f5f5f5;
-	padding-bottom: 80rpx; /* 为底部操作栏留出空间 */
+	padding-bottom: 0;
 }
 
 /* 顶部操作栏 */
@@ -443,43 +591,9 @@ onMounted(() => {
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	padding: 30rpx 20rpx;
 	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.2);
-	position: relative;
-}
-
-/* 免责声明 */
-.disclaimer-banner {
-	margin: 20rpx;
-	padding: 20rpx;
-	background: linear-gradient(135deg, #fff9e6 0%, #ffe7ba 100%);
-	border-radius: 12rpx;
-	border-left: 4rpx solid #ff9800;
 	display: flex;
-	gap: 16rpx;
-	animation: slideIn 0.5s ease-out;
-}
-
-.disclaimer-icon {
-	font-size: 32rpx;
-	flex-shrink: 0;
-}
-
-.disclaimer-content {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 8rpx;
-}
-
-.disclaimer-title {
-	font-size: 28rpx;
-	font-weight: bold;
-	color: #d48806;
-}
-
-.disclaimer-text {
-	font-size: 24rpx;
-	color: #8c6800;
-	line-height: 1.6;
+	justify-content: space-between;
+	align-items: center;
 }
 
 .header-title-section {
@@ -547,12 +661,13 @@ onMounted(() => {
 
 /* 管理员开关 */
 .admin-toggle {
-	position: absolute;
-	top: 30rpx;
-	right: 30rpx;
 	display: flex;
 	align-items: center;
 	gap: 16rpx;
+	padding: 12rpx 20rpx;
+	background: rgba(255, 255, 255, 0.15);
+	border-radius: 20rpx;
+	border: 1rpx solid rgba(255, 255, 255, 0.2);
 }
 
 .toggle-text {
@@ -560,32 +675,60 @@ onMounted(() => {
 	color: #ffffff;
 }
 
-.toggle-switch {
-	width: 80rpx;
-	height: 40rpx;
-	background: rgba(255, 255, 255, 0.3);
-	border-radius: 20rpx;
-	position: relative;
-	transition: all 0.3s;
+/* 行情指数条 */
+.market-ticker {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	padding: 16rpx 20rpx;
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.2);
 }
 
-.toggle-switch.active {
-	background: rgba(255, 255, 255, 0.6);
+.ticker-scroll {
+	white-space: nowrap;
 }
 
-.toggle-dot {
-	width: 32rpx;
-	height: 32rpx;
-	background: #ffffff;
-	border-radius: 50%;
-	position: absolute;
-	top: 4rpx;
-	left: 4rpx;
-	transition: all 0.3s;
+.ticker-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 12rpx;
+	margin-right: 32rpx;
+	color: #ffffff;
 }
 
-.toggle-switch.active .toggle-dot {
-	left: 44rpx;
+.ticker-name {
+	font-size: 24rpx;
+	opacity: 0.9;
+	font-weight: 500;
+}
+
+.ticker-value {
+	font-size: 26rpx;
+	font-weight: bold;
+}
+
+.ticker-value.up { color: #ff4d4f; }
+.ticker-value.down { color: #52c41a; }
+.ticker-value.neutral { color: #ffffff; }
+
+.ticker-change {
+	font-size: 22rpx;
+	padding: 4rpx 12rpx;
+	border-radius: 8rpx;
+	font-weight: 600;
+}
+
+.ticker-change.up {
+	background: rgba(255, 77, 79, 0.2);
+	color: #ff4d4f;
+}
+
+.ticker-change.down {
+	background: rgba(82, 196, 26, 0.2);
+	color: #52c41a;
+}
+
+.ticker-change.neutral {
+	background: rgba(255, 255, 255, 0.2);
+	color: #ffffff;
 }
 
 /* 对话区域 */
@@ -595,13 +738,12 @@ onMounted(() => {
 	overflow-y: auto;
 }
 
-/* 欢迎消息 */
-.welcome-message {
+/* 欢迎区域 */
+.welcome-container {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	justify-content: center;
-	padding-top: 200rpx;
+	padding: 80rpx 40rpx 60rpx;
 }
 
 .welcome-icon {
@@ -619,42 +761,76 @@ onMounted(() => {
 	}
 }
 
-.welcome-text {
-	font-size: 36rpx;
+.welcome-title {
+	font-size: 40rpx;
 	font-weight: bold;
 	color: #333333;
 	margin-bottom: 16rpx;
 }
 
-.welcome-hint {
+.welcome-subtitle {
 	font-size: 28rpx;
-	color: #999999;
+	color: #666666;
 	margin-bottom: 60rpx;
 }
 
-.quick-questions {
+/* 功能卡片 */
+.feature-cards {
 	display: flex;
-	flex-direction: column;
 	gap: 20rpx;
+	margin-bottom: 50rpx;
 	width: 100%;
-	max-width: 600rpx;
 }
 
-.quick-question {
-	padding: 24rpx 32rpx;
+.feature-card {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 16rpx;
+	padding: 32rpx 20rpx;
 	background: #ffffff;
-	border-radius: 12rpx;
-	font-size: 28rpx;
-	color: #667eea;
-	text-align: center;
-	border: 2rpx solid #e0e0e0;
+	border-radius: 16rpx;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
 	transition: all 0.3s;
+}
 
-	&:active {
-		background: #f0f2ff;
-		border-color: #667eea;
-		transform: scale(0.98);
-	}
+.feature-card:active {
+	transform: translateY(-4rpx);
+	box-shadow: 0 8rpx 20rpx rgba(102, 126, 234, 0.3);
+}
+
+.feature-icon {
+	font-size: 48rpx;
+}
+
+.feature-name {
+	font-size: 26rpx;
+	color: #333333;
+	font-weight: 500;
+}
+
+/* 快捷问题(横向) */
+.quick-questions-horizontal {
+	display: flex;
+	gap: 16rpx;
+	flex-wrap: wrap;
+	justify-content: center;
+	width: 100%;
+}
+
+.quick-q {
+	padding: 16rpx 32rpx;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #ffffff;
+	border-radius: 24rpx;
+	font-size: 26rpx;
+	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+	transition: all 0.3s;
+}
+
+.quick-q:active {
+	transform: scale(0.95);
 }
 
 /* 消息项 */
@@ -1112,12 +1288,50 @@ onMounted(() => {
 	text-align: center;
 }
 
+/* 工具栏 */
+.toolbar-container {
+	background: #ffffff;
+	border-top: 1rpx solid #e0e0e0;
+}
+
+.toolbar {
+	display: flex;
+	justify-content: space-around;
+	padding: 20rpx 0;
+}
+
+.tool-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8rpx;
+	transition: all 0.3s;
+}
+
+.tool-item:active {
+	transform: scale(0.9);
+}
+
+.tool-icon {
+	font-size: 36rpx;
+}
+
+.tool-text {
+	font-size: 22rpx;
+	color: #666666;
+}
+
+.tool-text.active {
+	color: #667eea;
+	font-weight: bold;
+}
+
 /* 输入区域 */
 .input-container {
 	background: #ffffff;
 	border-top: 1rpx solid #e0e0e0;
 	padding: 20rpx;
-	margin-bottom: 80rpx; /* 为底部操作栏留出空间 */
+	padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
 }
 
 .error-message {
@@ -1148,65 +1362,144 @@ onMounted(() => {
 }
 
 .send-button {
-	min-width: 120rpx;
+	min-width: 80rpx;
 	height: 80rpx;
-	line-height: 80rpx;
-	padding: 0 32rpx;
+	padding: 0;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	color: #ffffff;
 	font-size: 28rpx;
 	font-weight: bold;
 	border-radius: 12rpx;
 	border: none;
-	text-align: center;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .send-button[disabled] {
 	opacity: 0.5;
 }
 
-.clear-history {
-	display: none; /* 隐藏原来的清空按钮 */
+.send-icon {
+	font-size: 24rpx;
 }
 
-/* 底部操作栏 */
-.bottom-actions {
-	position: fixed;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	background: rgba(255, 255, 255, 0.95);
-	backdrop-filter: blur(10rpx);
-	border-top: 1rpx solid #e0e0e0;
+.loading-spinner {
+	width: 32rpx;
+	height: 32rpx;
+	border: 3rpx solid rgba(255, 255, 255, 0.3);
+	border-top-color: #ffffff;
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* 免责声明底部 */
+.disclaimer-footer {
+	background: #fff9e6;
+	border-top: 1rpx solid #ffe58f;
 	padding: 16rpx 20rpx;
-	display: flex;
-	justify-content: center;
-	z-index: 100;
+	padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
 }
 
-.secondary-button {
+.disclaimer-content {
 	display: flex;
 	align-items: center;
-	gap: 8rpx;
-	padding: 12rpx 24rpx;
-	background: rgba(102, 126, 234, 0.1);
-	border: 1rpx solid rgba(102, 126, 234, 0.2);
-	border-radius: 16rpx;
-	transition: all 0.3s ease;
+	gap: 12rpx;
 }
 
-.secondary-button:active {
-	background: rgba(102, 126, 234, 0.2);
-	transform: scale(0.95);
+.disclaimer-icon {
+	font-size: 28rpx;
+	flex-shrink: 0;
 }
 
-.secondary-button-icon {
-	font-size: 24rpx;
+.disclaimer-text {
+	flex: 1;
+	font-size: 22rpx;
+	color: #8c6800;
+	line-height: 1.4;
 }
 
-.secondary-button-text {
-	font-size: 24rpx;
+.disclaimer-more {
+	font-size: 22rpx;
 	color: #667eea;
-	font-weight: 500;
+	flex-shrink: 0;
+}
+
+/* 免责声明弹窗 */
+.disclaimer-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.6);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 9999;
+}
+
+.disclaimer-modal-content {
+	width: 600rpx;
+	background: #ffffff;
+	border-radius: 20rpx;
+	overflow: hidden;
+}
+
+.disclaimer-modal-header {
+	padding: 32rpx;
+	background: linear-gradient(135deg, #fff9e6 0%, #ffe7ba 100%);
+	text-align: center;
+}
+
+.disclaimer-modal-title {
+	font-size: 32rpx;
+	font-weight: bold;
+	color: #d48806;
+}
+
+.disclaimer-modal-body {
+	padding: 32rpx;
+}
+
+.disclaimer-item {
+	margin-bottom: 24rpx;
+}
+
+.disclaimer-label {
+	display: block;
+	font-size: 26rpx;
+	font-weight: bold;
+	color: #d48806;
+	margin-bottom: 12rpx;
+}
+
+.disclaimer-value {
+	display: block;
+	font-size: 24rpx;
+	color: #666666;
+	line-height: 1.6;
+}
+
+.disclaimer-modal-footer {
+	padding: 24rpx 32rpx;
+	border-top: 1rpx solid #e0e0e0;
+}
+
+.disclaimer-btn {
+	width: 100%;
+	padding: 24rpx;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #ffffff;
+	border-radius: 12rpx;
+	font-size: 28rpx;
+	font-weight: bold;
+	border: none;
 }
 </style>

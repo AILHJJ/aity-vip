@@ -21,6 +21,7 @@ const healthRoutes = require('./routes/healthRoutes');
 const versionRoutes = require('./routes/versionRoutes');
 const monitorRoutes = require('./routes/monitorRoutes');
 const uploadRoutes = require('./routes/upload');
+const marketRoutes = require('./routes/marketRoutes');
 
 // 创建Express应用
 const app = express();
@@ -167,6 +168,7 @@ app.use('/api/health', healthRoutes);
 app.use('/api/version', versionRoutes);
 app.use('/api/monitor', monitorRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/market', marketRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
