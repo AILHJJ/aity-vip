@@ -200,16 +200,22 @@ const handleSubmit = async () => {
 			uni.hideLoading()
 		}
 
-		if (res.success) {
+		console.log('=== 创建讨论 API 响应 ===', res)
+
+		// 后端返回 {code: 200, message: "...", data: {...}}
+		if (res.code === 200 || res.success) {
+			console.log('=== 创建讨论成功 v2.1,准备返回上一页 ===')
+
 			// 显示成功提示
 			uni.showToast({
-				title: '讨论创建成功',
+				title: '✅ 讨论已创建',
 				icon: 'success',
 				duration: 1500
 			})
 
 			// 立即返回上一页,用户体验更流畅
 			setTimeout(() => {
+				console.log('=== 执行返回上一页操作 v2.1 ===')
 				uni.navigateBack()
 			}, 1000)
 		} else {
