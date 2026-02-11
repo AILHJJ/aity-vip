@@ -264,10 +264,15 @@ const handleReply = async () => {
 			// 重新加载回复列表
 			await loadReplies()
 
-			// 更新回复数
-			if (discussion.value) {
-				discussion.value.replyCount = (discussion.value.replyCount || 0) + 1
+			// 更新讨论数据（使用后端返回的准确数据）
+			if (discussion.value && res.data?.discussion) {
+				// 后端返回的是 replies_count (snake_case)，需要映射到 replyCount (camelCase)
+				discussion.value.replyCount = res.data.discussion.replies_count || res.data.discussion.replyCount || 0
+				// 同时更新状态
+				discussion.value.status = res.data.discussion.status || discussion.value.status
 			}
+
+			console.log('[发送回复] 讨论数据已更新，回复数:', discussion.value.replyCount)
 		} else {
 			console.error('[发送回复] 失败 - 响应:', res)
 			uni.showToast({
