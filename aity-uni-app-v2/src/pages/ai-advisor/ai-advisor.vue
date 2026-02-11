@@ -332,10 +332,13 @@ async function handleSend() {
 
 				if (data.type === 'content') {
 					updateAIMessage(data.fullContent)
+					// 流式输出时自动滚动到底部
+					scrollToBottom()
 				} else if (data.type === 'reasoning') {
 					currentReasoning.value = data.fullReasoning
 					if (lastMessage) {
 						lastMessage.reasoning = data.fullReasoning
+						scrollToBottom()
 					}
 				} else if (data.type === 'tool_calls') {
 					if (data.tool_calls && data.tool_calls.length > 0) {
@@ -350,6 +353,7 @@ async function handleSend() {
 								lastMessage.isTable = true
 							}
 						}
+						scrollToBottom()
 					}
 				}
 			},
@@ -1167,12 +1171,12 @@ onUnmounted(() => {
 }
 
 .error-message {
-	padding: 8rpx 20rpx 12rpx 20rpx;
+	padding: 8rpx 20rpx 8rpx 20rpx;
 	background: #fff1f0;
 	color: #ff4d4f;
 	border-radius: 8rpx;
 	font-size: 26rpx;
-	margin: 0 20rpx 12rpx 20rpx;
+	margin: 0 20rpx;
 	text-align: center;
 }
 

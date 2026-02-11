@@ -42,14 +42,6 @@
 					</checkbox-group>
 				</view>
 
-				<!-- 忘记密码提示 -->
-				<view class="forgot-password-section">
-					<view class="forgot-password" @click="handleForgotPassword">
-						<text class="forgot-link">忘记密码？</text>
-					</view>
-					<text class="forgot-hint">请联系管理员重置密码</text>
-				</view>
-
 				<!-- 登录按钮 -->
 				<button
 					class="login-btn"
@@ -84,15 +76,6 @@ const loading = ref(false)
 // 处理记住我选择
 const handleRememberChange = (e) => {
 	formData.value.rememberMe = e.detail.value.length > 0
-}
-
-// 处理忘记密码
-const handleForgotPassword = () => {
-	uni.showToast({
-		title: '请联系系统管理员重置密码',
-		icon: 'none',
-		duration: 3000
-	})
 }
 
 // 处理登录
@@ -247,36 +230,6 @@ const handleLogin = async () => {
 	margin-left: 10rpx;
 	font-size: 26rpx;
 	color: #666666;
-}
-
-.forgot-password-section {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	margin-bottom: 30rpx;
-	padding: 20rpx 0;
-}
-
-.forgot-password {
-	margin-bottom: 10rpx;
-	cursor: pointer;
-	transition: opacity 0.3s;
-
-	&:active {
-		opacity: 0.6;
-	}
-}
-
-.forgot-link {
-	font-size: 28rpx;
-	color: #667eea;
-	font-weight: 500;
-}
-
-.forgot-hint {
-	font-size: 24rpx;
-	color: #999999;
-	text-align: center;
 }
 
 .login-btn {
