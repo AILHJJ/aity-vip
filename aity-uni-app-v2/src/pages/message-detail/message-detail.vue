@@ -49,13 +49,21 @@
 					:key="tag"
 					class="message-tag"
 				>
-					{{ tag }}
+					{{ MESSAGE_TAG_LABELS[tag] || tag }}
 				</text>
 			</view>
 
-			<!-- 消息内容 -->
-			<view class="message-content">
-				<text class="content-text">{{ message.content }}</text>
+			<!-- Markdown主题选择器 -->
+			<view class="theme-selector-wrapper">
+				<MarkdownThemeSelector v-model="markdownTheme" @change="handleThemeChange" />
+			</view>
+
+			<!-- 消息内容（Markdown渲染） -->
+			<view class="message-content markdown-theme-container">
+				<view :class="'markdown-theme-' + markdownTheme">
+					<rich-text v-if="renderedContent" :nodes="renderedContent" class="markdown-content"></rich-text>
+					<text v-else class="content-text">{{ message.content }}</text>
+				</view>
 			</view>
 
 			<!-- 消息图片 -->
@@ -204,13 +212,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { onPullDownRefresh } from '@dcloudio/uni-app'
+import { ref, onMounted, computed, watch } from 'vue'
+import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import { getMessageDetailApi, markMessageAsReadApi, favoriteMessageApi, unfavoriteMessageApi, deleteMessageApi, pinMessageApi, unpinMessageApi } from '../../api/message'
 import { getDiscussionsApi } from '../../api/discussion'
-import { MESSAGE_TYPE_LABELS } from '../../utils/constants'
+import { MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatTime, formatFriendlyTime } from '../../utils/time'
+import { MarkdownRenderer } from '../../utils/markdown-renderer'
+import MarkdownThemeSelector from '../../components/MarkdownThemeSelector.vue'
 
 const userStore = useUserStore()
 
@@ -226,6 +236,20 @@ const favoriteLoading = ref(false)
 const shareLoading = ref(false)
 const deleteLoading = ref(false)
 const pinLoading = ref(false)
+
+// Markdown主题
+const markdownTheme = ref('default')
+
+// 渲染后的Markdown内容
+const renderedContent = computed(() => {
+	if (!message.value || !message.value.content) return ''
+	return MarkdownRenderer.render(message.value.content)
+})
+
+// 主题切换处理
+const handleThemeChange = (newTheme) => {
+	markdownTheme.value = newTheme
+}
 
 // 获取消息类型标签
 const getMessageTypeLabel = (type) => {
@@ -292,13 +316,20 @@ const loadMessageDetail = async () => {
 // 加载相关讨论
 const loadDiscussions = async () => {
 	try {
+		console.log('=== 加载讨论列表，messageId:', messageId.value, '===')
 		const res = await getDiscussionsApi({
 			messageId: messageId.value,
 			limit: 10
 		})
 
-		if (res.success) {
+		console.log('=== 讨论列表响应 ===', res)
+
+		// 兼容两种响应格式
+		if (res.code === 200 || res.success) {
 			discussions.value = res.data.discussions || []
+			console.log('=== 讨论列表加载成功，共', discussions.value.length, '条 ===')
+		} else {
+			console.warn('加载讨论失败:', res.message)
 		}
 	} catch (error) {
 		console.error('加载讨论失败:', error)
@@ -506,17 +537,8 @@ const handleDelete = () => {
 					if (result.success || result.code === 200) {
 						uni.hideLoading()
 
-						// 立即返回上一页，避免用户在等待时点击其他操作
-						const pages = getCurrentPages()
-						if (pages.length > 1) {
-							// 通知列表页刷新
-							const prevPage = pages[pages.length - 2]
-							if (prevPage.$vm && prevPage.$vm.refreshList) {
-								prevPage.$vm.refreshList()
-							}
-						}
-
-						// 立即返回,不等待
+						// 立即返回上一页
+						// onShow会自动刷新列表，不需要手动调用刷新方法
 						uni.navigateBack()
 
 						// 返回后显示成功提示
@@ -583,6 +605,13 @@ const handleTogglePin = async () => {
 	}
 }
 
+// 页面显示时刷新讨论列表（从创建讨论页面返回时会触发）
+onShow(() => {
+	console.log('=== 页面显示，刷新讨论列表 ===')
+	// 只刷新讨论列表，不刷新消息详情（避免不必要的请求）
+	loadDiscussions()
+})
+
 // 下拉刷新
 onPullDownRefresh(async () => {
 	try {
@@ -620,11 +649,20 @@ onMounted(() => {
 		return
 	}
 
+	// 从本地存储读取主题
+	const savedTheme = uni.getStorageSync('markdown_theme')
+	if (savedTheme) {
+		markdownTheme.value = savedTheme
+	}
+
 	loadMessageDetail()
+	loadDiscussions()  // 加载相关讨论
 })
 </script>
 
 <style lang="scss" scoped>
+@import '../../styles/markdown-themes.scss';
+
 .detail-container {
 	min-height: 100vh;
 	background: #f5f5f5;
@@ -795,6 +833,14 @@ onMounted(() => {
 	color: #667eea;
 	background: #f0f2ff;
 	border-radius: 16rpx;
+}
+
+.theme-selector-wrapper {
+	margin-bottom: 20rpx;
+}
+
+.markdown-theme-container {
+	margin-bottom: 30rpx;
 }
 
 .message-content {
