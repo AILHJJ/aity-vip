@@ -24,8 +24,9 @@ const REMOTE_CONFIG = {
 // ============================================
 const LOCAL_CONFIG = {
   // 本地开发时连接本地后端
-  API_BASE_URL: 'http://localhost:3001/api',
-  BASE_URL: 'http://localhost:3001'
+  // 小程序必须使用局域网IP，不能使用localhost
+  API_BASE_URL: 'http://192.168.2.140:3001/api',
+  BASE_URL: 'http://192.168.2.140:3001'
 }
 
 // ============================================
@@ -58,7 +59,7 @@ const isMpWeixin = false
 // - 适用于：后端本地调试、无需联网的开发场景
 //
 
-const useLocalBackend = true // ⚠️ 改为 true 可切换到本地后端
+const useLocalBackend = false // ⚠️ 改为 true 可切换到本地后端
 
 // 导出配置
 export const CONFIG = useLocalBackend
