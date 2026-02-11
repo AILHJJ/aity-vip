@@ -99,9 +99,9 @@ export function request(options) {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options.header
       },
-      // 增加超时时间到90秒，考虑慢速网络和服务器响应时间
-      // 小程序环境的网络请求可能比H5慢
-      timeout: options.timeout || 90000
+      // 使用30秒默认超时，确保页面跳转流畅
+      // 特殊操作（如创建讨论）可以通过options.timeout覆盖
+      timeout: options.timeout || 30000
     }
 
     // 开发环境打印请求信息

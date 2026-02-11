@@ -400,9 +400,12 @@ async function getDiscussionReplies(req, res) {
   try {
     const { id } = req.params;
 
+    console.log(`[获取讨论回复] 开始 - 讨论ID: ${id}`);
+
     // 检查讨论是否存在
     const discussion = await Discussion.findByPk(id);
     if (!discussion) {
+      console.warn(`[获取讨论回复] 讨论不存在 - 讨论ID: ${id}`);
       return res.status(404).json(notFound('Discussion not found'));
     }
 
@@ -412,9 +415,25 @@ async function getDiscussionReplies(req, res) {
       order: [['createdAt', 'ASC']]
     });
 
-    res.json(success(replies));
+    // 获取每个回复的发送者信息
+    const repliesWithSender = await Promise.all(
+      replies.map(async (reply) => {
+        const sender = await User.findByPk(reply.senderId, {
+          attributes: ['name', 'avatar']
+        });
+        return {
+          ...reply.toJSON(),
+          userName: sender?.name || '匿名用户',
+          userAvatar: sender?.avatar
+        };
+      })
+    );
+
+    console.log(`[获取讨论回复] 成功 - 讨论ID: ${id}, 回复数: ${repliesWithSender.length}`);
+
+    res.json(success(repliesWithSender));
   } catch (err) {
-    console.error(err);
+    console.error('[获取讨论回复] 错误:', err);
     res.status(500).json(error('Server error'));
   }
 }

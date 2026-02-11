@@ -33,13 +33,13 @@ export function getDiscussionDetailApi(id) {
  * @returns {Promise}
  */
 export function createDiscussionApi(data) {
-  // 使用带重试的请求，90秒超时，最多重试1次
-  // 考虑慢速网络和服务器响应时间
+  // 使用带重试的请求，60秒超时，最多重试1次
+  // 创建讨论是关键操作，需要较长超时时间
   return requestWithRetry({
     url: '/discussions',
     method: 'POST',
     data,
-    timeout: 90000  // 从60秒增加到90秒
+    timeout: 60000  // 60秒超时，平衡用户体验和操作完成
   }, 1)
 }
 

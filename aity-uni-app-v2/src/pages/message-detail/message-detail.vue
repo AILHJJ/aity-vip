@@ -231,6 +231,10 @@ const loading = ref(true)
 const isFavorited = ref(false)
 const messageId = ref(0)
 
+// 用于跟踪是否需要刷新讨论列表
+const needRefreshDiscussions = ref(false)
+const currentPage = ref(null)
+
 // 防重复点击loading状态
 const favoriteLoading = ref(false)
 const shareLoading = ref(false)
@@ -485,6 +489,9 @@ const goToDiscuss = () => {
 		return
 	}
 
+	// 标记需要刷新讨论列表
+	needRefreshDiscussions.value = true
+
 	uni.navigateTo({
 		url: `/pages/create-discussion/create-discussion?messageId=${messageId.value}`
 	})
@@ -537,18 +544,17 @@ const handleDelete = () => {
 					if (result.success || result.code === 200) {
 						uni.hideLoading()
 
-						// 立即返回上一页
-						// onShow会自动刷新列表，不需要手动调用刷新方法
-						uni.navigateBack()
+						// 先显示成功提示
+						uni.showToast({
+							title: '删除成功',
+							icon: 'success',
+							duration: 1500
+						})
 
-						// 返回后显示成功提示
+						// 延迟返回，让用户看到提示
 						setTimeout(() => {
-							uni.showToast({
-								title: '删除成功',
-								icon: 'success',
-								duration: 1500
-							})
-						}, 100)
+							uni.navigateBack()
+						}, 500)
 					} else {
 						throw new Error(result.message || '删除失败')
 					}
@@ -607,9 +613,12 @@ const handleTogglePin = async () => {
 
 // 页面显示时刷新讨论列表（从创建讨论页面返回时会触发）
 onShow(() => {
-	console.log('=== 页面显示，刷新讨论列表 ===')
-	// 只刷新讨论列表，不刷新消息详情（避免不必要的请求）
-	loadDiscussions()
+	// 只在需要时刷新讨论列表，避免不必要的请求
+	if (needRefreshDiscussions.value) {
+		console.log('=== 页面显示，刷新讨论列表 ===')
+		loadDiscussions()
+		needRefreshDiscussions.value = false
+	}
 })
 
 // 下拉刷新
@@ -790,6 +799,18 @@ onMounted(() => {
 .detail-content {
 	background: #ffffff;
 	padding: 30rpx;
+	animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(10rpx);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 .message-header {

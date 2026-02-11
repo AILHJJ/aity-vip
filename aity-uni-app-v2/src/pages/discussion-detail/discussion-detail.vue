@@ -123,6 +123,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import EmptyState from '../../components/empty-state.vue'
 import {
@@ -142,6 +143,9 @@ const replyContent = ref('')
 const loading = ref(false)
 const refreshing = ref(false)
 const submitting = ref(false)
+
+// 用于跟踪是否需要刷新回复列表
+const needRefreshReplies = ref(false)
 
 // 可见性选项
 const visibilityOptions = [
@@ -164,7 +168,9 @@ const loadDiscussion = async () => {
 		const id = getDiscussionId()
 		const res = await getDiscussionDetailApi(id)
 
-		if (res.success) {
+		console.log('[讨论详情] API响应:', res)
+
+		if (res.code === 200 && res.data) {
 			discussion.value = res.data
 
 			// 权限检查：私密讨论只有管理员和发起者可见
@@ -185,13 +191,14 @@ const loadDiscussion = async () => {
 
 			loadReplies()
 		} else {
+			console.error('[讨论详情] 加载失败 - 响应:', res)
 			uni.showToast({
 				title: res.message || '加载失败',
 				icon: 'none'
 			})
 		}
 	} catch (error) {
-		console.error('加载讨论详情失败:', error)
+		console.error('[讨论详情] 加载讨论详情失败:', error)
 		uni.showToast({
 			title: '加载失败',
 			icon: 'none'
@@ -207,11 +214,19 @@ const loadReplies = async () => {
 		const id = getDiscussionId()
 		const res = await getDiscussionRepliesApi(id)
 
-		if (res.success) {
-			replies.value = res.data.replies || res.data.list || []
+		console.log('[讨论回复] API响应:', res)
+
+		if (res.code === 200) {
+			// 后端返回的数据格式: { code: 200, message: "Success", data: [...] }
+			// 后端已经提供了 userName 字段
+			replies.value = res.data || []
+
+			console.log('[讨论回复] 加载成功，回复数:', replies.value.length)
+		} else {
+			console.error('[讨论回复] 加载失败 - 响应:', res)
 		}
 	} catch (error) {
-		console.error('加载回复列表失败:', error)
+		console.error('[讨论回复] 加载回复列表失败:', error)
 	}
 }
 
@@ -234,10 +249,13 @@ const handleReply = async () => {
 			content: replyContent.value.trim()
 		})
 
-		if (res.success) {
+		console.log('[发送回复] API响应:', res)
+
+		if (res.code === 200) {
 			uni.showToast({
 				title: '回复成功',
-				icon: 'success'
+				icon: 'success',
+				duration: 1500
 			})
 
 			// 清空输入框
@@ -251,13 +269,14 @@ const handleReply = async () => {
 				discussion.value.replyCount = (discussion.value.replyCount || 0) + 1
 			}
 		} else {
+			console.error('[发送回复] 失败 - 响应:', res)
 			uni.showToast({
 				title: res.message || '回复失败',
 				icon: 'none'
 			})
 		}
 	} catch (error) {
-		console.error('回复失败:', error)
+		console.error('[发送回复] 错误:', error)
 		uni.showToast({
 			title: '回复失败',
 			icon: 'none'
@@ -296,20 +315,23 @@ const handleVisibilityChange = async (e) => {
 			visibility: newVisibility
 		})
 
-		if (res.success) {
+		console.log('[修改可见性] API响应:', res)
+
+		if (res.code === 200) {
 			uni.showToast({
 				title: '修改成功',
 				icon: 'success'
 			})
 			discussion.value.visibility = newVisibility
 		} else {
+			console.error('[修改可见性] 失败 - 响应:', res)
 			uni.showToast({
 				title: res.message || '修改失败',
 				icon: 'none'
 			})
 		}
 	} catch (error) {
-		console.error('修改可见性失败:', error)
+		console.error('[修改可见性] 错误:', error)
 		uni.showToast({
 			title: '修改失败',
 			icon: 'none'
@@ -328,6 +350,16 @@ onMounted(() => {
 	}
 
 	loadDiscussion()
+})
+
+// 页面显示时刷新回复列表（如果需要）
+onShow(() => {
+	// 只在需要时刷新回复列表
+	if (needRefreshReplies.value) {
+		console.log('[讨论详情] 页面显示，刷新回复列表')
+		loadReplies()
+		needRefreshReplies.value = false
+	}
 })
 </script>
 
@@ -382,6 +414,18 @@ onMounted(() => {
 	background: #ffffff;
 	padding: 30rpx;
 	margin-bottom: 20rpx;
+	animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(10rpx);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 .discussion-header {

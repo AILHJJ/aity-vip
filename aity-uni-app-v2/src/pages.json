@@ -117,9 +117,9 @@
 		"backgroundColor": "#F8F8F8"
 	},
 	"networkTimeout": {
-		"request": 60000,
+		"request": 30000,
 		"downloadFile": 60000,
 		"uploadFile": 60000,
-		"connectSocket": 60000
+		"connectSocket": 30000
 	}
 }

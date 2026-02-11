@@ -1167,12 +1167,12 @@ onUnmounted(() => {
 }
 
 .error-message {
-	padding: 16rpx 24rpx;
+	padding: 12rpx 20rpx;
 	background: #fff1f0;
 	color: #ff4d4f;
 	border-radius: 8rpx;
 	font-size: 26rpx;
-	margin: 20rpx;
+	margin: 0 20rpx 12rpx 20rpx;
 	text-align: center;
 }
 
@@ -1180,7 +1180,7 @@ onUnmounted(() => {
 	display: flex;
 	align-items: flex-end;
 	gap: 12rpx;
-	padding: 12rpx 24rpx;
+	padding: 0 24rpx;
 	padding-bottom: calc(8rpx + env(safe-area-inset-bottom));
 }
 
