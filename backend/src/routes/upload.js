@@ -31,14 +31,14 @@ router.post('/', (req, res) => {
     const file = req.files.file;
 
     // 验证文件类型
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const allowedTypes = /jpeg|jpg|png|gif|webp|bmp/;
     const extname = allowedTypes.test(path.extname(file.name).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
 
     if (!mimetype || !extname) {
       return res.status(400).json({
         code: 400,
-        message: '只允许上传图片文件 (jpeg, jpg, png, gif, webp)'
+        message: '只允许上传图片文件 (jpeg, jpg, png, gif, webp, bmp)'
       });
     }
 
