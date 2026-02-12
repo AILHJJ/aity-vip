@@ -513,10 +513,22 @@ const handleSubmit = async () => {
 				const attach = formData.value.attachments[i]
 
 				try {
-					console.log(`上传第 ${i + 1} 个附件:`, attach.name)
+					console.log(`上传第 ${i + 1} 个附件:`, attach.name, 'path:', attach.path)
 
-					// 检查是否是blob URL (H5) 或临时文件路径 (小程序)
-					if (attach.path && (attach.path.startsWith('blob:') || attach.path.startsWith('wxfile://'))) {
+					// 判断是否需要上传到服务器
+					// 1. blob: (H5)
+					// 2. wxfile:// (微信小程序)
+					// 3. http://tmp/ (微信小程序临时文件)
+					// 4. 不是完整http/https URL的路径
+					const isLocalFile = attach.path && (
+						attach.path.startsWith('blob:') ||
+						attach.path.startsWith('wxfile://') ||
+						attach.path.startsWith('http://tmp') ||
+						attach.path.includes('_doc/uniappTemp') ||
+						!attach.path.startsWith('http')
+					)
+
+					if (isLocalFile && !attach.url) {
 						// 需要上传到服务器
 						if (!hasShownLoading) {
 							uni.showLoading({
@@ -544,6 +556,9 @@ const handleSubmit = async () => {
 							type: attach.type || 'image',
 							size: attach.size
 						})
+						console.log(`第 ${i + 1} 个附件已有URL，跳过上传:`, attach.url)
+					} else {
+						console.warn(`第 ${i + 1} 个附件无法识别，跳过:`, attach)
 					}
 				} catch (uploadErr) {
 					console.error(`第 ${i + 1} 个附件上传失败:`, uploadErr)
