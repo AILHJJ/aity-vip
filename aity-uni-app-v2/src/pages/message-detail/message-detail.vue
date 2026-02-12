@@ -75,7 +75,7 @@
 					@click="previewImage(index)"
 				>
 					<image
-						:src="img"
+						:src="cleanImageUrl(img)"
 						class="message-image"
 						mode="widthFix"
 						:lazy-load="true"
@@ -260,6 +260,13 @@ const getMessageTypeLabel = (type) => {
 	return MESSAGE_TYPE_LABELS[type] || type
 }
 
+// 清理图片URL（移除微信小程序添加的查询参数）
+const cleanImageUrl = (url) => {
+	if (!url) return url
+	// 移除?后面的所有查询参数
+	return url.split('?')[0]
+}
+
 // 加载消息详情
 const loadMessageDetail = async () => {
 	loading.value = true
@@ -281,7 +288,8 @@ const loadMessageDetail = async () => {
 						if (url.startsWith('/uploads/')) {
 							url = 'https://aity88.online:8443' + url
 						}
-						return url
+						// 清理URL中的查询参数
+						return cleanImageUrl(url)
 					})
 			}
 
@@ -397,8 +405,11 @@ const toggleFavorite = async () => {
 
 // 预览图片
 const previewImage = (index) => {
+	// 清理所有图片URL后再预览
+	const cleanUrls = message.value.images.map(img => cleanImageUrl(img))
+
 	uni.previewImage({
-		urls: message.value.images,
+		urls: cleanUrls,
 		current: index,
 		fail: (err) => {
 			console.error('预览图片失败:', err)
