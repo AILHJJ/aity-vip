@@ -4,14 +4,6 @@
 		<view class="header">
 			<view class="header-left">
 				<text class="header-title">图灵</text>
-				<text class="header-divider">|</text>
-				<text class="header-subtitle">智能金融</text>
-			</view>
-			<view class="header-actions">
-				<view class="icon-btn new-chat-btn" @click="handleNewSession">
-					<text class="icon-btn-text">⟳</text>
-					<text class="icon-btn-label">新对话</text>
-				</view>
 			</view>
 		</view>
 
@@ -139,6 +131,9 @@
 			</view>
 
 			<view class="input-wrapper">
+				<view class="action-btn new-chat-action" @click="handleNewSession">
+					<text class="action-icon">⟳</text>
+				</view>
 				<textarea
 					class="chat-input"
 					v-model="inputText"
@@ -753,77 +748,6 @@ onUnmounted(() => {
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	background-clip: text;
-}
-
-.header-divider {
-	font-size: 28rpx;
-	color: #e0e0e0;
-	font-weight: 300;
-}
-
-.header-subtitle {
-	font-size: 26rpx;
-	color: #999999;
-	font-weight: 400;
-}
-
-.header-actions {
-	display: flex;
-	align-items: center;
-	gap: 16rpx;
-}
-
-.icon-btn {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 4rpx;
-	padding: 8rpx 16rpx;
-	background: #f8f9fa;
-	border-radius: 12rpx;
-	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-	border: 1rpx solid transparent;
-	min-width: 64rpx;
-}
-
-.icon-btn:active {
-	transform: scale(0.95);
-}
-
-.icon-btn.active {
-	background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
-	border-color: rgba(102, 126, 234, 0.2);
-}
-
-.icon-btn.active .icon-btn-text {
-	color: #667eea;
-}
-
-.icon-btn-text {
-	font-size: 28rpx;
-	font-weight: 300;
-	letter-spacing: 1rpx;
-	color: #666666;
-	transition: color 0.3s ease;
-}
-
-.icon-btn-label {
-	font-size: 20rpx;
-	color: #999999;
-	font-weight: 400;
-	letter-spacing: 0.5rpx;
-}
-
-/* 深度思考按钮特殊样式 */
-.think-btn.active .icon-btn-text {
-	color: #667eea;
-	text-shadow: 0 0 20rpx rgba(102, 126, 234, 0.3);
-}
-
-.think-btn.active .icon-btn-label {
-	color: #667eea;
-	opacity: 0.8;
 }
 
 /* 行情指数条 */
@@ -1567,6 +1491,35 @@ onUnmounted(() => {
 	gap: 12rpx;
 	padding: 0 24rpx;
 	padding-bottom: calc(8rpx + env(safe-area-inset-bottom));
+}
+
+/* 输入框左侧操作按钮 */
+.action-btn {
+	width: 72rpx;
+	height: 72rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #f8f9fa;
+	border-radius: 20rpx;
+	transition: all 0.2s ease;
+	flex-shrink: 0;
+	border: 2rpx solid transparent;
+}
+
+.action-btn:active {
+	transform: scale(0.92);
+	background: #f0f2ff;
+	border-color: #667eea;
+}
+
+.action-icon {
+	font-size: 36rpx;
+	color: #666666;
+}
+
+.action-btn:active .action-icon {
+	color: #667eea;
 }
 
 .chat-input {
