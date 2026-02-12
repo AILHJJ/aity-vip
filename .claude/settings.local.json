@@ -65,7 +65,10 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjksImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoic3VwZXJfYWRtaW4iLCJpYXQiOjE3NzA3NzU1NDcsImV4cCI6MTc3MDg2MTk0N30.wd3QTKo7uLKJvBDi5TbPYWozBfp1Q5wnJPIZVhNsrB4\")",
       "Bash(pm2 restart:*)",
       "Bash(npx pm2 restart:*)",
-      "Bash(npx pm2 list:*)"
+      "Bash(npx pm2 list:*)",
+      "Read(//d/**)",
+      "Bash(xargs:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

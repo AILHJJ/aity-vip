@@ -112,7 +112,7 @@
 						<textarea
 							class="form-textarea markdown-editor"
 							v-model="formData.content"
-							placeholder="支持 Markdown 格式&#10;提示：可直接粘贴图片（Ctrl+V）"
+							placeholder="支持 Markdown 格式，支持粘贴图片"
 							placeholder-style="color: #999999"
 							:maxlength="5000"
 							:show-confirm-bar="false"

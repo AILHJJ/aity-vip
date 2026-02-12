@@ -8,10 +8,6 @@
 				<text class="header-subtitle">智能金融</text>
 			</view>
 			<view class="header-actions">
-				<view class="icon-btn think-btn" :class="{ active: thinkMode }" @click="toggleThinkMode">
-					<text class="icon-btn-text">⟡</text>
-					<text class="icon-btn-label">深度思考</text>
-				</view>
 				<view class="icon-btn new-chat-btn" @click="handleNewSession">
 					<text class="icon-btn-text">⟳</text>
 					<text class="icon-btn-label">新对话</text>
@@ -39,7 +35,10 @@
 			class="chat-container"
 			scroll-y
 			:scroll-into-view="scrollIntoView"
-			:scroll-with-animation="true"
+			:scroll-top="scrollTop"
+			:scroll-with-animation="scrollWithAnimation"
+			@click="handleScrollAreaClick"
+		@touchstart="handleScrollAreaTouch"
 		>
 			<!-- 欢迎消息 -->
 			<view v-if="messages.length === 0" class="welcome-container">
@@ -71,16 +70,32 @@
 					<view class="ai-message">
 						<view class="message-avatar ai-avatar">AI</view>
 						<view class="message-content">
-							<!-- 推理过程（深度思考） -->
+							<!-- 推理过程 -->
 							<view v-if="message.reasoning" class="reasoning-content">
 								<view class="reasoning-title">💭 思考过程：</view>
 								<text class="reasoning-text">{{ message.reasoning }}</text>
 							</view>
 
+							<!-- 工具调用提示 -->
+							<view v-if="message.toolCalls && message.toolCalls.length > 0" class="tool-calls-info">
+								<text class="tool-icon">🔧</text>
+								<text class="tool-text">正在调用工具：{{ message.toolCalls[0].function?.name || '未知工具' }}</text>
+							</view>
+
+							<!-- 工具响应结果表格（优先显示） -->
+							<view v-if="message.toolResult" class="tool-result-content">
+								<view class="tool-result-header">
+									<text class="tool-result-title">📊 工具返回结果</text>
+								</view>
+								<view class="financial-table-wrapper">
+									<view v-html="renderToolResultTable(message.toolResult)" class="financial-table"></view>
+								</view>
+							</view>
+
 							<!-- Markdown内容渲染 -->
 							<view v-if="message.content" class="content-area">
 								<!-- 如果是金融选股工具，尝试解析JSON表格 -->
-								<view v-if="message.isTable" class="financial-content">
+								<view v-if="message.isTable && !message.toolResult" class="financial-content">
 									<rich-text v-if="parseFinancialTable(message.content)" :nodes="renderFinancialTable(parseFinancialTable(message.content))"></rich-text>
 									<rich-text v-else :nodes="renderMarkdown(message.content)"></rich-text>
 								</view>
@@ -127,11 +142,15 @@
 				<textarea
 					class="chat-input"
 					v-model="inputText"
-					placeholder="输入您的问题..."
+					placeholder="输入您的问题...（Enter换行，Shift+Enter发送）"
 					:maxlength="500"
 					:auto-height="true"
 					:show-confirm-bar="false"
+					:adjust-position="true"
 					@confirm="handleSend"
+					@keyboardheightchange="onKeyboardHeightChange"
+					@focus="onInputFocus"
+					@blur="onInputBlur"
 				/>
 				<button
 					class="send-button"
@@ -175,7 +194,7 @@
 <script setup>
 import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { sendAIMessage } from '@/api/ai-advisor'
-import { getChatHistory, saveChatHistory, saveThreadId, clearChatHistory, getThinkMode, setThinkMode } from '@/utils/ai-advisor-config'
+import { getChatHistory, saveChatHistory, saveThreadId, clearChatHistory, getThreadId } from '@/utils/ai-advisor-config'
 import { MarkdownRenderer, FinancialTableParser } from '@/utils/markdown-renderer'
 
 // 数据
@@ -184,12 +203,15 @@ const inputText = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
 const scrollIntoView = ref('')
+const scrollTop = ref(0)
+const scrollWithAnimation = ref(true)
 const currentToolCalls = ref([])
 const currentReasoning = ref('')
 const isFinancialQuery = ref(false)
 
-// 深度思考模式状态
-const thinkMode = ref(false)
+// 键盘高度管理
+const keyboardHeight = ref(0)
+const isKeyboardVisible = ref(false)
 
 // 行情数据
 const marketData = ref([])
@@ -199,19 +221,17 @@ let marketRefreshTimer = null
 const disclaimerAccepted = ref(false)
 const showDisclaimerModal = ref(false)
 
-// 切换深度思考模式
-function toggleThinkMode() {
-	const newMode = !thinkMode.value
-	setThinkMode(newMode)
-	thinkMode.value = newMode
-}
-
 // 新会话功能
 function handleNewSession() {
 	messages.value = []
 	clearChatHistory()
 	errorMessage.value = ''
-	thinkMode.value = getThinkMode()
+	// 收起键盘
+	uni.hideKeyboard()
+
+	// 新会话：清空threadId，下次请求将传递空字符串，后台会创建新会话
+	// 后台创建的新threadId会从metadata事件中返回，自动保存
+	console.log('开启新会话：清空threadId')
 }
 
 // 加载行情数据
@@ -324,6 +344,9 @@ async function handleSend() {
 	isLoading.value = true
 	errorMessage.value = ''
 
+	// 收起键盘
+	uni.hideKeyboard()
+
 	try {
 		sendAIMessage(
 			content,
@@ -332,13 +355,13 @@ async function handleSend() {
 
 				if (data.type === 'content') {
 					updateAIMessage(data.fullContent)
-					// 流式输出时自动滚动到底部
-					scrollToBottom()
+					// 流式输出时自动滚动到底部（不使用动画，避免卡顿）
+					scrollToBottom(false)
 				} else if (data.type === 'reasoning') {
 					currentReasoning.value = data.fullReasoning
 					if (lastMessage) {
 						lastMessage.reasoning = data.fullReasoning
-						scrollToBottom()
+						scrollToBottom(false)
 					}
 				} else if (data.type === 'tool_calls') {
 					if (data.tool_calls && data.tool_calls.length > 0) {
@@ -353,8 +376,20 @@ async function handleSend() {
 								lastMessage.isTable = true
 							}
 						}
-						scrollToBottom()
+						scrollToBottom(false)
 					}
+				} else if (data.type === 'tool_result') {
+					// 工具响应结果（原始JSON数据）
+					console.log('工具响应结果:', data.tool_name, data.tool_result)
+
+					if (lastMessage) {
+						// 如果是金融选股工具，保存工具响应的原始数据
+						if (data.tool_name === '金融选股') {
+							lastMessage.toolResult = data.tool_result
+							lastMessage.isTable = true
+						}
+					}
+					scrollToBottom(false)
 				}
 			},
 			(error) => {
@@ -392,12 +427,263 @@ function handleRefreshMessage(index) {
 	})
 }
 
-// 滚动到底部
-function scrollToBottom() {
-	nextTick(() => {
-		if (messages.value.length > 0) {
-			scrollIntoView.value = 'message-' + (messages.value.length - 1)
+// 键盘高度变化处理
+function onKeyboardHeightChange(e) {
+	console.log('键盘高度变化:', e.detail.height)
+	keyboardHeight.value = e.detail.height
+	isKeyboardVisible.value = e.detail.height > 0
+}
+
+// 输入框获得焦点
+function onInputFocus() {
+	isKeyboardVisible.value = true
+}
+
+// 输入框失去焦点
+function onInputBlur() {
+	// 延迟设置，避免点击发送按钮时先触发blur
+	setTimeout(() => {
+		isKeyboardVisible.value = false
+	}, 200)
+}
+
+// 点击滚动区域（关闭键盘）
+function handleScrollAreaClick() {
+	if (isKeyboardVisible.value) {
+		uni.hideKeyboard()
+		isKeyboardVisible.value = false
+	}
+}
+
+// 触摸滚动区域（准备关闭键盘）
+function handleScrollAreaTouch() {
+	if (isKeyboardVisible.value) {
+		// 可以在这里添加更多交互逻辑
+	}
+}
+
+// 渲染工具结果表格
+function renderToolResultTable(toolResult) {
+	try {
+		// toolResult是JSON字符串："[["证券代码","证券名称",...],["000001","平安银行",...]]"
+		// ⭐ 完整数据结构（参考项目）：
+		// 第0行：元数据 [0, "", 0, "", "0"]
+		// 第1行：字段定义 ["POS", "market", "sec_code", "sec_name", "now_price", "chg0#", "所属行业", "timestamps"]
+		// 第2行：格式化标识 ["", "", "", "2|0|0", "2|0|0", "0|0|0", ""]
+		// 第3行起：实际数据 ["000001", "沪市", "平安银行", "12.45", "2.35", "银行业", "2024-01-15 10:30:00"]
+
+		const data = JSON.parse(toolResult)
+
+		if (!Array.isArray(data) || data.length < 3) {
+			return ''
 		}
+
+		// 提取各行数据
+		const row0 = data[0] || []  // 元数据行
+		const row1 = data[1] || []  // 字段定义行
+		const row2 = data[2] || []  // 格式化标识行
+		const rows = data.slice(3)    // 实际数据行（第3行起）
+
+		// 提取字段映射
+		const fieldMapping = {}
+		row1.forEach((field, index) => {
+			fieldMapping[row0[index]] = field
+		})
+
+		// 提取格式化标识
+		const formatFlags = {}
+		row2.forEach((flag, index) => {
+			formatFlags[row0[index]] = flag
+		})
+
+		// 生成HTML表格
+		let tableHtml = '<table class="tool-result-table">'
+		tableHtml += '<thead><tr>'
+
+		// 渲染表头（使用字段定义）
+		const headers = Object.values(fieldMapping)
+		headers.forEach(header => {
+			// 处理表头中的<br>标签和日期（如"现价<br>2024.01.15"）
+			const cleanHeader = header.replace(/<br>.*$/, '')
+			tableHtml += `<th>${cleanHeader}</th>`
+		})
+		tableHtml += '</tr></thead><tbody>'
+
+		// 渲染数据行
+		rows.forEach((row, rowIndex) => {
+			tableHtml += '<tr>'
+
+			row.forEach((cell, cellIndex) => {
+				const fieldName = Object.keys(fieldMapping)[cellIndex]
+				const formatFlag = formatFlags[fieldName]
+
+				// 应用格式化函数
+				const formattedCell = formatCellValue(cell, formatFlag, fieldName, row)
+
+				tableHtml += `<td>${formattedCell}</td>`
+			})
+
+			tableHtml += '</tr>'
+		})
+
+		tableHtml += '</tbody></table>'
+
+		return tableHtml
+	} catch (error) {
+		console.error('解析工具结果失败:', error)
+		// 降级：返回原始文本
+		return `<pre style="white-space: pre-wrap; word-break: break-all;">${toolResult}</pre>`
+	}
+}
+
+// 格式化单元格值（参考项目的完整逻辑）
+function formatCellValue(value, formatFlag, fieldName, rowData) {
+	// 空值处理
+	if (value === '' || value === null || value === undefined) {
+		return '--'
+	}
+
+	// 解析格式化标识（如"2|0|0"）
+	const flags = formatFlag ? formatFlag.split('|') : []
+
+	// 第1位：颜色/格式类型
+	const typeFlag = flags[0] || '0'
+	// 第2位：子类型
+	const subType = flags[1] || '0'
+	// 第3位：特殊标识
+	const specialFlag = flags[2] || '0'
+
+	// 根据字段名判断涨跌幅
+	const isChangeField = fieldName === 'chg' || fieldName === 'chg0#'
+
+	// 获取原始数值
+	let numValue = parseFloat(value)
+
+	// === 涨跌幅字段处理 ===
+	if (isChangeField) {
+		// typeFlag == "1": 根据正负值判断颜色（>0涨，<0跌，==0平）
+		// typeFlag == "2": 涨跌幅+反向判断（>0跌，<0涨，==0平）
+		// typeFlag == "3": 特殊规则（>1涨，<=1跌）
+
+		if (typeFlag === '1') {
+			// 默认规则：正数涨（红），负数跌（绿）
+			if (numValue > 0) {
+				return `<span class="color-up">${numValue}%</span>`
+			} else if (numValue < 0) {
+				return `<span class="color-down">${Math.abs(numValue)}%</span>`
+			} else {
+				return `<span>${numValue}%</span>`  // 平盘
+			}
+		} else if (typeFlag === '2') {
+			// 反向规则：正数跌（绿），负数涨（红）
+			if (numValue > 0) {
+				return `<span class="color-down">${numValue}%</span>`
+			} else if (numValue < 0) {
+				return `<span class="color-up">${Math.abs(numValue)}%</span>`
+			} else {
+				return `<span>${numValue}%</span>`
+			}
+		} else if (typeFlag === '3') {
+			// 特殊规则：>1涨，<=1跌
+			if (numValue > 1) {
+				return `<span class="color-up">${numValue}%</span>`
+			} else if (numValue <= -1) {
+				return `<span class="color-down">${Math.abs(numValue)}%</span>`
+			} else {
+				return `<span>${numValue}%</span>`
+			}
+		}
+	}
+
+	// === 价格字段处理（现价） ===
+	if (fieldName === 'now_price' || fieldName === 'now_price0#') {
+		// typeFlag == "1": 普通文本（subType == "0"）
+		// typeFlag == "2": 两位小数
+		// typeFlag == "3": 三位小数
+
+		if (typeFlag === '0' || (typeFlag === '1' && subType === '0')) {
+			// 文本类型，不做格式化
+			return value
+		}
+
+		// 小数位数控制
+		const decimals = typeFlag === '2' ? 2 : (typeFlag === '3' ? 3 : 2)
+
+		// 添加前缀符号（typeFlag第3位）
+		const prefix = specialFlag === '1' ? '+' : ''
+
+		return `${prefix}${numValue.toFixed(decimals)}`
+	}
+
+	// === 百分比字段处理（非涨跌幅） ===
+	if (subType === '2') {
+		// 百分比格式
+		const sign = numValue > 0 ? '+' : ''
+		return `${sign}${numValue.toFixed(2)}%`
+	}
+
+	// === 千分位处理（subType == "1"） ===
+	if (subType === '1') {
+		// 千分位格式化：1,234.56
+		return formatThousands(numValue)
+	}
+
+	// === 万亿处理（需要判断数值大小） ===
+	// 这里简化处理：>= 1亿显示单位
+	if (Math.abs(numValue) >= 100000000) {
+		return (numValue / 100000000).toFixed(2) + '亿'
+	}
+
+	// 默认：返回原值
+	return value
+}
+
+// 千分位格式化函数
+function formatThousands(num) {
+	const str = num.toString()
+	const parts = str.split('.')
+	parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+	return parts.join('.')
+}
+
+// 滚动到底部
+function scrollToBottom(animate = true) {
+	scrollWithAnimation.value = animate
+	nextTick(() => {
+		// 使用 uni.createSelectorQuery 获取容器的实际高度
+		const query = uni.createSelectorQuery()
+		query.select('.chat-container').boundingClientRect()
+		query.selectAll('.message-item').boundingClientRect()
+		query.exec((res) => {
+			if (res && res[0] && res[1]) {
+				const containerRect = res[0]
+				const messageRects = res[1]
+
+				if (messageRects && messageRects.length > 0) {
+					// 计算所有消息的总高度
+					let totalHeight = 0
+					messageRects.forEach(rect => {
+						if (rect) {
+							totalHeight += rect.height + 30 // 30rpx 是 margin-bottom
+						}
+					})
+
+					// 转换为 px (rpx -> px, 假设屏幕宽度 750rpx)
+					const containerHeight = containerRect.height || 0
+
+					// 计算滚动位置：内容总高度 - 容器可见高度 + 额外缓冲
+					const scrollPosition = totalHeight - containerHeight + 200
+
+					// 使用 scrollTop 直接设置滚动位置
+					scrollTop.value = Math.max(0, scrollPosition)
+				}
+			} else {
+				// 降级方案：使用 scroll-into-view
+				if (messages.value.length > 0) {
+					scrollIntoView.value = 'message-' + (messages.value.length - 1)
+				}
+			}
+		})
 	})
 }
 
@@ -421,7 +707,6 @@ onMounted(() => {
 		})
 	}
 
-	thinkMode.value = getThinkMode()
 })
 
 // 页面卸载
@@ -429,6 +714,9 @@ onUnmounted(() => {
 	if (marketRefreshTimer) {
 		clearInterval(marketRefreshTimer)
 	}
+
+	// 保存当前对话历史（已按用户隔离）
+	saveChatHistory(messages.value)
 })
 </script>
 
@@ -449,6 +737,7 @@ onUnmounted(() => {
 	align-items: center;
 	border-bottom: 1rpx solid #f0f0f0;
 	position: relative;
+	z-index: 100;
 }
 
 .header-left {
@@ -1011,6 +1300,98 @@ onUnmounted(() => {
 /* 金融表格 */
 .financial-content {
 	margin: 16rpx 0;
+}
+
+/* 工具调用提示 */
+.tool-calls-info {
+	display: flex;
+	align-items: center;
+	gap: 8rpx;
+	padding: 12rpx 16rpx;
+	background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+	border-radius: 8rpx;
+	margin-bottom: 16rpx;
+}
+
+.tool-icon {
+	font-size: 28rpx;
+}
+
+.tool-text {
+	font-size: 26rpx;
+	color: #667eea;
+	font-weight: 500;
+}
+
+/* 工具结果区域 */
+.tool-result-content {
+	margin: 16rpx 0;
+}
+
+.tool-result-header {
+	margin-bottom: 12rpx;
+}
+
+.tool-result-title {
+	font-size: 28rpx;
+	font-weight: bold;
+	color: #667eea;
+}
+
+.financial-table-wrapper {
+	overflow-x: auto;
+	border-radius: 8rpx;
+	border: 1rpx solid #e0e0e0;
+}
+
+.tool-result-table {
+	width: 100%;
+	border-collapse: collapse;
+	background: #ffffff;
+}
+
+.tool-result-table thead {
+	background: #f5f5f5;
+}
+
+.tool-result-table th {
+	padding: 16rpx 12rpx;
+	text-align: left;
+	font-weight: bold;
+	font-size: 26rpx;
+	color: #333333;
+	border-bottom: 2rpx solid #e0e0e0;
+	white-space: nowrap;
+}
+
+.tool-result-table td {
+	padding: 12rpx 16rpx;
+	text-align: left;
+	font-size: 26rpx;
+	color: #666666;
+	border-bottom: 1rpx solid #f0f0f0;
+	white-space: nowrap;
+}
+
+.tool-result-table tbody tr:last-child td {
+	border-bottom: none;
+}
+
+.tool-result-table tbody tr:hover {
+	background: #fafafa;
+}
+
+/* 涨跌幅颜色（参考项目规则：涨红跌绿） */
+.tool-result-table .color-up {
+	color: #fc4a4a;  /* 上涨：红色 */
+}
+
+.tool-result-table .color-down {
+	color: #229d45;  /* 下跌：绿色 */
+}
+
+.tool-result-table td:last-child:not([class*="color"]) {
+	/* 如果涨跌幅单元格没有颜色class，根据值判断 */
 }
 
 .financial-table-container {

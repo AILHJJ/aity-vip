@@ -343,6 +343,140 @@ Authorization: Bearer <token>
 }
 ```
 
+### 消息增强功能
+
+#### 标记消息已读
+
+**请求**：
+- URL: `/messages/:id/read`
+- 方法: `POST`
+- 认证: 需要
+
+**响应**：
+```json
+{
+  "code": 200,
+  "message": "Message marked as read",
+  "data": null
+}
+```
+
+#### 收藏消息
+
+**请求**：
+- URL: `/messages/:id/favorite`
+- 方法: `POST`
+- 认证: 需要
+
+**响应**：
+```json
+{
+  "code": 200,
+  "message": "Message favorited successfully",
+  "data": {
+    "id": 1,
+    "messageId": 1,
+    "userId": 1,
+    "createdAt": "2026-02-12T00:00:00.000Z"
+  }
+}
+```
+
+#### 取消收藏
+
+**请求**：
+- URL: `/messages/:id/favorite`
+- 方法: `DELETE`
+- 认证: 需要
+
+**响应**：
+```json
+{
+  "code": 200,
+  "message": "Message unfavorited successfully",
+  "data": null
+}
+```
+
+#### 获取收藏列表
+
+**请求**：
+- URL: `/favorites`
+- 方法: `GET`
+- 认证: 需要
+- 参数:
+  - `page` (可选): 页码，默认1
+  - `limit` (可选): 每页数量，默认10
+
+**响应**：
+```json
+{
+  "code": 200,
+  "message": "Success",
+  "data": [
+    {
+      "id": 1,
+      "messageId": 1,
+      "userId": 1,
+      "message": {
+        "id": 1,
+        "title": "测试消息",
+        "content": "这是一条测试消息",
+        "type": "daily",
+        "createdAt": "2026-01-26T00:00:00.000Z"
+      },
+      "createdAt": "2026-02-12T00:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "total": 10,
+    "page": 1,
+    "limit": 10,
+    "pages": 1
+  }
+}
+```
+
+#### 置顶消息
+
+**请求**：
+- URL: `/messages/:id/pin`
+- 方法: `POST`
+- 认证: 需要（管理员权限）
+
+**响应**：
+```json
+{
+  "code": 200,
+  "message": "Message pinned successfully",
+  "data": {
+    "id": 1,
+    "pinned": true,
+    "pinnedAt": "2026-02-12T00:00:00.000Z"
+  }
+}
+```
+
+#### 取消置顶
+
+**请求**：
+- URL: `/messages/:id/pin`
+- 方法: `DELETE`
+- 认证: 需要（管理员权限）
+
+**响应**：
+```json
+{
+  "code": 200,
+  "message": "Message unpinned successfully",
+  "data": {
+    "id": 1,
+    "pinned": false,
+    "pinnedAt": null
+  }
+}
+```
+
 ## 讨论接口
 
 ### 获取讨论列表
@@ -448,6 +582,159 @@ Authorization: Bearer <token>
     "userName": "管理员",
     "content": "这是一条回复",
     "createdAt": "2026-01-26T00:00:00.000Z"
+  }
+}
+```
+
+### 讨论增强功能
+
+#### 获取讨论回复列表
+
+**请求**：
+- URL: `/discussions/:id/replies`
+- 方法: `GET`
+- 认证: 需要
+- 参数:
+  - `page` (可选): 页码，默认1
+  - `limit` (可选): 每页数量，默认10
+
+**响应**：
+```json
+{
+  "code": 200,
+  "message": "Success",
+  "data": [
+    {
+      "id": 1,
+      "discussionId": 1,
+      "userId": 1,
+      "userName": "管理员",
+      "content": "这是一条回复",
+      "createdAt": "2026-01-26T00:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "total": 5,
+    "page": 1,
+    "limit": 10,
+    "pages": 1
+  }
+}
+```
+
+#### 更新讨论可见性
+
+**请求**：
+- URL: `/discussions/:id/visibility`
+- 方法: `PUT`
+- 认证: 需要（管理员权限或讨论创建者）
+- 参数:
+  ```json
+  {
+    "visibility": "public"
+  }
+  ```
+
+**参数说明**：
+- `visibility` (必填): 可见性
+  - `public`: 公开讨论，所有人可见
+  - `private`: 私密讨论，仅创建者和管理员可见
+
+**响应**：
+```json
+{
+  "code": 200,
+  "message": "Discussion visibility updated successfully",
+  "data": {
+    "id": 1,
+    "visibility": "public",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  }
+}
+```
+
+## 市场数据接口
+
+### 获取市场指数行情
+
+**请求**：
+- URL: `/market/ticker`
+- 方法: `GET`
+- 认证: 需要
+
+**响应**：
+```json
+{
+  "code": 200,
+  "message": "Success",
+  "data": [
+    {
+      "code": "999999",
+      "setcode": "1",
+      "name": "上证指数",
+      "close": 3000.00,
+      "now": 3050.00,
+      "vol": 100000000,
+      "EXT_ZF": "1.67"
+    },
+    {
+      "code": "399001",
+      "setcode": "0",
+      "name": "深证成指",
+      "close": 10000.00,
+      "now": 10150.00,
+      "vol": 80000000,
+      "EXT_ZF": "1.50"
+    },
+    {
+      "code": "399300",
+      "setcode": "1",
+      "name": "沪深300",
+      "close": 3500.00,
+      "now": 3535.00,
+      "vol": 90000000,
+      "EXT_ZF": "1.00"
+    }
+  ]
+}
+```
+
+**字段说明**：
+- `code`: 指数代码
+- `setcode`: 市场代码 (1=沪市, 0=深市)
+- `name`: 指数名称
+- `close`: 昨收价
+- `now`: 现价
+- `vol`: 成交量
+- `EXT_ZF`: 涨跌幅(%)
+
+## 文件上传接口
+
+### 上传图片
+
+**请求**：
+- URL: `/upload`
+- 方法: `POST`
+- 认证: 需要
+- Content-Type: `multipart/form-data`
+- 参数:
+  - `file`: 图片文件
+
+**支持的格式**：
+- 图片格式：jpeg, jpg, png, gif, webp
+- 文件大小：单个文件不超过10MB
+
+**响应**：
+```json
+{
+  "code": 200,
+  "message": "上传成功",
+  "data": {
+    "url": "/uploads/images/img-1234567890.jpg",
+    "filename": "img-1234567890.jpg",
+    "originalname": "test.jpg",
+    "size": 1024000,
+    "mimetype": "image/jpeg"
   }
 }
 ```
@@ -576,6 +863,31 @@ Authorization: Bearer <token>
 {
   "code": 200,
   "message": "User deleted successfully",
+  "data": null
+}
+```
+
+### 重置用户密码
+
+**请求**：
+- URL: `/users/:id/password`
+- 方法: `PUT`
+- 认证: 需要（超级管理员权限）
+- 参数:
+  ```json
+  {
+    "password": "new_password_123"
+  }
+  ```
+
+**参数说明**：
+- `password` (必填): 新密码，长度6-20位
+
+**响应**：
+```json
+{
+  "code": 200,
+  "message": "Password reset successfully",
   "data": null
 }
 ```
@@ -832,4 +1144,5 @@ Authorization: Bearer <token>
 
 | 版本 | 日期 | 变更内容 |
 |------|------|----------|
+| v1.1.0 | 2026-02-12 | 新增消息增强功能（收藏、置顶、已读）、讨论增强功能、市场数据接口、文件上传接口、用户密码重置 |
 | v1.0.0 | 2026-01-26 | 初始版本 |
