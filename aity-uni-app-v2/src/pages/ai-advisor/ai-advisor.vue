@@ -137,7 +137,7 @@
 				<textarea
 					class="chat-input"
 					v-model="inputText"
-					placeholder="输入您的问题...（Enter换行，Shift+Enter发送）"
+					placeholder="请输入金融相关问题..."
 					:maxlength="500"
 					:auto-height="true"
 					:show-confirm-bar="false"
