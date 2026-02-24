@@ -22,6 +22,7 @@ const versionRoutes = require('./routes/versionRoutes');
 const monitorRoutes = require('./routes/monitorRoutes');
 const uploadRoutes = require('./routes/upload');
 const marketRoutes = require('./routes/marketRoutes');
+const aiAdvisorRoutes = require('./routes/aiAdvisorRoutes');
 
 // 创建Express应用
 const app = express();
@@ -169,6 +170,7 @@ app.use('/api/version', versionRoutes);
 app.use('/api/monitor', monitorRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/market', marketRoutes);
+app.use('/api/ai-advisor', aiAdvisorRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

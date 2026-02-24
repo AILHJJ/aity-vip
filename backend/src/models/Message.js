@@ -72,6 +72,12 @@ const Message = sequelize.define('Message', {
     defaultValue: null,
     comment: '消息标签数组，如 ["短线策略", "中线策略", "全部用户"]'
   },
+  theme: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    defaultValue: 'default',
+    comment: 'Markdown主题样式：default, github, emerald, ocean, warm, dark'
+  },
   publishTime: {
     type: DataTypes.DATE,
     field: 'publish_time',

@@ -62,6 +62,30 @@
 					</view>
 				</view>
 
+				<!-- Markdown主题样式（发帖者选择） -->
+				<view class="form-item">
+					<text class="form-label">主题样式</text>
+					<picker
+						mode="selector"
+						:range="themeOptions"
+						range-key="label"
+						:value="selectedThemeIndex"
+						@change="handleThemeChange"
+					>
+						<view class="picker-view theme-picker">
+							<view class="theme-preview-small" :style="{ background: themeOptions.find(t => t.value === formData.theme)?.previewColor }"></view>
+							<view class="theme-info-picker">
+								<text class="picker-text">{{ themeOptions.find(t => t.value === formData.theme)?.label }}</text>
+								<text class="theme-desc-picker">{{ themeOptions.find(t => t.value === formData.theme)?.desc }}</text>
+							</view>
+							<text class="picker-arrow">▼</text>
+						</view>
+					</picker>
+					<view class="form-hint">
+						<text class="hint-text">选择消息展示的主题样式，查看者将使用此样式阅读</text>
+					</view>
+				</view>
+
 				<!-- 标题 -->
 				<view class="form-item">
 					<text class="form-label">消息标题 *</text>
@@ -200,6 +224,7 @@ const formData = ref({
 	strategy: MESSAGE_TAGS.SHORT_TERM, // 策略类型（默认：短线策略）
 	pushTarget: MESSAGE_TAGS.SHORT_TERM, // 推送对象（默认：短线用户）
 	messageType: MESSAGE_TYPES.MORNING_FOCUS, // 消息类型（默认：早盘关注）
+	theme: 'default', // Markdown主题（默认：简约白）
 	title: '',
 	content: '',
 	attachments: []
@@ -237,9 +262,24 @@ const messageTypeOptions = [
 	{ label: '日常消息', value: MESSAGE_TYPES.DAILY }
 ]
 
+// Markdown主题选项
+const themeOptions = [
+	{ label: '简约白', value: 'default', desc: '简洁清爽，适合日常阅读', previewColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+	{ label: 'GitHub', value: 'github', desc: '开发者熟悉的风格', previewColor: 'linear-gradient(135deg, #24292e 0%, #58a6ff 100%)' },
+	{ label: '翡翠绿', value: 'emerald', desc: '清新护眼，绿色主题', previewColor: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)' },
+	{ label: '蓝色海洋', value: 'ocean', desc: '深邃海洋，专业风格', previewColor: 'linear-gradient(135deg, #0c4a6e 0%, #0ea5e9 100%)' },
+	{ label: '暖阳橙', value: 'warm', desc: '温暖活力，橙色主题', previewColor: 'linear-gradient(135deg, #7c2d12 0%, #f97316 100%)' },
+	{ label: '暗夜模式', value: 'dark', desc: '护眼暗色，夜间阅读', previewColor: 'linear-gradient(135deg, #18191a 0%, #3a3b3c 100%)' }
+]
+
 // 当前选中的消息类型索引
 const selectedMessageTypeIndex = computed(() => {
 	return messageTypeOptions.findIndex(t => t.value === formData.value.messageType)
+})
+
+// 当前选中的主题索引
+const selectedThemeIndex = computed(() => {
+	return themeOptions.findIndex(t => t.value === formData.value.theme)
 })
 
 // 处理策略类型选择
@@ -268,6 +308,12 @@ const handlePushTargetChange = (e) => {
 const handleMessageTypeChange = (e) => {
 	const index = e.detail.value
 	formData.value.messageType = messageTypeOptions[index].value
+}
+
+// 处理主题选择
+const handleThemeChange = (e) => {
+	const index = e.detail.value
+	formData.value.theme = themeOptions[index].value
 }
 
 // 处理粘贴事件
@@ -597,6 +643,7 @@ const handleSubmit = async () => {
 			title: formData.value.title.trim(),
 			type: formData.value.messageType || MESSAGE_TYPES.MORNING_FOCUS, // 使用选中的消息类型
 			tags: tags,
+			theme: formData.value.theme || 'default', // 添加主题字段
 			content: formData.value.content.trim(),
 			attachments: uploadedAttachments
 		}
@@ -954,10 +1001,14 @@ onMounted(async () => {
 				// 消息类型（从 type 字段获取，如果没有则使用默认值）
 				const messageType = res.data.type || MESSAGE_TYPES.MORNING_FOCUS
 
+				// Markdown主题（从 theme 字段获取，如果没有则使用默认值）
+				const messageTheme = res.data.theme || 'default'
+
 				formData.value = {
 					strategy: strategyTag,
 					pushTarget: pushTargetTag,
 					messageType: messageType,
+					theme: messageTheme,
 					title: res.data.title || '',
 					content: res.data.content || '',
 					attachments: processedAttachments
@@ -1135,6 +1186,34 @@ onBeforeUnmount(() => {
 	background-color: #ffffff;
 	border: 2rpx solid #e0e0e0;
 	border-radius: 8rpx;
+}
+
+// 主题选择器特殊样式
+.picker-view.theme-picker {
+	height: auto;
+	min-height: 88rpx;
+	padding: 16rpx 24rpx;
+}
+
+.theme-preview-small {
+	width: 60rpx;
+	height: 60rpx;
+	border-radius: 8rpx;
+	flex-shrink: 0;
+	box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.theme-info-picker {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 4rpx;
+	padding: 0 16rpx;
+}
+
+.theme-desc-picker {
+	font-size: 22rpx;
+	color: #999999;
 }
 
 .picker-text {

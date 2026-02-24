@@ -1,19 +1,18 @@
 /**
  * AI投顾API配置
- * 注意：此接口由通达信提供，我们仅作为API使用方
+ * 通过后端代理服务访问通达信问小达API
  */
 
 // 导入用户store（用于生成用户专属的存储key）
 import { useUserStore } from '@/store/user'
 
-// API配置
+// API配置 - 使用后端代理
 export const AI_ADVISOR_CONFIG = {
-  // API地址
-  API_URL: 'https://www.tdx.com.cn/wenda/api',
+  // 后端代理API地址
+  API_URL: '/api/ai-advisor',  // 使用相对路径，由前端代理转发到后端
 
-  // 认证token（临时方案，建议后续通过后端代理获取）
-  // 注意：token需要定期更新，过期后需要重新登录获取
-  AUTH_TOKEN: 'afbec96cadb94be4b419add834e11583_1_JX_2',
+  // 生产环境地址（如果需要直接访问后端）
+  PROD_API_URL: 'https://aity88.online:8443/api/ai-advisor',
 
   // Agent类型
   AGENT_TYPE: 'wenda', // 问小达
@@ -22,7 +21,22 @@ export const AI_ADVISOR_CONFIG = {
   ENABLE_THINK: false,
 
   // 请求超时时间（毫秒）
-  TIMEOUT: 60000,
+  TIMEOUT: 120000,
+}
+
+/**
+ * 获取API基础URL
+ */
+export function getApiBaseUrl() {
+  // #ifdef H5
+  // H5环境使用相对路径
+  return AI_ADVISOR_CONFIG.API_URL
+  // #endif
+
+  // #ifndef H5
+  // 小程序等其他环境使用完整URL
+  return AI_ADVISOR_CONFIG.PROD_API_URL
+  // #endif
 }
 
 /**
@@ -55,24 +69,6 @@ export function setThinkMode(enabled) {
   uni.setStorageSync('ai_advisor_think_mode', enabled)
   AI_ADVISOR_CONFIG.ENABLE_THINK = enabled
   return enabled
-}
-
-/**
- * 构建完整的API端点URL
- */
-export function buildApiEndpoint(path) {
-  return `${AI_ADVISOR_CONFIG.API_URL}${path}`
-}
-
-/**
- * 获取认证头
- */
-export function getAuthHeaders() {
-  return {
-    'Accept': 'text/event-stream',
-    'Content-Type': 'application/json',
-    'tdx-auth': AI_ADVISOR_CONFIG.AUTH_TOKEN
-  }
 }
 
 /**

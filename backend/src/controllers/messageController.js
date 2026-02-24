@@ -235,7 +235,7 @@ async function getMessageById(req, res) {
 // 创建消息
 async function createMessage(req, res) {
   try {
-    const { title, content, type, groupId, attachments, tags, publishTime } = req.body;
+    const { title, content, type, groupId, attachments, tags, theme, publishTime } = req.body;
     const userId = req.user.userId;
 
     // 获取用户信息
@@ -279,6 +279,7 @@ async function createMessage(req, res) {
       groupId: targetGroupId,
       totalCount,
       tags: tags || null,
+      theme: theme || 'default',
       publishTime: messagePublishTime,
       status: messageStatus
     });
@@ -310,7 +311,7 @@ async function createMessage(req, res) {
 async function updateMessage(req, res) {
   try {
     const { id } = req.params;
-    const { title, content, type, attachments, tags, publishTime } = req.body;
+    const { title, content, type, attachments, tags, theme, publishTime } = req.body;
 
     // 获取消息
     const message = await Message.findByPk(id);
@@ -324,6 +325,11 @@ async function updateMessage(req, res) {
     // 处理tags
     if (tags !== undefined) {
       updateData.tags = tags;
+    }
+
+    // 处理theme
+    if (theme !== undefined) {
+      updateData.theme = theme;
     }
 
     // 处理publishTime和status

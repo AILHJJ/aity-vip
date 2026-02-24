@@ -277,7 +277,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getUsers, createUser, updateUser, deleteUser } from '@/api/admin'
+import { getUsers, createUser, updateUser, deleteUser } from '@/api/user'
 
 // 数据
 const users = ref([])

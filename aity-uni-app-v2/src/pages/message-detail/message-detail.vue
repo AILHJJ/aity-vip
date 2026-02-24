@@ -53,17 +53,12 @@
 				</text>
 			</view>
 
-			<!-- Markdown主题选择器 -->
-			<view class="theme-selector-wrapper">
-				<MarkdownThemeSelector v-model="markdownTheme" @change="handleThemeChange" />
-			</view>
+			<!-- Markdown主题选择器 - 已移除，主题由发帖者选择 -->
 
-			<!-- 消息内容（Markdown渲染） -->
-			<view class="message-content markdown-theme-container">
-				<view :class="'markdown-theme-' + markdownTheme">
-					<rich-text v-if="renderedContent" :nodes="renderedContent" class="markdown-content"></rich-text>
-					<text v-else class="content-text">{{ message.content }}</text>
-				</view>
+			<!-- 消息内容（Markdown渲染，带主题内联样式） -->
+			<view class="message-content">
+				<rich-text v-if="renderedContent" :nodes="renderedContent"></rich-text>
+				<text v-else class="content-text">{{ message.content }}</text>
 			</view>
 
 			<!-- 消息图片 -->
@@ -219,8 +214,7 @@ import { getMessageDetailApi, markMessageAsReadApi, favoriteMessageApi, unfavori
 import { getDiscussionsApi } from '../../api/discussion'
 import { MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatTime, formatFriendlyTime } from '../../utils/time'
-import { MarkdownRenderer } from '../../utils/markdown-renderer'
-import MarkdownThemeSelector from '../../components/MarkdownThemeSelector.vue'
+import { MarkdownRenderer, ThemeStyles } from '../../utils/markdown-renderer'
 
 const userStore = useUserStore()
 
@@ -241,16 +235,17 @@ const shareLoading = ref(false)
 const deleteLoading = ref(false)
 const pinLoading = ref(false)
 
-// Markdown主题
+// Markdown主题 - 从消息数据读取，默认为default
 const markdownTheme = ref('default')
 
-// 渲染后的Markdown内容
+// 渲染后的Markdown内容（带主题内联样式）
 const renderedContent = computed(() => {
 	if (!message.value || !message.value.content) return ''
-	return MarkdownRenderer.render(message.value.content)
+	// 使用消息自带的主题进行渲染，样式内联到HTML中
+	return MarkdownRenderer.renderWithTheme(message.value.content, markdownTheme.value || 'default')
 })
 
-// 主题切换处理
+// 主题切换处理（保留接口，但不在详情页显示选择器）
 const handleThemeChange = (newTheme) => {
 	markdownTheme.value = newTheme
 }
@@ -295,6 +290,9 @@ const loadMessageDetail = async () => {
 
 			message.value = messageData
 			isFavorited.value = messageData.isFavorited || false
+
+			// 从消息数据读取主题，如果没有则使用默认主题
+			markdownTheme.value = messageData.theme || 'default'
 
 			// 标记为已读
 			markMessageAsReadApi(messageId.value).catch(err => {
@@ -669,12 +667,7 @@ onMounted(() => {
 		return
 	}
 
-	// 从本地存储读取主题
-	const savedTheme = uni.getStorageSync('markdown_theme')
-	if (savedTheme) {
-		markdownTheme.value = savedTheme
-	}
-
+	// 主题从消息数据中读取，不再从本地存储读取
 	loadMessageDetail()
 	loadDiscussions()  // 加载相关讨论
 })

@@ -83,6 +83,12 @@ const routes = [
     name: 'AdminMessages',
     component: () => import('../pages/admin/messages.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin/ai-settings',
+    name: 'AdminAiSettings',
+    component: () => import('../pages/admin/ai-settings.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
 

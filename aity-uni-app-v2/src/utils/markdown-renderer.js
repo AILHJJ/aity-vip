@@ -1,7 +1,171 @@
 /**
  * Markdown渲染器 - 增强版
  * 参考问小达3.0版本实现优化
+ * 支持主题内联样式，解决rich-text组件样式隔离问题
  */
+
+/**
+ * 主题样式配置 - 内联样式版本
+ * 用于rich-text组件，样式需要内联到HTML中
+ */
+export const ThemeStyles = {
+	default: {
+		container: 'font-size: 30rpx; line-height: 1.8; color: #333333; word-wrap: break-word;',
+		h1: 'font-size: 40rpx; font-weight: 700; color: #1a1a1a; margin: 40rpx 0 20rpx; padding-bottom: 12rpx; border-bottom: 3rpx solid #e0e0e0;',
+		h2: 'font-size: 36rpx; font-weight: 600; color: #2c3e50; margin: 32rpx 0 16rpx; padding-bottom: 10rpx; border-bottom: 1rpx solid #e8e8e8;',
+		h3: 'font-size: 32rpx; font-weight: 600; color: #34495e; margin: 28rpx 0 14rpx;',
+		h4: 'font-size: 30rpx; font-weight: 600; color: #5a6c7d; margin: 24rpx 0 12rpx;',
+		h5: 'font-size: 28rpx; font-weight: 500; color: #6a7c8d; margin: 20rpx 0 10rpx;',
+		h6: 'font-size: 26rpx; font-weight: 500; color: #7a8c9d; margin: 16rpx 0 8rpx;',
+		strong: 'font-weight: 600; color: #1a1a1a;',
+		em: 'font-style: italic; color: #555555;',
+		del: 'text-decoration: line-through; color: #999999;',
+		inlineCode: 'background: #f6f8fa; color: #e83e8c; padding: 4rpx 8rpx; border-radius: 4rpx; font-family: Consolas, Monaco, monospace; font-size: 26rpx;',
+		codeBlock: 'background: #282c34; color: #abb2bf; padding: 20rpx; border-radius: 8rpx; overflow-x: auto; margin: 20rpx 0; font-family: Consolas, Monaco, monospace; font-size: 26rpx; line-height: 1.6; white-space: pre-wrap;',
+		blockquote: 'margin: 16rpx 0; padding: 16rpx 20rpx; background: #f0f2ff; border-left: 4rpx solid #667eea; color: #555555; font-style: italic; border-radius: 0 8rpx 8rpx 0;',
+		link: 'color: #667eea; text-decoration: none; border-bottom: 1rpx dashed #667eea;',
+		listItem: 'margin: 8rpx 0; line-height: 1.8; padding-left: 20rpx;',
+		orderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		unorderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		divider: 'border: none; border-top: 2rpx solid #e0e0e0; margin: 32rpx 0;',
+		table: 'width: 100%; border-collapse: collapse; border: 1rpx solid #e0e0e0; border-radius: 8rpx; overflow: hidden; margin: 24rpx 0; font-size: 28rpx;',
+		th: 'font-weight: 600; padding: 12rpx 16rpx; text-align: left; color: #333333; border-bottom: 2rpx solid #e0e0e0; background: #f8f9fa;',
+		td: 'padding: 12rpx 16rpx; border-bottom: 1rpx solid #f0f0f0;',
+		textUp: 'color: #ff4d4f; font-weight: 500;',
+		textDown: 'color: #52c41a; font-weight: 500;',
+		textNeutral: 'color: #666666;'
+	},
+	github: {
+		container: 'font-size: 30rpx; line-height: 1.8; color: #24292e; word-wrap: break-word; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;',
+		h1: 'font-size: 40rpx; font-weight: 600; color: #1b1f23; margin: 40rpx 0 20rpx; padding-bottom: 16rpx; border-bottom: 2rpx solid #eaecef;',
+		h2: 'font-size: 36rpx; font-weight: 600; color: #1b1f23; margin: 32rpx 0 16rpx; padding-bottom: 8rpx; border-bottom: 1rpx solid #eaecef;',
+		h3: 'font-size: 32rpx; font-weight: 600; color: #1b1f23; margin: 28rpx 0 14rpx;',
+		h4: 'font-size: 30rpx; font-weight: 600; color: #1b1f23; margin: 24rpx 0 12rpx;',
+		h5: 'font-size: 28rpx; font-weight: 600; color: #1b1f23; margin: 20rpx 0 10rpx;',
+		h6: 'font-size: 26rpx; font-weight: 600; color: #6a737d; margin: 16rpx 0 8rpx;',
+		strong: 'font-weight: 600; color: #24292e;',
+		em: 'font-style: italic; color: #24292e;',
+		del: 'text-decoration: line-through; color: #6a737d;',
+		inlineCode: 'background: rgba(27, 31, 35, 0.05); color: #d73a49; padding: 4rpx 8rpx; border-radius: 6rpx; font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; font-size: 26rpx;',
+		codeBlock: 'background: #f6f8fa; color: #24292e; padding: 20rpx; border-radius: 6rpx; overflow-x: auto; margin: 20rpx 0; font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; font-size: 26rpx; line-height: 1.6; border: 1rpx solid #e1e4e8; white-space: pre-wrap;',
+		blockquote: 'margin: 16rpx 0; padding: 0 20rpx; background: #fffef8; border-left: 4rpx solid #dfe2e5; color: #6a737d;',
+		link: 'color: #0366d6; text-decoration: none; font-weight: 500;',
+		listItem: 'margin: 8rpx 0; line-height: 1.8; padding-left: 20rpx;',
+		orderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		unorderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		divider: 'border: none; border-top: 2rpx solid #e1e4e8; margin: 32rpx 0;',
+		table: 'width: 100%; border-collapse: collapse; border: 1rpx solid #dfe2e5; border-radius: 6rpx; overflow: hidden; margin: 24rpx 0; font-size: 28rpx;',
+		th: 'font-weight: 600; padding: 12rpx 16rpx; text-align: left; color: #24292e; border-bottom: 2rpx solid #dfe2e5; background: #f6f8fa;',
+		td: 'padding: 12rpx 16rpx; border-bottom: 1rpx solid #e1e4e8;',
+		textUp: 'color: #cb2431; font-weight: 500;',
+		textDown: 'color: #28a745; font-weight: 500;',
+		textNeutral: 'color: #6a737d;'
+	},
+	emerald: {
+		container: 'font-size: 30rpx; line-height: 1.8; color: #2d3748; word-wrap: break-word;',
+		h1: 'font-size: 40rpx; font-weight: 700; color: #065f46; margin: 40rpx 0 20rpx; padding-bottom: 12rpx; border-bottom: 3rpx solid #10b981;',
+		h2: 'font-size: 36rpx; font-weight: 600; color: #047857; margin: 32rpx 0 16rpx; padding-bottom: 10rpx; border-bottom: 1rpx solid #a7f3d0;',
+		h3: 'font-size: 32rpx; font-weight: 600; color: #059669; margin: 28rpx 0 14rpx;',
+		h4: 'font-size: 30rpx; font-weight: 600; color: #10b981; margin: 24rpx 0 12rpx;',
+		h5: 'font-size: 28rpx; font-weight: 500; color: #34d399; margin: 20rpx 0 10rpx;',
+		h6: 'font-size: 28rpx; font-weight: 500; color: #34d399; margin: 16rpx 0 8rpx;',
+		strong: 'font-weight: 600; color: #065f46;',
+		em: 'font-style: italic; color: #047857;',
+		del: 'text-decoration: line-through; color: #6b7280;',
+		inlineCode: 'background: #ecfdf5; color: #059669; padding: 4rpx 8rpx; border-radius: 4rpx; font-family: Consolas, Monaco, monospace; font-size: 26rpx; border: 1rpx solid #a7f3d0;',
+		codeBlock: 'background: #064e3b; color: #d1fae5; padding: 20rpx; border-radius: 8rpx; overflow-x: auto; margin: 20rpx 0; font-family: Consolas, Monaco, monospace; font-size: 26rpx; line-height: 1.6; white-space: pre-wrap;',
+		blockquote: 'margin: 16rpx 0; padding: 16rpx 20rpx; background: #ecfdf5; border-left: 4rpx solid #10b981; color: #065f46; border-radius: 0 8rpx 8rpx 0;',
+		link: 'color: #059669; text-decoration: none; border-bottom: 1rpx dashed #10b981;',
+		listItem: 'margin: 8rpx 0; line-height: 1.8; padding-left: 20rpx;',
+		orderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		unorderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		divider: 'border: none; border-top: 2rpx solid #a7f3d0; margin: 32rpx 0;',
+		table: 'width: 100%; border-collapse: collapse; border: 1rpx solid #a7f3d0; border-radius: 8rpx; overflow: hidden; margin: 24rpx 0; font-size: 28rpx;',
+		th: 'font-weight: 600; padding: 12rpx 16rpx; text-align: left; color: #065f46; border-bottom: 2rpx solid #10b981; background: #ecfdf5;',
+		td: 'padding: 12rpx 16rpx; border-bottom: 1rpx solid #d1fae5;',
+		textUp: 'color: #ef4444; font-weight: 500;',
+		textDown: 'color: #10b981; font-weight: 500;',
+		textNeutral: 'color: #6b7280;'
+	},
+	ocean: {
+		container: 'font-size: 30rpx; line-height: 1.8; color: #1e293b; word-wrap: break-word;',
+		h1: 'font-size: 40rpx; font-weight: 700; color: #0c4a6e; margin: 40rpx 0 20rpx; padding-bottom: 12rpx; border-bottom: 3rpx solid #0ea5e9;',
+		h2: 'font-size: 36rpx; font-weight: 600; color: #075985; margin: 32rpx 0 16rpx; padding-bottom: 10rpx; border-bottom: 1rpx solid #bae6fd;',
+		h3: 'font-size: 32rpx; font-weight: 600; color: #0369a1; margin: 28rpx 0 14rpx;',
+		h4: 'font-size: 30rpx; font-weight: 600; color: #0284c7; margin: 24rpx 0 12rpx;',
+		h5: 'font-size: 28rpx; font-weight: 500; color: #0ea5e9; margin: 20rpx 0 10rpx;',
+		h6: 'font-size: 28rpx; font-weight: 500; color: #0ea5e9; margin: 16rpx 0 8rpx;',
+		strong: 'font-weight: 600; color: #0c4a6e;',
+		em: 'font-style: italic; color: #075985;',
+		del: 'text-decoration: line-through; color: #64748b;',
+		inlineCode: 'background: #f0f9ff; color: #0369a1; padding: 4rpx 8rpx; border-radius: 4rpx; font-family: Consolas, Monaco, monospace; font-size: 26rpx; border: 1rpx solid #bae6fd;',
+		codeBlock: 'background: #0c4a6e; color: #f0f9ff; padding: 20rpx; border-radius: 8rpx; overflow-x: auto; margin: 20rpx 0; font-family: Consolas, Monaco, monospace; font-size: 26rpx; line-height: 1.6; white-space: pre-wrap;',
+		blockquote: 'margin: 16rpx 0; padding: 16rpx 20rpx; background: #f0f9ff; border-left: 4rpx solid #0ea5e9; color: #075985; border-radius: 0 8rpx 8rpx 0;',
+		link: 'color: #0369a1; text-decoration: none; border-bottom: 1rpx dashed #0ea5e9;',
+		listItem: 'margin: 8rpx 0; line-height: 1.8; padding-left: 20rpx;',
+		orderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		unorderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		divider: 'border: none; border-top: 2rpx solid #bae6fd; margin: 32rpx 0;',
+		table: 'width: 100%; border-collapse: collapse; border: 1rpx solid #bae6fd; border-radius: 8rpx; overflow: hidden; margin: 24rpx 0; font-size: 28rpx;',
+		th: 'font-weight: 600; padding: 12rpx 16rpx; text-align: left; color: #0c4a6e; border-bottom: 2rpx solid #0ea5e9; background: #f0f9ff;',
+		td: 'padding: 12rpx 16rpx; border-bottom: 1rpx solid #e0f2fe;',
+		textUp: 'color: #ef4444; font-weight: 500;',
+		textDown: 'color: #22c55e; font-weight: 500;',
+		textNeutral: 'color: #64748b;'
+	},
+	warm: {
+		container: 'font-size: 30rpx; line-height: 1.8; color: #292524; word-wrap: break-word;',
+		h1: 'font-size: 40rpx; font-weight: 700; color: #7c2d12; margin: 40rpx 0 20rpx; padding-bottom: 12rpx; border-bottom: 3rpx solid #f97316;',
+		h2: 'font-size: 36rpx; font-weight: 600; color: #9a3412; margin: 32rpx 0 16rpx; padding-bottom: 10rpx; border-bottom: 1rpx solid #fed7aa;',
+		h3: 'font-size: 32rpx; font-weight: 600; color: #c2410c; margin: 28rpx 0 14rpx;',
+		h4: 'font-size: 30rpx; font-weight: 600; color: #ea580c; margin: 24rpx 0 12rpx;',
+		h5: 'font-size: 28rpx; font-weight: 500; color: #f97316; margin: 20rpx 0 10rpx;',
+		h6: 'font-size: 28rpx; font-weight: 500; color: #f97316; margin: 16rpx 0 8rpx;',
+		strong: 'font-weight: 600; color: #7c2d12;',
+		em: 'font-style: italic; color: #9a3412;',
+		del: 'text-decoration: line-through; color: #78716c;',
+		inlineCode: 'background: #fff7ed; color: #c2410c; padding: 4rpx 8rpx; border-radius: 4rpx; font-family: Consolas, Monaco, monospace; font-size: 26rpx; border: 1rpx solid #fed7aa;',
+		codeBlock: 'background: #7c2d12; color: #fff7ed; padding: 20rpx; border-radius: 8rpx; overflow-x: auto; margin: 20rpx 0; font-family: Consolas, Monaco, monospace; font-size: 26rpx; line-height: 1.6; white-space: pre-wrap;',
+		blockquote: 'margin: 16rpx 0; padding: 16rpx 20rpx; background: #fff7ed; border-left: 4rpx solid #f97316; color: #9a3412; border-radius: 0 8rpx 8rpx 0;',
+		link: 'color: #c2410c; text-decoration: none; border-bottom: 1rpx dashed #f97316;',
+		listItem: 'margin: 8rpx 0; line-height: 1.8; padding-left: 20rpx;',
+		orderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		unorderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		divider: 'border: none; border-top: 2rpx solid #fed7aa; margin: 32rpx 0;',
+		table: 'width: 100%; border-collapse: collapse; border: 1rpx solid #fed7aa; border-radius: 8rpx; overflow: hidden; margin: 24rpx 0; font-size: 28rpx;',
+		th: 'font-weight: 600; padding: 12rpx 16rpx; text-align: left; color: #7c2d12; border-bottom: 2rpx solid #f97316; background: #fff7ed;',
+		td: 'padding: 12rpx 16rpx; border-bottom: 1rpx solid #ffedd5;',
+		textUp: 'color: #dc2626; font-weight: 500;',
+		textDown: 'color: #16a34a; font-weight: 500;',
+		textNeutral: 'color: #78716c;'
+	},
+	dark: {
+		container: 'font-size: 30rpx; line-height: 1.8; color: #e4e6eb; word-wrap: break-word; background: #18191a; padding: 20rpx; border-radius: 12rpx;',
+		h1: 'font-size: 40rpx; font-weight: 700; color: #ffffff; margin: 40rpx 0 20rpx; padding-bottom: 12rpx; border-bottom: 3rpx solid #3a3b3c;',
+		h2: 'font-size: 36rpx; font-weight: 600; color: #f0f2f5; margin: 32rpx 0 16rpx; padding-bottom: 10rpx; border-bottom: 1rpx solid #3a3b3c;',
+		h3: 'font-size: 32rpx; font-weight: 600; color: #e4e6eb; margin: 28rpx 0 14rpx;',
+		h4: 'font-size: 30rpx; font-weight: 600; color: #b0b3b8; margin: 24rpx 0 12rpx;',
+		h5: 'font-size: 28rpx; font-weight: 500; color: #e4e6eb; margin: 20rpx 0 10rpx;',
+		h6: 'font-size: 28rpx; font-weight: 500; color: #e4e6eb; margin: 16rpx 0 8rpx;',
+		strong: 'font-weight: 600; color: #ffffff;',
+		em: 'font-style: italic; color: #b0b3b8;',
+		del: 'text-decoration: line-through; color: #8b949e;',
+		inlineCode: 'background: #3a3b3c; color: #61dafb; padding: 4rpx 8rpx; border-radius: 4rpx; font-family: Consolas, Monaco, monospace; font-size: 26rpx;',
+		codeBlock: 'background: #242526; color: #e4e6eb; padding: 20rpx; border-radius: 8rpx; overflow-x: auto; margin: 20rpx 0; font-family: Consolas, Monaco, monospace; font-size: 26rpx; line-height: 1.6; border: 1rpx solid #3a3b3c; white-space: pre-wrap;',
+		blockquote: 'margin: 16rpx 0; padding: 16rpx 20rpx; background: #3a3b3c; border-left: 4rpx solid #8a2be2; color: #b0b3b8; border-radius: 0 8rpx 8rpx 0;',
+		link: 'color: #61dafb; text-decoration: none; border-bottom: 1rpx dashed #61dafb;',
+		listItem: 'margin: 8rpx 0; line-height: 1.8; padding-left: 20rpx; color: #e4e6eb;',
+		orderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		unorderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		divider: 'border: none; border-top: 2rpx solid #3a3b3c; margin: 32rpx 0;',
+		table: 'width: 100%; border-collapse: collapse; border: 1rpx solid #3a3b3c; border-radius: 8rpx; overflow: hidden; margin: 24rpx 0; font-size: 28rpx;',
+		th: 'font-weight: 600; padding: 12rpx 16rpx; text-align: left; color: #e4e6eb; border-bottom: 2rpx solid #3a3b3c; background: #242526;',
+		td: 'padding: 12rpx 16rpx; border-bottom: 1rpx solid #3a3b3c; color: #b0b3b8;',
+		textUp: 'color: #ff6b6b; font-weight: 500;',
+		textDown: 'color: #51cf66; font-weight: 500;',
+		textNeutral: 'color: #8b949e;'
+	}
+}
 
 /**
  * 数据格式化工具集 - 用于金融数据展示
@@ -105,7 +269,44 @@ export const DataFormatter = {
  */
 export class MarkdownRenderer {
 	/**
-	 * 渲染Markdown为HTML
+	 * 渲染Markdown为HTML（带主题内联样式，用于rich-text组件）
+	 * @param {string} content Markdown内容
+	 * @param {string} theme 主题名称 (default, github, emerald, ocean, warm, dark)
+	 * @returns {string} HTML内容（带内联样式）
+	 */
+	static renderWithTheme(content, theme = 'default') {
+		if (!content) return ''
+
+		const styles = ThemeStyles[theme] || ThemeStyles.default
+
+		// 过滤替换串
+		content = content.replace(/@@.+?@@/g, '')
+
+		// 转义HTML（但保留我们需要的标签）
+		let html = this._escapeHtml(content)
+
+		// 按顺序处理各种Markdown语法（带内联样式）
+		html = this._processCodeBlocksWithTheme(html, styles)
+		html = this._processInlineCodeWithTheme(html, styles)
+		html = this._processHeadingsWithTheme(html, styles)
+		html = this._processBoldAndItalicWithTheme(html, styles)
+		html = this._processStrikethroughWithTheme(html, styles)
+		html = this._processTablesWithTheme(html, styles)
+		html = this._processListsWithTheme(html, styles)
+		html = this._processBlockquotesWithTheme(html, styles)
+		html = this._processLinksWithTheme(html, styles)
+		html = this._processImagesWithTheme(html, styles)
+		html = this._processHorizontalRulesWithTheme(html, styles)
+		html = this._processLineBreaks(html)
+
+		// 修复特定标签内的换行
+		html = this._fixBreaksInSpecialTags(html)
+
+		return html
+	}
+
+	/**
+	 * 渲染Markdown为HTML（不带样式，用于列表预览等）
 	 * @param {string} content Markdown内容
 	 * @returns {string} HTML内容
 	 */
@@ -136,6 +337,212 @@ export class MarkdownRenderer {
 		html = this._fixBreaksInSpecialTags(html)
 
 		return html
+	}
+
+	/**
+	 * 渲染消息列表预览内容（简化版，带简单内联样式）
+	 * @param {string} content Markdown内容
+	 * @param {number} maxLength 最大字符数
+	 * @returns {string} HTML内容
+	 */
+	static renderPreview(content, maxLength = 100) {
+		if (!content) return ''
+
+		// 截取前N个字符作为预览
+		let preview = content.length > maxLength ? content.substring(0, maxLength) + '...' : content
+
+		// 转义HTML
+		preview = this._escapeHtml(preview)
+
+		// 简单的Markdown渲染（只处理粗体和斜体，用于列表预览）
+		preview = preview
+			.replace(/\*\*\*(.+?)\*\*\*/g, '<strong style="font-weight: 600; color: #1a1a1a;"><em style="font-style: italic;">$1</em></strong>')
+			.replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight: 600; color: #1a1a1a;">$1</strong>')
+			.replace(/\*(.+?)\*/g, '<em style="font-style: italic; color: #555555;">$1</em>')
+			.replace(/`([^`]+)`/g, '<code style="background: #f6f8fa; color: #e83e8c; padding: 2px 6px; border-radius: 4px; font-size: 24rpx;">$1</code>')
+			.replace(/\n/g, ' ')
+
+		return preview
+	}
+
+	// ==================== 带主题样式的方法 ====================
+
+	/**
+	 * 处理代码块（带主题样式）
+	 * @private
+	 */
+	static _processCodeBlocksWithTheme(html, styles) {
+		return html.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
+			const language = lang || ''
+			const trimmedCode = code.trim()
+			return `<pre style="${styles.codeBlock}"><code>${trimmedCode}</code></pre>\n`
+		})
+	}
+
+	/**
+	 * 处理行内代码（带主题样式）
+	 * @private
+	 */
+	static _processInlineCodeWithTheme(html, styles) {
+		return html.replace(/`([^`\n]+)`/g, `<code style="${styles.inlineCode}">$1</code>`)
+	}
+
+	/**
+	 * 处理标题（带主题样式）
+	 * @private
+	 */
+	static _processHeadingsWithTheme(html, styles) {
+		html = html.replace(/^######\s+(.+)$/gm, `<h6 style="${styles.h6}">$1</h6>`)
+		html = html.replace(/^#####\s+(.+)$/gm, `<h5 style="${styles.h5}">$1</h5>`)
+		html = html.replace(/^####\s+(.+)$/gm, `<h4 style="${styles.h4}">$1</h4>`)
+		html = html.replace(/^###\s+(.+)$/gm, `<h3 style="${styles.h3}">$1</h3>`)
+		html = html.replace(/^##\s+(.+)$/gm, `<h2 style="${styles.h2}">$1</h2>`)
+		html = html.replace(/^#\s+(.+)$/gm, `<h1 style="${styles.h1}">$1</h1>`)
+		return html
+	}
+
+	/**
+	 * 处理粗体和斜体（带主题样式）
+	 * @private
+	 */
+	static _processBoldAndItalicWithTheme(html, styles) {
+		html = html.replace(/\*\*([^*\n]+)\*\*/g, `<strong style="${styles.strong}">$1</strong>`)
+		html = html.replace(/__([^_\n]+)__/g, `<strong style="${styles.strong}">$1</strong>`)
+		html = html.replace(/\*([^*\n]+)\*/g, `<em style="${styles.em}">$1</em>`)
+		html = html.replace(/_([^_\n]+)_/g, `<em style="${styles.em}">$1</em>`)
+		return html
+	}
+
+	/**
+	 * 处理删除线（带主题样式）
+	 * @private
+	 */
+	static _processStrikethroughWithTheme(html, styles) {
+		return html.replace(/~~([^~\n]+)~~/g, `<del style="${styles.del}">$1</del>`)
+	}
+
+	/**
+	 * 处理表格（带主题样式）
+	 * @private
+	 */
+	static _processTablesWithTheme(html, styles) {
+		const lines = html.split('\n')
+		let inTable = false
+		let tableRows = []
+		let headerProcessed = false
+		const processedLines = []
+
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i].trim()
+
+			if (line.startsWith('|') && line.endsWith('|')) {
+				const cells = line.substring(1, line.length - 1)
+					.split('|')
+					.map(cell => cell.trim())
+
+				const isSeparator = cells.some(cell =>
+					/^-+:?$|^:-+:?$|^:-+$/.test(cell)
+				)
+
+				if (!isSeparator) {
+					if (!inTable) {
+						inTable = true
+						tableRows = []
+						headerProcessed = false
+					}
+
+					const isHeader = !headerProcessed
+					if (isHeader) {
+						headerProcessed = true
+					}
+
+					const cellStyle = isHeader ? styles.th : styles.td
+					const tag = isHeader ? 'th' : 'td'
+					const rowHtml = cells.map(cell => `<${tag} style="${cellStyle}">${cell}</${tag}>`).join('')
+					tableRows.push(`<tr>${rowHtml}</tr>`)
+				}
+				continue
+			}
+
+			if (inTable) {
+				if (tableRows.length > 0) {
+					const tableHtml = `<table style="${styles.table}">${tableRows.join('')}</table>`
+					processedLines.push(tableHtml)
+				}
+				inTable = false
+				tableRows = []
+				headerProcessed = false
+			}
+
+			processedLines.push(line)
+		}
+
+		if (inTable && tableRows.length > 0) {
+			const tableHtml = `<table style="${styles.table}">${tableRows.join('')}</table>`
+			processedLines.push(tableHtml)
+		}
+
+		return processedLines.join('\n')
+	}
+
+	/**
+	 * 处理列表（带主题样式）
+	 * @private
+	 */
+	static _processListsWithTheme(html, styles) {
+		// 无序列表
+		html = html.replace(/^[\s]*[-*]\s+(.+)$/gm, `<li style="${styles.listItem}">• $1</li>`)
+
+		// 合并连续的li为ul
+		html = html.replace(/(<li style="[^"]*">.*<\/li>\n?)+/g, (match) => {
+			return `<ul style="${styles.unorderedList}">${match}</ul>`
+		})
+
+		// 有序列表
+		html = html.replace(/^[\s]*(\d+)\.\s+(.+)$/gm, `<li style="${styles.listItem}" value="$1">$2</li>`)
+
+		// 合并连续的有序列表
+		html = html.replace(/(<li style="[^"]*"[^>]*>.*<\/li>\n?)+/g, (match) => {
+			// 如果已经包裹在ul中，跳过
+			if (match.includes('<ul')) return match
+			return `<ol style="${styles.orderedList}">${match}</ol>`
+		})
+
+		return html
+	}
+
+	/**
+	 * 处理引用（带主题样式）
+	 * @private
+	 */
+	static _processBlockquotesWithTheme(html, styles) {
+		return html.replace(/^>\s+(.+)$/gm, `<blockquote style="${styles.blockquote}">$1</blockquote>`)
+	}
+
+	/**
+	 * 处理链接（带主题样式）
+	 * @private
+	 */
+	static _processLinksWithTheme(html, styles) {
+		return html.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
+			`<a href="$2" style="${styles.link}" target="_blank">$1</a>`)
+	}
+
+	/**
+	 * 处理图片（带主题样式）
+	 * @private
+	 */
+	static _processImagesWithTheme(html, styles) {
+		return html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,
+			'<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 8rpx; margin: 16rpx 0;">')
+	}
+
+	/**
+	 * 处理水平分割线（带主题样式）
+	 * @private
+	 */
+	static _processHorizontalRulesWithTheme(html, styles) {
+		return html.replace(/^[-*]{3,}$/gm, `<hr style="${styles.divider}">`)
 	}
 
 	/**

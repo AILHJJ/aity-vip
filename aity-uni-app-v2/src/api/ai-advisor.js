@@ -1,10 +1,10 @@
 /**
  * AI投顾API服务
- * 负责与通达信AI接口的交互
+ * 通过后端代理与通达信AI接口交互
  * 使用SSE流式处理，支持GLM模型
  */
 
-import { buildApiEndpoint, getAuthHeaders, buildRequestBody, saveThreadId, getThreadId } from '@/utils/ai-advisor-config'
+import { getApiBaseUrl, buildRequestBody, saveThreadId, getThreadId } from '@/utils/ai-advisor-config'
 
 /**
  * 发送消息到AI并获取流式回复
@@ -16,38 +16,44 @@ import { buildApiEndpoint, getAuthHeaders, buildRequestBody, saveThreadId, getTh
  */
 export function sendAIMessage(content, onMessage, onError, onComplete) {
   const threadId = getThreadId()
-  const url = buildApiEndpoint('/agent/stream/chat')
+  const baseUrl = getApiBaseUrl()
+  const url = `${baseUrl}/stream-chat`
   const body = buildRequestBody(content, threadId)
-  const headers = getAuthHeaders()
 
   // 创建SSE解析器
   const parser = new SSEParser(onMessage, onError, onComplete)
 
-  // 发送请求
-  fetchSSE(url, body, headers, parser)
+  // 发送请求到后端代理
+  fetchSSE(url, body, parser)
 
   // 返回取消函数（暂不支持）
   return () => {}
 }
 
 /**
- * 发送SSE请求
+ * 发送SSE请求（通过后端代理）
  */
-function fetchSSE(url, body, headers, parser) {
+function fetchSSE(url, body, parser) {
   // 使用uni.request发送请求
   uni.request({
     url: url,
     method: 'POST',
-    header: headers,
+    header: {
+      'Content-Type': 'application/json',
+      'Accept': 'text/event-stream'
+    },
     data: body,
-    timeout: 60000,
+    timeout: 120000,
     responseType: 'text',  // 重要：接收文本响应
     success: (response) => {
       if (response.statusCode === 200) {
         // 解析SSE流
         parser.parse(response.data)
+      } else if (response.statusCode === 401) {
+        // Token过期，提示用户
+        parser.onError('Token已过期，请联系管理员刷新')
       } else {
-        parser.onError(`HTTP ${response.statusCode}: ${response.errMsg}`)
+        parser.onError(`HTTP ${response.statusCode}: ${response.errMsg || '请求失败'}`)
       }
     },
     fail: (error) => {

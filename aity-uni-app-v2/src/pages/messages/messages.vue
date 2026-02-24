@@ -165,6 +165,7 @@ import MessageSkeleton from '@/components/message-skeleton.vue'
 import EmptyState from '@/components/empty-state.vue'
 import FilterBar from '@/components/filter-bar.vue'
 import MessageFilterBar from '@/components/message-filter-bar.vue'
+import { MarkdownRenderer } from '../../utils/markdown-renderer'
 
 const userStore = useUserStore()
 
@@ -318,22 +319,9 @@ const getMessageTypeLabel = (type) => {
 	return MESSAGE_TYPE_LABELS[type] || type
 }
 
-// 渲染消息预览内容（简单的Markdown渲染，用于列表预览）
+// 渲染消息预览内容（使用统一的Markdown渲染器）
 const renderPreviewContent = (content) => {
-	if (!content) return ''
-
-	// 截取前100个字符作为预览
-	let preview = content.length > 100 ? content.substring(0, 100) + '...' : content
-
-	// 简单的Markdown渲染（只处理粗体和斜体，用于列表预览）
-	preview = preview
-		.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-		.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-		.replace(/\*(.+?)\*/g, '<em>$1</em>')
-		.replace(/`([^`]+)`/g, '<code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:24rpx;">$1</code>')
-		.replace(/\n/g, ' ')
-
-	return preview
+	return MarkdownRenderer.renderPreview(content, 100)
 }
 
 // 获取显示的标签列表（根据用户权限和业务规则）
