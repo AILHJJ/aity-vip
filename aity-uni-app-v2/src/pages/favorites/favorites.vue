@@ -54,13 +54,13 @@
 					<view class="message-content">{{ item.content }}</view>
 
 					<view class="message-footer">
-						<view class="message-tags">
+						<view v-if="item.tags && item.tags.length > 0" class="message-tags">
 							<text
 								v-for="tag in item.tags"
 								:key="tag"
 								class="message-tag"
 							>
-								{{ tag }}
+								{{ MESSAGE_TAG_LABELS[tag] || tag }}
 							</text>
 						</view>
 						<view class="action-btn" @click.stop="handleUnfavorite(item.id, 'message')">
@@ -123,7 +123,7 @@ import { ref, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
 import { getFavoriteMessagesApi, unfavoriteMessageApi } from '../../api/message'
 import { getFavoriteDiscussionsApi, unfavoriteDiscussionApi } from '../../api/discussion'
-import { MESSAGE_TYPE_LABELS } from '../../utils/constants'
+import { MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatFriendlyTime } from '../../utils/time'
 
 const userStore = useUserStore()
@@ -173,7 +173,8 @@ const loadList = async (isRefresh = false) => {
 		}
 
 		if (res.success) {
-			const newData = res.data.list || res.data.messages || res.data.discussions || []
+			// 统一使用 data.list 格式
+			const newData = res.data.list || []
 
 			if (isRefresh) {
 				list.value = newData

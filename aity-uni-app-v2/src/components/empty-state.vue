@@ -1,11 +1,15 @@
 <template>
 	<view class="empty-state-container">
 		<view class="empty-state">
-			<text class="empty-icon">{{ icon }}</text>
-			<text class="empty-title">{{ title }}</text>
-			<text v-if="description" class="empty-description">{{ description }}</text>
-			<button v-if="actionText" class="empty-action" @click="handleAction">
-				{{ actionText }}
+			<text class="empty-icon">{{ computedIcon }}</text>
+			<text class="empty-title">{{ computedTitle }}</text>
+			<text v-if="computedDescription" class="empty-description">{{ computedDescription }}</text>
+			<button
+				v-if="showAction && computedActionText"
+				:class="['empty-action', 'action-' + actionType]"
+				@click="handleAction"
+			>
+				{{ computedActionText }}
 			</button>
 		</view>
 	</view>
@@ -18,7 +22,7 @@ const props = defineProps({
 	type: {
 		type: String,
 		default: 'default',
-		validator: (value) => ['default', 'message', 'discussion', 'favorite', 'network-error', 'no-result'].includes(value)
+		validator: (value) => ['default', 'message', 'discussion', 'favorite', 'network-error', 'no-result', 'image', 'discussions', 'profile'].includes(value)
 	},
 	title: {
 		type: String,
@@ -31,6 +35,19 @@ const props = defineProps({
 	actionText: {
 		type: String,
 		default: ''
+	},
+	icon: {
+		type: String,
+		default: ''
+	},
+	actionType: {
+		type: String,
+		default: 'primary',
+		validator: (value) => ['primary', 'secondary', 'text'].includes(value)
+	},
+	showAction: {
+		type: Boolean,
+		default: true
 	}
 })
 
@@ -51,7 +68,14 @@ const typeConfig = {
 	'discussion': {
 		icon: '💭',
 		title: '暂无讨论',
-		description: '还没有人发起讨论，来做第一个吧'
+		description: '还没有人发起讨论，来做第一个吧',
+		actionText: '发起讨论'
+	},
+	'discussions': {
+		icon: '💬',
+		title: '暂无讨论',
+		description: '该消息还没有相关讨论，快来发起第一个讨论吧',
+		actionText: '发起讨论'
 	},
 	'favorite': {
 		icon: '⭐',
@@ -67,25 +91,37 @@ const typeConfig = {
 		icon: '🔍',
 		title: '未找到相关内容',
 		description: '换一个关键词试试吧'
+	},
+	'image': {
+		icon: '🖼️',
+		title: '暂无图片',
+		description: '该消息没有图片附件'
+	},
+	'profile': {
+		icon: '👤',
+		title: '暂无个人资料',
+		description: '请完善个人信息'
 	}
 }
 
 // 计算显示的图标
-const icon = computed(() => {
-	if (props.type && typeConfig[props.type]) {
-		return typeConfig[props.type].icon
-	}
-	return typeConfig['default'].icon
+const computedIcon = computed(() => {
+	return props.icon || (props.type && typeConfig[props.type]?.icon) || typeConfig['default'].icon
 })
 
 // 计算显示的标题
-const displayTitle = computed(() => {
+const computedTitle = computed(() => {
 	return props.title || (props.type && typeConfig[props.type]?.title) || typeConfig['default'].title
 })
 
 // 计算显示的描述
-const displayDescription = computed(() => {
+const computedDescription = computed(() => {
 	return props.description || (props.type && typeConfig[props.type]?.description) || ''
+})
+
+// 计算显示的操作按钮文本
+const computedActionText = computed(() => {
+	return props.actionText || (props.type && typeConfig[props.type]?.actionText) || ''
 })
 
 const handleAction = () => {
@@ -143,20 +179,46 @@ const handleAction = () => {
 .empty-action {
 	padding: 20rpx 60rpx;
 	font-size: 28rpx;
-	color: #ffffff;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	border: none;
 	border-radius: 50rpx;
-	box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.3);
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
 	transition: all 0.3s;
+	font-weight: 500;
 
 	&:active {
 		transform: scale(0.95);
+	}
+
+	&::after {
+		border: none;
+	}
+}
+
+.action-primary {
+	color: #ffffff;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.3);
+
+	&:active {
 		box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
 	}
 }
 
-.empty-action::after {
-	border: none;
+.action-secondary {
+	color: #333333;
+	background: #f5f5f5;
+
+	&:active {
+		background: #e0e0e0;
+	}
+}
+
+.action-text {
+	color: #667eea;
+	background: transparent;
+
+	&:active {
+		background: #f0f2ff;
+	}
 }
 </style>

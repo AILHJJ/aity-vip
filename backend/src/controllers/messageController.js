@@ -6,6 +6,8 @@ const MessageAttachment = require('../models/MessageAttachment');
 const UserMessageRead = require('../models/UserMessageRead');
 const User = require('../models/User');
 const Group = require('../models/Group');
+const Discussion = require('../models/Discussion');
+const DiscussionReply = require('../models/DiscussionReply');
 
 // 统一响应格式
 function success(data, message = 'Success') {
@@ -98,11 +100,11 @@ async function getMessages(req, res) {
 
     // 标签权限过滤（trial用户和管理员不受限制）
     if (currentUser.role !== 'trial' && currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
-      // vip_mid 只能看到包含"中线策略"或"全部用户"标签的消息
-      // vip_short 只能看到包含"短线策略"或"全部用户"标签的消息
+      // vip_mid 只能看到包含"mid_term"或"all_users"标签的消息
+      // vip_short 只能看到包含"short_term"或"all_users"标签的消息
       const allowedTags = currentUser.role === 'vip_mid'
-        ? ['中线策略', '全部用户']
-        : ['短线策略', '全部用户'];
+        ? ['mid_term', 'all_users']
+        : ['short_term', 'all_users'];
 
       andConditions.push({
         [Op.or]: [
@@ -138,16 +140,16 @@ async function getMessages(req, res) {
 
     console.log('获取消息列表请求处理完成，总耗时:', Date.now() - startTime, 'ms');
 
-    res.json({
-      success: true,
-      data: rows,
+    // 统一响应格式: { code, message, data: { list, pagination } }
+    res.json(success({
+      list: rows,
       pagination: {
         total: count,
         page: parseInt(page),
         limit: parseInt(limit),
         pages: Math.ceil(count / limit)
       }
-    });
+    }));
   } catch (err) {
     console.error('获取消息列表错误:', err);
     res.status(500).json(error('Server error'));
@@ -183,11 +185,11 @@ async function getMessageById(req, res) {
         break;
       case 'vip_mid':
         // 只能查看中线策略或全部用户的消息
-        hasPermission = message.tags.includes('mid_term') || message.tags.includes('all');
+        hasPermission = message.tags.includes('mid_term') || message.tags.includes('all_users');
         break;
       case 'vip_short':
         // 只能查看短线策略或全部用户的消息
-        hasPermission = message.tags.includes('short_term') || message.tags.includes('all');
+        hasPermission = message.tags.includes('short_term') || message.tags.includes('all_users');
         break;
       default:
         hasPermission = false;
@@ -233,7 +235,7 @@ async function getMessageById(req, res) {
 // 创建消息
 async function createMessage(req, res) {
   try {
-    const { title, content, type, groupId, attachments, tags, publishTime } = req.body;
+    const { title, content, type, groupId, attachments, tags, theme, publishTime } = req.body;
     const userId = req.user.userId;
 
     // 获取用户信息
@@ -244,10 +246,12 @@ async function createMessage(req, res) {
 
     // 计算接收消息的用户数量
     let totalCount = 0;
-    if (groupId === 'all') {
+    const targetGroupId = groupId || user.groupId || 'all'; // 如果没有指定groupId,使用用户自己的groupId或'all'
+
+    if (targetGroupId === 'all') {
       totalCount = await User.count({ where: { status: 'active' } });
     } else {
-      totalCount = await User.count({ where: { groupId, status: 'active' } });
+      totalCount = await User.count({ where: { groupId: targetGroupId, status: 'active' } });
     }
 
     // 确定消息状态
@@ -272,9 +276,10 @@ async function createMessage(req, res) {
       type,
       sender: user.name,
       senderId: userId,
-      groupId,
+      groupId: targetGroupId,
       totalCount,
       tags: tags || null,
+      theme: theme || 'default',
       publishTime: messagePublishTime,
       status: messageStatus
     });
@@ -306,7 +311,7 @@ async function createMessage(req, res) {
 async function updateMessage(req, res) {
   try {
     const { id } = req.params;
-    const { title, content, type, attachments, tags, publishTime } = req.body;
+    const { title, content, type, attachments, tags, theme, publishTime } = req.body;
 
     // 获取消息
     const message = await Message.findByPk(id);
@@ -320,6 +325,11 @@ async function updateMessage(req, res) {
     // 处理tags
     if (tags !== undefined) {
       updateData.tags = tags;
+    }
+
+    // 处理theme
+    if (theme !== undefined) {
+      updateData.theme = theme;
     }
 
     // 处理publishTime和status
@@ -389,27 +399,162 @@ async function deleteMessage(req, res) {
       return res.status(404).json(notFound('Message not found'));
     }
 
-    // 删除相关的讨论回复（需要先删除，因为有外键约束）
-    const Discussion = require('../models/Discussion');
-    const DiscussionReply = require('../models/DiscussionReply');
-    const discussions = await Discussion.findAll({ where: { messageId: id } });
-    for (const discussion of discussions) {
-      await DiscussionReply.destroy({ where: { discussionId: discussion.id } });
+    console.log('开始删除消息:', id);
+
+    // 使用事务确保数据一致性
+    const t = await sequelize.transaction();
+
+    try {
+      // 1. 删除消息的讨论回复
+      const discussions = await Discussion.findAll({ where: { messageId: id } });
+      console.log('找到讨论数量:', discussions.length);
+
+      for (const discussion of discussions) {
+        await DiscussionReply.destroy({
+          where: { discussionId: discussion.id },
+          transaction: t
+        });
+      }
+
+      // 2. 删除讨论
+      await Discussion.destroy({ where: { messageId: id }, transaction: t });
+
+      // 3. 删除附件
+      await MessageAttachment.destroy({ where: { messageId: id }, transaction: t });
+
+      // 4. 删除用户阅读记录
+      await UserMessageRead.destroy({ where: { messageId: id }, transaction: t });
+
+      // 5. 删除消息
+      await message.destroy({ transaction: t });
+
+      // 提交事务
+      await t.commit();
+
+      console.log('消息删除成功:', id);
+
+      res.json(success(null, 'Message deleted successfully'));
+    } catch (error) {
+      // 回滚事务
+      await t.rollback();
+      throw error;
     }
-    await Discussion.destroy({ where: { messageId: id } });
-
-    // 删除附件
-    await MessageAttachment.destroy({ where: { messageId: id } });
-
-    // 删除用户阅读记录
-    await UserMessageRead.destroy({ where: { messageId: id } });
-
-    // 删除消息
-    await message.destroy();
-
-    res.json(success(null, 'Message deleted successfully'));
   } catch (err) {
-    console.error(err);
+    console.error('删除消息失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 标记消息为已读
+async function markMessageAsRead(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // 检查消息是否存在
+    const message = await Message.findByPk(id);
+    if (!message) {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
+    // 创建或更新已读记录
+    await UserMessageRead.findOrCreate({
+      where: { userId, messageId: id }
+    });
+
+    // 更新消息的已读计数
+    const readCount = await UserMessageRead.count({ where: { messageId: id } });
+    await message.update({ readCount });
+
+    res.json(success({ readCount }, 'Message marked as read'));
+  } catch (err) {
+    console.error('标记消息已读失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 收藏消息
+async function favoriteMessage(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // 检查消息是否存在
+    const message = await Message.findByPk(id);
+    if (!message) {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
+    // 这里需要创建一个收藏表或者使用现有的方式
+    // 暂时返回成功，实际项目中应该有 favorites 表
+    // TODO: 实现 favorites 功能
+
+    res.json(success({ favorited: true }, 'Message favorited'));
+  } catch (err) {
+    console.error('收藏消息失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 取消收藏消息
+async function unfavoriteMessage(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // 检查消息是否存在
+    const message = await Message.findByPk(id);
+    if (!message) {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
+    // TODO: 实现 unfavorite 功能
+
+    res.json(success({ favorited: false }, 'Message unfavorited'));
+  } catch (err) {
+    console.error('取消收藏失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 置顶消息
+async function pinMessage(req, res) {
+  try {
+    const { id } = req.params;
+
+    // 检查消息是否存在
+    const message = await Message.findByPk(id);
+    if (!message) {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
+    // 更新置顶状态
+    await message.update({ isPinned: true });
+
+    res.json(success({ pinned: true }, 'Message pinned'));
+  } catch (err) {
+    console.error('置顶消息失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 取消置顶消息
+async function unpinMessage(req, res) {
+  try {
+    const { id } = req.params;
+
+    // 检查消息是否存在
+    const message = await Message.findByPk(id);
+    if (!message) {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
+    // 更新置顶状态
+    await message.update({ isPinned: false });
+
+    res.json(success({ pinned: false }, 'Message unpinned'));
+  } catch (err) {
+    console.error('取消置顶失败:', err);
     res.status(500).json(error('Server error'));
   }
 }
@@ -419,5 +564,10 @@ module.exports = {
   getMessageById,
   createMessage,
   updateMessage,
-  deleteMessage
+  deleteMessage,
+  markMessageAsRead,
+  favoriteMessage,
+  unfavoriteMessage,
+  pinMessage,
+  unpinMessage
 };

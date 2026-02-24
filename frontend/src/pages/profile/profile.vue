@@ -111,7 +111,37 @@
         </button>
       </view>
     </view>
-    
+
+    <!-- 管理员快捷入口 -->
+    <view v-if="isAdmin" class="admin-card">
+      <view class="card-header">
+        <text class="card-title">管理功能</text>
+      </view>
+
+      <view class="admin-menu">
+        <view class="menu-item" @click="goTo('/admin/users')">
+          <text class="menu-icon">👥</text>
+          <text class="menu-text">用户管理</text>
+          <text class="menu-arrow">›</text>
+        </view>
+        <view class="menu-item" @click="goTo('/admin/messages')">
+          <text class="menu-icon">📢</text>
+          <text class="menu-text">消息管理</text>
+          <text class="menu-arrow">›</text>
+        </view>
+        <view class="menu-item" @click="goTo('/admin/groups')">
+          <text class="menu-icon">📁</text>
+          <text class="menu-text">分组管理</text>
+          <text class="menu-arrow">›</text>
+        </view>
+        <view class="menu-item" @click="goTo('/admin/ai-settings')">
+          <text class="menu-icon">🤖</text>
+          <text class="menu-text">图灵AI设置</text>
+          <text class="menu-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
     <button class="btn btn-danger logout-btn" @click="handleLogout">
       退出登录
     </button>
@@ -119,7 +149,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../../store/user'
 import { updateProfile, changePassword } from '../../api/auth'
@@ -130,6 +160,17 @@ const userStore = useUserStore()
 const userInfo = ref(userStore.userInfo)
 const loading = ref(false)
 const passwordLoading = ref(false)
+
+// 判断是否为管理员
+const isAdmin = computed(() => {
+  const role = userInfo.value?.role
+  return role === 'super_admin' || role === 'admin'
+})
+
+// 跳转页面
+function goTo(path) {
+  router.push(path)
+}
 
 const form = reactive({
   name: userInfo.value?.name || '',
@@ -269,12 +310,47 @@ onMounted(() => {
 }
 
 .profile-card,
-.password-card {
+.password-card,
+.admin-card {
   background: #fff;
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.admin-menu {
+  .menu-item {
+    display: flex;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:active {
+      background: #f9f9f9;
+    }
+
+    .menu-icon {
+      font-size: 20px;
+      margin-right: 12px;
+    }
+
+    .menu-text {
+      flex: 1;
+      font-size: 15px;
+      color: #333;
+    }
+
+    .menu-arrow {
+      font-size: 18px;
+      color: #999;
+    }
+  }
 }
 
 .profile-header {

@@ -8,6 +8,13 @@
 			}
 		},
 		{
+			"path": "pages/ai-advisor/ai-advisor",
+			"style": {
+				"navigationBarTitleText": "图灵",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/messages/messages",
 			"style": {
 				"navigationBarTitleText": "消息中心",
@@ -17,7 +24,8 @@
 		{
 			"path": "pages/message-detail/message-detail",
 			"style": {
-				"navigationBarTitleText": "消息详情"
+				"navigationBarTitleText": "消息详情",
+				"enablePullDownRefresh": true
 			}
 		},
 		{
@@ -80,7 +88,7 @@
 	],
 	"tabBar": {
 		"color": "#7A7E83",
-		"selectedColor": "#007AFF",
+		"selectedColor": "#667eea",
 		"borderStyle": "black",
 		"backgroundColor": "#F8F8F8",
 		"list": [
@@ -93,6 +101,10 @@
 				"text": "讨论"
 			},
 			{
+				"pagePath": "pages/ai-advisor/ai-advisor",
+				"text": "图灵"
+			},
+			{
 				"pagePath": "pages/profile/profile",
 				"text": "我的"
 			}
@@ -103,5 +115,11 @@
 		"navigationBarTitleText": "投研图灵室",
 		"navigationBarBackgroundColor": "#FFFFFF",
 		"backgroundColor": "#F8F8F8"
+	},
+	"networkTimeout": {
+		"request": 30000,
+		"downloadFile": 60000,
+		"uploadFile": 60000,
+		"connectSocket": 30000
 	}
 }

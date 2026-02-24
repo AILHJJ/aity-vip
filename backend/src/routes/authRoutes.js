@@ -12,13 +12,19 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { authenticateToken } = require('../utils/jwtUtils');
 
-// 暂时移除验证中间件，直接调用登录控制器
-router.post('/login', 
+// 登录
+router.post('/login',
   authController.login
 );
 
-router.get('/me', 
-  authenticateToken, 
+// 登出
+router.post('/logout',
+  authController.logout
+);
+
+// 获取当前用户信息
+router.get('/me',
+  authenticateToken,
   authController.getCurrentUser
 );
 

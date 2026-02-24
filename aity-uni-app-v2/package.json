@@ -4,8 +4,9 @@
   "description": "VIP投研内部分享系统 - uni-app版本",
   "scripts": {
     "dev:custom": "uni -p",
-    "dev:h5": "uni",
+    "dev:h5": "node scripts/check-build.js dev:h5 && uni",
     "dev:h5:ssr": "uni --ssr",
+    "check:build": "node scripts/check-build.js",
     "dev:mp-alipay": "uni -p mp-alipay",
     "dev:mp-baidu": "uni -p mp-baidu",
     "dev:mp-jd": "uni -p mp-jd",

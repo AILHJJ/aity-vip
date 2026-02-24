@@ -2,8 +2,31 @@
 	<view class="detail-container">
 		<!-- 加载中 -->
 		<view v-if="loading" class="loading-container">
-			<view class="loading-spinner"></view>
-			<text class="loading-text">加载中...</text>
+			<!-- 骨架屏 -->
+			<view class="skeleton-screen">
+				<view class="skeleton-header">
+					<view class="skeleton-badge"></view>
+					<view class="skeleton-time"></view>
+				</view>
+				<view class="skeleton-title"></view>
+				<view class="skeleton-tags">
+					<view class="skeleton-tag"></view>
+					<view class="skeleton-tag"></view>
+				</view>
+				<view class="skeleton-content">
+					<view class="skeleton-line"></view>
+					<view class="skeleton-line"></view>
+					<view class="skeleton-line"></view>
+				</view>
+				<view class="skeleton-images">
+					<view class="skeleton-image"></view>
+					<view class="skeleton-image"></view>
+				</view>
+				<view class="skeleton-stats">
+					<view class="skeleton-stat"></view>
+					<view class="skeleton-stat"></view>
+				</view>
+			</view>
 		</view>
 
 		<!-- 消息详情 -->
@@ -26,25 +49,40 @@
 					:key="tag"
 					class="message-tag"
 				>
-					{{ tag }}
+					{{ MESSAGE_TAG_LABELS[tag] || tag }}
 				</text>
 			</view>
 
-			<!-- 消息内容 -->
+			<!-- Markdown主题选择器 - 已移除，主题由发帖者选择 -->
+
+			<!-- 消息内容（Markdown渲染，带主题内联样式） -->
 			<view class="message-content">
-				<text class="content-text">{{ message.content }}</text>
+				<rich-text v-if="renderedContent" :nodes="renderedContent"></rich-text>
+				<text v-else class="content-text">{{ message.content }}</text>
 			</view>
 
 			<!-- 消息图片 -->
 			<view v-if="message.images && message.images.length > 0" class="message-images">
-				<image
+				<view
 					v-for="(img, index) in message.images"
 					:key="index"
-					:src="img"
-					class="message-image"
-					mode="widthFix"
+					class="image-wrapper"
 					@click="previewImage(index)"
-				/>
+				>
+					<image
+						:src="cleanImageUrl(img)"
+						class="message-image"
+						mode="widthFix"
+						:lazy-load="true"
+						@error="handleImageError(index)"
+						@load="handleImageLoad(index)"
+						:show-loading="true"
+						:show-error="true"
+					/>
+					<view class="image-mask">
+						<text class="image-hint">点击预览</text>
+					</view>
+				</view>
 			</view>
 
 			<!-- 消息统计 -->
@@ -61,13 +99,29 @@
 
 			<!-- 操作按钮 -->
 			<view class="action-buttons">
-				<button class="action-btn" :class="{ active: isFavorited }" @click="toggleFavorite">
-					<text class="btn-icon">{{ isFavorited ? '⭐' : '☆' }}</text>
-					<text class="btn-text">{{ isFavorited ? '已收藏' : '收藏' }}</text>
+				<button
+					class="action-btn"
+					:class="{ active: isFavorited, loading: favoriteLoading }"
+					:disabled="favoriteLoading"
+					@click="toggleFavorite"
+				>
+					<text v-if="favoriteLoading" class="btn-text">处理中...</text>
+					<template v-else>
+						<text class="btn-icon">{{ isFavorited ? '⭐' : '☆' }}</text>
+						<text class="btn-text">{{ isFavorited ? '已收藏' : '收藏' }}</text>
+					</template>
 				</button>
-				<button class="action-btn" @click="handleShare">
-					<text class="btn-icon">📤</text>
-					<text class="btn-text">分享</text>
+				<button
+					class="action-btn"
+					:class="{ loading: shareLoading }"
+					:disabled="shareLoading"
+					@click="handleShare"
+				>
+					<text v-if="shareLoading" class="btn-text">复制中...</text>
+					<template v-else>
+						<text class="btn-icon">📤</text>
+						<text class="btn-text">分享</text>
+					</template>
 				</button>
 				<button class="action-btn primary" @click="goToDiscuss">
 					<text class="btn-icon">💬</text>
@@ -77,17 +131,33 @@
 
 			<!-- 管理员操作按钮 -->
 			<view v-if="userStore.isAdmin" class="admin-actions">
-				<button class="admin-btn pin" :class="{ pinned: message.isPinned }" @click="handleTogglePin">
-					<text class="admin-btn-icon">{{ message.isPinned ? '📌' : '📍' }}</text>
-					<text>{{ message.isPinned ? '取消置顶' : '置顶' }}</text>
+				<button
+					class="admin-btn pin"
+					:class="{ pinned: message.isPinned, loading: pinLoading }"
+					:disabled="pinLoading"
+					@click="handleTogglePin"
+				>
+					<text v-if="pinLoading">{{ message.isPinned ? '取消中...' : '置顶中...' }}</text>
+					<template v-else>
+						<text class="admin-btn-icon">{{ message.isPinned ? '📌' : '📍' }}</text>
+						<text>{{ message.isPinned ? '取消置顶' : '置顶' }}</text>
+					</template>
 				</button>
 				<button class="admin-btn edit" @click="handleEdit">
 					<text class="admin-btn-icon">✏️</text>
 					<text>编辑</text>
 				</button>
-				<button class="admin-btn delete" @click="handleDelete">
-					<text class="admin-btn-icon">🗑️</text>
-					<text>删除</text>
+				<button
+					class="admin-btn delete"
+					:class="{ loading: deleteLoading }"
+					:disabled="deleteLoading"
+					@click="handleDelete"
+				>
+					<text v-if="deleteLoading">删除中...</text>
+					<template v-else>
+						<text class="admin-btn-icon">🗑️</text>
+						<text>删除</text>
+					</template>
 				</button>
 			</view>
 
@@ -104,7 +174,7 @@
 						<text class="discussion-user">{{ discussion.userName }}</text>
 						<text class="discussion-time">{{ formatFriendlyTime(discussion.createdAt) }}</text>
 					</view>
-					<view class="discussion-title">{{ discussion.title }}</view>
+					<view class="discussion-content">{{ discussion.content }}</view>
 					<view class="discussion-footer">
 						<text class="discussion-status" :class="discussion.status">
 							{{ discussion.status === 'replied' ? '已回复' : '待回复' }}
@@ -117,20 +187,34 @@
 
 		<!-- 错误状态 -->
 		<view v-else class="error-state">
-			<text class="error-icon">😕</text>
-			<text class="error-text">消息不存在或已被删除</text>
-			<button class="back-btn" @click="goBack">返回</button>
+			<text class="error-icon">🔍</text>
+			<text class="error-title">消息不存在或已被删除</text>
+			<text class="error-description">
+				很抱歉，您查看的消息可能已经被删除或不存在
+			</text>
+			<view class="error-actions">
+				<button class="action-btn secondary" @click="goBack">
+					<text class="btn-icon">🏠</text>
+					<text class="btn-text">返回首页</text>
+				</button>
+				<button class="action-btn primary" @click="retryLoad">
+					<text class="btn-icon">🔄</text>
+					<text class="btn-text">重新加载</text>
+				</button>
+			</view>
 		</view>
 	</view>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
+import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import { getMessageDetailApi, markMessageAsReadApi, favoriteMessageApi, unfavoriteMessageApi, deleteMessageApi, pinMessageApi, unpinMessageApi } from '../../api/message'
 import { getDiscussionsApi } from '../../api/discussion'
-import { MESSAGE_TYPE_LABELS } from '../../utils/constants'
+import { MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatTime, formatFriendlyTime } from '../../utils/time'
+import { MarkdownRenderer, ThemeStyles } from '../../utils/markdown-renderer'
 
 const userStore = useUserStore()
 
@@ -141,9 +225,41 @@ const loading = ref(true)
 const isFavorited = ref(false)
 const messageId = ref(0)
 
+// 用于跟踪是否需要刷新讨论列表
+const needRefreshDiscussions = ref(false)
+const currentPage = ref(null)
+
+// 防重复点击loading状态
+const favoriteLoading = ref(false)
+const shareLoading = ref(false)
+const deleteLoading = ref(false)
+const pinLoading = ref(false)
+
+// Markdown主题 - 从消息数据读取，默认为default
+const markdownTheme = ref('default')
+
+// 渲染后的Markdown内容（带主题内联样式）
+const renderedContent = computed(() => {
+	if (!message.value || !message.value.content) return ''
+	// 使用消息自带的主题进行渲染，样式内联到HTML中
+	return MarkdownRenderer.renderWithTheme(message.value.content, markdownTheme.value || 'default')
+})
+
+// 主题切换处理（保留接口，但不在详情页显示选择器）
+const handleThemeChange = (newTheme) => {
+	markdownTheme.value = newTheme
+}
+
 // 获取消息类型标签
 const getMessageTypeLabel = (type) => {
 	return MESSAGE_TYPE_LABELS[type] || type
+}
+
+// 清理图片URL（移除微信小程序添加的查询参数）
+const cleanImageUrl = (url) => {
+	if (!url) return url
+	// 移除?后面的所有查询参数
+	return url.split('?')[0]
 }
 
 // 加载消息详情
@@ -153,28 +269,54 @@ const loadMessageDetail = async () => {
 	try {
 		const res = await getMessageDetailApi(messageId.value)
 
-		if (res.success) {
-			message.value = res.data
-			isFavorited.value = res.data.isFavorited || false
+		// 兼容 success 和 code 两种格式
+		if (res.success || res.code === 200) {
+			const messageData = res.data
+
+			// 处理附件数据：转换为images格式
+			if (messageData.attachments && messageData.attachments.length > 0) {
+				messageData.images = messageData.attachments
+					.filter(att => att.type === 'image')
+					.map(att => {
+						// 如果是相对路径，补全服务器地址
+						let url = att.url
+						if (url.startsWith('/uploads/')) {
+							url = 'https://aity88.online:8443' + url
+						}
+						// 清理URL中的查询参数
+						return cleanImageUrl(url)
+					})
+			}
+
+			message.value = messageData
+			isFavorited.value = messageData.isFavorited || false
+
+			// 从消息数据读取主题，如果没有则使用默认主题
+			markdownTheme.value = messageData.theme || 'default'
 
 			// 标记为已读
 			markMessageAsReadApi(messageId.value).catch(err => {
-				console.error('标记已读失败:', err)
+				console.warn('标记已读失败:', err)
+				// 不影响用户体验，静默失败
 			})
 
 			// 加载相关讨论
 			loadDiscussions()
 		} else {
-			uni.showToast({
-				title: res.message || '加载失败',
-				icon: 'none'
-			})
+			throw new Error(res.message || '加载失败')
 		}
 	} catch (error) {
 		console.error('加载消息详情失败:', error)
-		uni.showToast({
+
+		// 更友好的错误提示
+		uni.showModal({
 			title: '加载失败',
-			icon: 'none'
+			content: error.message || '消息加载失败，请返回重试',
+			showCancel: false,
+			confirmText: '返回',
+			success: () => {
+				uni.navigateBack()
+			}
 		})
 	} finally {
 		loading.value = false
@@ -184,13 +326,20 @@ const loadMessageDetail = async () => {
 // 加载相关讨论
 const loadDiscussions = async () => {
 	try {
+		console.log('=== 加载讨论列表，messageId:', messageId.value, '===')
 		const res = await getDiscussionsApi({
 			messageId: messageId.value,
 			limit: 10
 		})
 
-		if (res.success) {
+		console.log('=== 讨论列表响应 ===', res)
+
+		// 兼容两种响应格式
+		if (res.code === 200 || res.success) {
 			discussions.value = res.data.discussions || []
+			console.log('=== 讨论列表加载成功，共', discussions.value.length, '条 ===')
+		} else {
+			console.warn('加载讨论失败:', res.message)
 		}
 	} catch (error) {
 		console.error('加载讨论失败:', error)
@@ -199,62 +348,159 @@ const loadDiscussions = async () => {
 
 // 切换收藏
 const toggleFavorite = async () => {
-	try {
-		if (isFavorited.value) {
-			const res = await unfavoriteMessageApi(messageId.value)
-			if (res.success) {
-				isFavorited.value = false
-				uni.showToast({
-					title: '已取消收藏',
-					icon: 'success'
-				})
-			}
-		} else {
-			const res = await favoriteMessageApi(messageId.value)
-			if (res.success) {
-				isFavorited.value = true
-				uni.showToast({
-					title: '收藏成功',
-					icon: 'success'
-				})
-			}
-		}
-	} catch (error) {
-		console.error('收藏操作失败:', error)
+	// 防止重复点击
+	if (favoriteLoading.value) return
+
+	// 添加登录检查
+	if (!userStore.isLoggedIn) {
 		uni.showToast({
-			title: '操作失败',
+			title: '请先登录',
 			icon: 'none'
 		})
+		setTimeout(() => {
+			uni.navigateTo({
+				url: '/pages/login/login'
+			})
+		}, 1500)
+		return
+	}
+
+	favoriteLoading.value = true
+	const oldValue = isFavorited.value
+	isFavorited.value = !oldValue
+
+	try {
+		let res
+		if (isFavorited.value) {
+			res = await favoriteMessageApi(messageId.value)
+		} else {
+			res = await unfavoriteMessageApi(messageId.value)
+		}
+
+		// 兼容两种响应格式
+		if (res.success || res.code === 200) {
+			uni.showToast({
+				title: isFavorited.value ? '已收藏' : '已取消收藏',
+				icon: 'success',
+				duration: 1500
+			})
+		} else {
+			throw new Error(res.message || '操作失败')
+		}
+	} catch (error) {
+		// 失败时回滚UI
+		isFavorited.value = oldValue
+
+		console.error('收藏操作失败:', error)
+		uni.showToast({
+			title: '操作失败，请稍后重试',
+			icon: 'none'
+		})
+	} finally {
+		favoriteLoading.value = false
 	}
 }
 
 // 预览图片
 const previewImage = (index) => {
+	// 清理所有图片URL后再预览
+	const cleanUrls = message.value.images.map(img => cleanImageUrl(img))
+
 	uni.previewImage({
-		urls: message.value.images,
-		current: index
-	})
-}
-
-// 分享消息
-const handleShare = () => {
-	// 复制消息链接和标题到剪贴板
-	const shareText = `${message.value.title}\n\n${message.value.content.substring(0, 100)}...`
-
-	uni.setClipboardData({
-		data: shareText,
-		success: () => {
-			uni.showModal({
-				title: '分享成功',
-				content: '内容已复制到剪贴板，可以粘贴分享给好友',
-				showCancel: false
+		urls: cleanUrls,
+		current: index,
+		fail: (err) => {
+			console.error('预览图片失败:', err)
+			uni.showToast({
+				title: '预览失败',
+				icon: 'none'
 			})
 		}
 	})
 }
 
+// 处理图片加载错误
+const handleImageError = (index) => {
+	console.error(`图片 ${index} 加载失败`)
+	uni.showToast({
+		title: '图片加载失败',
+		icon: 'none'
+	})
+}
+
+// 处理图片加载成功
+const handleImageLoad = (index) => {
+	// 图片加载成功，不需要日志
+}
+
+// 分享消息
+const handleShare = async () => {
+	// 防止重复点击
+	if (shareLoading.value) return
+
+	// 添加登录检查
+	if (!userStore.isLoggedIn) {
+		uni.showToast({
+			title: '请先登录',
+			icon: 'none'
+		})
+		setTimeout(() => {
+			uni.navigateTo({
+				url: '/pages/login/login'
+			})
+		}, 1500)
+		return
+	}
+
+	shareLoading.value = true
+
+	try {
+		// 复制消息链接和标题到剪贴板
+		const shareText = `${message.value.title}\n\n${message.value.content.substring(0, 100)}...`
+
+		uni.setClipboardData({
+			data: shareText,
+			success: () => {
+				uni.showModal({
+					title: '分享成功',
+					content: '内容已复制到剪贴板，可以粘贴分享给好友',
+					showCancel: false
+				})
+			},
+			fail: () => {
+				uni.showToast({
+					title: '复制失败',
+					icon: 'none'
+				})
+			}
+		})
+	} finally {
+		// 分享是异步操作，但clipboard操作很快，延迟重置loading
+		setTimeout(() => {
+			shareLoading.value = false
+		}, 500)
+	}
+}
+
 // 发起讨论
 const goToDiscuss = () => {
+	// 添加登录检查
+	if (!userStore.isLoggedIn) {
+		uni.showToast({
+			title: '请先登录',
+			icon: 'none'
+		})
+		setTimeout(() => {
+			uni.navigateTo({
+				url: '/pages/login/login'
+			})
+		}, 1500)
+		return
+	}
+
+	// 标记需要刷新讨论列表
+	needRefreshDiscussions.value = true
+
 	uni.navigateTo({
 		url: `/pages/create-discussion/create-discussion?messageId=${messageId.value}`
 	})
@@ -272,6 +518,11 @@ const goBack = () => {
 	uni.navigateBack()
 }
 
+// 重新加载
+const retryLoad = () => {
+	loadMessageDetail()
+}
+
 // 编辑消息
 const handleEdit = () => {
 	uni.navigateTo({
@@ -281,34 +532,52 @@ const handleEdit = () => {
 
 // 删除消息
 const handleDelete = () => {
+	// 防止重复点击
+	if (deleteLoading.value) return
+
 	uni.showModal({
 		title: '确认删除',
 		content: '删除后无法恢复，是否继续？',
 		confirmColor: '#ff5252',
+		confirmText: '删除',
+		cancelText: '取消',
 		success: async (res) => {
 			if (res.confirm) {
+				deleteLoading.value = true
+				uni.showLoading({ title: '删除中...', mask: true })
+
 				try {
 					const result = await deleteMessageApi(messageId.value)
-					if (result.success) {
+
+					// 兼容两种响应格式
+					if (result.success || result.code === 200) {
+						uni.hideLoading()
+
+						// 先显示成功提示
 						uni.showToast({
 							title: '删除成功',
-							icon: 'success'
+							icon: 'success',
+							duration: 1500
 						})
+
+						// 延迟返回，让用户看到提示
 						setTimeout(() => {
 							uni.navigateBack()
-						}, 1500)
+						}, 500)
 					} else {
-						uni.showToast({
-							title: result.message || '删除失败',
-							icon: 'none'
-						})
+						throw new Error(result.message || '删除失败')
 					}
 				} catch (error) {
+					uni.hideLoading()
 					console.error('删除消息失败:', error)
+
 					uni.showToast({
-						title: '删除失败',
-						icon: 'none'
+						title: error.message || '删除失败，请稍后重试',
+						icon: 'none',
+						duration: 2000
 					})
+				} finally {
+					deleteLoading.value = false
 				}
 			}
 		}
@@ -317,6 +586,11 @@ const handleDelete = () => {
 
 // 切换置顶
 const handleTogglePin = async () => {
+	// 防止重复点击
+	if (pinLoading.value) return
+
+	pinLoading.value = true
+
 	try {
 		const api = message.value.isPinned ? unpinMessageApi : pinMessageApi
 		const action = message.value.isPinned ? '取消置顶' : '置顶'
@@ -341,8 +615,41 @@ const handleTogglePin = async () => {
 			title: '操作失败',
 			icon: 'none'
 		})
+	} finally {
+		pinLoading.value = false
 	}
 }
+
+// 页面显示时刷新讨论列表（从创建讨论页面返回时会触发）
+onShow(() => {
+	// 只在需要时刷新讨论列表，避免不必要的请求
+	if (needRefreshDiscussions.value) {
+		console.log('=== 页面显示，刷新讨论列表 ===')
+		loadDiscussions()
+		needRefreshDiscussions.value = false
+	}
+})
+
+// 下拉刷新
+onPullDownRefresh(async () => {
+	try {
+		await loadMessageDetail()
+		await loadDiscussions()
+		uni.showToast({
+			title: '刷新成功',
+			icon: 'success',
+			duration: 1500
+		})
+	} catch (error) {
+		console.error('刷新失败:', error)
+		uni.showToast({
+			title: '刷新失败',
+			icon: 'none'
+		})
+	} finally {
+		uni.stopPullDownRefresh()
+	}
+})
 
 // 页面加载
 onMounted(() => {
@@ -360,46 +667,154 @@ onMounted(() => {
 		return
 	}
 
+	// 主题从消息数据中读取，不再从本地存储读取
 	loadMessageDetail()
+	loadDiscussions()  // 加载相关讨论
 })
 </script>
 
 <style lang="scss" scoped>
+@import '../../styles/markdown-themes.scss';
+
 .detail-container {
 	min-height: 100vh;
 	background: #f5f5f5;
 }
 
 .loading-container {
+	background: #ffffff;
+	padding: 30rpx;
+}
+
+.skeleton-screen {
+	background: #ffffff;
+}
+
+.skeleton-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 30rpx;
+}
+
+.skeleton-badge {
+	width: 120rpx;
+	height: 40rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 20rpx;
+}
+
+.skeleton-time {
+	width: 100rpx;
+	height: 30rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 15rpx;
+}
+
+.skeleton-title {
+	width: 100%;
+	height: 50rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 8rpx;
+	margin-bottom: 20rpx;
+}
+
+.skeleton-tags {
+	display: flex;
+	gap: 12rpx;
+	margin-bottom: 30rpx;
+}
+
+.skeleton-tag {
+	width: 80rpx;
+	height: 32rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 16rpx;
+}
+
+.skeleton-content {
+	margin-bottom: 30rpx;
+}
+
+.skeleton-line {
+	width: 100%;
+	height: 30rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 6rpx;
+	margin-bottom: 15rpx;
+}
+
+.skeleton-line:last-child {
+	width: 70%;
+}
+
+.skeleton-images {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	padding: 200rpx 0;
+	gap: 20rpx;
+	margin-bottom: 30rpx;
 }
 
-.loading-spinner {
-	width: 60rpx;
-	height: 60rpx;
-	border: 4rpx solid #e0e0e0;
-	border-top-color: #667eea;
-	border-radius: 50%;
-	animation: spin 1s linear infinite;
+.skeleton-image {
+	width: 100%;
+	height: 200rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 12rpx;
 }
 
-@keyframes spin {
-	to { transform: rotate(360deg); }
+.skeleton-stats {
+	display: flex;
+	gap: 40rpx;
+	padding: 30rpx 0;
+	border-top: 1rpx solid #f0f0f0;
+	border-bottom: 1rpx solid #f0f0f0;
 }
 
-.loading-text {
-	margin-top: 20rpx;
-	font-size: 28rpx;
-	color: #999999;
+.skeleton-stat {
+	width: 120rpx;
+	height: 30rpx;
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+	border-radius: 15rpx;
+}
+
+@keyframes loading {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
 }
 
 .detail-content {
 	background: #ffffff;
 	padding: 30rpx;
+	animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(10rpx);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 .message-header {
@@ -445,6 +860,14 @@ onMounted(() => {
 	border-radius: 16rpx;
 }
 
+.theme-selector-wrapper {
+	margin-bottom: 20rpx;
+}
+
+.markdown-theme-container {
+	margin-bottom: 30rpx;
+}
+
 .message-content {
 	margin-bottom: 30rpx;
 }
@@ -457,13 +880,61 @@ onMounted(() => {
 }
 
 .message-images {
-	margin-bottom: 30rpx;
+	display: flex;
+	flex-direction: column;
+	gap: 20rpx;
+	margin: 0;
+	display: block;
+	padding: 20rpx 0;
+}
+
+.image-wrapper {
+	position: relative;
+	width: 100%;
+	border-radius: 12rpx;
+	overflow: hidden;
+	background: #f5f5f5;
+	cursor: pointer;
+	transition: transform 0.2s ease;
+
+	&:active {
+		transform: scale(0.98);
+	}
 }
 
 .message-image {
 	width: 100%;
+	display: block;
 	border-radius: 12rpx;
-	margin-bottom: 20rpx;
+	transition: opacity 0.3s ease;
+
+	&:hover {
+		opacity: 0.95;
+	}
+}
+
+.image-mask {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	padding: 20rpx;
+	background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+	opacity: 0;
+	transition: opacity 0.3s ease;
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+
+	.image-wrapper:hover &,
+	.image-wrapper:active & {
+		opacity: 1;
+	}
+}
+
+.image-hint {
+	color: #ffffff;
+	font-size: 24rpx;
 }
 
 .message-stats {
@@ -508,6 +979,27 @@ onMounted(() => {
 	border-radius: 12rpx;
 	font-size: 28rpx;
 	color: #333333;
+	transition: all 0.3s ease;
+	position: relative;
+	overflow: hidden;
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	&.loading {
+		animation: pulse 1.5s ease-in-out infinite;
+	}
+}
+
+@keyframes pulse {
+	0%, 100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.7;
+	}
 }
 
 .action-btn.active {
@@ -561,13 +1053,18 @@ onMounted(() => {
 	color: #999999;
 }
 
-.discussion-title {
+.discussion-content {
 	font-size: 28rpx;
 	color: #333333;
+	line-height: 1.6;
 	margin-bottom: 15rpx;
+	word-wrap: break-word;
+	overflow-wrap: break-word;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 .discussion-footer {
@@ -618,6 +1115,18 @@ onMounted(() => {
 	border: none;
 	font-size: 28rpx;
 	font-weight: 500;
+	transition: all 0.3s ease;
+	position: relative;
+	overflow: hidden;
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	&.loading {
+		animation: pulse 1.5s ease-in-out infinite;
+	}
 
 	&.pin {
 		background: #fff9e6;
@@ -654,28 +1163,59 @@ onMounted(() => {
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	padding: 200rpx 0;
+	padding: 200rpx 60rpx;
+	background: #f8f9fa;
+	border-radius: 20rpx;
+	margin: 20rpx;
 }
 
 .error-icon {
-	font-size: 120rpx;
-	margin-bottom: 30rpx;
-}
-
-.error-text {
-	font-size: 28rpx;
-	color: #999999;
+	font-size: 160rpx;
 	margin-bottom: 40rpx;
+	animation: float 3s ease-in-out infinite;
 }
 
-.back-btn {
-	width: 200rpx;
-	height: 70rpx;
-	line-height: 70rpx;
-	background: #667eea;
-	color: #ffffff;
+@keyframes float {
+	0%, 100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-20rpx);
+	}
+}
+
+.error-title {
+	font-size: 32rpx;
+	font-weight: 600;
+	color: #333333;
+	margin-bottom: 20rpx;
+	text-align: center;
+}
+
+.error-description {
 	font-size: 28rpx;
-	border-radius: 35rpx;
+	color: #666666;
+	line-height: 1.6;
+	text-align: center;
+	margin-bottom: 50rpx;
+	max-width: 500rpx;
+}
+
+.error-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 20rpx;
+	width: 100%;
+	max-width: 400rpx;
+}
+
+.secondary {
+	background: #f5f5f5;
+	color: #333333;
+}
+
+.secondary::after {
 	border: none;
 }
+
 </style>

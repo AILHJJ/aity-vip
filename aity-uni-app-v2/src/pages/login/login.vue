@@ -11,11 +11,11 @@
 				<view class="input-wrapper">
 					<text class="input-label">用户名/邮箱</text>
 					<input
-						class="input-field"
 						v-model="formData.account"
 						type="text"
 						placeholder="请输入用户名或邮箱"
 						placeholder-style="color: #999999"
+						class="form-input"
 					/>
 				</view>
 
@@ -23,17 +23,17 @@
 				<view class="input-wrapper">
 					<text class="input-label">密码</text>
 					<input
-						class="input-field"
 						v-model="formData.password"
 						type="password"
 						placeholder="请输入密码"
 						placeholder-style="color: #999999"
+						class="form-input"
 						@confirm="handleLogin"
 					/>
 				</view>
 
-				<!-- 记住我 -->
-				<view class="remember-wrapper">
+				<!-- 记住我和忘记密码 -->
+				<view class="form-actions">
 					<checkbox-group @change="handleRememberChange">
 						<label class="checkbox-label">
 							<checkbox :checked="formData.rememberMe" color="#667eea" />
@@ -189,12 +189,12 @@ const handleLogin = async () => {
 .input-label {
 	display: block;
 	font-size: 28rpx;
-	color: #666666;
-	margin-bottom: 10rpx;
+	color: #333333;
+	margin-bottom: 12rpx;
 	font-weight: 500;
 }
 
-.input-field {
+.form-input {
 	width: 100%;
 	height: 88rpx;
 	padding: 0 24rpx;
@@ -204,20 +204,31 @@ const handleLogin = async () => {
 	border: 2rpx solid #e0e0e0;
 	border-radius: 8rpx;
 	box-sizing: border-box;
+	transition: all 0.3s;
+
+	&:focus {
+		background-color: #ffffff;
+		border-color: #667eea;
+	}
 }
 
-.remember-wrapper {
-	margin-bottom: 40rpx;
+.form-actions {
+	display: flex;
+	justify-content: flex-start;
+	align-items: center;
+	margin-bottom: 20rpx;
+	min-height: 40rpx;
 }
 
 .checkbox-label {
 	display: flex;
 	align-items: center;
+	cursor: pointer;
 }
 
 .checkbox-text {
 	margin-left: 10rpx;
-	font-size: 28rpx;
+	font-size: 26rpx;
 	color: #666666;
 }
 
@@ -232,6 +243,7 @@ const handleLogin = async () => {
 	border-radius: 8rpx;
 	border: none;
 	text-align: center;
+	margin-top: 10rpx;
 }
 
 .login-btn[disabled] {

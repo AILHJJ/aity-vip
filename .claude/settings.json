@@ -1,6 +1,8 @@
 {
     "env": {
-        "ANTHROPIC_AUTH_TOKEN": "sk-zvihHZz6cG2GBqUz53fG9KXmoeiOt1yZ6uk3wIMn8GiEdDlc",
-        "ANTHROPIC_BASE_URL": "https://api.lingyaai.cn"
+        "ANTHROPIC_AUTH_TOKEN": "52757e59510747dca81bb32c60bfb445.l0eRqzr0XcRYKaFl",
+        "ANTHROPIC_BASE_URL": "https://open.bigmodel.cn/api/anthropic",
+        "API_TIMEOUT_MS": "3000000",
+        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1
     }
 }

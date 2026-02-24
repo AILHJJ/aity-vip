@@ -41,9 +41,27 @@ export function getActiveUsersApi(params = {}) {
   return get('/stats/active-users', params)
 }
 
+/**
+ * 获取用户角色分布
+ * @returns {Promise}
+ */
+export function getUserRoleDistributionApi() {
+  return get('/stats/user-role-distribution')
+}
+
+/**
+ * 获取消息类型分布
+ * @returns {Promise}
+ */
+export function getMessageTypeDistributionApi() {
+  return get('/stats/message-type-distribution')
+}
+
 export default {
   getStatsApi,
   getUserGrowthApi,
   getMessageTrendApi,
-  getActiveUsersApi
+  getActiveUsersApi,
+  getUserRoleDistributionApi,
+  getMessageTypeDistributionApi
 }

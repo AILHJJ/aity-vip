@@ -14,7 +14,13 @@
       "Bash(git fetch:*)",
       "Bash(git pull:*)",
       "Bash(git stash:*)",
-      "Bash(npm run build:mp-weixin:*)"
+      "Bash(npm run build:mp-weixin:*)",
+      "Bash(npm run dev:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(curl:*)",
+      "Bash(powershell:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

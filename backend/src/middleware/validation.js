@@ -56,7 +56,7 @@ function validateCreateMessage() {
     body('title').notEmpty().withMessage('Title is required').isLength({ min: 1, max: 255 }).withMessage('Title must be between 1 and 255 characters'),
     body('content').notEmpty().withMessage('Content is required'),
     body('type').notEmpty().withMessage('Type is required').isIn(validTypes).withMessage('Invalid type'),
-    body('groupId').notEmpty().withMessage('Group ID is required'),
+    body('groupId').optional().isLength({ max: 50 }).withMessage('Group ID must be at most 50 characters'),
     body('attachments').optional().isArray().withMessage('Attachments must be an array'),
     body('tags').optional().isArray().withMessage('Tags must be an array'),
     body('publishTime').optional().isISO8601().withMessage('Publish time must be a valid date'),
@@ -104,6 +104,7 @@ function validateCreateDiscussion() {
   return [
     body('title').notEmpty().withMessage('Title is required').isLength({ min: 1, max: 255 }).withMessage('Title must be between 1 and 255 characters'),
     body('content').notEmpty().withMessage('Content is required'),
+    body('messageId').notEmpty().withMessage('Message ID is required').isInt({ min: 1 }).withMessage('Message ID must be a positive integer'),
     body('groupId').optional().isLength({ max: 50 }).withMessage('Group ID must be at most 50 characters'),
     handleValidationErrors
   ];
@@ -140,6 +141,15 @@ function validateQueryParams() {
   ];
 }
 
+function validatePasswordReset() {
+  return [
+    param('id').isInt().withMessage('Invalid user ID'),
+    body('newPassword').notEmpty().withMessage('New password is required').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('adminPassword').optional().isLength({ min: 6 }).withMessage('Admin password must be at least 6 characters'),
+    handleValidationErrors
+  ];
+}
+
 module.exports = {
   validateLogin,
   validateCreateUser,
@@ -151,5 +161,6 @@ module.exports = {
   validateCreateDiscussion,
   validateAddReply,
   validateIdParam,
-  validateQueryParams
+  validateQueryParams,
+  validatePasswordReset
 };

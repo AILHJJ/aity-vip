@@ -72,13 +72,13 @@
           <text class="meta-item">时间：{{ formatTime(message.created_at) }}</text>
         </view>
         
-        <view class="message-tags">
-          <view 
-            v-for="tag in message.tags" 
+        <view v-if="message.tags && message.tags.length > 0" class="message-tags">
+          <view
+            v-for="tag in message.tags"
             :key="tag"
             class="tag"
           >
-            {{ tag }}
+            {{ MESSAGE_TAG_LABELS[tag] || tag }}
           </view>
         </view>
         
@@ -131,6 +131,7 @@ import { useRouter } from 'vue-router'
 import { getMessages, deleteMessage as deleteMessageApi } from '../../api/message'
 import { getGroups } from '../../api/group'
 import { formatRelativeTime } from '../../utils/time'
+import { MESSAGE_TAG_LABELS } from '../../utils/constants'
 
 const router = useRouter()
 

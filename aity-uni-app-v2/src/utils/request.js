@@ -1,18 +1,15 @@
 /**
  * 网络请求封装
  * 基于 uni.request 封装，支持 H5 和小程序
+ *
+ * ⚠️ 重要配置说明：
+ * 1. 生产环境：小程序编译后始终连接远程服务器
+ * 2. API地址：统一管理于 src/utils/config.js
+ * 3. 后端更新：每次修改后端代码后，需更新服务器部署
+ * 4. 本地开发：如需本地调试，请修改 config.js 中的 isDevelopment 配置
  */
 
-// API 基础地址配置
-// 开发环境：
-//   - H5: 使用 '/api' 代理到本地后端
-//   - 小程序: 使用本机 IP 地址（需要在微信开发者工具中勾选"不校验合法域名"）
-// 生产环境：使用实际的 HTTPS 域名
-const BASE_URL = process.env.NODE_ENV === 'development'
-  ? (typeof window !== 'undefined' && window.location.protocol === 'http:'
-      ? '/api'  // H5 开发环境使用代理
-      : 'http://192.168.2.140:3001/api')  // 小程序开发环境使用本机 IP
-  : 'https://aity88.online:8443/api'  // 生产环境使用实际地址
+import { API_BASE_URL } from './config.js'
 
 // 友好的错误提示映射
 const ERROR_MESSAGES = {
@@ -46,6 +43,43 @@ function getErrorMessage(error) {
 }
 
 /**
+ * 带重试的网络请求
+ * @param {Object} options 请求配置
+ * @param {Number} retryCount 重试次数（默认1次）
+ * @returns {Promise}
+ */
+export function requestWithRetry(options, retryCount = 1) {
+  return new Promise((resolve, reject) => {
+    let retries = 0
+    const maxRetries = retryCount
+
+    const attemptRequest = () => {
+      request(options)
+        .then(resolve)
+        .catch((err) => {
+          // 只对网络错误或超时进行重试
+          const shouldRetry =
+            retries < maxRetries &&
+            (err.errMsg?.includes('timeout') ||
+             err.errMsg?.includes('fail') ||
+             err.errMsg?.includes('network'))
+
+          if (shouldRetry) {
+            retries++
+            console.log(`请求重试 ${retries}/${maxRetries}:`, options.url)
+            // 延迟1秒后重试
+            setTimeout(attemptRequest, 1000)
+          } else {
+            reject(err)
+          }
+        })
+    }
+
+    attemptRequest()
+  })
+}
+
+/**
  * 发起网络请求
  * @param {Object} options 请求配置
  * @returns {Promise}
@@ -57,7 +91,7 @@ export function request(options) {
 
     // 构建请求配置
     const config = {
-      url: BASE_URL + options.url,
+      url: API_BASE_URL + options.url,
       method: options.method || 'GET',
       data: options.data || {},
       header: {
@@ -65,6 +99,8 @@ export function request(options) {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options.header
       },
+      // 使用30秒默认超时，确保页面跳转流畅
+      // 特殊操作（如创建讨论）可以通过options.timeout覆盖
       timeout: options.timeout || 30000
     }
 
@@ -87,8 +123,8 @@ export function request(options) {
           console.log('Data:', res.data)
         }
 
-        // 请求成功
-        if (res.statusCode === 200) {
+        // 请求成功 (200 OK, 201 Created, 204 No Content)
+        if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data)
         } else if (res.statusCode === 401) {
           // token 过期，清除登录信息
@@ -121,20 +157,29 @@ export function request(options) {
         // 开发环境打印错误信息
         if (process.env.NODE_ENV === 'development') {
           console.error('=== 请求失败 ===')
+          console.error('URL:', config.url)
+          console.error('Method:', config.method)
           console.error('Error:', err)
         }
 
-        // 请求失败
-        const errorMsg = err.errMsg?.includes('timeout')
-          ? ERROR_MESSAGES['timeout']
-          : ERROR_MESSAGES['Network Error']
+        // 请求失败 - 提供更详细的错误信息
+        let errorMsg = ERROR_MESSAGES['Network Error']
+        if (err.errMsg) {
+          if (err.errMsg.includes('timeout')) {
+            errorMsg = '请求超时，请检查网络后重试'
+          } else if (err.errMsg.includes('fail')) {
+            errorMsg = '网络连接失败，请检查网络设置'
+          } else if (err.errMsg.includes('request:fail')) {
+            errorMsg = '网络请求失败，请稍后重试'
+          }
+        }
 
-        uni.showToast({
-          title: errorMsg,
-          icon: 'none',
-          duration: 2000
+        // 不在这里显示toast，让调用方处理
+        reject({
+          ...err,
+          message: errorMsg,
+          isNetworkError: true
         })
-        reject(err)
       }
     })
   })

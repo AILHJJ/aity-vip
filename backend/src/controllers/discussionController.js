@@ -84,7 +84,7 @@ async function getDiscussions(req, res) {
       where,
       order: [['createdAt', 'DESC']] // 按创建时间倒序排序
     });
-    
+
     // 获取每个讨论的回复
     const discussionsWithReplies = await Promise.all(
       discussions.map(async (discussion) => {
@@ -92,23 +92,36 @@ async function getDiscussions(req, res) {
           where: { discussionId: discussion.id },
           order: [['createdAt', 'ASC']]
         });
-        
+
         // 获取发送者信息
         const sender = await User.findByPk(discussion.userId, {
           attributes: ['name', 'avatar']
         });
-        
+
+        const discussionData = discussion.toJSON();
+
         return {
-          ...discussion.toJSON(),
-          replies,
-          replies_count: replies.length,
-          user_name: sender?.name,
-          user_avatar: sender?.avatar
+          id: discussionData.id,
+          title: discussionData.title, // 标题（自动生成的）
+          content: discussionData.content, // 完整的回帖内容（用于显示）
+          userName: sender?.name || '匿名用户', // 驼峰命名
+          userAvatar: sender?.avatar,
+          status: discussionData.status,
+          visibility: discussionData.visibility,
+          replyCount: replies.length, // 驼峰命名
+          createdAt: discussionData.createdAt,
+          updatedAt: discussionData.updatedAt,
+          messageId: discussionData.messageId,
+          userId: discussionData.userId,
+          replies // 完整的回复列表
         };
       })
     );
-    
-    res.json(success(discussionsWithReplies));
+
+    // 返回格式: { code: 200, message: "Success", data: { discussions: [...] } }
+    res.json(success({
+      discussions: discussionsWithReplies
+    }));
   } catch (err) {
     console.error(err);
     res.status(500).json(error('Server error'));
@@ -164,17 +177,29 @@ async function getDiscussionById(req, res) {
         });
         return {
           ...reply.toJSON(),
-          user_name: replySender?.name,
-          user_avatar: replySender?.avatar
+          userName: replySender?.name || '匿名用户',
+          userAvatar: replySender?.avatar
         };
       })
     );
-    
+
     const discussionData = {
-      ...discussion.toJSON(),
-      replies: repliesWithSender,
-      user_name: sender?.name,
-      user_avatar: sender?.avatar
+      id: discussion.id,
+      messageId: discussion.messageId,
+      userId: discussion.userId,
+      creatorId: discussion.userId,
+      creatorName: sender?.name || '匿名用户',
+      userName: sender?.name || '匿名用户',
+      userAvatar: sender?.avatar,
+      title: discussion.title,
+      content: discussion.content,
+      status: discussion.status,
+      visibility: discussion.visibility,
+      viewCount: 0, // 如果需要可以添加浏览统计
+      replyCount: replies.length,
+      createdAt: discussion.createdAt,
+      updatedAt: discussion.updatedAt,
+      replies: repliesWithSender
     };
     
     res.json(success(discussionData));
@@ -186,33 +211,80 @@ async function getDiscussionById(req, res) {
 
 // 创建讨论
 async function createDiscussion(req, res) {
+  const startTime = Date.now(); // 记录开始时间
+
   try {
-    const { messageId, title, content, visibility = 'private' } = req.body;
+    const { messageId, content, visibility = 'private' } = req.body;
     const userId = req.user.userId;
-    
-    // 获取用户信息
-    const user = await User.findByPk(userId);
-    if (!user) {
-      return res.status(404).json(notFound('User not found'));
-    }
-    
-    // 检查消息是否存在
-    const message = await Message.findByPk(messageId);
-    if (!message) {
-      return res.status(404).json(notFound('Message not found'));
-    }
-    
-    // 创建讨论 - 默认可见性为私密，状态为待回复
-    const discussion = await Discussion.create({
-      messageId,
-      userId,
-      userName: user.name,
-      title,
-      content,
-      visibility,
-      status: 'pending' // 默认状态为待回复
+
+    // 自动生成title：使用content的前50个字符
+    const title = content ? (content.length > 50 ? content.substring(0, 50) + '...' : content) : '讨论';
+
+    console.log(`[创建讨论] 开始处理 - 用户ID: ${userId}, 消息ID: ${messageId}, 内容长度: ${content?.length || 0}`);
+
+    // 设置请求超时时间（总体90秒）
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('请求超时')), 90000);
     });
-    
+
+    // 异步执行数据库操作
+    const dbOperation = async () => {
+      // 获取用户信息（添加超时）
+      const user = await Promise.race([
+        User.findByPk(userId, {
+          attributes: ['id', 'name', 'avatar', 'role', 'groupId']
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('用户查询超时')), 10000)
+        )
+      ]);
+
+      if (!user) {
+        console.warn(`[创建讨论] 用户不存在 - 用户ID: ${userId}, 耗时: ${Date.now() - startTime}ms`);
+        throw new Error('User not found');
+      }
+      console.log(`[创建讨论] 用户查询完成 - 用户: ${user.name}, 耗时: ${Date.now() - startTime}ms`);
+
+      // 检查消息是否存在（添加超时）
+      const message = await Promise.race([
+        Message.findByPk(messageId, {
+          attributes: ['id', 'title', 'type', 'status']
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('消息查询超时')), 10000)
+        )
+      ]);
+
+      if (!message) {
+        console.warn(`[创建讨论] 消息不存在 - 消息ID: ${messageId}, 耗时: ${Date.now() - startTime}ms`);
+        throw new Error('Message not found');
+      }
+      console.log(`[创建讨论] 消息查询完成 - 消息: ${message.title}, 耗时: ${Date.now() - startTime}ms`);
+
+      // 创建讨论 - 默认可见性为私密，状态为待回复（添加超时）
+      const discussion = await Promise.race([
+        Discussion.create({
+          messageId,
+          userId,
+          userName: user.name,
+          title,
+          content,
+          visibility,
+          status: 'pending' // 默认状态为待回复
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('创建讨论超时')), 10000)
+        )
+      ]);
+
+      console.log(`[创建讨论] 创建完成 - 讨论ID: ${discussion.id}, 总耗时: ${Date.now() - startTime}ms`);
+
+      return { user, discussion };
+    };
+
+    // 执行操作或超时
+    const { user, discussion } = await Promise.race([dbOperation(), timeoutPromise]);
+
     const discussionData = {
       ...discussion.toJSON(),
       replies: [],
@@ -220,11 +292,28 @@ async function createDiscussion(req, res) {
       user_name: user.name,
       user_avatar: user.avatar
     };
-    
+
     res.status(201).json(success(discussionData, 'Discussion created successfully'));
   } catch (err) {
-    console.error(err);
-    res.status(500).json(error('Server error'));
+    const elapsed = Date.now() - startTime;
+    console.error(`[创建讨论] 错误 - 耗时: ${elapsed}ms`);
+    console.error('[创建讨论] 错误详情:', err);
+    console.error('[创建讨论] 错误堆栈:', err.stack);
+
+    // 根据错误类型返回不同的响应
+    if (err.message === '请求超时' || err.message.includes('超时')) {
+      return res.status(504).json(error('操作超时，请稍后重试', 504));
+    }
+
+    if (err.message === 'User not found') {
+      return res.status(404).json(notFound('User not found'));
+    }
+
+    if (err.message === 'Message not found') {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
+    res.status(500).json(error(err.message || 'Server error'));
   }
 }
 
@@ -310,20 +399,76 @@ async function addDiscussionReply(req, res) {
 async function getDiscussionReplies(req, res) {
   try {
     const { id } = req.params;
-    
+
+    console.log(`[获取讨论回复] 开始 - 讨论ID: ${id}`);
+
     // 检查讨论是否存在
     const discussion = await Discussion.findByPk(id);
     if (!discussion) {
+      console.warn(`[获取讨论回复] 讨论不存在 - 讨论ID: ${id}`);
       return res.status(404).json(notFound('Discussion not found'));
     }
-    
+
     // 获取回复
     const replies = await DiscussionReply.findAll({
       where: { discussionId: id },
       order: [['createdAt', 'ASC']]
     });
-    
-    res.json(success(replies));
+
+    // 获取每个回复的发送者信息
+    const repliesWithSender = await Promise.all(
+      replies.map(async (reply) => {
+        const sender = await User.findByPk(reply.senderId, {
+          attributes: ['name', 'avatar']
+        });
+        return {
+          ...reply.toJSON(),
+          userName: sender?.name || '匿名用户',
+          userAvatar: sender?.avatar
+        };
+      })
+    );
+
+    console.log(`[获取讨论回复] 成功 - 讨论ID: ${id}, 回复数: ${repliesWithSender.length}`);
+
+    res.json(success(repliesWithSender));
+  } catch (err) {
+    console.error('[获取讨论回复] 错误:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 更新讨论可见性
+async function updateDiscussionVisibility(req, res) {
+  try {
+    const { id } = req.params;
+    const { visibility } = req.body;
+    const currentUserId = req.user.userId;
+    const currentUserRole = req.user.role;
+
+    // 验证可见性值
+    if (!['public', 'private'].includes(visibility)) {
+      return res.status(400).json(badRequest('Invalid visibility value'));
+    }
+
+    // 只有管理员可以修改可见性
+    if (currentUserRole !== 'super_admin' && currentUserRole !== 'admin') {
+      return res.status(403).json(forbidden('Only administrators can change visibility'));
+    }
+
+    // 获取讨论
+    const discussion = await Discussion.findByPk(id);
+    if (!discussion) {
+      return res.status(404).json(notFound('Discussion not found'));
+    }
+
+    // 更新可见性
+    await discussion.update({ visibility });
+
+    res.json(success({
+      id: discussion.id,
+      visibility: discussion.visibility
+    }, 'Visibility updated successfully'));
   } catch (err) {
     console.error(err);
     res.status(500).json(error('Server error'));
@@ -335,5 +480,6 @@ module.exports = {
   getDiscussionById,
   createDiscussion,
   addDiscussionReply,
-  getDiscussionReplies
+  getDiscussionReplies,
+  updateDiscussionVisibility
 };

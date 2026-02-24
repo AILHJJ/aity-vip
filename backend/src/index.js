@@ -20,25 +20,52 @@ const statsRoutes = require('./routes/statsRoutes');
 const healthRoutes = require('./routes/healthRoutes');
 const versionRoutes = require('./routes/versionRoutes');
 const monitorRoutes = require('./routes/monitorRoutes');
+const uploadRoutes = require('./routes/upload');
+const marketRoutes = require('./routes/marketRoutes');
+const aiAdvisorRoutes = require('./routes/aiAdvisorRoutes');
 
 // 创建Express应用
 const app = express();
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const NODE_ENV = process.env.NODE_ENV || 'development';
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:5173', 'http://localhost:3000'];
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://aity88.online:8443',
+      'https://aity88.online',
+      'http://aity88.online:8443',
+      'http://aity88.online'
+    ];
 
 // CORS配置
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || ALLOWED_ORIGINS.indexOf(origin) !== -1) {
+    // 微信小程序请求不带origin头，直接允许
+    // H5请求需要验证origin
+    if (!origin) {
+      // 没有origin头（微信小程序、移动应用等），允许访问
+      callback(null, true);
+    } else if (ALLOWED_ORIGINS.indexOf(origin) !== -1) {
+      // origin在白名单中，允许访问
+      callback(null, true);
+    } else if (origin.includes('aity88.online')) {
+      // 允许所有来自 aity88.online 的请求（包括不同端口）
       callback(null, true);
     } else {
+      // 其他情况，记录并拒绝访问
+      console.log('CORS blocked origin:', origin);
+      console.log('Allowed origins:', ALLOWED_ORIGINS);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  maxAge: 86400 // 预检请求缓存24小时
 };
 
 // 安全头部配置
@@ -72,16 +99,64 @@ const securityHeaders = {
 app.use(cors(corsOptions));
 app.use(helmet(securityHeaders));
 app.use(trackRequest);
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// 增加请求超时限制（2分钟，考虑慢速网络）
+app.use((req, res, next) => {
+  res.setTimeout(120000, () => {
+    console.error(`[请求超时] ${req.method} ${req.url} - 超过120秒`);
+    res.status(408).json({
+      code: 408,
+      message: 'Request timeout',
+      data: null
+    });
+  });
+  next();
+});
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(fileUpload({
   limits: { fileSize: 10 * 1024 * 1024 },
   useTempFiles: true,
   tempFileDir: '/tmp/'
 }));
 
-// 静态文件服务
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// 请求日志中间件(移到body-parser之后,这样才能正确打印请求体)
+if (NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    const start = Date.now();
+    console.log(`[请求开始] ${req.method} ${req.url}`, {
+      query: req.query,
+      body: req.body ? JSON.stringify(req.body).substring(0, 200) : 'none'
+    });
+
+    // 记录响应完成
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      console.log(`[请求完成] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
+    });
+
+    next();
+  });
+}
+
+// 静态文件服务 (带CORS支持)
+app.use('/uploads', (req, res, next) => {
+  // CORS 头
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Range');
+  res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Range');
+
+  // CORP 头 (解决 OpaqueResponseBlocking)
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.header('Cross-Origin-Embedder-Policy', 'credentialless');
+
+  // 允许图片缓存
+  res.header('Cache-Control', 'public, max-age=31536000');
+
+  next();
+}, express.static(path.join(__dirname, '../uploads')));
 
 // 路由配置
 app.use('/api/auth', authRoutes);
@@ -93,6 +168,9 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/version', versionRoutes);
 app.use('/api/monitor', monitorRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/market', marketRoutes);
+app.use('/api/ai-advisor', aiAdvisorRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
