@@ -2,31 +2,41 @@
  * 全局配置文件
  * 统一管理 API 地址和基础配置
  *
- * 环境说明：
- * - 开发环境：前端本地运行，后端连接远程服务器（保持环境一致）
- * - 生产环境：前后端都在远程服务器
+ * 环境区分策略：
+ * ┌─────────────────────────────────────────────────────────────┐
+ * │ 开发环境 (npm run dev:*)                                    │
+ * │   → 连接本地后端 (localhost 或局域网IP)                      │
+ * │   → 后端连接测试数据库 (投研图灵室_test)                     │
+ * ├─────────────────────────────────────────────────────────────┤
+ * │ 生产环境 (npm run build:*)                                  │
+ * │   → 连接生产服务器 (https://aity88.online:8443)             │
+ * │   → 后端连接生产数据库 (投研图灵室)                          │
+ * └─────────────────────────────────────────────────────────────┘
  */
 
 // ============================================
-// 远程服务器配置（开发 + 生产统一使用）
+// 生产环境配置
 // ============================================
-const REMOTE_CONFIG = {
+const PRODUCTION_CONFIG = {
   // API 基础地址（包含 /api 路径）
-  // H5和小程序都使用8443端口（微信小程序支持带端口的request域名）
   API_BASE_URL: 'https://aity88.online:8443/api',
-
   // 服务器基础地址（不包含 /api 路径，用于图片等静态资源）
-  BASE_URL: 'https://aity88.online:8443'
+  BASE_URL: 'https://aity88.online:8443',
+  // 环境标识
+  ENV: 'production'
 }
 
 // ============================================
-// 本地开发配置（仅用于特殊调试场景）
+// 开发环境配置
 // ============================================
-const LOCAL_CONFIG = {
+const DEVELOPMENT_CONFIG = {
   // 本地开发时连接本地后端
   // 小程序必须使用局域网IP，不能使用localhost
+  // 请根据实际情况修改为你的本机局域网IP
   API_BASE_URL: 'http://192.168.2.140:3001/api',
-  BASE_URL: 'http://192.168.2.140:3001'
+  BASE_URL: 'http://192.168.2.140:3001',
+  // 环境标识
+  ENV: 'development'
 }
 
 // ============================================
@@ -34,7 +44,7 @@ const LOCAL_CONFIG = {
 // ============================================
 
 // 检测运行环境
-const isDevelopment = process.env.NODE_ENV === 'development'
+const isProduction = process.env.NODE_ENV === 'production'
 
 // 检测是否是小程序环境
 // #ifdef MP-WEIXIN
@@ -48,25 +58,19 @@ const isMpWeixin = false
 // ============================================
 // 配置选择策略
 // ============================================
-//
-// 专业实践：
-// 1. 所有环境统一连接远程服务器，保持数据一致性
-// 2. 避免本地和远程数据不一致导致的问题
-// 3. 方便多人协作开发和测试
-//
-// 特殊场景（需要连接本地后端时）：
-// - 修改 useLocalBackend 为 true
-// - 适用于：后端本地调试、无需联网的开发场景
-//
 
-const useLocalBackend = false // ⚠️ 改为 true 可切换到本地后端
+// 根据环境自动选择配置
+// 生产构建 → 生产服务器 + 生产数据库
+// 开发调试 → 本地后端 + 测试数据库
+export const CONFIG = isProduction
+  ? PRODUCTION_CONFIG
+  : DEVELOPMENT_CONFIG
 
-// 导出配置
-export const CONFIG = useLocalBackend
-  ? LOCAL_CONFIG                        // 本地后端（特殊调试用）
-  : REMOTE_CONFIG                        // 远程后端（推荐，保持一致性）
+// 环境标识（方便其他模块判断）
+export const IS_PRODUCTION = isProduction
+export const IS_DEVELOPMENT = !isProduction
 
 // 导出常用的配置项，方便使用
-export const { API_BASE_URL, BASE_URL } = CONFIG
+export const { API_BASE_URL, BASE_URL, ENV } = CONFIG
 
 export default CONFIG

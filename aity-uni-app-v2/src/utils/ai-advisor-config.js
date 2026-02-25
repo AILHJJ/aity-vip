@@ -1,18 +1,22 @@
 /**
  * AI投顾API配置
  * 通过后端代理服务访问通达信问小达API
+ *
+ * 环境区分：
+ * - 开发环境：连接本地后端代理
+ * - 生产环境：连接生产服务器代理
  */
 
 // 导入用户store（用于生成用户专属的存储key）
 import { useUserStore } from '@/store/user'
+import { API_BASE_URL, IS_PRODUCTION } from './config'
 
 // API配置 - 使用后端代理
 export const AI_ADVISOR_CONFIG = {
-  // 后端代理API地址
-  API_URL: '/api/ai-advisor',  // 使用相对路径，由前端代理转发到后端
-
-  // 生产环境地址（如果需要直接访问后端）
-  PROD_API_URL: 'https://aity88.online:8443/api/ai-advisor',
+  // 后端代理API地址（自动根据环境选择）
+  get API_URL() {
+    return `${API_BASE_URL}/ai-advisor`
+  },
 
   // Agent类型
   AGENT_TYPE: 'wenda', // 问小达
@@ -28,15 +32,7 @@ export const AI_ADVISOR_CONFIG = {
  * 获取API基础URL
  */
 export function getApiBaseUrl() {
-  // #ifdef H5
-  // H5环境使用相对路径
   return AI_ADVISOR_CONFIG.API_URL
-  // #endif
-
-  // #ifndef H5
-  // 小程序等其他环境使用完整URL
-  return AI_ADVISOR_CONFIG.PROD_API_URL
-  // #endif
 }
 
 /**

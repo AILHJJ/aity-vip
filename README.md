@@ -7,20 +7,18 @@
 
 ### 核心规则摘要
 
-1. **生产环境优先**: 所有代码默认配置为生产环境
-2. **API地址**: `https://aity88.online:8443/api`
-3. **后端更新**: 修改后端代码后必须同步更新服务器
-4. **文档同步**: 代码变更必须同步更新文档
+1. **环境区分**:
+   - 开发环境 (`npm run dev:*`) → 本地后端 + 测试数据库
+   - 生产环境 (`npm run build:*`) → 生产服务器 + 生产数据库
+2. **后端更新**: 修改后端代码后必须同步更新服务器
+3. **文档同步**: 代码变更必须同步更新文档
 
-**快速检查**:
-```bash
-# 1. 查看AI协作规则
-cat .claude/AI协作规则.md
+### 环境配置快速参考
 
-# 2. 确认API配置
-grep "API_BASE_URL" aity-uni-app-v2/src/utils/request.js
-# 应该输出: const API_BASE_URL = PRODUCTION_API_URL
-```
+| 命令 | 连接后端 | 数据库 |
+|------|---------|--------|
+| `npm run dev:mp-weixin` | 本地 (192.168.2.140:3001) | 测试库 (投研图灵室_test) |
+| `npm run build:mp-weixin` | 生产 (aity88.online:8443) | 生产库 (投研图灵室) |
 
 ---
 
@@ -101,12 +99,10 @@ npm install
 # 复制环境变量文件
 cp .env.example .env
 
-# 编辑配置
-# DB_HOST=localhost
-# DB_PORT=3306
-# DB_USER=root
-# DB_PASSWORD=your-password
-# DB_NAME=aity_vip
+# 编辑 .env 文件
+# 开发环境使用测试数据库
+DB_ENV=test          # 连接测试库 (投研图灵室_test)
+# DB_ENV=production  # 连接生产库 (投研图灵室)
 ```
 
 #### 4. 初始化数据库
@@ -148,7 +144,9 @@ npm run dev:mp-weixin
 1. 打开微信开发者工具
 2. 导入项目: `aity-uni-app-v2`
 3. 勾选"不校验合法域名"
-4. **⚠️ 注意**: 本地开发时API连接本地后端
+4. **⚠️ 注意**:
+   - 开发环境 (`npm run dev:*`) 连接本地后端 + 测试数据库
+   - 生产环境 (`npm run build:*`) 连接生产服务器 + 生产数据库
 
 ---
 
@@ -156,11 +154,11 @@ npm run dev:mp-weixin
 
 ### 环境配置
 
-#### 生产环境API地址
+生产环境配置通过 `DB_ENV` 环境变量自动切换：
 
-```javascript
-// aity-uni-app-v2/src/utils/request.js
-const API_BASE_URL = 'https://aity88.online:8443/api'  // 生产环境
+```
+开发: npm run dev:*     → 本地后端 (192.168.2.140:3001) → 测试库
+生产: npm run build:*   → 生产服务器 (aity88.online:8443) → 生产库
 ```
 
 #### 服务器信息
@@ -169,7 +167,7 @@ const API_BASE_URL = 'https://aity88.online:8443/api'  // 生产环境
 地址: aity88.online
 SSH端口: 22
 HTTPS端口: 8443
-后端端口: 3001
+后端端口: 3000
 ```
 
 ### 部署步骤
@@ -422,10 +420,10 @@ MIT License
 
 ### 开发注意事项
 
-1. **生产环境配置**
-   - 小程序默认连接生产环境
-   - API地址: `https://aity88.online:8443/api`
-   - 本地调试需临时修改配置
+1. **环境区分**
+   - 开发环境 (`npm run dev:*`) 连接本地后端 + 测试数据库
+   - 生产环境 (`npm run build:*`) 连接生产服务器 + 生产数据库
+   - 修改前端 `config.js` 中的局域网IP为本机IP
 
 2. **后端更新流程**
    - 修改后端代码后必须同步更新服务器
@@ -433,7 +431,7 @@ MIT License
    - 查看日志确认无错误
 
 3. **小程序部署**
-   - 编译后自动连接生产环境
+   - `npm run build:mp-weixin` 编译后自动连接生产环境
    - 真机预览前确认后端已更新
    - 上传前测试所有功能
 
@@ -444,6 +442,6 @@ MIT License
 
 ---
 
-**文档版本**: v2.0.0
-**最后更新**: 2025-02-04
-**项目版本**: v1.6.1
+**文档版本**: v2.1.0
+**最后更新**: 2026-02-25
+**项目版本**: v1.6.2
