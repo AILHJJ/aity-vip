@@ -119,8 +119,8 @@ const handleMessageChange = (e) => {
 const loadMessages = async () => {
 	try {
 		const res = await getMessagesApi({ page: 1, limit: 100 })
-		if (res.success) {
-			messages.value = res.data.messages || []
+		if (res.success || res.code === 200) {
+			messages.value = res.data.messages || res.data.list || []
 		}
 	} catch (error) {
 		console.error('加载消息列表失败:', error)

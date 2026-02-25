@@ -112,7 +112,7 @@ const loadDiscussions = async (isRefresh = false) => {
 
 		const res = await getMyDiscussionsApi(params)
 
-		if (res.success) {
+		if (res.success || res.code === 200) {
 			const newData = res.data.discussions || res.data.list || []
 
 			if (isRefresh) {

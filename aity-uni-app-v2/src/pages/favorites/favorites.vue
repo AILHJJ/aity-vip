@@ -172,7 +172,7 @@ const loadList = async (isRefresh = false) => {
 			res = await getFavoriteDiscussionsApi(params)
 		}
 
-		if (res.success) {
+		if (res.success || res.code === 200) {
 			// 统一使用 data.list 格式
 			const newData = res.data.list || []
 

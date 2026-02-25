@@ -185,11 +185,11 @@ const loadDiscussions = async (isRefresh = false) => {
 
 		const res = await getDiscussionsApi(params)
 
-		if (res.success) {
+		if (res.success || res.code === 200) {
 			if (isRefresh) {
-				discussions.value = res.data.discussions || []
+				discussions.value = res.data.discussions || res.data.list || []
 			} else {
-				discussions.value = [...discussions.value, ...(res.data.discussions || [])]
+				discussions.value = [...discussions.value, ...(res.data.discussions || res.data.list || [])]
 			}
 
 			// 判断是否还有更多

@@ -105,7 +105,7 @@ export const useUserStore = defineStore('user', {
       try {
         const res = await getCurrentUserApi()
 
-        if (res.success) {
+        if (res.success || res.code === 200) {
           this.userInfo = res.data
           uni.setStorageSync('userInfo', this.userInfo)
           return { success: true, data: res.data }
