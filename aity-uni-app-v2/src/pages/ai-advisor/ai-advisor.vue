@@ -191,6 +191,7 @@ import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { sendAIMessage } from '@/api/ai-advisor'
 import { getChatHistory, saveChatHistory, saveThreadId, clearChatHistory, getThreadId } from '@/utils/ai-advisor-config'
 import { MarkdownRenderer, FinancialTableParser } from '@/utils/markdown-renderer'
+import { API_BASE_URL } from '@/utils/config'
 
 // 数据
 const messages = ref([])
@@ -233,7 +234,7 @@ function handleNewSession() {
 async function loadMarketData() {
 	try {
 		const res = await uni.request({
-			url: 'https://aity88.online:8443/api/market/ticker',
+			url: API_BASE_URL + '/market/ticker',
 			method: 'GET'
 		})
 		if (res.data.code === 200) {

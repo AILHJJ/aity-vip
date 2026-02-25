@@ -215,6 +215,7 @@ import { getDiscussionsApi } from '../../api/discussion'
 import { MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatTime, formatFriendlyTime } from '../../utils/time'
 import { MarkdownRenderer, ThemeStyles } from '../../utils/markdown-renderer'
+import { BASE_URL } from '../../utils/config'
 
 const userStore = useUserStore()
 
@@ -281,7 +282,7 @@ const loadMessageDetail = async () => {
 						// 如果是相对路径，补全服务器地址
 						let url = att.url
 						if (url.startsWith('/uploads/')) {
-							url = 'https://aity88.online:8443' + url
+							url = BASE_URL + url
 						}
 						// 清理URL中的查询参数
 						return cleanImageUrl(url)
