@@ -425,7 +425,7 @@ const loadUsers = async (isRefresh = false) => {
 
 		const res = await getUsersApi(params)
 
-		if (res.success) {
+		if (res.success || res.code === 200) {
 			const newData = res.data.users || res.data.list || []
 
 			if (isRefresh) {

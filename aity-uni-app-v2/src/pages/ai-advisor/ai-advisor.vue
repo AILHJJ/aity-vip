@@ -68,16 +68,10 @@
 								<text class="reasoning-text">{{ message.reasoning }}</text>
 							</view>
 
-							<!-- 工具调用提示 -->
-							<view v-if="message.toolCalls && message.toolCalls.length > 0" class="tool-calls-info">
-								<text class="tool-icon">🔧</text>
-								<text class="tool-text">正在调用工具：{{ message.toolCalls[0].function?.name || '未知工具' }}</text>
-							</view>
-
 							<!-- 工具响应结果表格（优先显示） -->
 							<view v-if="message.toolResult" class="tool-result-content">
 								<view class="tool-result-header">
-									<text class="tool-result-title">📊 工具返回结果</text>
+									<text class="tool-result-title">📊 查询结果（部分展示）</text>
 								</view>
 								<view class="financial-table-wrapper">
 									<view v-html="renderToolResultTable(message.toolResult)" class="financial-table"></view>
@@ -483,23 +477,30 @@ function renderToolResultTable(toolResult) {
 			row[0] !== '总记录数' && row[0] !== ''
 		)
 
+		// 找到"市场"列的索引并隐藏
+		const marketColIndex = headers.findIndex(h => h === '市场')
+		const hideColIndices = marketColIndex >= 0 ? [marketColIndex] : []
+
 		// 生成HTML表格 - 添加横向滚动容器
 		let tableHtml = '<div style="overflow-x: auto; -webkit-overflow-scrolling: touch;"><table class="tool-result-table" style="min-width: 100%;">'
 		tableHtml += '<thead><tr>'
 
-		// 渲染表头
-		headers.forEach(header => {
+		// 渲染表头（跳过隐藏列）
+		headers.forEach((header, index) => {
+			if (hideColIndices.includes(index)) return
 			// 处理表头中的<br>标签（如"现价<br>2026.02.25"）
 			const cleanHeader = header ? header.replace(/<br>/g, '<br/>') : ''
 			tableHtml += `<th style="white-space: nowrap; padding: 8px 12px;">${cleanHeader}</th>`
 		})
 		tableHtml += '</tr></thead><tbody>'
 
-		// 渲染数据行
+		// 渲染数据行（跳过隐藏列）
 		dataRows.forEach((row, rowIndex) => {
 			tableHtml += '<tr>'
 
 			row.forEach((cell, cellIndex) => {
+				if (hideColIndices.includes(cellIndex)) return
+
 				const formatFlag = formatFlags[cellIndex] || ''
 
 				// 应用格式化函数
