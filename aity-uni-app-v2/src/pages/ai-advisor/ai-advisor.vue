@@ -1,27 +1,5 @@
 <template>
 	<view class="ai-advisor-container">
-		<!-- 极简顶部栏 -->
-		<view class="header">
-			<view class="header-left">
-				<text class="header-title">图灵</text>
-			</view>
-		</view>
-
-		<!-- 实时行情指数条 -->
-		<view class="market-ticker" v-if="marketData.length > 0">
-			<scroll-view scroll-x class="ticker-scroll" :show-scrollbar="false">
-				<view class="ticker-item" v-for="(item, index) in marketData" :key="index">
-					<text class="ticker-name">{{ item.name }}</text>
-					<text class="ticker-value" :class="getChangeClass(item.EXT_ZF)">
-						{{ item.now }}
-					</text>
-					<text class="ticker-change" :class="getChangeClass(item.EXT_ZF)">
-						{{ formatChange(item.EXT_ZF) }}%
-					</text>
-				</view>
-			</scroll-view>
-		</view>
-
 		<!-- 对话消息区域 -->
 		<scroll-view
 			class="chat-container"
@@ -68,17 +46,7 @@
 								<text class="reasoning-text">{{ message.reasoning }}</text>
 							</view>
 
-							<!-- 工具响应结果表格（优先显示） -->
-							<view v-if="message.toolResult" class="tool-result-content">
-								<view class="tool-result-header">
-									<text class="tool-result-title">📊 查询结果（部分展示）</text>
-								</view>
-								<view class="financial-table-wrapper">
-									<view v-html="renderToolResultTable(message.toolResult)" class="financial-table"></view>
-								</view>
-							</view>
-
-							<!-- Markdown内容渲染 -->
+							<!-- Markdown内容渲染（优先显示文本内容） -->
 							<view v-if="message.content" class="content-area">
 								<!-- 如果是金融选股工具，尝试解析JSON表格 -->
 								<view v-if="message.isTable && !message.toolResult" class="financial-content">
@@ -88,6 +56,16 @@
 								<!-- 否则使用普通Markdown渲染 -->
 								<view v-else class="markdown-content">
 									<rich-text :nodes="renderMarkdown(message.content)"></rich-text>
+								</view>
+							</view>
+
+							<!-- 工具响应结果表格（最后显示，方便用户先看到文字内容） -->
+							<view v-if="message.toolResult" class="tool-result-content">
+								<view class="tool-result-header">
+									<text class="tool-result-title">📊 查询结果（部分展示）</text>
+								</view>
+								<view class="financial-table-wrapper">
+									<view v-html="renderToolResultTable(message.toolResult)" class="financial-table"></view>
 								</view>
 							</view>
 

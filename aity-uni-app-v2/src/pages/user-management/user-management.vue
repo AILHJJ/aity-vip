@@ -453,14 +453,17 @@ const loadUsers = async (isRefresh = false) => {
 		}
 
 		// 根据当前标签页添加筛选
+		// 注意：对于管理员标签，需要传递多个角色，使用逗号分隔的字符串
 		if (currentRoleTab.value === 'vip_short') {
-			params.role = ['vip_short']
+			params.role = 'vip_short'
 		} else if (currentRoleTab.value === 'vip_medium') {
-			params.role = ['vip_mid']
+			params.role = 'vip_mid'
 		} else if (currentRoleTab.value === 'trial') {
-			params.role = ['trial']
+			params.role = 'trial'
 		} else if (currentRoleTab.value === 'admin') {
-			params.role = ['super_admin', 'admin']
+			// 管理员标签需要同时筛选 super_admin 和 admin
+			// 后端需要支持 role 参数为逗号分隔的字符串或数组
+			params.role = 'super_admin,admin'
 		}
 
 		const res = await getUsersApi(params)
