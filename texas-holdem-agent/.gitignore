@@ -1,0 +1,11 @@
+/.cursor
+/docs
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.env
+.venv/
+/data/
+/.coverage

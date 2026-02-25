@@ -1,0 +1,29 @@
+# 游戏基础设置
+game:
+  max_players: 5
+  initial_chips: 1000
+  small_blind: 10
+  big_blind: 20
+  min_raise: 20
+  max_raise: 1000
+
+# 服务器设置
+server:
+  host: "localhost"
+  port: 8000
+  debug: true
+  websocket_path: "/ws"
+
+# 数据库设置
+database:
+  url: "sqlite:///data/poker.db"
+  echo: false  # SQL语句日志
+
+# 日志设置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "data/poker.log"
+
+websocket:
+  ping_interval: 5  # 心跳包间隔（秒）
