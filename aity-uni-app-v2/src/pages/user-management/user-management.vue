@@ -874,8 +874,7 @@ onMounted(() => {
 		return
 	}
 
-	// 加载分组列表和用户列表
-	loadGroups()
+	// 加载用户列表
 	loadUsers(true)
 })
 </script>

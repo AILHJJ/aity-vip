@@ -71,7 +71,10 @@
       "Bash(find:*)",
       "Bash(npm run dev:*)",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NzE5OTY0MzcsImV4cCI6MTc3MjA4MjgzN30.dZMcY2NYBpAwYurHx6cITMfnBuF61MJJh7rOCA1uBXI\":*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjksImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoic3VwZXJfYWRtaW4iLCJpYXQiOjE3NzIwMDY0MzQsImV4cCI6MTc3MjA5MjgzNH0.bJp9uB4l_33mxICWQSkkx8pSr7F73_-BExGXAYX1Afw\")",
+      "Bash(echo \"============================================================\" echo \"演示：快速延期功能\" echo \"============================================================\" echo \"\" echo \"1. 查看体验用户 (ID: 13) 当前到期时间：\" echo \"------------------------------------------------------------\" curl -s \"http://localhost:3001/api/users/13\" -H \"Authorization: Bearer $TOKEN\")",
+      "Bash(echo:*)"
     ],
     "deny": [],
     "ask": []
