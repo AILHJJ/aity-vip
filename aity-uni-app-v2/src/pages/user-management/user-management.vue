@@ -197,20 +197,54 @@
 								<text class="picker-arrow">▼</text>
 							</view>
 						</picker>
+						<text class="form-hint" v-if="!isAdminRole(userForm.role)">
+							{{ userForm.role === 'trial' ? '体验用户默认7天' : 'VIP用户默认1个月' }}
+						</text>
+						<text class="form-hint" v-else>管理员无需设置到期时间</text>
 					</view>
 
 					<!-- VIP快速延期（仅编辑时显示） -->
-					<view v-if="showEditDrawer && isVipRole(userForm.role)" class="form-item">
+					<view v-if="showEditDrawer && !isAdminRole(userForm.role)" class="form-item">
 						<text class="form-label">快速延期</text>
 						<view class="quick-extend-buttons">
-							<button
-								v-for="days in quickExtendOptions"
-								:key="days"
-								class="extend-btn"
-								@click="quickExtend(days)"
-							>
-								+{{ days }}天
-							</button>
+							<!-- 体验用户：7天 -->
+							<template v-if="userForm.role === 'trial'">
+								<button
+									v-for="days in trialExtendOptions"
+									:key="days"
+									class="extend-btn"
+									@click="quickExtend(days)"
+								>
+									+{{ days }}天
+								</button>
+							</template>
+							<!-- VIP用户：月度、季度、半年、年度 -->
+							<template v-else>
+								<button
+									class="extend-btn"
+									@click="quickExtend(30)"
+								>
+									+1月
+								</button>
+								<button
+									class="extend-btn"
+									@click="quickExtend(90)"
+								>
+									+3月
+								</button>
+								<button
+									class="extend-btn"
+									@click="quickExtend(180)"
+								>
+									+半年
+								</button>
+								<button
+									class="extend-btn"
+									@click="quickExtend(365)"
+								>
+									+1年
+								</button>
+							</template>
 						</view>
 					</view>
 				</scroll-view>
@@ -337,12 +371,13 @@ const userForm = ref({
 	name: '',
 	email: '',
 	password: '',
-	role: 'trial',
+	role: 'vip_short', // 默认短线VIP
 	expireDate: ''
 })
 
-// 快速延期选项
-const quickExtendOptions = [7, 30, 90, 365]
+// 快速延期选项（月度、季度、半年、年度、体验7天）
+const quickExtendOptions = [30, 90, 180, 365]
+const trialExtendOptions = [7] // 体验用户专用
 
 // 角色选项
 const roleOptions = computed(() => {
@@ -365,6 +400,11 @@ const getRoleIndex = (role) => {
 // 判断是否是VIP角色
 const isVipRole = (role) => {
 	return ['vip_short', 'vip_long', 'vip_mid'].includes(role)
+}
+
+// 判断是否是管理员角色
+const isAdminRole = (role) => {
+	return ['super_admin', 'admin'].includes(role)
 }
 
 // 判断是否即将到期（30天内）
@@ -480,13 +520,19 @@ const loadMore = () => {
 
 // 创建用户
 const handleCreateUser = () => {
+	// 默认角色是 vip_short，设置对应的默认到期时间（1个月）
+	const defaultRole = 'vip_short'
+	const today = new Date()
+	today.setMonth(today.getMonth() + 1) // 默认1个月
+
 	userForm.value = {
 		id: null,
 		name: '',
 		email: '',
 		password: '',
-		role: 'trial',
-		expireDate: ''
+		role: defaultRole,
+		groupId: userStore.userInfo?.groupId || '', // 自动继承当前管理员的分组
+		expireDate: today.toISOString().split('T')[0]
 	}
 	showCreateDrawer.value = true
 }
@@ -498,7 +544,8 @@ const handleEdit = (user) => {
 		name: user.name,
 		email: user.email,
 		role: user.role,
-		expireDate: user.expireDate ? formatDate(user.expireDate) : ''
+		groupId: user.groupId || user.group_id || '',
+		expireDate: user.expireDate || user.expire_date ? formatDate(user.expireDate || user.expire_date) : ''
 	}
 	showEditDrawer.value = true
 }
@@ -517,7 +564,8 @@ const resetUserForm = () => {
 		name: '',
 		email: '',
 		password: '',
-		role: 'trial',
+		role: 'vip_short',
+		groupId: '',
 		expireDate: ''
 	}
 }
@@ -526,6 +574,29 @@ const resetUserForm = () => {
 const handleRoleChange = (e) => {
 	const index = e.detail.value
 	userForm.value.role = roleOptions.value[index].value
+
+	// 根据角色自动设置默认到期时间
+	if (!userForm.value.expireDate) {
+		setDefaultExpireDate(userForm.value.role)
+	}
+}
+
+// 根据角色设置默认到期时间
+const setDefaultExpireDate = (role) => {
+	const today = new Date()
+
+	if (role === 'trial') {
+		// 体验用户：默认7天
+		today.setDate(today.getDate() + 7)
+		userForm.value.expireDate = today.toISOString().split('T')[0]
+	} else if (role === 'vip_short' || role === 'vip_mid') {
+		// VIP用户：默认1个月（30天）
+		today.setDate(today.getDate() + 30)
+		userForm.value.expireDate = today.toISOString().split('T')[0]
+	} else {
+		// 管理员：永久有效（空）
+		userForm.value.expireDate = ''
+	}
 }
 
 // 处理日期选择
@@ -598,15 +669,18 @@ const handleSave = async () => {
 			data.email = userForm.value.email
 		}
 
+		// 分组ID（创建时自动继承，编辑时保留）
+		if (userForm.value.groupId) {
+			data.groupId = userForm.value.groupId
+		}
+
 		// 创建时需要密码
 		if (!userForm.value.id) {
 			data.password = userForm.value.password
 		}
 
-		// 如果选择了到期时间
-		if (userForm.value.expireDate) {
-			data.expireDate = userForm.value.expireDate
-		}
+		// 到期时间（空字符串转为 null 表示永久有效）
+		data.expireDate = userForm.value.expireDate || null
 
 		let res
 		if (userForm.value.id) {
@@ -800,6 +874,8 @@ onMounted(() => {
 		return
 	}
 
+	// 加载分组列表和用户列表
+	loadGroups()
 	loadUsers(true)
 })
 </script>

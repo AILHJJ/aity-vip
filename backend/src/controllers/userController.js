@@ -54,8 +54,37 @@ async function getAllUsers(req, res) {
     const { page = 1, limit = 20 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
+    // 获取当前用户信息
+    const currentUserId = req.user.userId;
+    const currentUserRole = req.user.role;
+
+    // 构建查询条件
+    const whereClause = {};
+
+    // 分组管理员权限过滤：admin 只能管理自己分组的用户
+    if (currentUserRole === 'admin') {
+      // 获取当前管理员的分组
+      const currentUser = await User.findByPk(currentUserId);
+      if (currentUser && currentUser.group_id) {
+        whereClause.group_id = currentUser.group_id;
+      } else {
+        // 如果管理员没有分组，返回空列表
+        return res.json(success({
+          list: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            totalPages: 0
+          }
+        }));
+      }
+    }
+    // super_admin 可以查看所有用户
+
     // 获取总数和分页数据
     const { count, rows } = await User.findAndCountAll({
+      where: whereClause,
       limit: parseInt(limit),
       offset: offset,
       order: [['created_at', 'DESC']]
@@ -97,10 +126,28 @@ async function createUser(req, res) {
   try {
     const { name, email, password, role, groupId, avatar, status, expireDate } = req.body;
 
+    // 获取当前用户信息
+    const currentUserId = req.user.userId;
+    const currentUserRole = req.user.role;
+
     // 验证必填字段
     if (!name || !password) {
       return res.status(400).json(badRequest('用户名和密码不能为空'));
     }
+
+    // 分组管理员权限：admin 只能创建自己分组的用户
+    let finalGroupId = groupId;
+    if (currentUserRole === 'admin') {
+      const currentUser = await User.findByPk(currentUserId);
+      // admin 只能创建自己分组的用户
+      finalGroupId = currentUser?.group_id || null;
+
+      // 如果前端传了 groupId 且与自己的分组不一致，拒绝
+      if (groupId && groupId !== finalGroupId) {
+        return res.status(403).json(forbidden('您只能创建自己分组的用户'));
+      }
+    }
+    // super_admin 可以指定任意分组或不指定
 
     // 如果未提供邮箱，根据用户名生成默认邮箱
     let userEmail = email;
@@ -126,15 +173,15 @@ async function createUser(req, res) {
 
     // 加密密码
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log(`[创建用户] 用户名: ${name}, 邮箱: ${userEmail}, 密码已加密`);
+    console.log(`[创建用户] 用户名: ${name}, 邮箱: ${userEmail}, 分组: ${finalGroupId}, 密码已加密`);
 
     // 创建用户
     const user = await User.create({
       name,
       email: userEmail,
       password: hashedPassword,
-      role: role || 'trial',
-      group_id: groupId,
+      role: role || 'vip_short', // 默认短线VIP
+      group_id: finalGroupId,
       avatar,
       status: status || 'active',
       expire_date: expireDate

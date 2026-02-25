@@ -68,7 +68,10 @@
       "Bash(npx pm2 list:*)",
       "Read(//d/**)",
       "Bash(xargs:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm run dev:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NzE5OTY0MzcsImV4cCI6MTc3MjA4MjgzN30.dZMcY2NYBpAwYurHx6cITMfnBuF61MJJh7rOCA1uBXI\":*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

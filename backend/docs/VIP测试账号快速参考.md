@@ -17,7 +17,7 @@
 | 管理员 | subadmin@example.com | 123456 | admin |
 | **VIP中线用户** | **vip_mid@example.com** | 123456 | vip_mid |
 | **VIP短线用户** | **vip_short@example.com** | 123456 | vip_short |
-| **VIP测试账号** | **vip_test@example.com** | 123456 | **vip_mid** |
+| **VIP测试账号** | **vip_test@example.com** | 123456 | vip_mid |
 | 体验用户 | trial@example.com | 123456 | trial (7天) |
 
 ---

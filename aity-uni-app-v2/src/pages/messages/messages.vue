@@ -154,6 +154,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import { getMessagesApi } from '../../api/message'
 import { MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../utils/constants'
@@ -574,6 +575,9 @@ const goToCreate = () => {
 	})
 }
 
+// 标记是否已初始化（用于区分首次加载和返回刷新）
+const isInitialized = ref(false)
+
 // 页面加载
 onMounted(async () => {
 	// 检查登录状态
@@ -614,21 +618,17 @@ onMounted(async () => {
 	}
 
 	loadMessages(true)
+	isInitialized.value = true
 })
-</script>
 
-<script>
-export default {
-	onShow() {
-		// 页面显示时刷新（用于从详情页或其他页面返回时自动刷新）
-		// 通过页面实例访问setup中的数据和方法
-		const pages = getCurrentPages()
-		const currentPage = pages[pages.length - 1]
-		if (currentPage.$vm.userInfoLoaded) {
-			currentPage.$vm.loadMessages(true)
-		}
+// 页面显示时刷新（从详情页返回时）
+onShow(() => {
+	// 只有初始化完成后才刷新（避免首次加载重复刷新）
+	if (isInitialized.value && userInfoLoaded.value) {
+		console.log('[消息列表] 页面返回，刷新列表')
+		loadMessages(true)
 	}
-}
+})
 </script>
 
 <style lang="scss" scoped>

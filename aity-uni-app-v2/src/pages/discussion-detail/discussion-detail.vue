@@ -17,6 +17,15 @@
 			>
 				<!-- 讨论主体 -->
 				<view class="discussion-main">
+					<!-- 关联消息卡片 -->
+					<view v-if="discussion.linkedMessage" class="linked-message-card" @click="goToMessageDetail(discussion.linkedMessage.id)">
+						<view class="linked-header">
+							<text class="linked-label">基于此消息讨论</text>
+							<text class="linked-arrow">→</text>
+						</view>
+						<view class="linked-title">{{ discussion.linkedMessage.title }}</view>
+					</view>
+
 					<view class="discussion-header">
 						<view class="header-left">
 							<view class="visibility-badge" :class="'visibility-' + discussion.visibility">
@@ -101,12 +110,32 @@
 						:maxlength="500"
 						:show-confirm-bar="false"
 					/>
+				</view>
+				<!-- 私密讨论时显示两个按钮 -->
+				<view v-if="discussion && discussion.visibility === 'private'" class="reply-buttons">
 					<button
-						class="reply-btn"
+						class="reply-btn secondary"
 						:disabled="!replyContent.trim() || submitting"
-						@click="handleReply"
+						@click="handleReply(false)"
 					>
-						{{ submitting ? '发送中...' : '发送' }}
+						{{ submitting && !makePublic ? '发送中...' : '私密回复' }}
+					</button>
+					<button
+						class="reply-btn primary"
+						:disabled="!replyContent.trim() || submitting"
+						@click="handleReply(true)"
+					>
+						{{ submitting && makePublic ? '发送中...' : '公开回复' }}
+					</button>
+				</view>
+				<!-- 公开讨论时显示单个按钮 -->
+				<view v-else class="reply-buttons single">
+					<button
+						class="reply-btn primary full"
+						:disabled="!replyContent.trim() || submitting"
+						@click="handleReply(false)"
+					>
+						{{ submitting ? '发送中...' : '发送回复' }}
 					</button>
 				</view>
 			</view>
@@ -143,6 +172,7 @@ const replyContent = ref('')
 const loading = ref(false)
 const refreshing = ref(false)
 const submitting = ref(false)
+const makePublic = ref(false) // 是否同时公开讨论
 
 // 用于跟踪是否需要刷新回复列表
 const needRefreshReplies = ref(false)
@@ -237,14 +267,33 @@ const onRefresh = async () => {
 	refreshing.value = false
 }
 
-// 发送回复
-const handleReply = async () => {
+// 切换是否公开讨论
+const toggleMakePublic = () => {
+	makePublic.value = !makePublic.value
+}
+
+// 发送回复（shouldPublic: 是否同时公开讨论）
+const handleReply = async (shouldPublic) => {
 	if (!replyContent.value.trim()) return
 
 	submitting.value = true
+	makePublic.value = shouldPublic
 
 	try {
 		const id = getDiscussionId()
+
+		// 如果用户选择同时公开讨论，先更新可见性
+		if (shouldPublic && discussion.value.visibility === 'private') {
+			console.log('[发送回复] 用户选择公开讨论')
+			const visibilityRes = await updateDiscussionVisibilityApi(id, {
+				visibility: 'public'
+			})
+			if (visibilityRes.code === 200) {
+				discussion.value.visibility = 'public'
+				console.log('[发送回复] 讨论已公开')
+			}
+		}
+
 		const res = await replyDiscussionApi(id, {
 			content: replyContent.value.trim()
 		})
@@ -253,13 +302,14 @@ const handleReply = async () => {
 
 		if (res.code === 200) {
 			uni.showToast({
-				title: '回复成功',
+				title: shouldPublic ? '回复成功，讨论已公开' : '回复成功',
 				icon: 'success',
 				duration: 1500
 			})
 
 			// 清空输入框
 			replyContent.value = ''
+			makePublic.value = false
 
 			// 重新加载回复列表
 			await loadReplies()
@@ -344,6 +394,13 @@ const handleVisibilityChange = async (e) => {
 	}
 }
 
+// 跳转到关联消息详情
+const goToMessageDetail = (messageId) => {
+	uni.navigateTo({
+		url: `/pages/message-detail/message-detail?id=${messageId}`
+	})
+}
+
 // 页面加载
 onMounted(() => {
 	// 检查登录状态
@@ -420,6 +477,50 @@ onShow(() => {
 	padding: 30rpx;
 	margin-bottom: 20rpx;
 	animation: fadeIn 0.3s ease-in-out;
+}
+
+// 关联消息卡片
+.linked-message-card {
+	background: linear-gradient(135deg, #f0f2ff 0%, #f5f3ff 100%);
+	border-radius: 16rpx;
+	padding: 24rpx;
+	margin-bottom: 24rpx;
+	border-left: 4rpx solid #667eea;
+	transition: all 0.3s;
+
+	&:active {
+		transform: scale(0.98);
+		opacity: 0.9;
+	}
+}
+
+.linked-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12rpx;
+}
+
+.linked-label {
+	font-size: 24rpx;
+	color: #667eea;
+	font-weight: 500;
+}
+
+.linked-arrow {
+	font-size: 28rpx;
+	color: #667eea;
+}
+
+.linked-title {
+	font-size: 28rpx;
+	color: #333333;
+	line-height: 1.5;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
 }
 
 @keyframes fadeIn {
@@ -618,28 +719,52 @@ onShow(() => {
 
 .reply-input {
 	flex: 1;
-	min-height: 80rpx;
+	min-height: 100rpx;
 	max-height: 200rpx;
 	padding: 16rpx 20rpx;
 	font-size: 28rpx;
 	color: #333333;
 	background: #f5f5f5;
-	border-radius: 8rpx;
+	border-radius: 12rpx;
 	line-height: 1.5;
 }
 
+.reply-buttons {
+	display: flex;
+	gap: 20rpx;
+	margin-top: 16rpx;
+}
+
+.reply-buttons.single {
+	justify-content: center;
+}
+
 .reply-btn {
-	width: 120rpx;
+	flex: 1;
 	height: 80rpx;
 	line-height: 80rpx;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	color: #ffffff;
 	font-size: 28rpx;
 	font-weight: bold;
-	border-radius: 8rpx;
+	border-radius: 12rpx;
 	border: none;
 	text-align: center;
 	padding: 0;
+}
+
+.reply-btn.primary {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #ffffff;
+}
+
+.reply-btn.secondary {
+	background: #f5f5f5;
+	color: #666666;
+	border: 1rpx solid #e0e0e0;
+}
+
+.reply-btn.full {
+	flex: none;
+	width: 100%;
 }
 
 .reply-btn[disabled] {

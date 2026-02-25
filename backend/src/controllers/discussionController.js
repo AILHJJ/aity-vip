@@ -134,15 +134,15 @@ async function getDiscussionById(req, res) {
     const { id } = req.params;
     const currentUserId = req.user.userId;
     const currentUserRole = req.user.role;
-    
+
     const discussion = await Discussion.findByPk(id);
     if (!discussion) {
       return res.status(404).json(notFound('Discussion not found'));
     }
-    
+
     // 检查用户是否有权限查看该讨论
     let hasPermission = false;
-    
+
     if (currentUserRole === 'super_admin' || currentUserRole === 'admin') {
       // 管理员可以查看所有讨论
       hasPermission = true;
@@ -153,22 +153,38 @@ async function getDiscussionById(req, res) {
       // 私密讨论只有发起者和管理员可见
       hasPermission = true;
     }
-    
+
     if (!hasPermission) {
       return res.status(403).json(forbidden('No permission to view this discussion'));
     }
-    
+
     // 获取回复
     const replies = await DiscussionReply.findAll({
       where: { discussionId: id },
       order: [['createdAt', 'ASC']]
     });
-    
+
     // 获取发送者信息
     const sender = await User.findByPk(discussion.userId, {
       attributes: ['name', 'avatar']
     });
-    
+
+    // 获取关联的消息信息
+    let linkedMessage = null;
+    if (discussion.messageId) {
+      const message = await Message.findByPk(discussion.messageId, {
+        attributes: ['id', 'title', 'type', 'createdAt']
+      });
+      if (message) {
+        linkedMessage = {
+          id: message.id,
+          title: message.title,
+          type: message.type,
+          createdAt: message.createdAt
+        };
+      }
+    }
+
     // 获取回复发送者信息
     const repliesWithSender = await Promise.all(
       replies.map(async (reply) => {
@@ -186,6 +202,7 @@ async function getDiscussionById(req, res) {
     const discussionData = {
       id: discussion.id,
       messageId: discussion.messageId,
+      linkedMessage: linkedMessage, // 关联的消息信息
       userId: discussion.userId,
       creatorId: discussion.userId,
       creatorName: sender?.name || '匿名用户',
@@ -201,7 +218,7 @@ async function getDiscussionById(req, res) {
       updatedAt: discussion.updatedAt,
       replies: repliesWithSender
     };
-    
+
     res.json(success(discussionData));
   } catch (err) {
     console.error(err);
