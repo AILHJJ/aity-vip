@@ -460,12 +460,11 @@ function handleScrollAreaTouch() {
 // 渲染工具结果表格
 function renderToolResultTable(toolResult) {
 	try {
-		// toolResult是JSON字符串："[["证券代码","证券名称",...],["000001","平安银行",...]]"
-		// ⭐ 完整数据结构（参考项目）：
-		// 第0行：元数据 [0, "", 0, "", "0"]
-		// 第1行：字段定义 ["POS", "market", "sec_code", "sec_name", "now_price", "chg0#", "所属行业", "timestamps"]
-		// 第2行：格式化标识 ["", "", "", "2|0|0", "2|0|0", "0|0|0", ""]
-		// 第3行起：实际数据 ["000001", "沪市", "平安银行", "12.45", "2.35", "银行业", "2024-01-15 10:30:00"]
+		// toolResult是JSON字符串："[["市场","证券代码","证券名称",...],["","","",...],["1","600010","包钢股份",...]]"
+		// ⭐ 实际数据结构：
+		// 第0行：表头 ["市场","证券代码","证券名称","现价<br>2026.02.25","涨跌幅<br>2026.02.25",...]
+		// 第1行：格式化标识 ["0|0|0","0|0|0","2|0|0","2|0|0","0|0|0",...]
+		// 第2行起：实际数据 ["1","600010","包钢股份","2.93","10.15",...]
 
 		const data = JSON.parse(toolResult)
 
@@ -474,60 +473,50 @@ function renderToolResultTable(toolResult) {
 		}
 
 		// 提取各行数据
-		const row0 = data[0] || []  // 元数据行
-		const row1 = data[1] || []  // 字段定义行
-		const row2 = data[2] || []  // 格式化标识行
-		const rows = data.slice(3)    // 实际数据行（第3行起）
+		const headers = data[0] || []      // 表头行
+		const formatFlags = data[1] || []  // 格式化标识行
+		const rows = data.slice(2)         // 实际数据行（第2行起）
 
-		// 提取字段映射
-		const fieldMapping = {}
-		row1.forEach((field, index) => {
-			fieldMapping[row0[index]] = field
-		})
+		// 过滤掉最后一条"总记录数"行
+		const dataRows = rows.filter(row =>
+			row[0] !== '总记录数' && row[0] !== ''
+		)
 
-		// 提取格式化标识
-		const formatFlags = {}
-		row2.forEach((flag, index) => {
-			formatFlags[row0[index]] = flag
-		})
-
-		// 生成HTML表格
-		let tableHtml = '<table class="tool-result-table">'
+		// 生成HTML表格 - 添加横向滚动容器
+		let tableHtml = '<div style="overflow-x: auto; -webkit-overflow-scrolling: touch;"><table class="tool-result-table" style="min-width: 100%;">'
 		tableHtml += '<thead><tr>'
 
-		// 渲染表头（使用字段定义）
-		const headers = Object.values(fieldMapping)
+		// 渲染表头
 		headers.forEach(header => {
-			// 处理表头中的<br>标签和日期（如"现价<br>2024.01.15"）
-			const cleanHeader = header.replace(/<br>.*$/, '')
-			tableHtml += `<th>${cleanHeader}</th>`
+			// 处理表头中的<br>标签（如"现价<br>2026.02.25"）
+			const cleanHeader = header ? header.replace(/<br>/g, '<br/>') : ''
+			tableHtml += `<th style="white-space: nowrap; padding: 8px 12px;">${cleanHeader}</th>`
 		})
 		tableHtml += '</tr></thead><tbody>'
 
 		// 渲染数据行
-		rows.forEach((row, rowIndex) => {
+		dataRows.forEach((row, rowIndex) => {
 			tableHtml += '<tr>'
 
 			row.forEach((cell, cellIndex) => {
-				const fieldName = Object.keys(fieldMapping)[cellIndex]
-				const formatFlag = formatFlags[fieldName]
+				const formatFlag = formatFlags[cellIndex] || ''
 
 				// 应用格式化函数
-				const formattedCell = formatCellValue(cell, formatFlag, fieldName, row)
+				const formattedCell = formatCellValue(cell, formatFlag, headers[cellIndex], row)
 
-				tableHtml += `<td>${formattedCell}</td>`
+				tableHtml += `<td style="white-space: nowrap; padding: 8px 12px;">${formattedCell}</td>`
 			})
 
 			tableHtml += '</tr>'
 		})
 
-		tableHtml += '</tbody></table>'
+		tableHtml += '</tbody></table></div>'
 
 		return tableHtml
 	} catch (error) {
 		console.error('解析工具结果失败:', error)
 		// 降级：返回原始文本
-		return `<pre style="white-space: pre-wrap; word-break: break-all;">${toolResult}</pre>`
+		return `<pre style="white-space: pre-wrap; word-break: break-all; font-size: 12px;">${toolResult}</pre>`
 	}
 }
 
