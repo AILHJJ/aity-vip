@@ -24,7 +24,7 @@ function validateLogin() {
 function validateCreateUser() {
   return [
     body('name').notEmpty().withMessage('Name is required').isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
-    body('email').notEmpty().withMessage('Email is required').isEmail().withMessage('Invalid email format'),
+    body('email').optional().isEmail().withMessage('Invalid email format'),
     body('password').notEmpty().withMessage('Password is required').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
     body('role').optional().isIn(['super_admin', 'admin', 'vip_mid', 'vip_short', 'trial']).withMessage('Invalid role'),
     body('groupId').optional().isLength({ max: 50 }).withMessage('Group ID must be at most 50 characters'),
