@@ -63,10 +63,10 @@
 					<!-- 卡片头部 -->
 					<view class="card-header">
 						<view class="user-avatar">
-							<text class="avatar-text">{{ user.username ? user.username.charAt(0).toUpperCase() : 'U' }}</text>
+							<text class="avatar-text">{{ user.name ? user.name.charAt(0).toUpperCase() : 'U' }}</text>
 						</view>
 						<view class="user-basic-info">
-							<text class="card-username">{{ user.username }}</text>
+							<text class="card-username">{{ user.name }}</text>
 							<text class="card-email">{{ user.email }}</text>
 						</view>
 						<view class="role-badge" :class="'role-' + user.role">
@@ -495,10 +495,10 @@ const handleCreateUser = () => {
 const handleEdit = (user) => {
 	userForm.value = {
 		id: user.id,
-		name: user.username,
+		name: user.name,
 		email: user.email,
 		role: user.role,
-		expireDate: user.expiresAt ? formatDate(user.expiresAt) : ''
+		expireDate: user.expireDate ? formatDate(user.expireDate) : ''
 	}
 	showEditDrawer.value = true
 }
@@ -702,7 +702,7 @@ const handleDelete = async (id) => {
 const handleResetPassword = (user) => {
 	passwordResetForm.value = {
 		userId: user.id,
-		username: user.username,
+		username: user.name,
 		email: user.email,
 		newPassword: '',
 		confirmPassword: '',
