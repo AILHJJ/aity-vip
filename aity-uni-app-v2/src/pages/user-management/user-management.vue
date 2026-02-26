@@ -338,15 +338,50 @@ const page = ref(1)
 const limit = ref(20)
 const hasMore = ref(true)
 const currentRoleTab = ref('all')
+const totalUsers = ref(0) // 总用户数
 
-// 角色标签页
+// Tab数量缓存（独立存储每个Tab的数量）
+const tabCounts = ref({
+	all: 0,
+	vip_short: 0,
+	vip_medium: 0,
+	trial: 0,
+	admin: 0
+})
+
+// 角色标签页（使用独立的tabCounts）
 const roleTabs = computed(() => [
-	{ label: '全部用户', value: 'all', count: users.value.length },
-	{ label: 'VIP短线', value: 'vip_short', count: users.value.filter(u => u.role === 'vip_short').length },
-	{ label: 'VIP中线', value: 'vip_medium', count: users.value.filter(u => u.role === 'vip_mid').length },
-	{ label: '试用', value: 'trial', count: users.value.filter(u => u.role === 'trial').length },
-	{ label: '管理员', value: 'admin', count: users.value.filter(u => u.role === 'super_admin' || u.role === 'admin').length }
+	{ label: '全部用户', value: 'all', count: tabCounts.value.all },
+	{ label: 'VIP短线', value: 'vip_short', count: tabCounts.value.vip_short },
+	{ label: 'VIP中线', value: 'vip_medium', count: tabCounts.value.vip_medium },
+	{ label: '试用', value: 'trial', count: tabCounts.value.trial },
+	{ label: '管理员', value: 'admin', count: tabCounts.value.admin }
 ])
+
+// 加载各Tab的数量（独立请求）
+const loadTabCounts = async () => {
+	try {
+		const countPromises = [
+			// 全部用户
+			getUsersApi({ page: 1, limit: 1 }).then(res => ({ tab: 'all', count: res.data?.pagination?.total || 0 })),
+			// VIP短线
+			getUsersApi({ page: 1, limit: 1, role: 'vip_short' }).then(res => ({ tab: 'vip_short', count: res.data?.pagination?.total || 0 })),
+			// VIP中线
+			getUsersApi({ page: 1, limit: 1, role: 'vip_mid' }).then(res => ({ tab: 'vip_medium', count: res.data?.pagination?.total || 0 })),
+			// 试用
+			getUsersApi({ page: 1, limit: 1, role: 'trial' }).then(res => ({ tab: 'trial', count: res.data?.pagination?.total || 0 })),
+			// 管理员
+			getUsersApi({ page: 1, limit: 1, role: 'super_admin,admin' }).then(res => ({ tab: 'admin', count: res.data?.pagination?.total || 0 }))
+		]
+
+		const results = await Promise.all(countPromises)
+		results.forEach(result => {
+			tabCounts.value[result.tab] = result.count
+		})
+	} catch (error) {
+		console.error('加载Tab数量失败:', error)
+	}
+}
 
 // 创建相关
 const showCreateDrawer = ref(false)
@@ -876,6 +911,9 @@ onMounted(() => {
 		}, 1500)
 		return
 	}
+
+	// 加载各Tab的数量
+	loadTabCounts()
 
 	// 加载用户列表
 	loadUsers(true)

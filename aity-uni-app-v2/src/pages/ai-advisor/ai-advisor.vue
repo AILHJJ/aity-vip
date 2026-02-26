@@ -1,5 +1,13 @@
 <template>
 	<view class="ai-advisor-container">
+		<!-- 简洁顶部栏 -->
+		<view class="header-bar">
+			<view class="header-content">
+				<text class="header-title">图灵</text>
+				<text class="header-subtitle">智能金融助手</text>
+			</view>
+		</view>
+
 		<!-- 对话消息区域 -->
 		<scroll-view
 			class="chat-container"
@@ -692,7 +700,37 @@ onUnmounted(() => {
 	background: #fafafa;
 }
 
-/* 极简顶部栏 */
+/* 简洁顶部栏样式 */
+.header-bar {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	padding: 28rpx 32rpx;
+	padding-top: calc(28rpx + env(safe-area-inset-top));
+	box-shadow: 0 4rpx 20rpx rgba(102, 126, 234, 0.2);
+	flex-shrink: 0;
+}
+
+.header-content {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4rpx;
+}
+
+.header-title {
+	font-size: 40rpx;
+	font-weight: bold;
+	color: #ffffff;
+	letter-spacing: 4rpx;
+}
+
+.header-subtitle {
+	font-size: 22rpx;
+	color: rgba(255, 255, 255, 0.8);
+	font-weight: 300;
+	letter-spacing: 2rpx;
+}
+
+/* 极简顶部栏（旧样式保留兼容） */
 .header {
 	background: #ffffff;
 	padding: 24rpx 32rpx;
@@ -780,6 +818,7 @@ onUnmounted(() => {
 	flex: 1;
 	padding: 20rpx;
 	overflow-y: auto;
+	padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
 }
 
 /* 欢迎区域 - 极简设计 */

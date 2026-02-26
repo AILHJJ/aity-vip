@@ -6,6 +6,7 @@ const { authenticateToken } = require('../utils/jwtUtils');
 const { validateCreateDiscussion, validateAddReply, validateIdParam } = require('../middleware/validation');
 
 router.get('/', authenticateToken, discussionController.getDiscussions);
+router.get('/my', authenticateToken, discussionController.getMyDiscussions);
 router.get('/:id', authenticateToken, ...validateIdParam(), discussionController.getDiscussionById);
 router.post('/', authenticateToken, ...validateCreateDiscussion(), discussionController.createDiscussion);
 router.post('/:id/replies', authenticateToken, ...validateAddReply(), discussionController.addDiscussionReply);

@@ -492,11 +492,72 @@ async function updateDiscussionVisibility(req, res) {
   }
 }
 
+// 获取我的讨论（当前用户发起的讨论）
+async function getMyDiscussions(req, res) {
+  try {
+    const currentUserId = req.user.userId;
+
+    // 获取当前用户发起的讨论
+    const discussions = await Discussion.findAll({
+      where: { userId: currentUserId },
+      order: [['createdAt', 'DESC']]
+    });
+
+    // 获取每个讨论的回复
+    const discussionsWithReplies = await Promise.all(
+      discussions.map(async (discussion) => {
+        const replies = await DiscussionReply.findAll({
+          where: { discussionId: discussion.id },
+          order: [['createdAt', 'ASC']]
+        });
+
+        // 获取关联的消息信息
+        let linkedMessage = null;
+        if (discussion.messageId) {
+          const message = await Message.findByPk(discussion.messageId, {
+            attributes: ['id', 'title', 'type', 'createdAt']
+          });
+          if (message) {
+            linkedMessage = {
+              id: message.id,
+              title: message.title,
+              type: message.type,
+              createdAt: message.createdAt
+            };
+          }
+        }
+
+        return {
+          id: discussion.id,
+          title: discussion.title,
+          content: discussion.content,
+          status: discussion.status,
+          visibility: discussion.visibility,
+          messageId: discussion.messageId,
+          linkedMessage: linkedMessage,
+          replyCount: replies.length,
+          createdAt: discussion.createdAt,
+          updatedAt: discussion.updatedAt,
+          replies
+        };
+      })
+    );
+
+    res.json(success({
+      discussions: discussionsWithReplies
+    }));
+  } catch (err) {
+    console.error('[获取我的讨论] 错误:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
 module.exports = {
   getDiscussions,
   getDiscussionById,
   createDiscussion,
   addDiscussionReply,
   getDiscussionReplies,
-  updateDiscussionVisibility
+  updateDiscussionVisibility,
+  getMyDiscussions
 };

@@ -163,20 +163,20 @@ async function getMessageTrend(req, res) {
 async function getMessageTypeDistribution(req, res) {
   try {
     const userId = req.user.userId;
-    
+
     // 获取用户信息
     const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json(notFound('User not found'));
     }
-    
+
     // 统计消息类型分布
     const distribution = {
       system: 0,
       important: 0,
       daily: 0
     };
-    
+
     const messages = await Message.findAll({
       where: {
         [Op.or]: [
@@ -186,14 +186,82 @@ async function getMessageTypeDistribution(req, res) {
       },
       attributes: ['type']
     });
-    
+
     messages.forEach(msg => {
       if (distribution.hasOwnProperty(msg.type)) {
         distribution[msg.type]++;
       }
     });
-    
+
     res.json(success(distribution));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 获取全局统计数据（管理员视图）
+async function getGlobalStats(req, res) {
+  try {
+    const currentUserRole = req.user.role;
+
+    // 检查权限：只有管理员可以访问全局统计
+    if (currentUserRole !== 'super_admin' && currentUserRole !== 'admin') {
+      return res.status(403).json(forbidden('Only administrators can access global stats'));
+    }
+
+    // 获取总用户数
+    const totalUsers = await User.count();
+
+    // 获取各角色用户数
+    const vipShortCount = await User.count({ where: { role: 'vip_short' } });
+    const vipMidCount = await User.count({ where: { role: 'vip_mid' } });
+    const vipLongCount = await User.count({ where: { role: 'vip_long' } });
+    const trialCount = await User.count({ where: { role: 'trial' } });
+    const adminCount = await User.count({
+      where: {
+        role: {
+          [Op.in]: ['super_admin', 'admin']
+        }
+      }
+    });
+
+    // 获取消息统计
+    const totalMessages = await Message.count();
+
+    // 获取讨论统计
+    const totalDiscussions = await Discussion.count();
+
+    // 获取今日新增用户
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const newUsersToday = await User.count({
+      where: {
+        createdAt: {
+          [Op.gte]: today
+        }
+      }
+    });
+
+    const stats = {
+      users: {
+        total: totalUsers,
+        vip_short: vipShortCount,
+        vip_mid: vipMidCount,
+        vip_long: vipLongCount,
+        trial: trialCount,
+        admin: adminCount,
+        newToday: newUsersToday
+      },
+      messages: {
+        total: totalMessages
+      },
+      discussions: {
+        total: totalDiscussions
+      }
+    };
+
+    res.json(success(stats));
   } catch (err) {
     console.error(err);
     res.status(500).json(error('Server error'));
@@ -203,5 +271,6 @@ async function getMessageTypeDistribution(req, res) {
 module.exports = {
   getPersonalStats,
   getMessageTrend,
-  getMessageTypeDistribution
+  getMessageTypeDistribution,
+  getGlobalStats
 };
