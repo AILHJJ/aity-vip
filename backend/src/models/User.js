@@ -47,4 +47,23 @@ const User = sequelize.define('User', {
   tableName: 'users'
 });
 
+// 延迟加载关联模型以避免循环依赖
+let UserFavorite, UserMessageRead;
+
+try {
+  UserFavorite = require('./UserFavorite');
+  UserMessageRead = require('./UserMessageRead');
+} catch (e) {
+  // 忽略模块未加载错误，稍后设置关联
+}
+
+// 设置关联关系
+if (UserFavorite) {
+  User.hasMany(UserFavorite, { foreignKey: 'userId', as: 'favorites' });
+}
+
+if (UserMessageRead) {
+  User.hasMany(UserMessageRead, { foreignKey: 'userId', as: 'messageReads' });
+}
+
 module.exports = User;

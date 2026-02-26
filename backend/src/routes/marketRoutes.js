@@ -1,18 +1,19 @@
+// 行情数据路由
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const marketDataController = require('../controllers/marketDataController');
+
+const FINANCE_API_BASE = 'http://123.60.27.66:7615/TQLEX';
 
 /**
- * 行情指数接口
+ * 行情指数接口（原有接口保留兼容）
  * GET /api/market/ticker
- *
- * 返回主要市场指数的实时行情数据
- * 包括上证指数、深证成指、沪深300、创业板指、科创50、北证50
  */
 router.get('/ticker', async (req, res) => {
   try {
     const response = await axios.post(
-      'http://123.60.27.66:7615/TQLEX?Entry=HQServ.PBCombHQ',
+      `${FINANCE_API_BASE}?Entry=HQServ.PBCombHQ`,
       {
         Head: { Target: 0 },
         WantCol: ['VOL', 'NOW', 'CLOSE'],
@@ -48,5 +49,19 @@ router.get('/ticker', async (req, res) => {
     res.json({ code: 500, message: 'Market data unavailable' });
   }
 });
+
+// ========== 新增行情数据接口 ==========
+
+// 获取指数行情（新版）
+router.get('/index-quote', marketDataController.getIndexQuote);
+
+// 获取连板天梯（涨停专题）
+router.get('/limit-up-ladder', marketDataController.getLimitUpLadder);
+
+// 获取行业资金流向
+router.get('/industry-fund-flow', marketDataController.getIndustryFundFlow);
+
+// 获取市场概览（综合数据）
+router.get('/overview', marketDataController.getMarketOverview);
 
 module.exports = router;

@@ -12,6 +12,17 @@ const sequelize = require('../config/db');
 const User = require('./User');
 const Group = require('./Group');
 
+// 延迟加载关联模型以避免循环依赖
+let MessageAttachment, UserFavorite, Discussion;
+
+try {
+  MessageAttachment = require('./MessageAttachment');
+  UserFavorite = require('./UserFavorite');
+  Discussion = require('./Discussion');
+} catch (e) {
+  // 忽略模块未加载错误，稍后设置关联
+}
+
 const Message = sequelize.define('Message', {
   id: {
     type: DataTypes.INTEGER,
@@ -108,5 +119,18 @@ const Message = sequelize.define('Message', {
 Message.belongsTo(User, { foreignKey: 'senderId', as: 'senderUser' });
 // 注意：groupId 不设置外键约束，因为它可以是特殊值 'all' 或实际的 group_id
 // Message.belongsTo(Group, { foreignKey: 'groupId', as: 'messageGroup' });
+
+// 设置其他关联（如果模型已加载）
+if (MessageAttachment) {
+  Message.hasMany(MessageAttachment, { foreignKey: 'messageId', as: 'attachments' });
+}
+
+if (UserFavorite) {
+  Message.hasMany(UserFavorite, { foreignKey: 'messageId', as: 'favorites' });
+}
+
+if (Discussion) {
+  Message.hasMany(Discussion, { foreignKey: 'messageId', as: 'discussions' });
+}
 
 module.exports = Message;

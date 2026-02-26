@@ -4,6 +4,7 @@ const sequelize = require('../config/db');
 const Message = require('../models/Message');
 const MessageAttachment = require('../models/MessageAttachment');
 const UserMessageRead = require('../models/UserMessageRead');
+const UserFavorite = require('../models/UserFavorite');
 const User = require('../models/User');
 const Group = require('../models/Group');
 const Discussion = require('../models/Discussion');
@@ -485,11 +486,22 @@ async function favoriteMessage(req, res) {
       return res.status(404).json(notFound('Message not found'));
     }
 
-    // 这里需要创建一个收藏表或者使用现有的方式
-    // 暂时返回成功，实际项目中应该有 favorites 表
-    // TODO: 实现 favorites 功能
+    // 检查是否已收藏
+    const existingFavorite = await UserFavorite.findOne({
+      where: { userId, messageId: id }
+    });
 
-    res.json(success({ favorited: true }, 'Message favorited'));
+    if (existingFavorite) {
+      return res.json(success(existingFavorite, 'Already favorited'));
+    }
+
+    // 创建收藏记录
+    const favorite = await UserFavorite.create({
+      userId,
+      messageId: id
+    });
+
+    res.json(success(favorite, 'Message favorited'));
   } catch (err) {
     console.error('收藏消息失败:', err);
     res.status(500).json(error('Server error'));
@@ -508,7 +520,17 @@ async function unfavoriteMessage(req, res) {
       return res.status(404).json(notFound('Message not found'));
     }
 
-    // TODO: 实现 unfavorite 功能
+    // 查找收藏记录
+    const favorite = await UserFavorite.findOne({
+      where: { userId, messageId: id }
+    });
+
+    if (!favorite) {
+      return res.status(404).json(notFound('Favorite not found'));
+    }
+
+    // 删除收藏记录
+    await favorite.destroy();
 
     res.json(success({ favorited: false }, 'Message unfavorited'));
   } catch (err) {

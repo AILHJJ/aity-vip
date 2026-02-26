@@ -1,6 +1,13 @@
 {
 	"pages": [
 		{
+			"path": "pages/market/market",
+			"style": {
+				"navigationBarTitleText": "行情",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/login/login",
 			"style": {
 				"navigationBarTitleText": "登录",
@@ -92,6 +99,10 @@
 		"borderStyle": "black",
 		"backgroundColor": "#F8F8F8",
 		"list": [
+			{
+				"pagePath": "pages/market/market",
+				"text": "行情"
+			},
 			{
 				"pagePath": "pages/messages/messages",
 				"text": "消息"
