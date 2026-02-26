@@ -2,8 +2,14 @@
   <view class="market-page">
     <!-- 顶部Header -->
     <view class="header-bar">
-      <text class="header-title">行情中心</text>
-      <text class="header-subtitle">实时市场数据</text>
+      <view class="header-left" @click="goBack">
+        <text class="back-icon">‹</text>
+      </view>
+      <view class="header-center">
+        <text class="header-title">行情中心</text>
+        <text class="header-subtitle">实时市场数据</text>
+      </view>
+      <view class="header-right"></view>
     </view>
 
     <!-- 指数行情卡片 -->
@@ -58,9 +64,8 @@
                 <text class="stock-name">{{ stock.name }}</text>
                 <text class="stock-code">{{ stock.code }}</text>
               </view>
-              <view class="stock-price-info">
-                <text class="stock-price">{{ formatPrice(stock.price) }}</text>
-                <text class="stock-change up">+{{ formatChangePct(stock.changePct) }}</text>
+              <view class="stock-badge">
+                <text class="badge-text">涨停</text>
               </view>
             </view>
           </view>
@@ -127,6 +132,40 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getIndexQuoteApi, getLimitUpLadderApi, getIndustryFundFlowApi } from '../../api/market.js'
+import { useUserStore } from '../../store/user'
+
+const userStore = useUserStore()
+
+// 返回上一页
+const goBack = () => {
+  const pages = getCurrentPages()
+  if (pages.length > 1) {
+    uni.navigateBack()
+  } else {
+    // 如果没有上一页，跳转到首页
+    uni.switchTab({
+      url: '/pages/messages/messages'
+    })
+  }
+}
+
+// 检查登录状态
+const checkLogin = () => {
+  if (!userStore.isLoggedIn) {
+    uni.showToast({
+      title: '请先登录',
+      icon: 'none',
+      duration: 2000
+    })
+    setTimeout(() => {
+      uni.navigateTo({
+        url: '/pages/login/login'
+      })
+    }, 1500)
+    return false
+  }
+  return true
+}
 
 // 数据状态
 const loading = ref(false)
@@ -236,7 +275,10 @@ const refreshData = async () => {
 }
 
 onMounted(() => {
-  refreshData()
+  // 检查登录状态
+  if (checkLogin()) {
+    refreshData()
+  }
 })
 </script>
 
@@ -252,19 +294,45 @@ onMounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 28rpx 32rpx;
   padding-top: calc(28rpx + env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 
-  .header-title {
-    display: block;
-    font-size: 40rpx;
-    font-weight: 600;
-    color: #ffffff;
+  .header-left {
+    width: 60rpx;
+    height: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .back-icon {
+      font-size: 48rpx;
+      color: #ffffff;
+      font-weight: 300;
+    }
   }
 
-  .header-subtitle {
-    display: block;
-    font-size: 24rpx;
-    color: rgba(255, 255, 255, 0.8);
-    margin-top: 8rpx;
+  .header-center {
+    flex: 1;
+    text-align: center;
+
+    .header-title {
+      display: block;
+      font-size: 40rpx;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .header-subtitle {
+      display: block;
+      font-size: 24rpx;
+      color: rgba(255, 255, 255, 0.8);
+      margin-top: 8rpx;
+    }
+  }
+
+  .header-right {
+    width: 60rpx;
   }
 }
 
@@ -428,23 +496,15 @@ onMounted(() => {
         }
       }
 
-      .stock-price-info {
-        text-align: right;
+      .stock-badge {
+        padding: 6rpx 16rpx;
+        background: linear-gradient(135deg, #ea4353 0%, #ff6b6b 100%);
+        border-radius: 12rpx;
 
-        .stock-price {
-          display: block;
-          font-size: 28rpx;
+        .badge-text {
+          font-size: 22rpx;
           color: #ffffff;
-        }
-
-        .stock-change {
-          display: block;
-          font-size: 24rpx;
-          margin-top: 4rpx;
-
-          &.up {
-            color: #ea4353;
-          }
+          font-weight: 500;
         }
       }
     }

@@ -16,5 +16,25 @@ export default defineConfig({
         rewrite: (path) => path
       }
     }
+  },
+  build: {
+    // 生产环境移除 console 和 debugger
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ['console.log']
+      }
+    },
+    // 代码分割优化
+    rollupOptions: {
+      output: {
+        // 分包策略
+        manualChunks: {
+          vendor: ['vue', 'pinia'],
+        }
+      }
+    }
   }
 })
