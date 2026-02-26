@@ -24,10 +24,7 @@ async function fetchFinanceData(entry, params) {
   try {
     const response = await axios.post(
       `${FINANCE_API_BASE}?Entry=${entry}`,
-      {
-        Head: { Target: 0 },
-        ...params
-      },
+      params,
       {
         headers: { 'Content-Type': 'application/json' },
         timeout: 10000
@@ -45,15 +42,90 @@ async function fetchFinanceData(entry, params) {
   }
 }
 
-// 获取指数行情
+// 解析连板天梯压缩数据格式
+function parseLadderData(buf) {
+  if (!buf || typeof buf !== 'string') return [];
+
+  try {
+    // 解析格式: [["6","1"],["0","001896","豫能控股"],["4","1"],...]
+    // 格式说明: [连板天数, 数量] 后面跟相应数量的股票 [类型, 代码, 名称]
+    const parsed = JSON.parse(buf);
+    const result = [];
+
+    let i = 0;
+    while (i < parsed.length) {
+      const item = parsed[i];
+      if (item.length === 2) {
+        // [连板天数, 数量]
+        const days = parseInt(item[0]);
+        const count = parseInt(item[1]);
+        const stocks = [];
+
+        // 读取后面count个股票
+        for (let j = 0; j < count && i + 1 + j < parsed.length; j++) {
+          const stockItem = parsed[i + 1 + j];
+          if (stockItem.length >= 3) {
+            stocks.push({
+              code: stockItem[1],
+              name: stockItem[2],
+              highDays: days
+            });
+          } else if (stockItem.length >= 2) {
+            stocks.push({
+              code: stockItem[1],
+              name: stockItem[2] || '',
+              highDays: days
+            });
+          }
+        }
+
+        result.push({
+          days,
+          count,
+          stocks: stocks.slice(0, 10) // 每个层级最多显示10只
+        });
+
+        i += 1 + count;
+      } else {
+        i++;
+      }
+    }
+
+    // 按天数降序排列
+    return result.sort((a, b) => b.days - a.days);
+  } catch (e) {
+    console.error('解析连板天梯数据失败:', e);
+    return [];
+  }
+}
+
+// 获取指数行情（使用PBCombHQ接口）
 async function getIndexQuote(req, res) {
   try {
-    const data = await fetchFinanceData('HQServ.IndexQuote', {
-      Code: '000001.SZ,399001.SZ,000300.SH,000016.SH,000688.SH,000905.SH'
+    const data = await fetchFinanceData('HQServ.PBCombHQ', {
+      Head: { Target: 0 },
+      WantCol: ['VOL', 'NOW', 'CLOSE'],
+      Setcode: ['1', '0', '1', '0', '1', '2'],
+      Code: ['999999', '399001', '000300', '399006', '000688', '899050']
     });
 
-    res.json(success(data.Data || []));
+    if (data.ListItem) {
+      const indexData = data.ListItem.map(item => ({
+        code: item.Item[0],
+        setcode: item.Item[1],
+        name: item.Item[2],
+        lastClose: item.Item[3],
+        price: item.Item[4],
+        volume: item.Item[5],
+        changePct: item.Item[8] || '0'
+      }));
+
+      res.json(success(indexData));
+    } else {
+      res.json(success([]));
+    }
   } catch (err) {
+    console.error('获取指数行情失败:', err.message);
     res.status(500).json(error('获取指数行情失败'));
   }
 }
@@ -62,52 +134,25 @@ async function getIndexQuote(req, res) {
 async function getLimitUpLadder(req, res) {
   try {
     const data = await fetchFinanceData('HQServ.PBXmlBlock', {
+      Head: { Target: 0 },
       Blocktype: '0',
       Blockstyle: '3',
       Blockid: 'Stock_SCHIGH'
     });
 
-    // 按连板天数分组
-    const ladderData = {};
-    const stocks = data.Data || [];
+    // 解析压缩格式的数据
+    const ladder = parseLadderData(data.Buf);
 
-    stocks.forEach(stock => {
-      const days = stock.HighDays || 1;
-      if (!ladderData[days]) {
-        ladderData[days] = [];
-      }
-      ladderData[days].push({
-        code: stock.Code,
-        name: stock.Name,
-        price: stock.Price,
-        change: stock.Change,
-        changePct: stock.ChangePct,
-        highDays: stock.HighDays,
-        limitStatus: stock.LimitStatus,
-        volume: stock.Volume,
-        amount: stock.Amount,
-        industry: stock.Industry,
-        reason: stock.Reason,
-        firstLimitTime: stock.FirstLimitTime,
-        openCount: stock.OpenCount
-      });
-    });
-
-    // 转换为数组并按天数降序排列
-    const result = Object.keys(ladderData)
-      .map(days => ({
-        days: parseInt(days),
-        count: ladderData[days].length,
-        stocks: ladderData[days].slice(0, 10) // 每个层级最多显示10只
-      }))
-      .sort((a, b) => b.days - a.days);
+    // 计算总数
+    const total = data.Num || ladder.reduce((sum, level) => sum + level.count, 0);
 
     res.json(success({
-      ladder: result,
-      total: stocks.length,
-      updateTime: data.Head?.Time
+      ladder,
+      total,
+      updateTime: new Date().toISOString()
     }));
   } catch (err) {
+    console.error('获取连板天梯失败:', err.message);
     res.status(500).json(error('获取连板天梯失败'));
   }
 }
@@ -121,29 +166,37 @@ async function getIndustryFundFlow(req, res) {
     const blockId = type === 'inflow' ? 'MStock_ZLJX_ADDE_R' : 'MStock_ZLJX_ADDE';
 
     const data = await fetchFinanceData('HQServ.PBXmlBlock', {
+      Head: { Target: 0 },
       Code: `HY,1,0,${top}`,
       Blockid: blockId
     });
 
-    const industries = (data.Data || []).map(item => ({
-      code: item.Code,
-      name: item.Name,
-      netInflow: item.NetInflow || item.NetOutflow || 0,
-      netInflowPct: item.NetInflowPct || item.NetOutflowPct || 0,
-      mainInflow: item.MainInflow || item.MainOutflow || 0,
-      stockCount: item.StockCount,
-      upCount: item.UpCount,
-      downCount: item.DownCount,
-      limitUpCount: item.LimitUpCount || item.LimitDownCount || 0,
-      avgChangePct: item.AvgChangePct
-    }));
+    // 处理返回数据
+    const industries = [];
+    if (data.Data && Array.isArray(data.Data)) {
+      data.Data.forEach(item => {
+        industries.push({
+          code: item.Code || '',
+          name: item.Name || '',
+          netInflow: item.NetInflow || item.NetOutflow || 0,
+          netInflowPct: item.NetInflowPct || item.NetOutflowPct || 0,
+          mainInflow: item.MainInflow || item.MainOutflow || 0,
+          stockCount: item.StockCount || 0,
+          upCount: item.UpCount || 0,
+          downCount: item.DownCount || 0,
+          limitUpCount: item.LimitUpCount || item.LimitDownCount || 0,
+          avgChangePct: item.AvgChangePct || 0
+        });
+      });
+    }
 
     res.json(success({
       type,
       industries,
-      updateTime: data.Head?.Time
+      updateTime: new Date().toISOString()
     }));
   } catch (err) {
+    console.error('获取行业资金流向失败:', err.message);
     res.status(500).json(error('获取行业资金流向失败'));
   }
 }
@@ -151,28 +204,27 @@ async function getIndustryFundFlow(req, res) {
 // 获取市场概览（综合数据）
 async function getMarketOverview(req, res) {
   try {
-    // 并行获取多个数据
-    const [indexData, inflowData, outflowData] = await Promise.all([
-      fetchFinanceData('HQServ.IndexQuote', {
-        Code: '000001.SZ,399001.SZ,000300.SH'
-      }).catch(() => ({ Data: [] })),
-      fetchFinanceData('HQServ.PBXmlBlock', {
-        Code: 'HY,1,0,5',
-        Blockid: 'MStock_ZLJX_ADDE_R'
-      }).catch(() => ({ Data: [] })),
-      fetchFinanceData('HQServ.PBXmlBlock', {
-        Code: 'HY,1,0,5',
-        Blockid: 'MStock_ZLJX_ADDE'
-      }).catch(() => ({ Data: [] }))
-    ]);
+    // 获取指数数据
+    const indexData = await fetchFinanceData('HQServ.PBCombHQ', {
+      Head: { Target: 0 },
+      WantCol: ['VOL', 'NOW', 'CLOSE'],
+      Setcode: ['1', '0', '1'],
+      Code: ['999999', '399001', '000300']
+    }).catch(() => ({ ListItem: [] }));
+
+    const index = indexData.ListItem ? indexData.ListItem.map(item => ({
+      code: item.Item[0],
+      name: item.Item[2],
+      price: item.Item[4],
+      changePct: item.Item[8] || '0'
+    })) : [];
 
     res.json(success({
-      index: indexData.Data || [],
-      topInflow: (inflowData.Data || []).slice(0, 5),
-      topOutflow: (outflowData.Data || []).slice(0, 5),
-      updateTime: indexData.Head?.Time
+      index,
+      updateTime: new Date().toISOString()
     }));
   } catch (err) {
+    console.error('获取市场概览失败:', err.message);
     res.status(500).json(error('获取市场概览失败'));
   }
 }

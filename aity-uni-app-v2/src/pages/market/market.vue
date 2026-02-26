@@ -20,11 +20,10 @@
             class="index-card"
             :class="getChangeClass(item.changePct)"
           >
-            <text class="index-name">{{ item.Name || item.name }}</text>
-            <text class="index-price">{{ formatPrice(item.Price || item.Now) }}</text>
+            <text class="index-name">{{ item.name }}</text>
+            <text class="index-price">{{ formatPrice(item.price) }}</text>
             <view class="index-change">
-              <text class="change-value">{{ formatChange(item.Change) }}</text>
-              <text class="change-pct">{{ formatChangePct(item.ChangePct || item.EXT_ZF) }}</text>
+              <text class="change-pct">{{ formatChangePct(item.changePct) }}</text>
             </view>
           </view>
         </view>
