@@ -737,8 +737,11 @@ const handleSave = async () => {
 
 			closeAllDrawers()
 
-			// 刷新列表
-			await loadUsers(true)
+			// 刷新列表和Tab计数
+			await Promise.all([
+				loadUsers(true),
+				loadTabCounts()
+			])
 
 			// 如果创建的用户不符合当前筛选，切换到"全部"标签
 			if (!userForm.value.id && currentRoleTab.value !== 'all') {
@@ -790,8 +793,11 @@ const handleDelete = async (id) => {
 							title: '删除成功',
 							icon: 'success'
 						})
-						// 从列表中移除并刷新
-						await loadUsers(true)
+						// 刷新列表和Tab计数
+						await Promise.all([
+							loadUsers(true),
+							loadTabCounts()
+						])
 					} else {
 						uni.showToast({
 							title: result.message || '删除失败',

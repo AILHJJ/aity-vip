@@ -1,13 +1,5 @@
 <template>
 	<view class="ai-advisor-container">
-		<!-- 简洁顶部栏 -->
-		<view class="header-bar">
-			<view class="header-content">
-				<text class="header-title">图灵</text>
-				<text class="header-subtitle">智能金融助手</text>
-			</view>
-		</view>
-
 		<!-- 对话消息区域 -->
 		<scroll-view
 			class="chat-container"
@@ -700,72 +692,12 @@ onUnmounted(() => {
 	background: #fafafa;
 }
 
-/* 简洁顶部栏样式 */
-.header-bar {
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	padding: 28rpx 32rpx;
-	padding-top: calc(28rpx + env(safe-area-inset-top));
-	box-shadow: 0 4rpx 20rpx rgba(102, 126, 234, 0.2);
-	flex-shrink: 0;
-}
-
-.header-content {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 4rpx;
-}
-
-.header-title {
-	font-size: 40rpx;
-	font-weight: bold;
-	color: #ffffff;
-	letter-spacing: 4rpx;
-}
-
-.header-subtitle {
-	font-size: 22rpx;
-	color: rgba(255, 255, 255, 0.8);
-	font-weight: 300;
-	letter-spacing: 2rpx;
-}
-
-/* 极简顶部栏（旧样式保留兼容） */
-.header {
-	background: #ffffff;
-	padding: 24rpx 32rpx;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	border-bottom: 1rpx solid #f0f0f0;
-	position: relative;
-	z-index: 100;
-}
-
-.header-left {
-	display: flex;
-	align-items: center;
-	gap: 12rpx;
-}
-
-.header-title {
-	font-size: 40rpx;
-	font-weight: bold;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
-	background-clip: text;
-}
-
-/* 行情指数条 */
-.market-ticker {
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	padding: 16rpx 20rpx;
-	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.2);
-}
-
-.ticker-scroll {
-	white-space: nowrap;
+/* 对话区域 */
+.chat-container {
+	flex: 1;
+	padding: 20rpx;
+	overflow-y: auto;
+	padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
 }
 
 .ticker-item {
