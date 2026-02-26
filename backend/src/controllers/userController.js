@@ -235,6 +235,55 @@ async function deleteUser(req, res) {
   }
 }
 
+// 停用用户（逻辑删除）
+async function deactivateUser(req, res) {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json(notFound('用户不存在'));
+    }
+
+    // 不能停用超级管理员
+    if (user.role === 'super_admin') {
+      return res.status(403).json(error('不能停用超级管理员', 403));
+    }
+
+    await user.update({ status: 'inactive' });
+
+    const userResponse = user.toJSON();
+    delete userResponse.password;
+
+    return res.json(success(userResponse, '用户已停用'));
+  } catch (err) {
+    console.error('Deactivate user error:', err);
+    return res.status(500).json(serverError('停用用户失败'));
+  }
+}
+
+// 启用用户
+async function activateUser(req, res) {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json(notFound('用户不存在'));
+    }
+
+    await user.update({ status: 'active' });
+
+    const userResponse = user.toJSON();
+    delete userResponse.password;
+
+    return res.json(success(userResponse, '用户已启用'));
+  } catch (err) {
+    console.error('Activate user error:', err);
+    return res.status(500).json(serverError('启用用户失败'));
+  }
+}
+
 // 重置用户密码
 async function resetUserPassword(req, res) {
   try {
@@ -263,5 +312,7 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
+  deactivateUser,
+  activateUser,
   resetUserPassword
 };

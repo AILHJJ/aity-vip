@@ -59,6 +59,7 @@
 					v-for="user in users"
 					:key="user.id"
 					class="user-card"
+					:class="{ 'user-inactive': user.status === 'inactive' }"
 				>
 					<!-- 卡片头部 -->
 					<view class="card-header">
@@ -101,6 +102,20 @@
 						</button>
 						<button class="action-btn reset-btn" @click="handleResetPassword(user)">
 							<text>重置密码</text>
+						</button>
+						<button
+							v-if="user.status === 'active'"
+							class="action-btn deactivate-btn"
+							@click="handleDeactivate(user)"
+						>
+							<text>停用</text>
+						</button>
+						<button
+							v-else
+							class="action-btn activate-btn"
+							@click="handleActivate(user)"
+						>
+							<text>启用</text>
 						</button>
 						<button class="action-btn delete-btn" @click="handleDelete(user.id)">
 							<text>删除</text>
@@ -323,7 +338,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
-import { getUsersApi, createUserApi, updateUserApi, deleteUserApi, resetUserPasswordApi } from '../../api/user'
+import { getUsersApi, createUserApi, updateUserApi, deleteUserApi, deactivateUserApi, activateUserApi, resetUserPasswordApi } from '../../api/user'
 import { USER_ROLES, USER_ROLE_LABELS } from '../../utils/constants'
 import { formatDate } from '../../utils/time'
 
@@ -778,6 +793,74 @@ const handleSave = async () => {
 	}
 }
 
+// 停用用户
+const handleDeactivate = async (user) => {
+	try {
+		uni.showModal({
+			title: '停用用户',
+			content: `确定要停用用户 "${user.name}" 吗？停用后该用户将无法登录。`,
+			success: async (res) => {
+				if (res.confirm) {
+					const result = await deactivateUserApi(user.id)
+
+					if (result.success) {
+						uni.showToast({
+							title: '已停用',
+							icon: 'success'
+						})
+						// 刷新列表和Tab计数
+						await Promise.all([
+							loadUsers(true),
+							loadTabCounts()
+						])
+					} else {
+						uni.showToast({
+							title: result.message || '停用失败',
+							icon: 'none'
+						})
+					}
+				}
+			}
+		})
+	} catch (error) {
+		console.error('停用用户失败:', error)
+		uni.showToast({
+			title: '停用失败',
+			icon: 'none'
+		})
+	}
+}
+
+// 启用用户
+const handleActivate = async (user) => {
+	try {
+		const result = await activateUserApi(user.id)
+
+		if (result.success) {
+			uni.showToast({
+				title: '已启用',
+				icon: 'success'
+			})
+			// 刷新列表和Tab计数
+			await Promise.all([
+				loadUsers(true),
+				loadTabCounts()
+			])
+		} else {
+			uni.showToast({
+				title: result.message || '启用失败',
+				icon: 'none'
+			})
+		}
+	} catch (error) {
+		console.error('启用用户失败:', error)
+		uni.showToast({
+			title: '启用失败',
+			icon: 'none'
+		})
+	}
+}
+
 // 删除用户
 const handleDelete = async (id) => {
 	try {
@@ -1043,6 +1126,15 @@ onMounted(() => {
 	box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
 }
 
+.user-card.user-inactive {
+	background: #f5f5f5;
+	opacity: 0.7;
+}
+
+.user-card.user-inactive .avatar-text {
+	color: #999;
+}
+
 /* 卡片头部 */
 .card-header {
 	display: flex;
@@ -1212,6 +1304,16 @@ onMounted(() => {
 .reset-btn {
 	background: #fff7e6;
 	color: #fa8c16;
+}
+
+.deactivate-btn {
+	background: #f6f0ff;
+	color: #722ed1;
+}
+
+.activate-btn {
+	background: #f6ffed;
+	color: #52c41a;
 }
 
 .delete-btn {

@@ -45,6 +45,24 @@ router.delete('/:id',
   userController.deleteUser
 );
 
+// 停用用户（逻辑删除）
+router.put('/:id/deactivate',
+  authenticateToken,
+  checkAdmin,
+  ...validateIdParam(),
+  clearCache('users:*'),
+  userController.deactivateUser
+);
+
+// 启用用户
+router.put('/:id/activate',
+  authenticateToken,
+  checkAdmin,
+  ...validateIdParam(),
+  clearCache('users:*'),
+  userController.activateUser
+);
+
 router.put('/:id/password',
   authenticateToken,
   checkAdmin,
