@@ -1,5 +1,11 @@
 <template>
 	<view class="ai-advisor-container">
+		<!-- 顶部标题栏 -->
+		<view class="header-bar">
+			<text class="header-title">图灵</text>
+			<text class="header-subtitle">智能金融助手</text>
+		</view>
+
 		<!-- 对话消息区域 -->
 		<scroll-view
 			class="chat-container"
@@ -690,6 +696,32 @@ onUnmounted(() => {
 	flex-direction: column;
 	height: 100vh;
 	background: #fafafa;
+}
+
+/* 顶部标题栏 */
+.header-bar {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	padding: 28rpx 32rpx;
+	padding-top: calc(28rpx + env(safe-area-inset-top));
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4rpx;
+	flex-shrink: 0;
+}
+
+.header-title {
+	font-size: 36rpx;
+	font-weight: bold;
+	color: #ffffff;
+	letter-spacing: 4rpx;
+}
+
+.header-subtitle {
+	font-size: 22rpx;
+	color: rgba(255, 255, 255, 0.8);
+	font-weight: 300;
+	letter-spacing: 2rpx;
 }
 
 /* 对话区域 */
