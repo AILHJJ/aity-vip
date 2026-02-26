@@ -90,7 +90,8 @@
       "Read(//c/Users/DELL/Downloads//**)",
       "Bash(\"/c/Users/DELL/Downloads/chrome-win64/chrome.exe\" --version)",
       "Read(//c/Program Files (x86)/Google/Chrome/Application/**)",
-      "Read(//c/Program Files (x86)/Google/Chrome/Application//**)"
+      "Read(//c/Program Files (x86)/Google/Chrome/Application//**)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "ask": []
