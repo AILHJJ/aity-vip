@@ -230,23 +230,37 @@ const handleUnfavorite = async (id, type) => {
 			content: '确定要取消收藏吗？',
 			success: async (res) => {
 				if (res.confirm) {
-					let result
-					if (type === 'message') {
-						result = await unfavoriteMessageApi(id)
-					} else {
-						result = await unfavoriteDiscussionApi(id)
-					}
+					// 显示 loading
+					uni.showLoading({
+						title: '处理中...',
+						mask: true
+					})
 
-					if (result.success) {
+					try {
+						let result
+						if (type === 'message') {
+							result = await unfavoriteMessageApi(id)
+						} else {
+							result = await unfavoriteDiscussionApi(id)
+						}
+
+						if (result.success || result.code === 200) {
+							uni.hideLoading()
+							uni.showToast({
+								title: '已取消收藏',
+								icon: 'success'
+							})
+
+							// 刷新列表以确保数据一致性
+							await loadList(true)
+						} else {
+							throw new Error(result.message || '操作失败')
+						}
+					} catch (error) {
+						uni.hideLoading()
+						console.error('取消收藏失败:', error)
 						uni.showToast({
-							title: '已取消收藏',
-							icon: 'success'
-						})
-						// 从列表中移除
-						list.value = list.value.filter(item => item.id !== id)
-					} else {
-						uni.showToast({
-							title: result.message || '操作失败',
+							title: error.message || '操作失败',
 							icon: 'none'
 						})
 					}

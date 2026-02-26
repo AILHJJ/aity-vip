@@ -14,6 +14,15 @@
 
 		<!-- 功能菜单 -->
 		<view class="menu-section">
+			<view class="menu-item" @click="goToMarket">
+				<view class="menu-left">
+					<text class="menu-icon">📈</text>
+					<text class="menu-text">行情中心</text>
+					<text class="menu-tag">体验版</text>
+				</view>
+				<text class="menu-arrow">›</text>
+			</view>
+
 			<view class="menu-item" @click="goToMessages">
 				<view class="menu-left">
 					<text class="menu-icon">📨</text>
@@ -133,6 +142,13 @@ const loadStats = async () => {
 onMounted(() => {
 	loadStats()
 })
+
+// 跳转到行情中心
+const goToMarket = () => {
+	uni.navigateTo({
+		url: '/pages/market/market'
+	})
+}
 
 // 跳转到消息中心
 const goToMessages = () => {
@@ -296,6 +312,15 @@ const handleLogout = () => {
 .menu-text {
 	font-size: 30rpx;
 	color: #333333;
+}
+
+.menu-tag {
+	font-size: 20rpx;
+	color: #ffffff;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	padding: 4rpx 12rpx;
+	border-radius: 8rpx;
+	margin-left: 8rpx;
 }
 
 .menu-right {

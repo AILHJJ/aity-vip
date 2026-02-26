@@ -1,0 +1,29 @@
+{
+  "total": 5,
+  "passed": 4,
+  "failed": 1,
+  "tests": [
+    {
+      "name": "CLI可用性",
+      "status": "passed"
+    },
+    {
+      "name": "项目完整性",
+      "status": "passed"
+    },
+    {
+      "name": "页面文件完整性",
+      "status": "passed",
+      "details": "5/5"
+    },
+    {
+      "name": "首页配置",
+      "status": "failed",
+      "error": "当前首页: undefined"
+    },
+    {
+      "name": "编译状态",
+      "status": "passed"
+    }
+  ]
+}

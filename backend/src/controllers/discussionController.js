@@ -2,6 +2,7 @@
 const { Op } = require('sequelize');
 const Discussion = require('../models/Discussion');
 const DiscussionReply = require('../models/DiscussionReply');
+const DiscussionFavorite = require('../models/DiscussionFavorite');
 const Message = require('../models/Message');
 const User = require('../models/User');
 
@@ -552,6 +553,143 @@ async function getMyDiscussions(req, res) {
   }
 }
 
+// 获取收藏的讨论列表
+async function getFavoriteDiscussions(req, res) {
+  try {
+    console.log('=== 获取收藏讨论列表请求开始 ===');
+    const startTime = Date.now();
+
+    const { page = 1, limit = 10 } = req.query;
+    const userId = req.user.userId;
+    const offset = (page - 1) * limit;
+
+    // 获取收藏的记录总数
+    const { count } = await DiscussionFavorite.findAndCountAll({
+      where: { userId }
+    });
+
+    // 获取收藏的讨论
+    const favorites = await DiscussionFavorite.findAll({
+      where: { userId },
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']],
+      include: [{
+        model: Discussion,
+        as: 'discussion',
+        required: false, // 使用LEFT JOIN，允许讨论为null（已被删除）
+        include: [{
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'avatar'],
+          required: false
+        }]
+      }]
+    });
+
+    // 提取讨论数据
+    const discussions = favorites
+      .map(fav => {
+        const discussion = fav.discussion;
+        if (!discussion) return null;
+
+        const discussionData = discussion.toJSON();
+
+        return {
+          id: discussionData.id,
+          title: discussionData.title,
+          content: discussionData.content,
+          status: discussionData.status,
+          visibility: discussionData.visibility,
+          messageId: discussionData.messageId,
+          replyCount: discussionData.replies?.length || 0,
+          createdAt: discussionData.createdAt,
+          updatedAt: discussionData.updatedAt,
+          creatorId: discussionData.userId,
+          creatorName: discussionData.userName,
+          userName: discussionData.userName,
+          userAvatar: discussionData.user?.avatar
+        };
+      })
+      .filter(disc => disc !== null); // 过滤掉已被删除的讨论
+
+    console.log('获取收藏讨论列表请求处理完成，总耗时:', Date.now() - startTime, 'ms');
+
+    // 统一响应格式: { code, message, data: { list, pagination } }
+    res.json(success({
+      list: discussions,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(count / limit)
+      }
+    }));
+  } catch (err) {
+    console.error('获取收藏讨论列表错误:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 收藏讨论
+async function favoriteDiscussion(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // 检查讨论是否存在
+    const discussion = await Discussion.findByPk(id);
+    if (!discussion) {
+      return res.status(404).json(notFound('Discussion not found'));
+    }
+
+    // 检查是否已收藏
+    const existingFavorite = await DiscussionFavorite.findOne({
+      where: { userId, discussionId: id }
+    });
+
+    if (existingFavorite) {
+      return res.json(success(existingFavorite, 'Already favorited'));
+    }
+
+    // 创建收藏记录
+    const favorite = await DiscussionFavorite.create({
+      userId,
+      discussionId: id
+    });
+
+    res.status(201).json(success(favorite, 'Discussion favorited successfully'));
+  } catch (err) {
+    console.error('收藏讨论失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 取消收藏讨论
+async function unfavoriteDiscussion(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // 查找收藏记录
+    const favorite = await DiscussionFavorite.findOne({
+      where: { discussionId: id, userId }
+    });
+
+    if (!favorite) {
+      return res.status(404).json(notFound('Favorite not found'));
+    }
+
+    // 删除收藏记录
+    await favorite.destroy();
+
+    res.json(success(null, 'Discussion unfavorited successfully'));
+  } catch (err) {
+    console.error('取消收藏讨论失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
 module.exports = {
   getDiscussions,
   getDiscussionById,
@@ -559,5 +697,8 @@ module.exports = {
   addDiscussionReply,
   getDiscussionReplies,
   updateDiscussionVisibility,
-  getMyDiscussions
+  getMyDiscussions,
+  getFavoriteDiscussions,
+  favoriteDiscussion,
+  unfavoriteDiscussion
 };

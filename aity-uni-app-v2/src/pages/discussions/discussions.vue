@@ -105,6 +105,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import { getDiscussionsApi } from '../../api/discussion'
 import { formatFriendlyTime } from '../../utils/time'
@@ -248,6 +249,9 @@ const goToDetail = (id) => {
 	})
 }
 
+// 标记是否已初始化（用于区分首次加载和返回刷新）
+const isInitialized = ref(false)
+
 // 页面加载
 onMounted(async () => {
 	// 检查登录状态
@@ -281,6 +285,16 @@ onMounted(async () => {
 	}
 
 	loadDiscussions(true)
+	isInitialized.value = true
+})
+
+// 页面显示时刷新（从详情页返回时）
+onShow(() => {
+	// 只有初始化完成后才刷新（避免首次加载重复刷新）
+	if (isInitialized.value && userInfoLoaded.value) {
+		console.log('[讨论列表] 页面返回，刷新列表')
+		loadDiscussions(true)
+	}
 })
 </script>
 

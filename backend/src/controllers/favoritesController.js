@@ -66,13 +66,12 @@ async function getFavorites(req, res) {
       include: [{
         model: Message,
         as: 'message',
+        required: false, // 使用LEFT JOIN，允许消息为null（已被删除）
         include: [{
-          model: MessageAttachment,
-          as: 'attachments'
-        }, {
           model: User,
           as: 'senderUser',
-          attributes: ['id', 'name', 'email', 'role']
+          attributes: ['id', 'name', 'email', 'role'],
+          required: false
         }]
       }]
     });

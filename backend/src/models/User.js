@@ -48,11 +48,12 @@ const User = sequelize.define('User', {
 });
 
 // 延迟加载关联模型以避免循环依赖
-let UserFavorite, UserMessageRead;
+let UserFavorite, UserMessageRead, DiscussionFavorite;
 
 try {
   UserFavorite = require('./UserFavorite');
   UserMessageRead = require('./UserMessageRead');
+  DiscussionFavorite = require('./DiscussionFavorite');
 } catch (e) {
   // 忽略模块未加载错误，稍后设置关联
 }
@@ -64,6 +65,10 @@ if (UserFavorite) {
 
 if (UserMessageRead) {
   User.hasMany(UserMessageRead, { foreignKey: 'userId', as: 'messageReads' });
+}
+
+if (DiscussionFavorite) {
+  User.hasMany(DiscussionFavorite, { foreignKey: 'userId', as: 'discussionFavorites' });
 }
 
 module.exports = User;

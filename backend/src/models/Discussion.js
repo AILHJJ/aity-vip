@@ -4,6 +4,16 @@ const sequelize = require('../config/db');
 const User = require('./User');
 const Message = require('./Message');
 
+// 延迟加载关联模型以避免循环依赖
+let DiscussionReply, DiscussionFavorite;
+
+try {
+  DiscussionReply = require('./DiscussionReply');
+  DiscussionFavorite = require('./DiscussionFavorite');
+} catch (e) {
+  // 忽略模块未加载错误，稍后设置关联
+}
+
 const Discussion = sequelize.define('Discussion', {
   id: {
     type: DataTypes.INTEGER,
@@ -51,5 +61,14 @@ const Discussion = sequelize.define('Discussion', {
 // 关联关系
 Discussion.belongsTo(Message, { foreignKey: 'messageId', as: 'message' });
 Discussion.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// 设置其他关联（如果模型已加载）
+if (DiscussionReply) {
+  Discussion.hasMany(DiscussionReply, { foreignKey: 'discussionId', as: 'replies' });
+}
+
+if (DiscussionFavorite) {
+  Discussion.hasMany(DiscussionFavorite, { foreignKey: 'discussionId', as: 'favorites' });
+}
 
 module.exports = Discussion;

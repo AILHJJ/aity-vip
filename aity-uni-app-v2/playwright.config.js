@@ -6,7 +6,7 @@
 const { defineConfig, devices } = require('@playwright/test');
 
 module.exports = defineConfig({
-  testDir: '../tests/e2e',
+  testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -33,8 +33,23 @@ module.exports = defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'chrome-testing',
+      use: {
+        browserName: 'chromium',
+        launchOptions: {
+          executablePath: 'C:\\Users\\DELL\\Downloads\\chrome-win64\\chrome.exe',
+          headless: false,
+        },
+        viewport: { width: 1280, height: 720 },
+        ignoreHTTPSErrors: true,
+      },
+    },
+    {
+      name: 'android',
+      use: {
+        deviceName: 'Pixel 5',
+        channel: 'chrome'
+      },
     },
   ],
 
