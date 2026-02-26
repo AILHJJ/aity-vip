@@ -101,7 +101,7 @@
 							<text>编辑</text>
 						</button>
 						<button class="action-btn reset-btn" @click="handleResetPassword(user)">
-							<text>重置密码</text>
+							<text>重置</text>
 						</button>
 						<button
 							v-if="user.status === 'active'"
@@ -499,7 +499,7 @@ const loadUsers = async (isRefresh = false) => {
 		}
 
 		if (searchKeyword.value) {
-			params.keyword = searchKeyword.value
+			params.search = searchKeyword.value
 		}
 
 		// 根据当前标签页添加筛选

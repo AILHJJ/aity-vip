@@ -19,25 +19,25 @@
 				<view class="stats-cards">
 					<view class="stat-card">
 						<text class="stat-icon">👥</text>
-						<text class="stat-value">{{ stats.totalUsers || 0 }}</text>
+						<text class="stat-value">{{ stats.users?.total || 0 }}</text>
 						<text class="stat-label">总用户数</text>
 					</view>
 
 					<view class="stat-card">
 						<text class="stat-icon">✨</text>
-						<text class="stat-value">{{ stats.activeUsers || 0 }}</text>
-						<text class="stat-label">活跃用户</text>
+						<text class="stat-value">{{ stats.users?.newToday || 0 }}</text>
+						<text class="stat-label">今日新增</text>
 					</view>
 
 					<view class="stat-card">
 						<text class="stat-icon">📨</text>
-						<text class="stat-value">{{ stats.totalMessages || 0 }}</text>
+						<text class="stat-value">{{ stats.messages?.total || 0 }}</text>
 						<text class="stat-label">消息总数</text>
 					</view>
 
 					<view class="stat-card">
 						<text class="stat-icon">💬</text>
-						<text class="stat-value">{{ stats.totalDiscussions || 0 }}</text>
+						<text class="stat-value">{{ stats.discussions?.total || 0 }}</text>
 						<text class="stat-label">讨论总数</text>
 					</view>
 				</view>
