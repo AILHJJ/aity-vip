@@ -200,6 +200,139 @@ async function getMessageTypeDistribution(req, res) {
   }
 }
 
+// 获取用户增长趋势（管理员视图）
+async function getUserGrowth(req, res) {
+  try {
+    const currentUserRole = req.user.role;
+    const days = parseInt(req.query.days) || 30;
+
+    // 检查权限
+    if (currentUserRole !== 'super_admin' && currentUserRole !== 'admin') {
+      return res.status(403).json(forbidden('Only administrators can access this data'));
+    }
+
+    // 生成日期数组
+    const growth = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      const count = await User.count({
+        where: {
+          createdAt: {
+            [Op.gte]: date,
+            [Op.lt]: nextDate
+          }
+        }
+      });
+
+      growth.push({
+        date: dateStr,
+        count
+      });
+    }
+
+    res.json(success({ growth }));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 获取活跃用户列表（管理员视图）
+async function getActiveUsers(req, res) {
+  try {
+    const currentUserRole = req.user.role;
+    const limit = parseInt(req.query.limit) || 10;
+
+    // 检查权限
+    if (currentUserRole !== 'super_admin' && currentUserRole !== 'admin') {
+      return res.status(403).json(forbidden('Only administrators can access this data'));
+    }
+
+    // 获取最近活跃的用户（基于最近创建的讨论）
+    const recentDiscussions = await Discussion.findAll({
+      attributes: ['userId', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+      limit: limit * 2 // 多获取一些以防重复用户
+    });
+
+    // 提取活跃用户ID（去重）
+    const activeUserIds = [...new Set(recentDiscussions.map(d => d.userId))].slice(0, limit);
+
+    // 获取用户信息
+    const users = await User.findAll({
+      where: { id: { [Op.in]: activeUserIds } },
+      attributes: ['id', 'name', 'email', 'role', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+      limit
+    });
+
+    // 创建用户最后活跃时间映射
+    const lastActiveMap = {};
+    recentDiscussions.forEach(d => {
+      if (!lastActiveMap[d.userId]) {
+        lastActiveMap[d.userId] = d.createdAt;
+      }
+    });
+
+    const result = users.map(user => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      lastActive: lastActiveMap[user.id] || user.createdAt
+    }));
+
+    res.json(success({ users: result }));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 获取用户角色分布（管理员视图）
+async function getUserRoleDistribution(req, res) {
+  try {
+    const currentUserRole = req.user.role;
+
+    // 检查权限
+    if (currentUserRole !== 'super_admin' && currentUserRole !== 'admin') {
+      return res.status(403).json(forbidden('Only administrators can access this data'));
+    }
+
+    const distribution = {
+      super_admin: 0,
+      admin: 0,
+      vip_mid: 0,
+      vip_short: 0,
+      trial: 0
+    };
+
+    const users = await User.findAll({
+      attributes: ['role']
+    });
+
+    users.forEach(user => {
+      if (distribution.hasOwnProperty(user.role)) {
+        distribution[user.role]++;
+      }
+    });
+
+    res.json(success({ distribution }));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
 // 获取全局统计数据（管理员视图）
 async function getGlobalStats(req, res) {
   try {
@@ -272,5 +405,8 @@ module.exports = {
   getPersonalStats,
   getMessageTrend,
   getMessageTypeDistribution,
-  getGlobalStats
+  getGlobalStats,
+  getUserGrowth,
+  getActiveUsers,
+  getUserRoleDistribution
 };
