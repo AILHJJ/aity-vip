@@ -884,7 +884,7 @@ const handleDeactivate = async (user) => {
 				if (res.confirm) {
 					const result = await deactivateUserApi(user.id)
 
-					if (result.success) {
+					if (result.code === 200 || result.success) {
 						uni.showToast({
 							title: '已停用',
 							icon: 'success'
@@ -917,7 +917,7 @@ const handleActivate = async (user) => {
 	try {
 		const result = await activateUserApi(user.id)
 
-		if (result.success) {
+		if (result.code === 200 || result.success) {
 			uni.showToast({
 				title: '已启用',
 				icon: 'success'
@@ -952,7 +952,7 @@ const handleDelete = async (id) => {
 				if (res.confirm) {
 					const result = await deleteUserApi(id)
 
-					if (result.success) {
+					if (result.code === 200 || result.success) {
 						uni.showToast({
 							title: '删除成功',
 							icon: 'success'

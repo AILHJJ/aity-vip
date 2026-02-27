@@ -272,7 +272,8 @@ const STRATEGY_KEY = 'last_selected_strategy'
 // 预览模式
 const previewMode = ref(false)
 
-// 预览时的主题（实时预览用）const previewTheme = ref('default')
+// 预览时的主题（实时预览用）
+const previewTheme = ref('default')
 // 表单数据
 const formData = ref({
 	strategy: MESSAGE_TAGS.SHORT_TERM, // 策略类型（默认：短线策略）
@@ -383,7 +384,11 @@ const handleThemeChange = (e) => {
 	formData.value.theme = themeOptions[index].value
 }
 
-// 处理预览模式下的主题选择（实时预览）const handlePreviewThemeChange = (themeValue) => {	previewTheme.value = themeValue	formData.value.theme = themeValue  // 同步到表单数据，发布时使用此主题}
+// 处理预览模式下的主题选择（实时预览）
+const handlePreviewThemeChange = (themeValue) => {
+	previewTheme.value = themeValue
+	formData.value.theme = themeValue  // 同步到表单数据，发布时使用此主题
+}
 // 处理粘贴事件
 const handlePaste = (e) => {
 	// #ifdef MP-WEIXIN
@@ -1090,7 +1095,7 @@ const handleAiOptimize = async () => {
 
 		// 检查响应
 		if (response.code === 200 || response.success) {
-			optimizedContent.value = response.data.optimizedContent || response.data.content || ''
+			optimizedContent.value = response.data.optimized || response.data.optimizedContent || response.data.content || ''
 
 			if (!optimizedContent.value) {
 				throw new Error('优化内容为空')
