@@ -42,6 +42,11 @@ const User = sequelize.define('User', {
   expireDate: {
     type: DataTypes.DATE,
     field: 'expire_date'
+  },
+  bio: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: '用户简介（资产规模、分享偏好等）'
   }
 }, {
   tableName: 'users'

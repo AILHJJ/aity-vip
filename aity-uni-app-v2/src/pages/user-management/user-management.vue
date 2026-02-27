@@ -99,6 +99,11 @@
 							<text class="warning-icon">⚠️</text>
 							<text class="warning-text">VIP即将到期 ({{ getDaysRemaining(getUserExpireDate(user)) }}天)</text>
 						</view>
+						<!-- 用户简介 -->
+						<view v-if="user.bio" class="info-row bio-row">
+							<text class="info-label">简介</text>
+							<text class="info-value bio-text">{{ user.bio }}</text>
+						</view>
 					</view>
 
 					<!-- 卡片底部操作 -->
@@ -221,6 +226,19 @@
 							{{ userForm.role === 'trial' ? '体验用户默认7天' : 'VIP用户默认1个月' }}
 						</text>
 						<text class="form-hint" v-else>管理员无需设置到期时间</text>
+					</view>
+
+					<!-- 用户简介 -->
+					<view class="form-item">
+						<text class="form-label">用户简介（选填）</text>
+						<textarea
+							class="form-textarea"
+							v-model="userForm.bio"
+							placeholder="记录用户的资产规模、投资偏好、分享偏好等信息，方便运营管理"
+							placeholder-style="color: #999999"
+							:maxlength="500"
+						/>
+						<text class="form-hint">支持记录资产规模、分享偏好等运营信息</text>
 					</view>
 
 					<!-- VIP快速延期（仅编辑时显示） -->
@@ -416,7 +434,8 @@ const userForm = ref({
 	email: '',
 	password: '',
 	role: 'vip_short', // 默认短线VIP
-	expireDate: ''
+	expireDate: '',
+	bio: '' // 用户简介
 })
 
 // 快速延期选项（统一为4个常用选项：1个月、3个月/季度、6个月/半年、1年）
@@ -622,7 +641,8 @@ const handleCreateUser = () => {
 		password: '',
 		role: defaultRole,
 		groupId: userStore.userInfo?.groupId || '', // 自动继承当前管理员的分组
-		expireDate: today.toISOString().split('T')[0]
+		expireDate: today.toISOString().split('T')[0],
+		bio: ''
 	}
 	showCreateDrawer.value = true
 }
@@ -635,7 +655,8 @@ const handleEdit = (user) => {
 		email: user.email || '',
 		role: user.role,
 		groupId: user.groupId || user.group_id || '',
-		expireDate: getUserExpireDate(user) ? formatDate(getUserExpireDate(user)) : ''
+		expireDate: getUserExpireDate(user) ? formatDate(getUserExpireDate(user)) : '',
+		bio: user.bio || ''
 	}
 	// 重置临时日期
 	tempExpireDate.value = ''
@@ -659,7 +680,8 @@ const resetUserForm = () => {
 		password: '',
 		role: 'vip_short',
 		groupId: '',
-		expireDate: ''
+		expireDate: '',
+		bio: ''
 	}
 	tempExpireDate.value = ''
 	customExtendDays.value = ''
@@ -790,6 +812,9 @@ const handleSave = async () => {
 
 		// 到期时间（空字符串转为 null 表示永久有效）
 		data.expireDate = userForm.value.expireDate || null
+
+		// 用户简介
+		data.bio = userForm.value.bio || null
 
 		let res
 		if (userForm.value.id) {
@@ -1317,6 +1342,21 @@ onMounted(() => {
 	font-weight: bold;
 }
 
+/* 用户简介样式 */
+.bio-row {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8rpx;
+}
+
+.bio-text {
+	font-size: 26rpx;
+	color: #666;
+	line-height: 1.5;
+	word-break: break-all;
+	white-space: pre-wrap;
+}
+
 .expiry-warning {
 	display: flex;
 	align-items: center;
@@ -1538,6 +1578,18 @@ onMounted(() => {
 	font-size: 28rpx;
 	color: #1a1a1a;
 	box-sizing: border-box;
+}
+
+.form-textarea {
+	width: 100%;
+	min-height: 160rpx;
+	padding: 24rpx;
+	background: #f5f7fa;
+	border-radius: 16rpx;
+	font-size: 28rpx;
+	color: #1a1a1a;
+	box-sizing: border-box;
+	line-height: 1.5;
 }
 
 .form-hint {

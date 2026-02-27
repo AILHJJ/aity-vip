@@ -269,7 +269,13 @@ const themeOptions = [
 	{ label: '翡翠绿', value: 'emerald', desc: '清新护眼，绿色主题', previewColor: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)' },
 	{ label: '蓝色海洋', value: 'ocean', desc: '深邃海洋，专业风格', previewColor: 'linear-gradient(135deg, #0c4a6e 0%, #0ea5e9 100%)' },
 	{ label: '暖阳橙', value: 'warm', desc: '温暖活力，橙色主题', previewColor: 'linear-gradient(135deg, #7c2d12 0%, #f97316 100%)' },
-	{ label: '暗夜模式', value: 'dark', desc: '护眼暗色，夜间阅读', previewColor: 'linear-gradient(135deg, #18191a 0%, #3a3b3c 100%)' }
+	{ label: '暗夜模式', value: 'dark', desc: '护眼暗色，夜间阅读', previewColor: 'linear-gradient(135deg, #18191a 0%, #3a3b3c 100%)' },
+	{ label: '紫罗兰', value: 'violet', desc: '优雅紫色，浪漫风格', previewColor: 'linear-gradient(135deg, #5b21b6 0%, #a78bfa 100%)' },
+	{ label: '玫瑰红', value: 'rose', desc: '浪漫红粉，女性青睐', previewColor: 'linear-gradient(135deg, #be123c 0%, #fb7185 100%)' },
+	{ label: '青柠绿', value: 'lime', desc: '明亮清新，活力主题', previewColor: 'linear-gradient(135deg, #365314 0%, #84cc16 100%)' },
+	{ label: '科技蓝', value: 'tech', desc: '现代科技感，专业商务', previewColor: 'linear-gradient(135deg, #1e3a8a 0%, #60a5fa 100%)' },
+	{ label: '石墨灰', value: 'slate', desc: '低调稳重，商务首选', previewColor: 'linear-gradient(135deg, #334155 0%, #94a3b8 100%)' },
+	{ label: '日落金', value: 'sunset', desc: '温暖金色，财富寓意', previewColor: 'linear-gradient(135deg, #92400e 0%, #fbbf24 100%)' }
 ]
 
 // 当前选中的消息类型索引

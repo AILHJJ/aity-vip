@@ -130,7 +130,7 @@ async function getUserById(req, res) {
 // 创建用户
 async function createUser(req, res) {
   try {
-    const { name, email, password, role, groupId, status, expireDate } = req.body;
+    const { name, email, password, role, groupId, status, expireDate, bio } = req.body;
 
     // 检查用户名是否已存在
     const existingUser = await User.findOne({ where: { name } });
@@ -138,10 +138,20 @@ async function createUser(req, res) {
       return res.status(400).json(badRequest('用户名已存在'));
     }
 
-    // 检查邮箱是否已存在（如果提供了邮箱）
-    if (email) {
-      const existingEmail = await User.findOne({ where: { email } });
-      if (existingEmail) {
+    // 生成默认邮箱（如果未提供邮箱）
+    let userEmail = email;
+    if (!userEmail || userEmail.trim() === '') {
+      // 生成格式：用户名@users.aity.vip
+      userEmail = `${name.toLowerCase().replace(/\s+/g, '_')}@users.aity.vip`;
+    }
+
+    // 检查邮箱是否已存在
+    const existingEmail = await User.findOne({ where: { email: userEmail } });
+    if (existingEmail) {
+      // 如果默认邮箱冲突，添加时间戳
+      if (!email || email.trim() === '') {
+        userEmail = `${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}@users.aity.vip`;
+      } else {
         return res.status(400).json(badRequest('邮箱已被使用'));
       }
     }
@@ -151,12 +161,13 @@ async function createUser(req, res) {
 
     const user = await User.create({
       name,
-      email: email || null,
+      email: userEmail,
       password: hashedPassword,
       role: role || 'trial',
       groupId: groupId || null,
       status: status || 'active',
-      expireDate: expireDate || null
+      expireDate: expireDate || null,
+      bio: bio || null
     });
 
     // 返回用户信息（不包含密码）
@@ -174,7 +185,7 @@ async function createUser(req, res) {
 async function updateUser(req, res) {
   try {
     const { id } = req.params;
-    const { name, email, role, groupId, status, expireDate, password } = req.body;
+    const { name, email, role, groupId, status, expireDate, password, bio } = req.body;
 
     const user = await User.findByPk(id);
     if (!user) {
@@ -207,7 +218,8 @@ async function updateUser(req, res) {
       role: role || user.role,
       groupId: groupId !== undefined ? groupId : user.groupId,
       status: status || user.status,
-      expireDate: expireDate !== undefined ? expireDate : user.expireDate
+      expireDate: expireDate !== undefined ? expireDate : user.expireDate,
+      bio: bio !== undefined ? bio : user.bio
     };
 
     // 如果提供了新密码，则更新密码
