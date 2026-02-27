@@ -95,13 +95,9 @@
 								{{ getDaysRemaining(getUserExpireDate(user)) }}天 ({{ getTradingDaysRemaining(getUserExpireDate(user)) }}交易日)
 							</text>
 						</view>
-						<view v-if="isExpiringCritically(getUserExpireDate(user))" class="expiry-warning critical">
+						<view v-if="isExpiringSoon(getUserExpireDate(user))" class="expiry-warning">
 							<text class="warning-icon">⚠️</text>
 							<text class="warning-text">VIP即将到期 ({{ getDaysRemaining(getUserExpireDate(user)) }}天)</text>
-						</view>
-						<view v-else-if="isExpiringSoon(getUserExpireDate(user))" class="expiry-warning normal">
-							<text class="warning-icon">ℹ️</text>
-							<text class="warning-text">VIP将在30天内到期 ({{ getDaysRemaining(getUserExpireDate(user)) }}天)</text>
 						</view>
 					</view>
 
@@ -495,20 +491,8 @@ const getTradingDaysRemaining = (dateStr) => {
 	return tradingDays
 }
 
-// 判断是否即将到期（10天内显示警告，10-30天显示普通提示）
+// 判断是否即将到期（10天内显示警告）
 const isExpiringSoon = (dateStr) => {
-	if (!dateStr) return false
-
-	const expireDate = new Date(dateStr)
-	const today = new Date()
-	const diffTime = expireDate - today
-	const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-	return diffDays <= 30 && diffDays >= 0
-}
-
-// 判断是否严重即将到期（10天内，显示红色警告）
-const isExpiringCritically = (dateStr) => {
 	if (!dateStr) return false
 
 	const expireDate = new Date(dateStr)
@@ -518,6 +502,9 @@ const isExpiringCritically = (dateStr) => {
 
 	return diffDays <= 10 && diffDays >= 0
 }
+
+// 兼容旧代码，保持同一个函数
+const isExpiringCritically = isExpiringSoon
 
 // 获取剩余天数
 const getDaysRemaining = (dateStr) => {
