@@ -4,6 +4,10 @@ const { Op } = require('sequelize');
 
 // 导入用户模型
 const User = require('../models/User');
+const DiscussionReply = require('../models/DiscussionReply');
+const Discussion = require('../models/Discussion');
+const Message = require('../models/Message');
+const UserMessageRead = require('../models/UserMessageRead');
 
 // 统一响应格式
 function success(data, message = 'Success') {
@@ -238,6 +242,25 @@ async function deleteUser(req, res) {
       return res.status(404).json(notFound('用户不存在'));
     }
 
+    // 不允许删除超级管理员
+    if (user.role === 'super_admin') {
+      return res.status(403).json(error('不能删除超级管理员', 403));
+    }
+
+    // 删除用户前先清理关联数据
+    // 1. 删除用户的讨论回复
+    await DiscussionReply.destroy({ where: { senderId: id } });
+
+    // 2. 删除用户创建的讨论
+    await Discussion.destroy({ where: { userId: id } });
+
+    // 3. 删除用户的消息阅读记录
+    await UserMessageRead.destroy({ where: { userId: id } });
+
+    // 4. 将用户发送的消息的sender_id设为NULL（保留消息，但移除关联）
+    await Message.update({ senderId: null }, { where: { senderId: id } });
+
+    // 5. 删除用户
     await user.destroy();
 
     return res.json(success(null, '用户删除成功'));
