@@ -91,7 +91,11 @@
       "Bash(\"/c/Users/DELL/Downloads/chrome-win64/chrome.exe\" --version)",
       "Read(//c/Program Files (x86)/Google/Chrome/Application/**)",
       "Read(//c/Program Files (x86)/Google/Chrome/Application//**)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Read(//c/Users/DELL/.ssh/**)",
+      "Bash(ssh-keygen:*)",
+      "Bash(ssh-add:*)",
+      "Bash(git remote set-url:*)"
     ],
     "deny": [],
     "ask": []
