@@ -279,13 +279,13 @@ async function deleteUser(req, res) {
 
     // 5. 删除用户的收藏记录（如果表存在的话）
     try {
-      await sequelize.query('DELETE FROM favorites WHERE user_id = ?', {
+      await sequelize.query('DELETE FROM user_favorites WHERE user_id = ?', {
         replacements: [id],
         type: sequelize.QueryTypes.DELETE
       });
     } catch (favError) {
-      // 如果 favorites 表不存在，忽略错误
-      console.log('Note: favorites table may not exist:', favError.message);
+      // 如果 user_favorites 表不存在，忽略错误
+      console.log('Note: user_favorites table may not exist:', favError.message);
     }
 
     // 6. 将用户发送的消息的sender_id设为NULL（保留消息，但移除关联）
