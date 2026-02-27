@@ -55,10 +55,40 @@
 
 			<!-- Markdown主题选择器 - 已移除，主题由发帖者选择 -->
 
+			<!-- 版本切换标签 - 只在有优化版本时显示 -->
+			<view v-if="hasOptimizedVersion" class="version-tabs">
+				<view
+					class="version-tab"
+					:class="{ active: currentVersion === 'ai_optimized' }"
+					@click="switchVersion('ai_optimized')"
+				>
+					<text class="tab-icon">🤖</text>
+					<text class="tab-text">AI优化版</text>
+				</view>
+				<view
+					class="version-tab"
+					:class="{ active: currentVersion === 'original' }"
+					@click="switchVersion('original')"
+				>
+					<text class="tab-icon">📄</text>
+					<text class="tab-text">原始版本</text>
+				</view>
+			</view>
+
 			<!-- 消息内容（Markdown渲染，带主题内联样式） -->
-			<view class="message-content">
+			<view class="message-content" :class="{ 'with-version-switch': hasOptimizedVersion }">
 				<rich-text v-if="renderedContent" :nodes="renderedContent"></rich-text>
-				<text v-else class="content-text">{{ message.content }}</text>
+				<text v-else class="content-text">{{ displayContent }}</text>
+			</view>
+
+			<!-- 版本标识 - 只在有优化版本时显示 -->
+			<view v-if="hasOptimizedVersion" class="version-indicator">
+				<text v-if="currentVersion === 'ai_optimized'" class="ai-badge">
+					🤖 AI优化版 - 由AI智能优化，结构更清晰，阅读更便捷
+				</text>
+				<text v-else class="original-badge">
+					📄 原始版本 - 作者原文，保留原始风格
+				</text>
 			</view>
 
 			<!-- 消息图片 -->
@@ -226,6 +256,9 @@ const loading = ref(true)
 const isFavorited = ref(false)
 const messageId = ref(0)
 
+// 版本切换相关
+const currentVersion = ref('ai_optimized')  // 默认显示AI优化版
+
 // 用于跟踪是否需要刷新讨论列表
 const needRefreshDiscussions = ref(false)
 const currentPage = ref(null)
@@ -241,10 +274,29 @@ const markdownTheme = ref('default')
 
 // 渲染后的Markdown内容（带主题内联样式）
 const renderedContent = computed(() => {
-	if (!message.value || !message.value.content) return ''
+	if (!message.value || !displayContent.value) return ''
 	// 使用消息自带的主题进行渲染，样式内联到HTML中
-	return MarkdownRenderer.renderWithTheme(message.value.content, markdownTheme.value || 'default')
+	return MarkdownRenderer.renderWithTheme(displayContent.value, markdownTheme.value || 'default')
 })
+
+// 检查是否有优化版本
+const hasOptimizedVersion = computed(() => {
+	return message.value?.aiOptimizedContent && message.value.aiOptimizedContent.trim() !== ''
+})
+
+// 当前显示的内容
+const displayContent = computed(() => {
+	if (!message.value) return ''
+	if (currentVersion.value === 'ai_optimized' && hasOptimizedVersion.value) {
+		return message.value.aiOptimizedContent
+	}
+	return message.value.originalContent || message.value.content
+})
+
+// 切换版本方法
+const switchVersion = (version) => {
+	currentVersion.value = version
+}
 
 // 主题切换处理（保留接口，但不在详情页显示选择器）
 const handleThemeChange = (newTheme) => {
@@ -294,6 +346,13 @@ const loadMessageDetail = async () => {
 
 			// 从消息数据读取主题，如果没有则使用默认主题
 			markdownTheme.value = messageData.theme || 'default'
+
+			// 重置版本状态：如果有AI优化版本，默认显示AI优化版
+			if (messageData.aiOptimizedContent && messageData.aiOptimizedContent.trim() !== '') {
+				currentVersion.value = 'ai_optimized'
+			} else {
+				currentVersion.value = 'original'
+			}
 
 			// 标记为已读
 			markMessageAsReadApi(messageId.value).catch(err => {
@@ -869,8 +928,76 @@ onMounted(() => {
 	margin-bottom: 30rpx;
 }
 
+// 版本切换标签
+.version-tabs {
+	display: flex;
+	gap: 20rpx;
+	margin-bottom: 30rpx;
+}
+
+.version-tab {
+	flex: 1;
+	padding: 20rpx;
+	text-align: center;
+	border-radius: 12rpx;
+	background: #f5f5f5;
+	font-size: 28rpx;
+	color: #666;
+	transition: all 0.3s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8rpx;
+	cursor: pointer;
+
+	&.active {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		color: #fff;
+		font-weight: 500;
+		box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+	}
+
+	&:active {
+		transform: scale(0.98);
+	}
+}
+
+.tab-icon {
+	font-size: 28rpx;
+}
+
+.tab-text {
+	font-size: 28rpx;
+}
+
 .message-content {
 	margin-bottom: 30rpx;
+
+	&.with-version-switch {
+		animation: fadeIn 0.3s ease-in-out;
+	}
+}
+
+// 版本标识
+.version-indicator {
+	margin-top: 30rpx;
+	margin-bottom: 30rpx;
+	padding: 20rpx;
+	background: #f8f9fa;
+	border-radius: 12rpx;
+	text-align: center;
+	font-size: 24rpx;
+	color: #666;
+	animation: fadeIn 0.3s ease-in-out;
+}
+
+.ai-badge {
+	color: #667eea;
+	font-weight: 500;
+}
+
+.original-badge {
+	color: #666;
 }
 
 .content-text {
