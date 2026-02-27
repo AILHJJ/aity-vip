@@ -3,6 +3,7 @@
  */
 import { defineStore } from 'pinia'
 import { loginApi, logoutApi, getCurrentUserApi } from '../api/auth'
+import { clearChatHistory } from '@/utils/ai-advisor-config'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -43,6 +44,11 @@ export const useUserStore = defineStore('user', {
     // 是否有未读消息
     hasUnread: (state) => {
       return state.unreadCount > 0
+    },
+
+    // 用户ID（用于数据隔离）
+    userId: (state) => {
+      return state.userInfo?.id || state.userInfo?.userId || 'anonymous'
     }
   },
 
@@ -83,6 +89,13 @@ export const useUserStore = defineStore('user', {
       } catch (error) {
         console.error('登出失败:', error)
       } finally {
+        // 清除AI对话历史（用户隔离，确保隐私）
+        try {
+          clearChatHistory()
+        } catch (error) {
+          console.error('清除对话历史失败:', error)
+        }
+
         // 清除状态
         this.token = ''
         this.userInfo = null

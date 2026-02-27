@@ -111,7 +111,7 @@
 					<view class="message-title">{{ message.title }}</view>
 
 					<view class="message-content">
-						<rich-text :nodes="renderPreviewContent(message.content)"></rich-text>
+						<rich-text :nodes="renderContent(message)"></rich-text>
 					</view>
 
 					<view class="message-footer">
@@ -320,9 +320,13 @@ const getMessageTypeLabel = (type) => {
 	return MESSAGE_TYPE_LABELS[type] || type
 }
 
-// 渲染消息预览内容（使用统一的Markdown渲染器）
-const renderPreviewContent = (content) => {
-	return MarkdownRenderer.renderPreview(content, 100)
+// 渲染消息内容（使用完整的Markdown渲染，带主题内联样式）
+const renderContent = (message) => {
+	if (!message || !message.content) return ''
+
+	// 使用消息自带的主题进行渲染，如果没有则使用默认主题
+	const theme = message.theme || 'default'
+	return MarkdownRenderer.renderWithTheme(message.content, theme)
 }
 
 // 获取显示的标签列表（根据用户权限和业务规则）
@@ -977,6 +981,67 @@ onShow(() => {
 	-webkit-line-clamp: 2;
 	-webkit-box-orient: vertical;
 	margin-bottom: 20rpx;
+	word-wrap: break-word;
+	word-break: break-word;
+
+	// 优化Markdown元素在列表中的显示
+	::v-deep h1,
+	::v-deep h2,
+	::v-deep h3,
+	::v-deep h4,
+	::v-deep h5,
+	::v-deep h6 {
+		font-size: 28rpx !important;
+		font-weight: 600 !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		border: none !important;
+		display: inline;
+	}
+
+	::v-deep ul,
+	::v-deep ol {
+		margin: 0 !important;
+		padding: 0 !important;
+		display: inline;
+	}
+
+	::v-deep li {
+		display: inline;
+		margin: 0 !important;
+		padding: 0 !important;
+	}
+
+	::v-deep p {
+		margin: 0 !important;
+		padding: 0 !important;
+		display: inline;
+	}
+
+	::v-deep br {
+		content: '';
+		display: inline-block;
+		width: 0.5em;
+	}
+
+	::v-deep pre {
+		white-space: pre-wrap;
+		font-size: 26rpx !important;
+		padding: 8rpx !important;
+		margin: 0 !important;
+		display: inline;
+	}
+
+	::v-deep code {
+		font-size: 26rpx !important;
+		padding: 2rpx 6rpx !important;
+	}
+
+	::v-deep blockquote {
+		margin: 0 !important;
+		padding: 0 !important;
+		display: inline;
+	}
 }
 
 .message-footer {

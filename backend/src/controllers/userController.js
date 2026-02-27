@@ -174,7 +174,7 @@ async function createUser(req, res) {
 async function updateUser(req, res) {
   try {
     const { id } = req.params;
-    const { name, email, role, groupId, status, expireDate } = req.body;
+    const { name, email, role, groupId, status, expireDate, password } = req.body;
 
     const user = await User.findByPk(id);
     if (!user) {
@@ -190,21 +190,33 @@ async function updateUser(req, res) {
     }
 
     // 检查邮箱是否被其他用户使用
-    if (email && email !== user.email) {
-      const existingEmail = await User.findOne({ where: { email } });
-      if (existingEmail) {
-        return res.status(400).json(badRequest('邮箱已被使用'));
+    if (email !== undefined && email !== user.email) {
+      // 如果邮箱不为空，检查是否已被使用
+      if (email) {
+        const existingEmail = await User.findOne({ where: { email } });
+        if (existingEmail) {
+          return res.status(400).json(badRequest('邮箱已被使用'));
+        }
       }
     }
 
-    await user.update({
+    // 构建更新对象
+    const updateData = {
       name: name || user.name,
       email: email !== undefined ? email : user.email,
       role: role || user.role,
       groupId: groupId !== undefined ? groupId : user.groupId,
       status: status || user.status,
       expireDate: expireDate !== undefined ? expireDate : user.expireDate
-    });
+    };
+
+    // 如果提供了新密码，则更新密码
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
+    }
+
+    await user.update(updateData);
 
     const userResponse = user.toJSON();
     delete userResponse.password;

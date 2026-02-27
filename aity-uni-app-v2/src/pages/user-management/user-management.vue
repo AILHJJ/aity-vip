@@ -85,13 +85,23 @@
 						</view>
 						<view class="info-row">
 							<text class="info-label">到期时间</text>
-							<text class="info-value" :class="{ expiring: isExpiringSoon(user.expiresAt) }">
-								{{ user.expiresAt ? formatDate(user.expiresAt) : '永久有效' }}
+							<text class="info-value" :class="{ expiring: isExpiringSoon(getUserExpireDate(user)), 'expiring-critical': isExpiringCritically(getUserExpireDate(user)) }">
+								{{ getUserExpireDate(user) ? formatDate(getUserExpireDate(user)) : '永久有效' }}
 							</text>
 						</view>
-						<view v-if="isExpiringSoon(user.expiresAt)" class="expiry-warning">
+						<view v-if="getUserExpireDate(user)" class="info-row">
+							<text class="info-label">剩余天数</text>
+							<text class="info-value" :class="{ expiring: isExpiringSoon(getUserExpireDate(user)), 'expiring-critical': isExpiringCritically(getUserExpireDate(user)) }">
+								{{ getDaysRemaining(getUserExpireDate(user)) }}天 ({{ getTradingDaysRemaining(getUserExpireDate(user)) }}交易日)
+							</text>
+						</view>
+						<view v-if="isExpiringCritically(getUserExpireDate(user))" class="expiry-warning critical">
 							<text class="warning-icon">⚠️</text>
-							<text class="warning-text">VIP即将到期 ({{ getDaysRemaining(user.expiresAt) }}天)</text>
+							<text class="warning-text">VIP即将到期 ({{ getDaysRemaining(getUserExpireDate(user)) }}天)</text>
+						</view>
+						<view v-else-if="isExpiringSoon(getUserExpireDate(user))" class="expiry-warning normal">
+							<text class="warning-icon">ℹ️</text>
+							<text class="warning-text">VIP将在30天内到期 ({{ getDaysRemaining(getUserExpireDate(user)) }}天)</text>
 						</view>
 					</view>
 
@@ -165,7 +175,6 @@
 							v-model="userForm.email"
 							type="email"
 							placeholder="留空则自动生成默认邮箱"
-							:disabled="showEditDrawer"
 						/>
 						<text class="form-hint">如需邮箱功能（如密码重置），请填写真实邮箱</text>
 					</view>
@@ -222,45 +231,34 @@
 					<view v-if="showEditDrawer && !isAdminRole(userForm.role)" class="form-item">
 						<text class="form-label">快速延期</text>
 						<view class="quick-extend-buttons">
-							<!-- 体验用户：7天 -->
-							<template v-if="userForm.role === 'trial'">
-								<button
-									v-for="days in trialExtendOptions"
-									:key="days"
-									class="extend-btn"
-									@click="quickExtend(days)"
-								>
-									+{{ days }}天
-								</button>
-							</template>
-							<!-- VIP用户：月度、季度、半年、年度 -->
-							<template v-else>
-								<button
-									class="extend-btn"
-									@click="quickExtend(30)"
-								>
-									+1月
-								</button>
-								<button
-									class="extend-btn"
-									@click="quickExtend(90)"
-								>
-									+3月
-								</button>
-								<button
-									class="extend-btn"
-									@click="quickExtend(180)"
-								>
-									+半年
-								</button>
-								<button
-									class="extend-btn"
-									@click="quickExtend(365)"
-								>
-									+1年
-								</button>
-							</template>
+							<button
+								v-for="option in quickExtendOptions"
+								:key="option.value"
+								class="extend-btn"
+								@click="quickExtend(option.value)"
+							>
+								{{ option.label }}
+							</button>
 						</view>
+						<!-- 自定义延期天数 -->
+						<view class="custom-extend">
+							<input
+								class="form-input"
+								v-model.number="customExtendDays"
+								type="number"
+								placeholder="自定义天数"
+								style="flex: 1; margin-right: 16rpx;"
+							/>
+							<button class="extend-btn" @click="quickExtend(customExtendDays)">
+								自定义延期
+							</button>
+						</view>
+						<text class="form-hint">
+							当前到期: {{ userForm.expireDate || '永久有效' }}
+							<text v-if="userForm.expireDate && tempExpireDate">
+								→ 延期后: {{ tempExpireDate }}
+							</text>
+						</text>
 					</view>
 				</scroll-view>
 
@@ -425,9 +423,15 @@ const userForm = ref({
 	expireDate: ''
 })
 
-// 快速延期选项（月度、季度、半年、年度、体验7天）
-const quickExtendOptions = [30, 90, 180, 365]
-const trialExtendOptions = [7] // 体验用户专用
+// 快速延期选项（统一为4个常用选项：1个月、3个月/季度、6个月/半年、1年）
+const quickExtendOptions = [
+	{ value: 30, label: '1个月' },
+	{ value: 90, label: '3个月' },
+	{ value: 180, label: '6个月' },
+	{ value: 365, label: '1年' }
+]
+const customExtendDays = ref('') // 自定义延期天数
+const tempExpireDate = ref('') // 临时显示延期后的日期
 
 // 角色选项
 const roleOptions = computed(() => {
@@ -457,7 +461,41 @@ const isAdminRole = (role) => {
 	return ['super_admin', 'admin'].includes(role)
 }
 
-// 判断是否即将到期（30天内）
+// 获取用户到期日期（兼容不同字段名）
+const getUserExpireDate = (user) => {
+	return user.expireDate || user.expire_date || user.expiresAt || null
+}
+
+// 计算剩余交易日（简单估算：排除周末）
+const getTradingDaysRemaining = (dateStr) => {
+	if (!dateStr) return 0
+
+	const expireDate = new Date(dateStr)
+	const today = new Date()
+	const diffTime = expireDate - today
+	const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+	if (totalDays <= 0) return 0
+
+	// 简单计算：大约2/3是交易日（排除周末）
+	// 更精确的计算需要考虑节假日，这里使用简化算法
+	let tradingDays = 0
+	let currentDate = new Date(today)
+	currentDate.setHours(0, 0, 0, 0)
+
+	for (let i = 0; i < totalDays; i++) {
+		const dayOfWeek = currentDate.getDay()
+		// 0=周日, 6=周六，只计算周一到周五
+		if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+			tradingDays++
+		}
+		currentDate.setDate(currentDate.getDate() + 1)
+	}
+
+	return tradingDays
+}
+
+// 判断是否即将到期（10天内显示警告，10-30天显示普通提示）
 const isExpiringSoon = (dateStr) => {
 	if (!dateStr) return false
 
@@ -467,6 +505,18 @@ const isExpiringSoon = (dateStr) => {
 	const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
 	return diffDays <= 30 && diffDays >= 0
+}
+
+// 判断是否严重即将到期（10天内，显示红色警告）
+const isExpiringCritically = (dateStr) => {
+	if (!dateStr) return false
+
+	const expireDate = new Date(dateStr)
+	const today = new Date()
+	const diffTime = expireDate - today
+	const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+	return diffDays <= 10 && diffDays >= 0
 }
 
 // 获取剩余天数
@@ -595,11 +645,14 @@ const handleEdit = (user) => {
 	userForm.value = {
 		id: user.id,
 		name: user.name,
-		email: user.email,
+		email: user.email || '',
 		role: user.role,
 		groupId: user.groupId || user.group_id || '',
-		expireDate: user.expireDate || user.expire_date ? formatDate(user.expireDate || user.expire_date) : ''
+		expireDate: getUserExpireDate(user) ? formatDate(getUserExpireDate(user)) : ''
 	}
+	// 重置临时日期
+	tempExpireDate.value = ''
+	customExtendDays.value = ''
 	showEditDrawer.value = true
 }
 
@@ -621,6 +674,8 @@ const resetUserForm = () => {
 		groupId: '',
 		expireDate: ''
 	}
+	tempExpireDate.value = ''
+	customExtendDays.value = ''
 }
 
 // 处理角色选择
@@ -659,14 +714,30 @@ const handleDateChange = (e) => {
 
 // 快速延期
 const quickExtend = (days) => {
+	if (!days || days <= 0) {
+		uni.showToast({
+			title: '请输入有效的天数',
+			icon: 'none'
+		})
+		return
+	}
+
 	if (!userForm.value.expireDate) {
 		const today = new Date()
 		userForm.value.expireDate = today.toISOString().split('T')[0]
 	}
 
 	const currentDate = new Date(userForm.value.expireDate)
-	currentDate.setDate(currentDate.getDate() + days)
-	userForm.value.expireDate = currentDate.toISOString().split('T')[0]
+	currentDate.setDate(currentDate.getDate() + parseInt(days))
+	const newDate = currentDate.toISOString().split('T')[0]
+	userForm.value.expireDate = newDate
+	tempExpireDate.value = newDate
+
+	uni.showToast({
+		title: `已延期${days}天，新的到期时间：${newDate}`,
+		icon: 'success',
+		duration: 2000
+	})
 }
 
 // 保存（创建或编辑）
@@ -717,10 +788,8 @@ const handleSave = async () => {
 			role: userForm.value.role
 		}
 
-		// 只有当邮箱不为空时才发送
-		if (userForm.value.email) {
-			data.email = userForm.value.email
-		}
+		// 邮箱（始终发送，支持修改为空）
+		data.email = userForm.value.email || null
 
 		// 分组ID（创建时自动继承，编辑时保留）
 		if (userForm.value.groupId) {
@@ -1256,15 +1325,36 @@ onMounted(() => {
 	color: #faad14;
 }
 
+.info-value.expiring-critical {
+	color: #ff4d4f;
+	font-weight: bold;
+}
+
 .expiry-warning {
 	display: flex;
 	align-items: center;
 	gap: 8rpx;
 	padding: 16rpx;
-	background: #fffbe6;
 	border-radius: 12rpx;
-	border: 1rpx solid #ffe58f;
 	margin-top: 16rpx;
+}
+
+.expiry-warning.critical {
+	background: #fff2f0;
+	border: 1rpx solid #ffccc7;
+}
+
+.expiry-warning.critical .warning-text {
+	color: #ff4d4f;
+}
+
+.expiry-warning.normal {
+	background: #e6f7ff;
+	border: 1rpx solid #91d5ff;
+}
+
+.expiry-warning.normal .warning-text {
+	color: #1890ff;
 }
 
 .warning-icon {
@@ -1470,6 +1560,30 @@ onMounted(() => {
 	margin-top: 12rpx;
 }
 
+/* 密码修改区域 */
+.password-change-section {
+	margin-top: 16rpx;
+}
+
+.password-toggle {
+	display: flex;
+	align-items: center;
+	gap: 16rpx;
+	margin-bottom: 16rpx;
+}
+
+.toggle-label {
+	font-size: 28rpx;
+	color: #1a1a1a;
+}
+
+/* 自定义延期 */
+.custom-extend {
+	display: flex;
+	align-items: center;
+	margin-top: 16rpx;
+}
+
 .picker-view {
 	display: flex;
 	align-items: center;
@@ -1494,15 +1608,20 @@ onMounted(() => {
 	display: flex;
 	gap: 16rpx;
 	flex-wrap: wrap;
+	margin-bottom: 16rpx;
 }
 
 .extend-btn {
-	padding: 16rpx 24rpx;
+	flex: 1;
+	min-width: 150rpx;
+	padding: 20rpx 16rpx;
 	background: #e6f7ff;
 	color: #1890ff;
 	border: 1rpx solid #91d5ff;
 	border-radius: 12rpx;
 	font-size: 26rpx;
+	font-weight: 500;
+	text-align: center;
 }
 
 .drawer-footer {

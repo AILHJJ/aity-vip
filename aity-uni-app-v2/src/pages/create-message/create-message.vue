@@ -398,6 +398,66 @@ const handlePaste = (e) => {
 	}
 	// #endif
 
+	// #ifdef H5
+	// H5环境支持粘贴图片
+	if (e.clipboardData && e.clipboardData.items && e.clipboardData.items.length > 0) {
+		const items = e.clipboardData.items
+		let hasImage = false
+
+		// 遍历剪贴板项
+		for (let i = 0; i < items.length; i++) {
+			const item = items[i]
+
+			// 检查是否是图片类型
+			if (item.type && item.type.indexOf('image') !== -1) {
+				e.preventDefault() // 阻止默认粘贴行为
+				hasImage = true
+
+				// 获取图片文件
+				const file = item.getAsFile()
+
+				if (!file) continue
+
+				// 检查文件大小
+				if (file.size > 10 * 1024 * 1024) {
+					uni.showToast({
+						title: '图片大小不能超过 10MB',
+						icon: 'none'
+					})
+					continue
+				}
+
+				// 检查图片数量限制
+				if (formData.value.attachments.length >= 9) {
+					uni.showToast({
+						title: '最多只能上传9张图片',
+						icon: 'none'
+					})
+					continue
+				}
+
+				// 创建临时URL
+				const tempUrl = URL.createObjectURL(file)
+
+				// 添加到附件列表
+				formData.value.attachments.push({
+					name: `粘贴图片_${formData.value.attachments.length + 1}.jpg`,
+					path: tempUrl,
+					size: file.size
+				})
+
+				uni.showToast({
+					title: '图片已添加',
+					icon: 'success',
+					duration: 1500
+				})
+
+				console.log('粘贴图片成功:', file.name, '大小:', file.size)
+			}
+		}
+	}
+	// #endif
+
 	// 对于普通文本粘贴，不阻止默认行为
 	return true
 }

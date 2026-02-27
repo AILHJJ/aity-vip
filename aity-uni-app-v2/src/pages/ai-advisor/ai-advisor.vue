@@ -2,8 +2,7 @@
 	<view class="ai-advisor-container">
 		<!-- 顶部标题栏 -->
 		<view class="header-bar">
-			<text class="header-title">图灵</text>
-			<text class="header-subtitle">智能金融助手</text>
+			<text class="header-title">AI图灵</text>
 		</view>
 
 		<!-- 对话消息区域 -->
@@ -706,22 +705,17 @@ onUnmounted(() => {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 4rpx;
+	justify-content: center;
 	flex-shrink: 0;
+	min-height: 88rpx;
 }
 
 .header-title {
-	font-size: 36rpx;
-	font-weight: bold;
+	font-size: 32rpx;
+	font-weight: 600;
 	color: #ffffff;
-	letter-spacing: 4rpx;
-}
-
-.header-subtitle {
-	font-size: 22rpx;
-	color: rgba(255, 255, 255, 0.8);
-	font-weight: 300;
 	letter-spacing: 2rpx;
+	text-align: center;
 }
 
 /* 对话区域 */
@@ -1461,8 +1455,21 @@ onUnmounted(() => {
 	display: flex;
 	align-items: flex-end;
 	gap: 12rpx;
-	padding: 0 24rpx;
-	padding-bottom: calc(8rpx + env(safe-area-inset-bottom));
+	padding: 12rpx 24rpx;
+	padding-bottom: calc(12rpx + env(safe-area-inset-bottom));
+	position: relative;
+}
+
+.input-wrapper::after {
+	content: 'AI生成内容仅供参考，不构成投资建议';
+	position: absolute;
+	bottom: calc(env(safe-area-inset-bottom) + 4rpx);
+	left: 0;
+	right: 0;
+	text-align: center;
+	font-size: 20rpx;
+	color: #cccccc;
+	pointer-events: none;
 }
 
 /* 输入框左侧操作按钮 */

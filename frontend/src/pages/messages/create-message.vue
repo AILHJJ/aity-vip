@@ -23,11 +23,12 @@
       
       <view class="form-item">
         <text class="form-label">内容</text>
-        <textarea 
-          v-model="messageForm.content" 
-          placeholder="请输入消息内容"
+        <textarea
+          v-model="messageForm.content"
+          placeholder="请输入消息内容，支持 Ctrl+V 粘贴图片"
           class="form-textarea"
           rows="6"
+          @paste="handlePaste"
         ></textarea>
       </view>
       
@@ -72,7 +73,7 @@
       <view class="form-item">
         <text class="form-label">附件</text>
         <button class="upload-btn" @click="uploadAttachment">
-          <text>📎 上传附件</text>
+          <text>📎 上传附件（支持 Ctrl+V 粘贴图片）</text>
         </button>
         <view v-if="messageForm.attachments.length > 0" class="attachments-list">
           <view 
@@ -166,6 +167,69 @@ const uploadAttachment = () => {
       }
     })
   }
+}
+
+// 处理粘贴事件
+const handlePaste = (e) => {
+  // 浏览器环境支持粘贴图片
+  if (e.clipboardData && e.clipboardData.items && e.clipboardData.items.length > 0) {
+    const items = e.clipboardData.items
+    let hasImage = false
+
+    // 遍历剪贴板项
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+
+      // 检查是否是图片类型
+      if (item.type && item.type.indexOf('image') !== -1) {
+        e.preventDefault() // 阻止默认粘贴行为
+        hasImage = true
+
+        // 获取图片文件
+        const file = item.getAsFile()
+
+        if (!file) continue
+
+        // 检查文件大小
+        if (file.size > 10 * 1024 * 1024) {
+          alert('图片大小不能超过 10MB')
+          continue
+        }
+
+        // 检查图片数量限制
+        if (messageForm.attachments.length >= 9) {
+          alert('最多只能上传9张图片')
+          continue
+        }
+
+        // 创建临时URL
+        const tempUrl = URL.createObjectURL(file)
+
+        // 添加到附件列表
+        messageForm.attachments.push({
+          name: `粘贴图片_${messageForm.attachments.length + 1}.jpg`,
+          path: tempUrl,
+          size: file.size
+        })
+
+        // 显示成功提示
+        if (typeof uni !== 'undefined') {
+          uni.showToast({
+            title: '图片已添加',
+            icon: 'success',
+            duration: 1500
+          })
+        } else {
+          alert('图片已添加')
+        }
+
+        console.log('粘贴图片成功:', file.name, '大小:', file.size)
+      }
+    }
+  }
+
+  // 对于普通文本粘贴，不阻止默认行为
+  return true
 }
 
 const removeAttachment = (index) => {
