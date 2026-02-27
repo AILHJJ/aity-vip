@@ -4,10 +4,6 @@ const { Op } = require('sequelize');
 
 // 导入用户模型
 const User = require('../models/User');
-const DiscussionReply = require('../models/DiscussionReply');
-const Discussion = require('../models/Discussion');
-const Message = require('../models/Message');
-const UserMessageRead = require('../models/UserMessageRead');
 
 // 统一响应格式
 function success(data, message = 'Success') {
@@ -247,20 +243,58 @@ async function deleteUser(req, res) {
       return res.status(403).json(error('不能删除超级管理员', 403));
     }
 
-    // 删除用户前先清理关联数据
+    // 使用 sequelize 的 query 接口执行原始 SQL，避免模型导入的循环依赖
+    const sequelize = require('../config/db');
+
+    // 删除用户前先清理关联数据（按依赖顺序）
     // 1. 删除用户的讨论回复
-    await DiscussionReply.destroy({ where: { senderId: id } });
+    await sequelize.query('DELETE FROM discussion_replies WHERE sender_id = ?', {
+      replacements: [id],
+      type: sequelize.QueryTypes.DELETE
+    });
 
-    // 2. 删除用户创建的讨论
-    await Discussion.destroy({ where: { userId: id } });
+    // 2. 先删除用户创建的讨论的回复（因为讨论回复依赖讨论）
+    const discussions = await sequelize.query('SELECT id FROM discussions WHERE user_id = ?', {
+      replacements: [id],
+      type: sequelize.QueryTypes.SELECT
+    });
+    for (const discussion of discussions) {
+      await sequelize.query('DELETE FROM discussion_replies WHERE discussion_id = ?', {
+        replacements: [discussion.id],
+        type: sequelize.QueryTypes.DELETE
+      });
+    }
 
-    // 3. 删除用户的消息阅读记录
-    await UserMessageRead.destroy({ where: { userId: id } });
+    // 3. 删除用户创建的讨论
+    await sequelize.query('DELETE FROM discussions WHERE user_id = ?', {
+      replacements: [id],
+      type: sequelize.QueryTypes.DELETE
+    });
 
-    // 4. 将用户发送的消息的sender_id设为NULL（保留消息，但移除关联）
-    await Message.update({ senderId: null }, { where: { senderId: id } });
+    // 4. 删除用户的消息阅读记录
+    await sequelize.query('DELETE FROM user_message_reads WHERE user_id = ?', {
+      replacements: [id],
+      type: sequelize.QueryTypes.DELETE
+    });
 
-    // 5. 删除用户
+    // 5. 删除用户的收藏记录（如果表存在的话）
+    try {
+      await sequelize.query('DELETE FROM favorites WHERE user_id = ?', {
+        replacements: [id],
+        type: sequelize.QueryTypes.DELETE
+      });
+    } catch (favError) {
+      // 如果 favorites 表不存在，忽略错误
+      console.log('Note: favorites table may not exist:', favError.message);
+    }
+
+    // 6. 将用户发送的消息的sender_id设为NULL（保留消息，但移除关联）
+    await sequelize.query('UPDATE messages SET sender_id = NULL WHERE sender_id = ?', {
+      replacements: [id],
+      type: sequelize.QueryTypes.UPDATE
+    });
+
+    // 7. 删除用户
     await user.destroy();
 
     return res.json(success(null, '用户删除成功'));
