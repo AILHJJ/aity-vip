@@ -1,8 +1,4 @@
-/**
- * Playwright配置文件 - 简化版
- * 用于AITY VIP项目的E2E测试
- */
-
+// playwright.config.js
 const { defineConfig, devices } = require('@playwright/test');
 
 module.exports = defineConfig({
@@ -10,54 +6,24 @@ module.exports = defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : 1,
-
-  reporter: [
-    ['list'],
-    ['html', { outputFolder: '../tests/e2e/reports/html', open: 'never' }]
-  ],
-
+  workers: process.env.CI ? 1 : undefined,
+  reporter: 'html',
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:5173',
+    baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
-    actionTimeout: 10000,
-    navigationTimeout: 30000,
   },
-
   projects: [
     {
-      name: 'smoke',
-      testMatch: /.*smoke.*\.spec\.js/,
-      use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'chrome-testing',
-      use: {
-        browserName: 'chromium',
-        launchOptions: {
-          executablePath: 'C:\\Users\\DELL\\Downloads\\chrome-win64\\chrome.exe',
-          headless: false,
-        },
-        viewport: { width: 1280, height: 720 },
-        ignoreHTTPSErrors: true,
-      },
-    },
-    {
-      name: 'android',
-      use: {
-        deviceName: 'Pixel 5',
-        channel: 'chrome'
+      name: 'chromium',
+      use: { 
+        ...devices['Desktop Chrome'],
+        executablePath: 'D:\\your-mcp-proxy\\AITY_VIP\\chrome-win64\\chrome.exe'
       },
     },
   ],
-
-  // 本地开发时自动启动服务器
-  webServer: process.env.CI ? undefined : {
-    command: 'npm run dev:h5',
+  webServer: {
+    command: 'npm run dev',
     url: 'http://localhost:5173',
-    reuseExistingServer: true,
-    timeout: 120000,
+    reuseExistingServer: !process.env.CI,
   },
 });
