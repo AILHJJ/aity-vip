@@ -19,9 +19,9 @@
 // ============================================
 const PRODUCTION_CONFIG = {
   // API 基础地址（包含 /api 路径）
-  API_BASE_URL: 'https://aity88.online:8443/api',
+  API_BASE_URL: 'https://aity88.online/api',
   // 服务器基础地址（不包含 /api 路径，用于图片等静态资源）
-  BASE_URL: 'https://aity88.online:8443',
+  BASE_URL: 'https://aity88.online',
   // 环境标识
   ENV: 'production'
 }
