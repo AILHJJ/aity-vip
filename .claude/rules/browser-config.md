@@ -237,10 +237,11 @@ const CHROME_PATH = 'D:/your-mcp-proxy/AITY_VIP/chrome-win64/chrome.exe';
 
 ## 测试账号
 
-| 用户名 | 密码 | 角色 | 邮箱 |
+| 用户名 | 邮箱 | 密码 | 角色 |
 |--------|------|------|------|
-| admin | 123456 | 管理员 | admin@example.com |
-| 等风来 | 112044 | VIP用户 | 625668823@qq.com |
+| admin | admin@example.com | 123456 | super_admin |
+| 等风来 | 625668823@qq.com | 112044 | vip_short |
+| vip_test | vip_test@example.com | 123456 | vip_mid |
 
 ## 服务地址
 

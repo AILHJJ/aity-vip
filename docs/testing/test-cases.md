@@ -153,14 +153,23 @@
 
 ## 8. 测试账号
 
-| 用户名 | 密码 | 角色 | 用途 |
-|--------|------|------|------|
-| admin | 123456 | admin | 管理功能测试 |
-| super | 123456 | super_admin | 超级管理员测试 |
-| vip_mid | 123456 | vip_mid | 中线用户测试 |
-| vip_short | 123456 | vip_short | 短线用户测试 |
-| trial | 123456 | trial | 体验用户测试 |
-| 等风来 | 112044 | vip_mid | 真实用户测试 |
+### 生产环境（投研图灵室）
+
+| 用户名 | 邮箱 | 密码 | 角色 | 用途 |
+|--------|------|------|------|------|
+| Admin | admin@example.com | 123456 | super_admin | 超级管理员测试 |
+| SubAdmin | subadmin@example.com | 123456 | admin | 管理员测试 |
+| 等风来 | 625668823@qq.com | 112044 | vip_short | VIP用户测试 |
+| vip_test | vip_test@example.com | 123456 | vip_mid | VIP中线测试 |
+
+### 测试环境（投研图灵室_test）
+
+| 用户名 | 邮箱 | 密码 | 角色 | 用途 |
+|--------|------|------|------|------|
+| Admin | admin@example.com | 123456 | super_admin | 超级管理员测试 |
+| SubAdmin | subadmin@example.com | 123456 | admin | 管理员测试 |
+| VIP中线用户 | vip_mid@example.com | 123456 | vip_mid | VIP中线测试 |
+| 妮儿 | 123456@qq.com | 123456 | vip_short | VIP短线测试 |
 
 ---
 

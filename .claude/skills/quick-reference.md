@@ -158,10 +158,11 @@ git add . && git commit -m "feat: 描述" && git push
 
 ## 测试账号
 
-| 账号 | 密码 | 角色 |
-|------|------|------|
-| admin | 123456 | 管理员 |
-| 等风来 | 112044 | VIP用户 |
+| 用户名 | 邮箱 | 密码 | 角色 |
+|--------|------|------|------|
+| admin | admin@example.com | 123456 | super_admin |
+| 等风来 | 625668823@qq.com | 112044 | vip_short |
+| vip_test | vip_test@example.com | 123456 | vip_mid |
 
 ---
 
