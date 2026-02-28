@@ -73,10 +73,13 @@ git push origin feature/iteration-1
 
 ## 测试账号
 
-| 用户名 | 密码 | 角色 | 用途 |
+| 用户名 | 邮箱 | 密码 | 角色 |
 |--------|------|------|------|
-| admin | 123456 | 管理员 | 管理功能测试 |
-| 等风来 | 112044 | VIP用户 | 用户端测试 |
+| admin | admin@example.com | 123456 | super_admin |
+| 等风来 | 625668823@qq.com | 112044 | vip_short |
+| vip_test | vip_test@example.com | 123456 | vip_mid |
+
+> 详细账户信息见 [测试账户参考](../docs/testing/测试账户参考.md)
 
 ---
 

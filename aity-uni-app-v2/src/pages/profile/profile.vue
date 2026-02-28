@@ -77,6 +77,19 @@
 
 		<!-- 系统设置 -->
 		<view class="menu-section">
+			<view class="menu-item" @click="goToChangePassword">
+				<view class="menu-left">
+					<text class="menu-icon">🔐</text>
+					<text class="menu-text">修改密码</text>
+				</view>
+				<view class="menu-right">
+					<view v-if="userStore.isInitialPassword" class="security-badge">
+						<text class="badge-text">初始密码</text>
+					</view>
+					<text class="menu-arrow">›</text>
+				</view>
+			</view>
+
 			<view class="menu-item" @click="showAbout">
 				<view class="menu-left">
 					<text class="menu-icon">ℹ️</text>
@@ -182,6 +195,13 @@ const goToUserManagement = () => {
 const goToStats = () => {
 	uni.navigateTo({
 		url: '/pages/stats/stats'
+	})
+}
+
+// 跳转到修改密码
+const goToChangePassword = () => {
+	uni.navigateTo({
+		url: '/pages/change-password/change-password'
 	})
 }
 
@@ -361,6 +381,19 @@ const handleLogout = () => {
 	font-size: 48rpx;
 	color: #cccccc;
 	font-weight: 300;
+}
+
+.security-badge {
+	background: #ff9800;
+	padding: 4rpx 12rpx;
+	border-radius: 8rpx;
+	margin-right: 10rpx;
+}
+
+.badge-text {
+	font-size: 20rpx;
+	color: #ffffff;
+	font-weight: 500;
 }
 
 .logout-section {

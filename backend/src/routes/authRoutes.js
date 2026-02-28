@@ -28,4 +28,10 @@ router.get('/me',
   authController.getCurrentUser
 );
 
+// 修改密码
+router.post('/change-password',
+  authenticateToken,
+  authController.changePassword
+);
+
 module.exports = router;

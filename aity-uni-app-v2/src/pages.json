@@ -86,10 +86,22 @@
 			}
 		},
 		{
+			"path": "pages/admin/ai-config",
+			"style": {
+				"navigationBarTitleText": "AI配置管理"
+			}
+		},
+		{
 			"path": "pages/market/market",
 			"style": {
 				"navigationBarTitleText": "行情中心",
 				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/change-password/change-password",
+			"style": {
+				"navigationBarTitleText": "修改密码"
 			}
 		}
 	],

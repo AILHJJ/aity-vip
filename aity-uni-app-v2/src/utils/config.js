@@ -31,10 +31,10 @@ const PRODUCTION_CONFIG = {
 // ============================================
 const DEVELOPMENT_CONFIG = {
   // 本地开发时连接本地后端
-  // 小程序必须使用局域网IP，不能使用localhost
-  // 请根据实际情况修改为你的本机局域网IP
-  API_BASE_URL: 'http://192.168.2.140:3001/api',
-  BASE_URL: 'http://192.168.2.140:3001',
+  // H5开发使用localhost，小程序使用局域网IP
+  // 当前配置为localhost，用于本地H5测试
+  API_BASE_URL: 'http://localhost:3001/api',
+  BASE_URL: 'http://localhost:3001',
   // 环境标识
   ENV: 'development'
 }

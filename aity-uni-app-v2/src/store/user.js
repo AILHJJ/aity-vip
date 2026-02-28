@@ -2,7 +2,7 @@
  * 用户状态管理
  */
 import { defineStore } from 'pinia'
-import { loginApi, logoutApi, getCurrentUserApi } from '../api/auth'
+import { loginApi, logoutApi, getCurrentUserApi, changePasswordApi } from '../api/auth'
 import { clearChatHistory } from '@/utils/ai-advisor-config'
 
 export const useUserStore = defineStore('user', {
@@ -49,6 +49,16 @@ export const useUserStore = defineStore('user', {
     // 用户ID（用于数据隔离）
     userId: (state) => {
       return state.userInfo?.id || state.userInfo?.userId || 'anonymous'
+    },
+
+    // 是否使用初始密码
+    isInitialPassword: (state) => {
+      return state.userInfo?.isInitialPassword ?? true
+    },
+
+    // 上次登录时间
+    lastLoginAt: (state) => {
+      return state.userInfo?.lastLoginAt || null
     }
   },
 
@@ -155,6 +165,45 @@ export const useUserStore = defineStore('user', {
     clearUnreadCount() {
       this.unreadCount = 0
       uni.setStorageSync('unreadCount', 0)
+    },
+
+    /**
+     * 修改密码
+     * @param {Object} data 密码数据
+     * @param {String} data.currentPassword 当前密码
+     * @param {String} data.newPassword 新密码
+     */
+    async changePassword(data) {
+      try {
+        const res = await changePasswordApi(data)
+
+        if (res.code === 200) {
+          // 更新用户信息，标记为非初始密码
+          this.userInfo = {
+            ...this.userInfo,
+            isInitialPassword: false,
+            passwordChangedAt: res.data?.passwordChangedAt || new Date().toISOString()
+          }
+          uni.setStorageSync('userInfo', this.userInfo)
+          return { success: true, message: '密码修改成功' }
+        } else {
+          return { success: false, message: res.message || '密码修改失败' }
+        }
+      } catch (error) {
+        console.error('修改密码失败:', error)
+        return { success: false, message: error.message || '密码修改失败' }
+      }
+    },
+
+    /**
+     * 标记密码已修改（用于关闭初始密码提示）
+     */
+    markPasswordChanged() {
+      this.userInfo = {
+        ...this.userInfo,
+        isInitialPassword: false
+      }
+      uni.setStorageSync('userInfo', this.userInfo)
     }
   }
 })

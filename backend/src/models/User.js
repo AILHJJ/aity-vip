@@ -47,6 +47,25 @@ const User = sequelize.define('User', {
     type: DataTypes.TEXT,
     allowNull: true,
     comment: '用户简介（资产规模、分享偏好等）'
+  },
+  lastLoginAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'last_login_at',
+    comment: '上次登录时间'
+  },
+  passwordChangedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'password_changed_at',
+    comment: '密码最后修改时间'
+  },
+  isInitialPassword: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+    field: 'is_initial_password',
+    comment: '是否使用初始密码'
   }
 }, {
   tableName: 'users'

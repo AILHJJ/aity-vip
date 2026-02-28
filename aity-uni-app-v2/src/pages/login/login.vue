@@ -116,11 +116,52 @@ const handleLogin = async () => {
 				icon: 'success'
 			})
 
+			// 检测是否使用初始密码
+			const isInitialPassword = result.data.user?.isInitialPassword
+			const lastLoginAt = result.data.user?.lastLoginAt
+
 			// 跳转到消息页面
 			setTimeout(() => {
-				uni.switchTab({
-					url: '/pages/messages/messages'
-				})
+				// 如果是初始密码，提示用户修改
+				if (isInitialPassword) {
+					uni.showModal({
+						title: '安全提示',
+						content: '检测到您正在使用初始密码，为了账户安全，建议您尽快修改密码。是否现在修改？',
+						confirmText: '去修改',
+						cancelText: '稍后再说',
+						success: (res) => {
+							if (res.confirm) {
+								uni.navigateTo({
+									url: '/pages/change-password/change-password'
+								})
+							} else {
+								uni.switchTab({
+									url: '/pages/messages/messages'
+								})
+							}
+						}
+					})
+				} else {
+					// 显示上次登录时间
+					if (lastLoginAt) {
+						const loginTime = new Date(lastLoginAt)
+						const timeStr = loginTime.toLocaleString('zh-CN', {
+							month: '2-digit',
+							day: '2-digit',
+							hour: '2-digit',
+							minute: '2-digit'
+						})
+						uni.showToast({
+							title: `上次登录: ${timeStr}`,
+							icon: 'none',
+							duration: 2000
+						})
+					}
+
+					uni.switchTab({
+						url: '/pages/messages/messages'
+					})
+				}
 			}, 1000)
 		} else {
 			uni.showToast({
