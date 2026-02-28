@@ -109,11 +109,14 @@
 							<text class="toolbar-btn" @click="insertMarkdown('`', '`')" title="代码">&lt;/&gt;</text>
 							<text class="toolbar-btn" @click="insertMarkdown('[', '](url)')" title="链接">🔗</text>
 							<text class="toolbar-btn" @click="insertMarkdown('> ', '')" title="引用">"</text>
+							<!-- #ifdef MP-WEIXIN -->
+							<text class="toolbar-btn paste-btn" @click="handlePasteImage" title="粘贴图片">📋</text>
+							<!-- #endif -->
 						</view>
 						<textarea
 							class="form-textarea markdown-editor"
 							v-model="formData.content"
-							placeholder="支持 Markdown 格式，支持粘贴图片"
+							placeholder="支持 Markdown 格式"
 							placeholder-style="color: #999999"
 							:maxlength="5000"
 							:show-confirm-bar="false"
@@ -121,53 +124,51 @@
 							auto-height
 						/>
 						<view class="editor-footer">
-							<view class="footer-left">
-								<text class="char-count">{{ formData.content.length }}/5000</text>
-								<text class="hint-text-mini">💡 支持粘贴图片</text>
-							</view>
-							<button
-								class="ai-optimize-btn"
-								:class="{ loading: isOptimizing }"
-								:disabled="isOptimizing || !formData.content.trim()"
-								@click="handleAiOptimize"
-							>
-								<text v-if="!isOptimizing" class="ai-icon">✨</text>
-								<text v-else class="loading-icon">⏳</text>
-								<text class="ai-text">{{ isOptimizing ? '优化中...' : 'AI优化' }}</text>
-							</button>
+							<text class="char-count">{{ formData.content.length }}/5000</text>
 						</view>
 					</view>
 
-				<!-- 预览模式（含实时主题选择） -->
+					<!-- 预览模式 -->
 					<view v-else class="preview-container">
-						<!-- 主题选择器 -->
-						<view class="theme-selector">
-							<text class="theme-selector-label">🎨 选择主题样式</text>
-							<scroll-view class="theme-list" scroll-x>
-								<view
-									v-for="theme in themeOptions"
-									:key="theme.value"
-									class="theme-item"
-									:class="{ active: previewTheme === theme.value }"
-									@click="handlePreviewThemeChange(theme.value)"
-								>
-									<view class="theme-preview-color" :style="{ background: theme.previewColor }">
-										<text v-if="previewTheme === theme.value" class="theme-check-icon">✓</text>
-									</view>
-									<text class="theme-name">{{ theme.label }}</text>
-								</view>
-							</scroll-view>
-						</view>
-
 						<!-- 预览内容 -->
 						<scroll-view class="preview-scroll" scroll-y>
-							<view class="markdown-preview" :class="'theme-' + previewTheme" v-html="renderedHtml"></view>
+							<view class="markdown-preview" :class="'theme-' + formData.theme" v-html="renderedHtml"></view>
 						</scroll-view>
 						<view class="editor-footer">
 							<text class="char-count">{{ formData.content.length }}/5000</text>
-							<text class="theme-hint">当前主题: {{ themeOptions.find(t => t.value === previewTheme)?.label }}</text>
+							<text class="theme-hint">当前主题: {{ themeOptions.find(t => t.value === formData.theme)?.label }}</text>
 						</view>
 					</view>
+				</view>
+
+				<!-- 主题选择和AI优化（内容下方） -->
+				<view class="form-item theme-ai-row">
+					<view class="theme-ai-left">
+						<text class="theme-label">🎨 主题</text>
+						<picker
+							mode="selector"
+							:range="themeOptions"
+							range-key="label"
+							:value="selectedThemeIndex"
+							@change="handleThemePickerChange"
+						>
+							<view class="theme-picker">
+								<view class="theme-color-preview" :style="{ background: currentThemePreviewColor }"></view>
+								<text class="theme-picker-text">{{ themeOptions.find(t => t.value === formData.theme)?.label }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+					<button
+						class="ai-optimize-btn-inline"
+						:class="{ loading: isOptimizing }"
+						:disabled="isOptimizing || !formData.content.trim()"
+						@click="handleAiOptimize"
+					>
+						<text v-if="!isOptimizing" class="ai-icon">✨</text>
+						<text v-else class="loading-icon">⏳</text>
+						<text class="ai-text">{{ isOptimizing ? '优化中' : 'AI优化' }}</text>
+					</button>
 				</view>
 
 				<!-- 附件上传 -->
@@ -268,12 +269,10 @@ const userStore = useUserStore()
 // localStorage key
 const DRAFT_KEY = 'message_draft'
 const STRATEGY_KEY = 'last_selected_strategy'
+const THEME_KEY = 'last_selected_theme'
 
 // 预览模式
 const previewMode = ref(false)
-
-// 预览时的主题（实时预览用）
-const previewTheme = ref('default')
 // 表单数据
 const formData = ref({
 	strategy: MESSAGE_TAGS.SHORT_TERM, // 策略类型（默认：短线策略）
@@ -350,6 +349,12 @@ const selectedThemeIndex = computed(() => {
 	return themeOptions.findIndex(t => t.value === formData.value.theme)
 })
 
+// 当前主题的预览颜色
+const currentThemePreviewColor = computed(() => {
+	const theme = themeOptions.find(t => t.value === formData.value.theme)
+	return theme ? theme.previewColor : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+})
+
 // 处理策略类型选择
 const handleStrategyChange = (e) => {
 	const index = e.detail.value
@@ -378,17 +383,80 @@ const handleMessageTypeChange = (e) => {
 	formData.value.messageType = messageTypeOptions[index].value
 }
 
-// 处理主题选择
-const handleThemeChange = (e) => {
+// 处理主题选择（下拉选择器）
+const handleThemePickerChange = (e) => {
 	const index = e.detail.value
 	formData.value.theme = themeOptions[index].value
+	// 保存到 localStorage
+	uni.setStorageSync(THEME_KEY, formData.value.theme)
 }
 
-// 处理预览模式下的主题选择（实时预览）
-const handlePreviewThemeChange = (themeValue) => {
-	previewTheme.value = themeValue
-	formData.value.theme = themeValue  // 同步到表单数据，发布时使用此主题
+// 小程序粘贴图片按钮
+const handlePasteImage = async () => {
+	// #ifdef MP-WEIXIN
+	try {
+		// 检查图片数量限制
+		if (formData.value.attachments.length >= 9) {
+			uni.showToast({
+				title: '最多只能上传9张图片',
+				icon: 'none'
+			})
+			return
+		}
+
+		// 获取剪贴板数据
+		const res = await new Promise((resolve, reject) => {
+			uni.getClipboardData({
+				success: resolve,
+				fail: reject
+			})
+		})
+
+		if (res.data && res.data.startsWith('data:image')) {
+			// Base64 图片数据
+			const base64Data = res.data.split(',')[1]
+			const fsm = uni.getFileSystemManager()
+			const tempFilePath = `${wx.env.USER_DATA_PATH}/paste_${Date.now()}.jpg`
+
+			fsm.writeFile({
+				filePath: tempFilePath,
+				data: base64Data,
+				encoding: 'base64',
+				success: () => {
+					formData.value.attachments.push({
+						name: `粘贴图片_${formData.value.attachments.length + 1}.jpg`,
+						path: tempFilePath,
+						size: 0
+					})
+					uni.showToast({
+						title: '图片已添加',
+						icon: 'success'
+					})
+				},
+				fail: (err) => {
+					console.error('保存粘贴图片失败:', err)
+					uni.showToast({
+						title: '粘贴图片失败',
+						icon: 'none'
+					})
+				}
+			})
+		} else {
+			uni.showToast({
+				title: '剪贴板中没有图片',
+				icon: 'none'
+			})
+		}
+	} catch (error) {
+		console.error('获取剪贴板失败:', error)
+		uni.showToast({
+			title: '获取剪贴板失败',
+			icon: 'none'
+		})
+	}
+	// #endif
 }
+
 // 处理粘贴事件
 const handlePaste = (e) => {
 	// #ifdef MP-WEIXIN
@@ -952,6 +1020,14 @@ const restoreLastStrategy = () => {
 	}
 }
 
+// 恢复上次选择的主题
+const restoreLastTheme = () => {
+	const lastTheme = uni.getStorageSync(THEME_KEY)
+	if (lastTheme) {
+		formData.value.theme = lastTheme
+	}
+}
+
 // 监听表单变化，自动保存草稿
 watch(formData, () => {
 	saveDraft()
@@ -1265,8 +1341,9 @@ onMounted(async () => {
 			setTimeout(() => uni.navigateBack(), 1500)
 		}
 	} else {
-		// 新建模式：恢复上次选择的策略
+		// 新建模式：恢复上次选择的策略和主题
 		restoreLastStrategy()
+		restoreLastTheme()
 		// 检查是否有草稿
 		restoreDraft()
 	}
@@ -1979,6 +2056,99 @@ onBeforeUnmount(() => {
 .form-scroll {
 	height: calc(100vh - 140rpx); // 减去底部按钮栏高度
 /* 主题选择器样式 */.theme-selector {	padding: 20rpx;	background: #f8f9fa;	border-bottom: 2rpx solid #e5e5e5;}.theme-selector-label {	font-size: 28rpx;	color: #333;	font-weight: 500;	margin-bottom: 16rpx;	display: block;}.theme-list {	display: flex;	white-space: nowrap;	padding: 10rpx 0;}.theme-item {	display: inline-flex;	flex-direction: column;	align-items: center;	min-width: 100rpx;	margin-right: 20rpx;	padding: 12rpx;	border-radius: 12rpx;	background: #ffffff;	border: 2rpx solid #e0e0e0;	transition: all 0.3s ease;}.theme-item.active {	border-color: #667eea;	background: #f0f2ff;	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.2);}.theme-preview-color {	width: 64rpx;	height: 64rpx;	border-radius: 8rpx;	display: flex;	align-items: center;	justify-content: center;	margin-bottom: 8rpx;	box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);}.theme-check-icon {	color: #ffffff;	font-size: 32rpx;	font-weight: bold;	text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.3);}.theme-name {	font-size: 22rpx;	color: #666;}.theme-item.active .theme-name {	color: #667eea;	font-weight: 500;}.theme-hint {	font-size: 22rpx;	color: #667eea;}/* 主题预览样式 - 深色主题 */.markdown-preview.theme-dark {	background: #1a1a1a;	color: #e2e8f0;}.markdown-preview.theme-dark h1,.markdown-preview.theme-dark h2,.markdown-preview.theme-dark h3 {	color: #f1f5f9;}.markdown-preview.theme-dark strong {	color: #fbbf24;}.markdown-preview.theme-dark blockquote {	background: #2d3748;	border-left-color: #667eea;	color: #cbd5e0;}.markdown-preview.theme-dark code.inline-code {	background: #374151;	color: #f87171;	border-color: #4b5563;}
+}
+
+/* 主题和AI优化同行样式 */
+.theme-ai-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 24rpx;
+	background: #f8f9fa;
+	border-radius: 12rpx;
+	margin-bottom: 30rpx;
+}
+
+.theme-ai-left {
+	display: flex;
+	align-items: center;
+	gap: 16rpx;
+}
+
+.theme-label {
+	font-size: 28rpx;
+	color: #333;
+	font-weight: 500;
+}
+
+.theme-picker {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	padding: 12rpx 20rpx;
+	background: #ffffff;
+	border: 2rpx solid #e0e0e0;
+	border-radius: 8rpx;
+	min-width: 200rpx;
+}
+
+.theme-color-preview {
+	width: 40rpx;
+	height: 40rpx;
+	border-radius: 6rpx;
+	flex-shrink: 0;
+	box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.15);
+}
+
+.theme-picker-text {
+	flex: 1;
+	font-size: 28rpx;
+	color: #333;
+}
+
+.picker-arrow {
+	font-size: 20rpx;
+	color: #999;
+}
+
+.ai-optimize-btn-inline {
+	display: flex;
+	align-items: center;
+	gap: 8rpx;
+	padding: 16rpx 28rpx;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border: none;
+	border-radius: 10rpx;
+	color: #ffffff;
+	font-size: 28rpx;
+	font-weight: 500;
+	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+	transition: all 0.3s;
+
+	&:active {
+		transform: scale(0.95);
+	}
+
+	&[disabled] {
+		opacity: 0.5;
+		background: #ccc;
+		box-shadow: none;
+	}
+}
+
+.ai-optimize-btn-inline.loading {
+	background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+}
+
+/* 小程序粘贴按钮样式 */
+.paste-btn {
+	background: #f0f0f0 !important;
+	color: #666 !important;
+}
+
+.paste-btn:active {
+	background: #667eea !important;
+	color: #ffffff !important;
 }
 
 /* AI优化按钮和编辑器底部样式 */
