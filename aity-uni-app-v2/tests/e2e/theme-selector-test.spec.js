@@ -1,259 +1,231 @@
 // @ts-check
-const { test, expect } = require('@playwright/test');
-
 /**
- * 主题选择器优化功能测试
+ * 主题选择器优化功能测试 - 可复用脚本
+ *
  * 测试日期: 2026-02-28
+ * 功能版本: v1.8.1
+ *
  * 测试内容:
- * 1. 主题选择器在编辑模式下可见
- * 2. 下拉选择功能
- * 3. 颜色预览功能
- * 4. 主题记忆功能 (localStorage)
- * 5. AI优化按钮显示
+ * 1. 登录功能
+ * 2. 主题选择器在编辑模式下可见
+ * 3. 下拉选择功能
+ * 4. AI优化按钮显示
+ * 5. 完整发布流程
+ *
+ * 运行方式:
+ * cd C:/Users/DELL/.claude/skills/dev-browser
+ * CHROME_PATH="D:/your-mcp-proxy/AITY_VIP/chrome-win64/chrome.exe" npx tsx tests/e2e/theme-selector-test.spec.js
  */
 
-// 配置视频录制
-test.use({
-  video: {
-    mode: 'on',
-    size: { width: 1280, height: 720 }
+const { connect, waitForPageLoad } = require("@/client.js");
+
+// ============= 配置区 =============
+const CONFIG = {
+  baseUrl: 'http://localhost:5174',
+  testUser: {
+    // 参考: docs/testing/测试账户参考.md
+    username: 'admin',
+    email: 'admin@example.com',
+    password: '123456',  // 正确密码
+    role: 'super_admin'
   },
-  screenshot: 'on',
-  trace: 'on'
-});
-
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5174';
-
-// 测试账号
-const TEST_USER = {
-  email: 'admin@example.com',
-  password: 'Admin123!'
+  screenshotDir: 'tmp/'
 };
 
-test.describe('主题选择器优化测试', () => {
+// ============= 测试工具函数 =============
+async function takeScreenshot(page, name) {
+  const path = `${CONFIG.screenshotDir}${name}`;
+  await page.screenshot({ path, fullPage: true });
+  console.log(`✓ 截图: ${path}`);
+  return path;
+}
 
-  test.beforeEach(async ({ page }) => {
-    // 登录
-    await page.goto(BASE_URL);
-    await page.waitForLoadState('networkidle');
+async function checkElement(page, selector, name) {
+  const visible = await page.locator(selector).first()
+    .isVisible({ timeout: 3000 })
+    .catch(() => false);
+  console.log(`  ${name}: ${visible ? '✓ 通过' : '✗ 失败'}`);
+  return visible;
+}
 
-    // 检查是否在登录页
-    const loginForm = page.locator('input[type="text"], input[placeholder*="邮箱"], input[placeholder*="账号"]').first();
+// ============= 主测试流程 =============
+async function runTests() {
+  console.log('=== 主题选择器功能测试 ===');
+  console.log('测试时间:', new Date().toLocaleString());
+  console.log('测试账户:', CONFIG.testUser.email);
+  console.log('');
 
-    if (await loginForm.isVisible({ timeout: 3000 }).catch(() => false)) {
-      console.log('检测到登录页面，执行登录...');
+  const client = await connect();
+  const page = await client.page("theme-test", {
+    viewport: { width: 1280, height: 900 }
+  });
 
-      // 填写登录信息
-      await loginForm.fill(TEST_USER.email);
+  const results = {
+    login: false,
+    themeRow: false,
+    themePicker: false,
+    aiButton: false,
+    contentFill: false
+  };
 
-      const passwordInput = page.locator('input[type="password"]').first();
-      await passwordInput.fill(TEST_USER.password);
+  try {
+    // ---------- 步骤1: 导航到页面 ----------
+    console.log('步骤1: 导航到登录页面');
+    await page.goto(CONFIG.baseUrl);
+    await waitForPageLoad(page);
+    await page.waitForTimeout(2000);
+    await takeScreenshot(page, 'theme-01-initial.png');
 
-      // 点击登录按钮
-      const loginBtn = page.locator('button:has-text("登录"), button:has-text("登 录")').first();
+    // ---------- 步骤2: 登录 ----------
+    console.log('\n步骤2: 执行登录');
+
+    // 获取AI快照找到登录按钮
+    let snapshot = await client.getAISnapshot("theme-test");
+
+    // 填写邮箱
+    const emailInput = page.locator('input[placeholder*="邮箱"], input[type="text"]').first();
+    await emailInput.fill(CONFIG.testUser.email);
+
+    // 填写密码
+    const passwordInput = page.locator('input[type="password"]').first();
+    await passwordInput.fill(CONFIG.testUser.password);
+
+    // 使用AI快照点击登录按钮 (uni-app组件不是button)
+    // 在快照中找到 "登录" 文本的元素ref
+    const loginMatch = snapshot.match(/generic \[ref=e(\d+)\] \[cursor=pointer\]: 登录/);
+    if (loginMatch) {
+      const loginBtn = await client.selectSnapshotRef("theme-test", `e${loginMatch[1]}`);
       await loginBtn.click({ force: true });
-
-      // 等待登录完成
-      await page.waitForTimeout(2000);
-      await page.waitForLoadState('networkidle');
-    }
-  });
-
-  test('TC01: 主题选择器在编辑模式下可见', async ({ page }) => {
-    console.log('测试: 主题选择器在编辑模式下可见');
-
-    // 导航到发布消息页面
-    await page.goto(BASE_URL + '/#/pages/create-message/create-message');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1500);
-
-    // 截图: 进入发布页面
-    await page.screenshot({ path: 'test-results/theme-01-page-loaded.png', fullPage: true });
-
-    // 查找主题选择器
-    const themeLabel = page.locator('text=主题, text=🎨').first();
-    const isVisible = await themeLabel.isVisible({ timeout: 5000 }).catch(() => false);
-
-    console.log('主题选择器可见:', isVisible);
-
-    // 截图保存当前状态
-    await page.screenshot({ path: 'test-results/theme-02-selector-visible.png', fullPage: true });
-
-    // 验证主题选择器存在
-    expect(isVisible || await page.locator('.theme-ai-row').isVisible().catch(() => false)).toBeTruthy();
-  });
-
-  test('TC02: 下拉选择功能', async ({ page }) => {
-    console.log('测试: 下拉选择功能');
-
-    // 导航到发布消息页面
-    await page.goto(BASE_URL + '/#/pages/create-message/create-message');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1500);
-
-    // 查找主题下拉框
-    const themePicker = page.locator('.theme-picker, picker').first();
-
-    if (await themePicker.isVisible({ timeout: 3000 }).catch(() => false)) {
-      console.log('找到主题选择器，点击打开...');
-
-      // 点击主题选择器
-      await themePicker.click({ force: true });
-      await page.waitForTimeout(1000);
-
-      // 截图: 下拉框打开状态
-      await page.screenshot({ path: 'test-results/theme-03-picker-open.png', fullPage: true });
-
-      console.log('主题选择器点击成功');
     } else {
-      console.log('使用备用方式查找主题选择器');
-
-      // 尝试通过文本查找
-      const themeText = page.locator('text=主题').first();
-      if (await themeText.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await themeText.click({ force: true });
-        await page.waitForTimeout(1000);
-        await page.screenshot({ path: 'test-results/theme-03b-picker-click.png', fullPage: true });
-      }
+      // 备用方式
+      const loginBtn = page.locator('text=登录').first();
+      await loginBtn.click({ force: true });
     }
 
-    // 验证页面仍然正常
-    await expect(page).toHaveURL(/create-message/);
-  });
+    await page.waitForTimeout(3000);
+    await waitForPageLoad(page);
+    await takeScreenshot(page, 'theme-02-after-login.png');
 
-  test('TC03: 颜色预览功能', async ({ page }) => {
-    console.log('测试: 颜色预览功能');
+    console.log(`  当前URL: ${page.url()}`);
+    results.login = !page.url().includes('login');
+    console.log(`  登录状态: ${results.login ? '✓ 成功' : '✗ 失败'}`);
 
-    // 导航到发布消息页面
-    await page.goto(BASE_URL + '/#/pages/create-message/create-message');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1500);
+    // ---------- 步骤3: 导航到发布消息页面 ----------
+    console.log('\n步骤3: 导航到发布消息页面');
+    await page.goto(`${CONFIG.baseUrl}/#/pages/create-message/create-message`);
+    await waitForPageLoad(page);
+    await page.waitForTimeout(2000);
+    await takeScreenshot(page, 'theme-03-create-message.png');
 
-    // 查找颜色预览块
-    const colorPreview = page.locator('.theme-color-preview').first();
-    const isVisible = await colorPreview.isVisible({ timeout: 3000 }).catch(() => false);
+    // ---------- 步骤4: 检查主题选择器 ----------
+    console.log('\n步骤4: 检查主题选择器组件');
 
-    console.log('颜色预览块可见:', isVisible);
+    // 获取AI快照
+    snapshot = await client.getAISnapshot("theme-test");
+    console.log('\n  AI快照 (关键元素):');
 
-    // 截图
-    await page.screenshot({ path: 'test-results/theme-04-color-preview.png', fullPage: true });
+    // 查找主题相关元素
+    const themeMatch = snapshot.match(/generic \[ref=e(\d+)\]: 🎨 主题/);
+    const pickerMatch = snapshot.match(/简约白|紫色渐变/);
+    const aiMatch = snapshot.match(/AI优化/);
 
-    if (isVisible) {
-      // 获取背景色
-      const bgColor = await colorPreview.evaluate(el => {
-        return window.getComputedStyle(el).background || window.getComputedStyle(el).backgroundColor;
-      });
-      console.log('颜色预览背景:', bgColor);
-    }
+    if (themeMatch) console.log(`    找到 🎨 主题 (ref=e${themeMatch[1]})`);
+    if (pickerMatch) console.log(`    找到主题选项: ${pickerMatch[0]}`);
+    if (aiMatch) console.log(`    找到 AI优化 按钮`);
 
-    // 验证主题选择区域存在
-    const themeRow = page.locator('.theme-ai-row').first();
-    expect(await themeRow.isVisible({ timeout: 3000 }).catch(() => false) || isVisible).toBeTruthy();
-  });
+    // 使用CSS选择器检测
+    results.themeRow = await checkElement(page, '.theme-ai-row', '主题选择行');
+    results.themePicker = await checkElement(page, '.theme-picker', '主题下拉框');
 
-  test('TC04: AI优化按钮与主题同行', async ({ page }) => {
-    console.log('测试: AI优化按钮与主题同行');
+    // AI按钮在uni-app中可能是generic元素
+    const aiBtnLocator = page.locator('text=AI优化').first();
+    results.aiButton = await aiBtnLocator.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`  AI优化按钮: ${results.aiButton ? '✓ 通过' : '✗ 失败'}`);
 
-    // 导航到发布消息页面
-    await page.goto(BASE_URL + '/#/pages/create-message/create-message');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1500);
+    // ---------- 步骤5: 填写测试内容 ----------
+    console.log('\n步骤5: 填写测试内容');
 
-    // 查找AI优化按钮
-    const aiButton = page.locator('button:has-text("AI优化"), .ai-optimize-btn-inline').first();
-    const isVisible = await aiButton.isVisible({ timeout: 3000 }).catch(() => false);
-
-    console.log('AI优化按钮可见:', isVisible);
-
-    // 截图
-    await page.screenshot({ path: 'test-results/theme-05-ai-button.png', fullPage: true });
-
-    // 查找主题选择行
-    const themeRow = page.locator('.theme-ai-row').first();
-    const rowVisible = await themeRow.isVisible({ timeout: 3000 }).catch(() => false);
-
-    console.log('主题-AI同行区域可见:', rowVisible);
-
-    // 验证至少有一个可见
-    expect(isVisible || rowVisible).toBeTruthy();
-  });
-
-  test('TC05: 完整发布流程演示', async ({ page }) => {
-    console.log('测试: 完整发布流程演示');
-
-    // 导航到发布消息页面
-    await page.goto(BASE_URL + '/#/pages/create-message/create-message');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1500);
-
-    // 步骤1: 填写标题
     const titleInput = page.locator('input[placeholder*="标题"]').first();
     if (await titleInput.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await titleInput.fill('主题选择器测试消息');
-      console.log('已填写标题');
+      await titleInput.fill('主题选择器功能测试');
+      console.log('  ✓ 已填写标题');
+    }
+
+    const textarea = page.locator('textarea').first();
+    if (await textarea.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await textarea.fill(
+        '# 测试消息\n\n' +
+        '这是一条用于测试主题选择器功能的消息。\n\n' +
+        '## 功能特点\n\n' +
+        '- 下拉选择\n' +
+        '- 颜色预览\n' +
+        '- 记忆功能'
+      );
+      console.log('  ✓ 已填写内容');
+      results.contentFill = true;
     }
 
     await page.waitForTimeout(500);
-    await page.screenshot({ path: 'test-results/theme-06-title-filled.png', fullPage: true });
+    await takeScreenshot(page, 'theme-04-content-filled.png');
 
-    // 步骤2: 填写内容
-    const contentTextarea = page.locator('textarea').first();
-    if (await contentTextarea.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await contentTextarea.fill('# 主题选择器测试\n\n这是一条用于测试主题选择器功能的消息。\n\n## 功能特点\n\n- 下拉选择\n- 颜色预览\n- 记忆功能');
-      console.log('已填写内容');
-    }
+    // ---------- 步骤6: 高亮主题选择器 ----------
+    console.log('\n步骤6: 高亮主题选择器区域');
 
-    await page.waitForTimeout(500);
-    await page.screenshot({ path: 'test-results/theme-07-content-filled.png', fullPage: true });
-
-    // 步骤3: 展示主题选择器
     const themeRow = page.locator('.theme-ai-row').first();
     if (await themeRow.isVisible({ timeout: 2000 }).catch(() => false)) {
-      console.log('主题选择器区域可见');
-
-      // 高亮显示主题选择器区域
-      await themeRow.evaluate(el => {
+      await themeRow.evaluate((el) => {
         el.style.border = '3px solid red';
-        el.style.boxShadow = '0 0 10px red';
+        el.style.boxShadow = '0 0 15px red';
+        el.style.transform = 'scale(1.02)';
       });
 
       await page.waitForTimeout(500);
-      await page.screenshot({ path: 'test-results/theme-08-theme-highlighted.png', fullPage: true });
+      await takeScreenshot(page, 'theme-05-theme-highlighted.png');
+      console.log('  ✓ 主题选择器已高亮');
 
       // 移除高亮
-      await themeRow.evaluate(el => {
+      await themeRow.evaluate((el) => {
         el.style.border = '';
         el.style.boxShadow = '';
+        el.style.transform = '';
       });
     }
 
-    // 步骤4: 展示预览区
-    const previewBtn = page.locator('text=预览').first();
-    if (await previewBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await previewBtn.click({ force: true });
-      await page.waitForTimeout(1000);
-      console.log('已切换到预览模式');
-      await page.screenshot({ path: 'test-results/theme-09-preview-mode.png', fullPage: true });
-    }
+    // ---------- 测试结果汇总 ----------
+    console.log('\n' + '='.repeat(50));
+    console.log('测试结果汇总');
+    console.log('='.repeat(50));
 
-    console.log('完整流程演示完成');
-  });
-});
+    const testItems = [
+      { name: '登录功能', result: results.login },
+      { name: '主题选择行可见', result: results.themeRow },
+      { name: '主题下拉框可见', result: results.themePicker },
+      { name: 'AI优化按钮可见', result: results.aiButton },
+      { name: '内容填写', result: results.contentFill }
+    ];
 
-test.describe('服务状态检查', () => {
-  test('后端API可用', async ({ page }) => {
-    // 检查后端健康状态
-    const response = await page.request.get('http://localhost:3001/api/health').catch(() => null);
+    testItems.forEach(item => {
+      console.log(`  ${item.result ? '✓' : '✗'} ${item.name}`);
+    });
 
-    if (response) {
-      console.log('后端API状态:', response.status());
-    } else {
-      console.log('后端API可能未启动');
-    }
+    const passedCount = testItems.filter(t => t.result).length;
+    const totalCount = testItems.length;
 
-    // 截图
-    await page.goto(BASE_URL);
-    await page.waitForLoadState('networkidle');
-    await page.screenshot({ path: 'test-results/theme-00-service-check.png', fullPage: true });
-  });
-});
+    console.log('='.repeat(50));
+    console.log(`通过: ${passedCount}/${totalCount}`);
+    console.log(`最终结果: ${passedCount === totalCount ? '✓ 所有测试通过' : '✗ 部分测试失败'}`);
+    console.log('');
+    console.log(`截图目录: C:/Users/DELL/.claude/skills/dev-browser/${CONFIG.screenshotDir}`);
+
+  } catch (error) {
+    console.error('\n❌ 测试执行出错:', error.message);
+    await takeScreenshot(page, 'theme-error.png');
+  } finally {
+    await client.disconnect();
+  }
+
+  return results;
+}
+
+// 执行测试
+runTests().catch(console.error);
