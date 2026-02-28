@@ -73,6 +73,14 @@
 				</view>
 				<text class="menu-arrow">›</text>
 			</view>
+
+			<view v-if="userStore.isAdmin" class="menu-item" @click="goToAiConfig">
+				<view class="menu-left">
+					<text class="menu-icon">🤖</text>
+					<text class="menu-text">AI配置管理</text>
+				</view>
+				<text class="menu-arrow">›</text>
+			</view>
 		</view>
 
 		<!-- 系统设置 -->
@@ -195,6 +203,13 @@ const goToUserManagement = () => {
 const goToStats = () => {
 	uni.navigateTo({
 		url: '/pages/stats/stats'
+	})
+}
+
+// 跳转到AI配置管理
+const goToAiConfig = () => {
+	uni.navigateTo({
+		url: '/pages/admin/ai-config'
 	})
 }
 
