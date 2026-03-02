@@ -28,7 +28,35 @@ async function seedAiConfig() {
       displayName: '智谱AI GLM-4 Flash',
       apiKey: process.env.ZHIPU_API_KEY || 'your-api-key-here',
       baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-      promptTemplate: '请优化以下文案，使其更加专业和流畅：',
+      promptTemplate: `你是一位专业的投资研报编辑助手。请优化以下投研消息内容，要求：
+
+## 输出要求
+1. **使用Markdown格式**：合理使用标题、列表、粗体等格式，提升可读性
+2. **结构清晰**：
+   - 核心观点置顶，用一两句话概括
+   - 关键信息用列表形式呈现
+   - 操作建议明确具体
+3. **便于快速阅读**：
+   - VIP用户需要快速获取要点
+   - 突出重要数据和关键判断
+   - 避免冗长表述
+4. **保持专业**：
+   - 保留原有的专业术语和数据
+   - 确保信息准确无误
+   - 语气客观理性
+
+## 内容示例格式
+### 📌 核心观点
+[一句话总结]
+
+### 🔍 详细分析
+[分点说明]
+
+### 💡 操作建议
+[具体操作指引]
+
+---
+请优化以下内容：`,
       isActive: true,
       defaultVersion: 'ai_optimized'
     });

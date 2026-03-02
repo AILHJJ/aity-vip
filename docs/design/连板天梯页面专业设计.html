@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>连板天梯 - 专业版</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary-color: #409eff;
+      --success-color: #67c23a;
+      --warning-color: #e6a23c;
+      --danger-color: #f56c6c;
+      --info-color: #909399;
+      --light-bg: #f5f7fa;
+      --white: #ffffff;
+      --gray-1: #f9fafc;
+      --gray-2: #f0f2f5;
+      --gray-3: #e4e7ed;
+      --gray-4: #c0c4cc;
+      --gray-5: #909399;
+      --gray-6: #606266;
+      --gray-7: #303133;
+      --border-radius: 8px;
+      --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: var(--light-bg);
+      max-width: 414px;
+      margin: 0 auto;
+      min-height: 100vh;
+      color: var(--gray-7);
+    }
+
+    /* 顶部导航 */
+    .top-nav {
+      background: var(--white);
+      padding: 16px;
+      box-shadow: var(--box-shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .top-nav-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 16px;
+      font-size: 20px;
+    }
+
+    /* 市场概览 */
+    .market-overview {
+      background: var(--white);
+      margin: 12px;
+      padding: 16px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+    }
+
+    .market-overview h2 {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 16px;
+      color: var(--gray-7);
+    }
+
+    .market-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .market-stat-item {
+      text-align: center;
+      padding: 12px;
+      background: var(--gray-1);
+      border-radius: var(--border-radius);
+    }
+
+    .market-stat-label {
+      font-size: 12px;
+      color: var(--gray-5);
+      margin-bottom: 4px;
+    }
+
+    .market-stat-value {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--gray-7);
+    }
+
+    .market-stat-change {
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .change-up {
+      color: var(--danger-color);
+    }
+
+    .change-down {
+      color: var(--success-color);
+    }
+
+    /* 连板概览卡片 */
+    .board-overview {
+      background: var(--white);
+      margin: 0 12px 12px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      overflow: hidden;
+    }
+
+    .board-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--gray-2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .board-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--gray-7);
+    }
+
+    .board-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .board-tab {
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 13px;
+      background: var(--gray-1);
+      color: var(--gray-6);
+      cursor: pointer;
+    }
+
+    .board-tab.active {
+      background: var(--primary-color);
+      color: var(--white);
+    }
+
+    /* 连板分组 */
+    .board-groups {
+      padding: 12px;
+    }
+
+    .board-group {
+      margin-bottom: 16px;
+    }
+
+    .board-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .board-group-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--gray-2);
+    }
+
+    .board-group-title {
+      font-size: 15px;
+      font-weight: bold;
+      color: var(--gray-7);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .board-count {
+      background: var(--danger-color);
+      color: var(--white);
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+
+    .board-expand {
+      margin-left: auto;
+      font-size: 14px;
+      color: var(--gray-5);
+      cursor: pointer;
+    }
+
+    /* 股票网格 */
+    .stock-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .stock-card {
+      background: var(--gray-1);
+      border-radius: var(--border-radius);
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 1px solid transparent;
+    }
+
+    .stock-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--box-shadow);
+      border-color: var(--primary-color);
+    }
+
+    .stock-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray-7);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stock-info {
+      font-size: 11px;
+      color: var(--gray-5);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stock-price {
+      color: var(--danger-color);
+      font-weight: 500;
+    }
+
+    .stock-change {
+      font-size: 10px;
+      padding: 1px 4px;
+      border-radius: 2px;
+      background: var(--danger-color);
+      color: var(--white);
+    }
+
+    /* 数据分析区域 */
+    .analysis-section {
+      background: var(--white);
+      margin: 0 12px 12px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 16px;
+    }
+
+    .analysis-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .analysis-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--gray-7);
+    }
+
+    .analysis-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .analysis-tab {
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 13px;
+      background: var(--gray-1);
+      color: var(--gray-6);
+      cursor: pointer;
+    }
+
+    .analysis-tab.active {
+      background: var(--primary-color);
+      color: var(--white);
+    }
+
+    /* 图表区域 */
+    .chart-container {
+      height: 200px;
+      background: var(--gray-1);
+      border-radius: var(--border-radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      height: 160px;
+      width: 100%;
+      padding: 0 16px;
+    }
+
+    .bar-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 30px;
+    }
+
+    .bar {
+      width: 24px;
+      background: var(--primary-color);
+      border-radius: 4px 4px 0 0;
+      margin-bottom: 8px;
+    }
+
+    .bar-label {
+      font-size: 10px;
+      color: var(--gray-6);
+    }
+
+    .bar-value {
+      font-size: 10px;
+      color: var(--gray-7);
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    /* 趋势指标 */
+    .trend-indicators {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .trend-indicator {
+      background: var(--gray-1);
+      border-radius: var(--border-radius);
+      padding: 12px;
+      text-align: center;
+    }
+
+    .trend-label {
+      font-size: 12px;
+      color: var(--gray-5);
+      margin-bottom: 4px;
+    }
+
+    .trend-value {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--gray-7);
+    }
+
+    .trend-change {
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    /* 热门板块 */
+    .hot-sectors {
+      background: var(--white);
+      margin: 0 12px 12px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 16px;
+    }
+
+    .hot-sectors h3 {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--gray-7);
+      margin-bottom: 12px;
+    }
+
+    .sector-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .sector-tag {
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 13px;
+      background: var(--gray-1);
+      color: var(--gray-6);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .sector-tag:hover {
+      background: var(--primary-color);
+      color: var(--white);
+    }
+
+    /* 底部导航 */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--white);
+      border-top: 1px solid var(--gray-3);
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 0;
+      max-width: 414px;
+      margin: 0 auto;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 11px;
+      color: var(--gray-5);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .nav-item.active {
+      color: var(--primary-color);
+    }
+
+    .nav-icon {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    /* 空状态 */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray-4);
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .empty-text {
+      font-size: 14px;
+    }
+
+    /* 加载动画 */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--gray-2);
+      border-top: 2px solid var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 375px) {
+      .market-stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .stock-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .trend-indicators {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* 暗色模式 */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --light-bg: #1a1a1a;
+        --white: #2c2c2c;
+        --gray-1: #3a3a3a;
+        --gray-2: #4a4a4a;
+        --gray-3: #5a5a5a;
+        --gray-4: #6a6a6a;
+        --gray-5: #8a8a8a;
+        --gray-6: #aaa;
+        --gray-7: #eee;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <div class="top-nav">
+    <div class="top-nav-content">
+      <div class="logo">连板天梯</div>
+      <div class="nav-actions">
+        <span>🔄</span>
+        <span>🔍</span>
+        <span>⚙️</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 市场概览 -->
+  <div class="market-overview">
+    <h2>📊 市场概览</h2>
+    <div class="market-stats">
+      <div class="market-stat-item">
+        <div class="market-stat-label">连板总数</div>
+        <div class="market-stat-value">156</div>
+        <div class="market-stat-change change-up">+12</div>
+      </div>
+      <div class="market-stat-item">
+        <div class="market-stat-label">涨停家数</div>
+        <div class="market-stat-value">89</div>
+        <div class="market-stat-change change-up">+5</div>
+      </div>
+      <div class="market-stat-item">
+        <div class="market-stat-label">最高板</div>
+        <div class="market-stat-value">7板</div>
+        <div class="market-stat-change">+1</div>
+      </div>
+      <div class="market-stat-item">
+        <div class="market-stat-label">市场情绪</div>
+        <div class="market-stat-value">85</div>
+        <div class="market-stat-change change-up">+10</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 连板概览 -->
+  <div class="board-overview">
+    <div class="board-header">
+      <div class="board-title">📈 连板天梯</div>
+      <div class="board-tabs">
+        <div class="board-tab active">实时</div>
+        <div class="board-tab">历史</div>
+        <div class="board-tab">趋势</div>
+      </div>
+    </div>
+    
+    <div class="board-groups">
+      <!-- 7板+ -->
+      <div class="board-group">
+        <div class="board-group-header">
+          <div class="board-group-title">
+            <span>7板+</span>
+            <span class="board-count">2</span>
+          </div>
+          <div class="board-expand">+</div>
+        </div>
+        <div class="stock-grid">
+          <div class="stock-card">
+            <div class="stock-name">龙头股A</div>
+            <div class="stock-info">
+              <span class="stock-price">48.83</span>
+              <span class="stock-change">+10.00%</span>
+            </div>
+          </div>
+          <div class="stock-card">
+            <div class="stock-name">龙头股B</div>
+            <div class="stock-info">
+              <span class="stock-price">28.28</span>
+              <span class="stock-change">+10.00%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6板 -->
+      <div class="board-group">
+        <div class="board-group-header">
+          <div class="board-group-title">
+            <span>6板</span>
+            <span class="board-count">3</span>
+          </div>
+          <div class="board-expand">+</div>
+        </div>
+        <div class="stock-grid">
+          <div class="stock-card">
+            <div class="stock-name">强势股A</div>
+            <div class="stock-info">
+              <span class="stock-price">15.67</span>
+              <span class="stock-change">+10.00%</span>
+            </div>
+          </div>
+          <div class="stock-card">
+            <div class="stock-name">强势股B</div>
+            <div class="stock-info">
+              <span class="stock-price">22.34</span>
+              <span class="stock-change">+10.00%</span>
+            </div>
+          </div>
+          <div class="stock-card">
+            <div class="stock-name">强势股C</div>
+            <div class="stock-info">
+              <span class="stock-price">8.92</span>
+              <span class="stock-change">+10.00%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5板 -->
+      <div class="board-group">
+        <div class="board-group-header">
+          <div class="board-group-title">
+            <span>5板</span>
+            <span class="board-count">5</span>
+          </div>
+          <div class="board-expand">+</div>
+        </div>
+        <div class="stock-grid">
+          <div class="stock-card">
+            <div class="stock-name">妖股</div>
+            <div class="stock-info">
+              <span class="stock-price">8.39</span>
+              <span class="stock-change">+20.03%</span>
+            </div>
+          </div>
+          <div class="stock-card">
+            <div class="stock-name">热门股A</div>
+            <div class="stock-info">
+              <span class="stock-price">12.45</span>
+              <span class="stock-change">+10.00%</span>
+            </div>
+          </div>
+          <div class="stock-card">
+            <div class="stock-name">热门股B</div>
+            <div class="stock-info">
+              <span class="stock-price">18.76</span>
+              <span class="stock-change">+10.00%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4板 -->
+      <div class="board-group">
+        <div class="board-group-header">
+          <div class="board-group-title">
+            <span>4板</span>
+            <span class="board-count">8</span>
+          </div>
+          <div class="board-expand">+</div>
+        </div>
+        <div class="stock-grid">
+          <div class="stock-card">
+            <div class="stock-name">潜力股A</div>
+            <div class="stock-info">
+              <span class="stock-price">9.87</span>
+              <span class="stock-change">+10.00%</span>
+            </div>
+          </div>
+          <div class="stock-card">
+            <div class="stock-name">潜力股B</div>
+            <div class="stock-info">
+              <span class="stock-price">14.32</span>
+              <span class="stock-change">+10.00%</span>
+            </div>
+          </div>
+          <div class="stock-card">
+            <div class="stock-name">潜力股C</div>
+            <div class="stock-info">
+              <span class="stock-price">26.54</span>
+              <span class="stock-change">+10.00%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3板 -->
+      <div class="board-group">
+        <div class="board-group-header">
+          <div class="board-group-title">
+            <span>3板</span>
+            <span class="board-count">12</span>
+          </div>
+          <div class="board-expand">+</div>
+        </div>
+        <div class="stock-grid">
+          <div class="stock-card">
+            <div class="stock-name">泰嘉股份</div>
+            <div class="stock-info">
+              <span class="stock-price">15.67</span>
+              <span class="stock-change">+10.01%</span>
+            </div>
+          </div>
+          <div class="stock-card">
+            <div class="stock-name">中国天楹</div>
+            <div class="stock-info">
+              <span class="stock-price">4.57</span>
+              <span class="stock-change">+4.57%</span>
+            </div>
+          </div>
+          <div class="stock-card">
+            <div class="stock-name">新金路</div>
+            <div class="stock-info">
+              <span class="stock-price">6.78</span>
+              <span class="stock-change">+5.37%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据分析 -->
+  <div class="analysis-section">
+    <div class="analysis-header">
+      <div class="analysis-title">📊 数据分析</div>
+      <div class="analysis-tabs">
+        <div class="analysis-tab active">连板分布</div>
+        <div class="analysis-tab">资金流向</div>
+        <div class="analysis-tab">板型分析</div>
+      </div>
+    </div>
+    
+    <div class="chart-container">
+      <div class="bar-chart">
+        <div class="bar-item">
+          <div class="bar-value">2</div>
+          <div class="bar" style="height: 100px;"></div>
+          <div class="bar-label">7板+</div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-value">3</div>
+          <div class="bar" style="height: 80px;"></div>
+          <div class="bar-label">6板</div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-value">5</div>
+          <div class="bar" style="height: 120px;"></div>
+          <div class="bar-label">5板</div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-value">8</div>
+          <div class="bar" style="height: 150px;"></div>
+          <div class="bar-label">4板</div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-value">12</div>
+          <div class="bar" style="height: 160px;"></div>
+          <div class="bar-label">3板</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trend-indicators">
+      <div class="trend-indicator">
+        <div class="trend-label">市场热度</div>
+        <div class="trend-value">85</div>
+        <div class="trend-change change-up">+10</div>
+      </div>
+      <div class="trend-indicator">
+        <div class="trend-label">平均涨幅</div>
+        <div class="trend-value">8.5%</div>
+        <div class="trend-change change-up">+1.2%</div>
+      </div>
+      <div class="trend-indicator">
+        <div class="trend-label">资金流入</div>
+        <div class="trend-value">12.5亿</div>
+        <div class="trend-change change-up">+3.2亿</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 热门板块 -->
+  <div class="hot-sectors">
+    <h3>🔥 热门板块</h3>
+    <div class="sector-list">
+      <div class="sector-tag">AI概念</div>
+      <div class="sector-tag">半导体</div>
+      <div class="sector-tag">新能源</div>
+      <div class="sector-tag">医药</div>
+      <div class="sector-tag">军工</div>
+      <div class="sector-tag">消费</div>
+      <div class="sector-tag">金融</div>
+      <div class="sector-tag">地产</div>
+    </div>
+  </div>
+
+  <div style="height: 80px;"></div>
+
+  <!-- 底部导航 -->
+  <div class="bottom-nav">
+    <div class="nav-item">
+      <div class="nav-icon">🏠</div>
+      <div>首页</div>
+    </div>
+    <div class="nav-item active">
+      <div class="nav-icon">📈</div>
+      <div>连板</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">💡</div>
+      <div>AI分析</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">📚</div>
+      <div>知识库</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">👤</div>
+      <div>我的</div>
+    </div>
+  </div>
+
+  <script>
+    // 切换板块标签
+    document.querySelectorAll('.board-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 切换分析标签
+    document.querySelectorAll('.analysis-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.analysis-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 股票卡片点击
+    document.querySelectorAll('.stock-card').forEach(card => {
+      card.addEventListener('click', function() {
+        const stockName = this.querySelector('.stock-name').textContent;
+        alert(`查看 ${stockName} 的详细信息`);
+      });
+    });
+
+    // 热门板块点击
+    document.querySelectorAll('.sector-tag').forEach(tag => {
+      tag.addEventListener('click', function() {
+        const sectorName = this.textContent;
+        alert(`查看 ${sectorName} 板块的相关股票`);
+      });
+    });
+
+    // 底部导航点击
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', function() {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 模拟数据加载
+    setTimeout(() => {
+      console.log('数据加载完成');
+    }, 1000);
+  </script>
+</body>
+</html>

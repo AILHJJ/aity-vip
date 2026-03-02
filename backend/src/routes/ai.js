@@ -29,4 +29,23 @@ router.post('/test-all-connections', authenticateToken, checkAdmin, aiConfigCont
 // 优化文案（需要管理员权限）
 router.post('/optimize', authenticateToken, checkAdmin, aiOptimizeController.optimizeContent);
 
+// ========== 提示词管理 ==========
+// 获取系统默认提示词（包含所有模型特定提示词）
+router.get('/prompt/default', authenticateToken, checkAdmin, aiConfigController.getDefaultPrompt);
+
+// 获取特定模型的默认提示词
+router.get('/prompt/model/:modelName', authenticateToken, checkAdmin, aiConfigController.getModelPrompt);
+
+// 获取单个模型的提示词选项（通用/专属）
+router.get('/config/:id/prompt-options', authenticateToken, checkAdmin, aiConfigController.getPromptOptions);
+
+// 应用模型特定提示词到数据库
+router.post('/prompt/apply-model-specific', authenticateToken, checkAdmin, aiConfigController.applyModelSpecificPrompts);
+
+// 批量更新所有模型的提示词
+router.put('/prompt/all', authenticateToken, checkAdmin, aiConfigController.updateAllPrompts);
+
+// 恢复所有模型为默认提示词
+router.post('/prompt/reset', authenticateToken, checkAdmin, aiConfigController.resetAllPrompts);
+
 module.exports = router;

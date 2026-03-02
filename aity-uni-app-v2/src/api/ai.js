@@ -12,7 +12,8 @@ import { get, post, put } from '../utils/request'
  * @returns {Promise}
  */
 export function optimizeContentApi(data) {
-  return post('/ai/optimize', data)
+  // AI优化可能需要较长时间，设置120秒超时
+  return post('/ai/optimize', data, { timeout: 120000 })
 }
 
 /**
@@ -80,7 +81,44 @@ export function testAiConnectionApi(id) {
  * @returns {Promise}
  */
 export function testAllAiConnectionsApi() {
-  return post('/ai/test-all-connections')
+  // 批量测试可能需要较长时间，设置180秒超时（3分钟）
+  return post('/ai/test-all-connections', {}, { timeout: 180000 })
+}
+
+// ========== 提示词管理 ==========
+
+/**
+ * 获取系统默认提示词
+ * @returns {Promise}
+ */
+export function getDefaultPromptApi() {
+  return get('/ai/prompt/default')
+}
+
+/**
+ * 批量更新所有模型的提示词
+ * @param {String} prompt 新的提示词
+ * @returns {Promise}
+ */
+export function updateAllPromptsApi(prompt) {
+  return put('/ai/prompt/all', { prompt })
+}
+
+/**
+ * 恢复所有模型为默认提示词
+ * @returns {Promise}
+ */
+export function resetAllPromptsApi() {
+  return post('/ai/prompt/reset')
+}
+
+/**
+ * 获取单个模型的提示词选项（通用/专属）
+ * @param {Number} id 模型ID
+ * @returns {Promise}
+ */
+export function getPromptOptionsApi(id) {
+  return get(`/ai/config/${id}/prompt-options`)
 }
 
 /**
@@ -112,6 +150,9 @@ export default {
   updateProviderApiKeyApi,
   testAiConnectionApi,
   testAllAiConnectionsApi,
+  getDefaultPromptApi,
+  updateAllPromptsApi,
+  resetAllPromptsApi,
   summarizeContentApi,
   getRecommendedTopicsApi
 }

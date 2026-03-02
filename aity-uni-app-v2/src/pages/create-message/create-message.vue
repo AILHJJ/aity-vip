@@ -219,6 +219,12 @@
 					<text class="preview-close" @click="handleCloseOptimizePreview">×</text>
 				</view>
 
+				<!-- 优化说明 -->
+				<view v-if="optimizationNote" class="optimization-note-banner">
+					<text class="note-icon">💡</text>
+					<text class="note-text">{{ optimizationNote }}</text>
+				</view>
+
 				<view class="preview-tabs">
 					<text
 						class="preview-tab"
@@ -240,15 +246,20 @@
 					<view v-if="previewTab === 'original'" class="content-preview">
 						<text class="preview-text">{{ originalContent }}</text>
 					</view>
-					<view v-else class="content-preview">
-						<text class="preview-text">{{ optimizedContent }}</text>
+					<view v-else class="content-preview markdown-preview-wrapper">
+						<!-- AI优化版使用Markdown渲染并应用主题 -->
+						<view class="markdown-preview" :class="'theme-' + formData.theme" v-html="optimizedRenderedHtml"></view>
 					</view>
 				</scroll-view>
 
 				<view class="preview-footer">
-					<button class="preview-btn preview-btn-cancel" @click="handleCloseOptimizePreview">取消</button>
-					<button class="preview-btn preview-btn-keep" @click="handleKeepOriginal">保留原版本</button>
-					<button class="preview-btn preview-btn-use" @click="handleUseOptimized">使用优化版本</button>
+					<button class="preview-btn preview-btn-retry" :disabled="isOptimizing" @click="handleRegenerate">
+						<text v-if="!isOptimizing">🔄</text>
+						<text v-else>⏳</text>
+						重试
+					</button>
+					<button class="preview-btn preview-btn-discard" @click="handleKeepOriginal">弃用</button>
+					<button class="preview-btn preview-btn-adopt primary" @click="handleUseOptimized">采纳</button>
 				</view>
 			</view>
 		</view>
@@ -293,8 +304,10 @@ const draftTimer = ref(null)
 const isOptimizing = ref(false)
 const showOptimizePreview = ref(false)
 const optimizedContent = ref('')
+const optimizationNote = ref('') // 优化说明
 const originalContent = ref('')
 const previewTab = ref('optimized') // 'original' or 'optimized'
+const hasUsedOptimization = ref(false) // 标记是否使用了AI优化
 
 // 策略类型选项
 const strategyTypes = [
@@ -389,6 +402,16 @@ const handleThemePickerChange = (e) => {
 	formData.value.theme = themeOptions[index].value
 	// 保存到 localStorage
 	uni.setStorageSync(THEME_KEY, formData.value.theme)
+
+	// 自动切换到预览模式，让用户立即看到主题效果
+	if (formData.value.content.trim()) {
+		previewMode.value = true
+		uni.showToast({
+			title: '已切换主题',
+			icon: 'none',
+			duration: 1000
+		})
+	}
 }
 
 // 小程序粘贴图片按钮
@@ -849,6 +872,12 @@ const handleSubmit = async () => {
 			attachments: uploadedAttachments
 		}
 
+		// 如果使用了AI优化，添加原始内容和优化内容字段
+		if (hasUsedOptimization.value && originalContent.value) {
+			data.originalContent = originalContent.value.trim()
+			data.aiOptimizedContent = optimizedContent.value.trim()
+		}
+
 		// 调试日志
 		console.log('=== 提交消息数据 ===')
 		console.log('完整数据:', JSON.stringify(data, null, 2))
@@ -1089,6 +1118,11 @@ const renderedHtml = computed(() => {
 	return parseMarkdown(formData.value.content)
 })
 
+// AI优化内容的渲染HTML（用于预览弹窗）
+const optimizedRenderedHtml = computed(() => {
+	return parseMarkdown(optimizedContent.value)
+})
+
 // 插入Markdown语法
 const insertMarkdown = (before, after) => {
 	const textarea = uni.createSelectorQuery().select('.form-textarea')
@@ -1157,14 +1191,13 @@ const handleAiOptimize = async () => {
 
 	try {
 		uni.showLoading({
-			title: 'AI优化中...',
+			title: 'AI优化中，请稍候...',
 			mask: true
 		})
 
 		// 调用AI优化API
 		const response = await optimizeContentApi({
-			content: formData.value.content,
-			type: 'professional' // 使用专业优化类型
+			content: formData.value.content
 		})
 
 		uni.hideLoading()
@@ -1172,6 +1205,7 @@ const handleAiOptimize = async () => {
 		// 检查响应
 		if (response.code === 200 || response.success) {
 			optimizedContent.value = response.data.optimized || response.data.optimizedContent || response.data.content || ''
+			optimizationNote.value = response.data.optimizationNote || 'AI优化完成'
 
 			if (!optimizedContent.value) {
 				throw new Error('优化内容为空')
@@ -1182,7 +1216,7 @@ const handleAiOptimize = async () => {
 			previewTab.value = 'optimized' // 默认显示优化版本
 
 			uni.showToast({
-				title: '优化完成',
+				title: optimizationNote.value || '优化完成',
 				icon: 'success',
 				duration: 1500
 			})
@@ -1208,7 +1242,17 @@ const handleAiOptimize = async () => {
 // 使用优化版本
 const handleUseOptimized = () => {
 	if (optimizedContent.value) {
+		// 保存原始内容（用于版本切换）
+		// 如果还没有保存过原始内容，则保存当前内容
+		if (!originalContent.value) {
+			originalContent.value = formData.value.content
+		}
+
+		// 应用优化后的内容
 		formData.value.content = optimizedContent.value
+
+		// 标记已使用AI优化
+		hasUsedOptimization.value = true
 
 		// 自动切换到预览模式，展示markdown主题样式
 		previewMode.value = true
@@ -1225,6 +1269,10 @@ const handleUseOptimized = () => {
 
 // 保留原始版本
 const handleKeepOriginal = () => {
+	// 重置AI优化标记
+	hasUsedOptimization.value = false
+	originalContent.value = ''
+
 	uni.showToast({
 		title: '已保留原始内容',
 		icon: 'success',
@@ -1239,6 +1287,60 @@ const handleCloseOptimizePreview = () => {
 	showOptimizePreview.value = false
 	previewTab.value = 'optimized'
 	// 不清除optimizedContent，允许用户重新打开
+}
+
+// 重新生成AI优化
+const handleRegenerate = async () => {
+	// 开始优化
+	isOptimizing.value = true
+
+	try {
+		uni.showLoading({
+			title: 'AI重新优化中...',
+			mask: true
+		})
+
+		// 调用AI优化API（使用原始内容）
+		const response = await optimizeContentApi({
+			content: originalContent.value || formData.value.content
+		})
+
+		uni.hideLoading()
+
+		// 检查响应
+		if (response.code === 200 || response.success) {
+			optimizedContent.value = response.data.optimized || response.data.optimizedContent || response.data.content || ''
+			optimizationNote.value = response.data.optimizationNote || 'AI优化完成'
+
+			if (!optimizedContent.value) {
+				throw new Error('优化内容为空')
+			}
+
+			// 切换到AI优化版标签
+			previewTab.value = 'optimized'
+
+			// 确保弹窗保持显示
+			showOptimizePreview.value = true
+
+			uni.showToast({
+				title: '已重新生成',
+				icon: 'success',
+				duration: 1500
+			})
+		} else {
+			throw new Error(response.message || 'AI优化失败')
+		}
+	} catch (error) {
+		uni.hideLoading()
+		console.error('AI重新优化失败:', error)
+		uni.showToast({
+			title: error.message || 'AI优化失败，请稍后重试',
+			icon: 'none',
+			duration: 2000
+		})
+	} finally {
+		isOptimizing.value = false
+	}
 }
 
 // 页面加载
@@ -2139,6 +2241,105 @@ onBeforeUnmount(() => {
 	}
 }
 
+/* AI优化区域样式 */
+.ai-optimize-section {
+	padding: 28rpx;
+	background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+	border-radius: 16rpx;
+	border: 2rpx solid #e8ecff;
+	margin-bottom: 30rpx;
+}
+
+.ai-optimize-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 16rpx;
+}
+
+.ai-label {
+	font-size: 30rpx;
+	font-weight: 600;
+	color: #333;
+}
+
+.style-picker {
+	display: flex;
+	align-items: center;
+	gap: 10rpx;
+	padding: 12rpx 20rpx;
+	background: #ffffff;
+	border: 2rpx solid #d0d7ff;
+	border-radius: 10rpx;
+	min-width: 220rpx;
+}
+
+.style-icon {
+	font-size: 28rpx;
+}
+
+.style-text {
+	flex: 1;
+	font-size: 26rpx;
+	color: #667eea;
+	font-weight: 500;
+}
+
+.ai-optimize-desc {
+	margin-bottom: 20rpx;
+}
+
+.desc-text {
+	font-size: 24rpx;
+	color: #888;
+}
+
+.ai-optimize-btn {
+	width: 100%;
+	height: 88rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border: none;
+	border-radius: 12rpx;
+	color: #ffffff;
+	font-size: 30rpx;
+	font-weight: 600;
+	box-shadow: 0 6rpx 20rpx rgba(102, 126, 234, 0.35);
+	transition: all 0.3s;
+
+	&:active {
+		transform: scale(0.98);
+		box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+	}
+
+	&[disabled] {
+		opacity: 0.6;
+		background: linear-gradient(135deg, #a0a0a0 0%, #888888 100%);
+		box-shadow: none;
+	}
+}
+
+.btn-content {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+}
+
+.btn-icon {
+	font-size: 32rpx;
+}
+
+.btn-icon.spinning {
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
 .ai-optimize-btn-inline.loading {
 	background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
 }
@@ -2259,6 +2460,27 @@ onBeforeUnmount(() => {
 	line-height: 1;
 }
 
+/* 优化说明横幅 */
+.optimization-note-banner {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	padding: 20rpx 32rpx;
+	background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+	border-bottom: 2rpx solid #fbbf24;
+}
+
+.note-icon {
+	font-size: 32rpx;
+}
+
+.note-text {
+	flex: 1;
+	font-size: 26rpx;
+	color: #92400e;
+	line-height: 1.5;
+}
+
 .preview-tabs {
 	display: flex;
 	background: #f5f5f5;
@@ -2301,6 +2523,18 @@ onBeforeUnmount(() => {
 	word-wrap: break-word;
 }
 
+/* AI优化预览弹窗中的Markdown渲染 */
+.markdown-preview-wrapper {
+	overflow: hidden;
+}
+
+.markdown-preview-wrapper .markdown-preview {
+	padding: 20rpx;
+	border-radius: 12rpx;
+	font-size: 28rpx;
+	line-height: 1.8;
+}
+
 .preview-footer {
 	display: flex;
 	gap: 20rpx;
@@ -2327,16 +2561,32 @@ onBeforeUnmount(() => {
 	border: 2rpx solid #e0e0e0;
 }
 
-.preview-btn-keep {
+// 弃用按钮 - 灰色系
+.preview-btn-discard {
 	background: #ffffff;
-	color: #764ba2;
-	border: 2rpx solid #764ba2;
+	color: #6b7280;
+	border: 2rpx solid #d1d5db;
 }
 
-.preview-btn-use {
+// 采纳按钮 - 主色调渐变
+.preview-btn-adopt {
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	color: #ffffff;
 	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+}
+
+// 重试按钮 - 橙色渐变
+.preview-btn-retry {
+	background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+	color: #ffffff;
+	box-shadow: 0 4rpx 12rpx rgba(245, 158, 11, 0.3);
+	display: flex;
+	align-items: center;
+	gap: 6rpx;
+
+	&:disabled {
+		opacity: 0.6;
+	}
 }
 
 .preview-btn:active {

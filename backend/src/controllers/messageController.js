@@ -312,7 +312,7 @@ async function createMessage(req, res) {
 async function updateMessage(req, res) {
   try {
     const { id } = req.params;
-    const { title, content, type, attachments, tags, theme, publishTime } = req.body;
+    const { title, content, type, attachments, tags, theme, publishTime, aiOptimizedContent, originalContent } = req.body;
 
     // 获取消息
     const message = await Message.findByPk(id);
@@ -331,6 +331,18 @@ async function updateMessage(req, res) {
     // 处理theme
     if (theme !== undefined) {
       updateData.theme = theme;
+    }
+
+    // 处理AI优化内容
+    // 如果传入了aiOptimizedContent，说明进行了AI优化
+    if (aiOptimizedContent !== undefined) {
+      // 保存原始内容（如果还没有保存过）
+      if (!message.originalContent && originalContent) {
+        updateData.originalContent = originalContent;
+      }
+      updateData.aiOptimizedContent = aiOptimizedContent;
+      // 更新content为优化后的内容（用于默认显示）
+      updateData.content = aiOptimizedContent;
     }
 
     // 处理publishTime和status

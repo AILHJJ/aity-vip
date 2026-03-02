@@ -1,8 +1,10 @@
 /**
- * Markdown渲染器 - 增强版
- * 参考问小达3.0版本实现优化
+ * Markdown渲染器 - markdown-it 版本
+ * 使用 markdown-it 库提供更强大的 Markdown 解析能力
  * 支持主题内联样式，解决rich-text组件样式隔离问题
  */
+
+import MarkdownIt from 'markdown-it'
 
 /**
  * 主题样式配置 - 内联样式版本
@@ -324,6 +326,87 @@ export const ThemeStyles = {
 }
 
 /**
+ * 创建带主题样式的 markdown-it 实例
+ * @param {string} theme 主题名称
+ * @returns {MarkdownIt} 配置好的 markdown-it 实例
+ */
+function createThemedMarkdownIt(theme = 'default') {
+	const styles = ThemeStyles[theme] || ThemeStyles.default
+
+	const md = new MarkdownIt({
+		html: true,
+		breaks: true,
+		linkify: true,
+		typographer: true
+	})
+
+	// 自定义标题渲染规则
+	md.renderer.rules.heading_open = (tokens, idx) => {
+		const level = tokens[idx].tag
+		const style = styles[`h${level}`] || styles.h1
+		return `<${level} style="${style}">`
+	}
+
+	// 自定义粗体渲染规则
+	md.renderer.rules.strong_open = () => `<strong style="${styles.strong}">`
+
+	// 自定义斜体渲染规则
+	md.renderer.rules.em_open = () => `<em style="${styles.em}">`
+
+	// 自定义删除线渲染规则
+	md.renderer.rules.s_open = () => `<del style="${styles.del}">`
+
+	// 自定义行内代码渲染规则
+	md.renderer.rules.code_inline = (tokens, idx) => {
+		return `<code style="${styles.inlineCode}">${md.utils.escapeHtml(tokens[idx].content)}</code>`
+	}
+
+	// 自定义代码块渲染规则
+	md.renderer.rules.fence = (tokens, idx) => {
+		const code = tokens[idx].content.trim()
+		return `<pre style="${styles.codeBlock}"><code>${md.utils.escapeHtml(code)}</code></pre>\n`
+	}
+
+	md.renderer.rules.code_block = (tokens, idx) => {
+		const code = tokens[idx].content.trim()
+		return `<pre style="${styles.codeBlock}"><code>${md.utils.escapeHtml(code)}</code></pre>\n`
+	}
+
+	// 自定义引用渲染规则
+	md.renderer.rules.blockquote_open = () => `<blockquote style="${styles.blockquote}">`
+
+	// 自定义链接渲染规则
+	md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+		const href = tokens[idx].attrGet('href')
+		return `<a href="${md.utils.escapeHtml(href)}" style="${styles.link}" target="_blank">`
+	}
+
+	// 自定义图片渲染规则
+	md.renderer.rules.image = (tokens, idx) => {
+		const src = tokens[idx].attrGet('src')
+		const alt = tokens[idx].content || ''
+		return `<img src="${md.utils.escapeHtml(src)}" alt="${md.utils.escapeHtml(alt)}" style="max-width: 100%; height: auto; border-radius: 8rpx; margin: 16rpx 0;">`
+	}
+
+	// 自定义列表渲染规则
+	md.renderer.rules.bullet_list_open = () => `<ul style="${styles.unorderedList}">`
+	md.renderer.rules.ordered_list_open = () => `<ol style="${styles.orderedList}">`
+	md.renderer.rules.list_item_open = () => `<li style="${styles.listItem}">`
+
+	// 自定义表格渲染规则
+	md.renderer.rules.table_open = () => `<table style="${styles.table}">`
+	md.renderer.rules.th_open = (tokens, idx) => {
+		return `<th style="${styles.th}">`
+	}
+	md.renderer.rules.td_open = () => `<td style="${styles.td}">`
+
+	// 自定义水平分割线渲染规则
+	md.renderer.rules.hr = () => `<hr style="${styles.divider}">`
+
+	return md
+}
+
+/**
  * 数据格式化工具集 - 用于金融数据展示
  */
 export const DataFormatter = {
@@ -421,42 +504,26 @@ export const DataFormatter = {
 }
 
 /**
- * Markdown渲染器类
+ * Markdown渲染器类 - 使用 markdown-it 实现
  */
 export class MarkdownRenderer {
 	/**
 	 * 渲染Markdown为HTML（带主题内联样式，用于rich-text组件）
 	 * @param {string} content Markdown内容
-	 * @param {string} theme 主题名称 (default, github, emerald, ocean, warm, dark)
+	 * @param {string} theme 主题名称 (default, github, emerald, ocean, warm, dark, violet, rose, lime, tech, slate, sunset)
 	 * @returns {string} HTML内容（带内联样式）
 	 */
 	static renderWithTheme(content, theme = 'default') {
 		if (!content) return ''
 
-		const styles = ThemeStyles[theme] || ThemeStyles.default
-
 		// 过滤替换串
 		content = content.replace(/@@.+?@@/g, '')
 
-		// 转义HTML（但保留我们需要的标签）
-		let html = this._escapeHtml(content)
+		// 创建带主题的 markdown-it 实例
+		const md = createThemedMarkdownIt(theme)
 
-		// 按顺序处理各种Markdown语法（带内联样式）
-		html = this._processCodeBlocksWithTheme(html, styles)
-		html = this._processInlineCodeWithTheme(html, styles)
-		html = this._processHeadingsWithTheme(html, styles)
-		html = this._processBoldAndItalicWithTheme(html, styles)
-		html = this._processStrikethroughWithTheme(html, styles)
-		html = this._processTablesWithTheme(html, styles)
-		html = this._processListsWithTheme(html, styles)
-		html = this._processBlockquotesWithTheme(html, styles)
-		html = this._processLinksWithTheme(html, styles)
-		html = this._processImagesWithTheme(html, styles)
-		html = this._processHorizontalRulesWithTheme(html, styles)
-		html = this._processLineBreaks(html)
-
-		// 修复特定标签内的换行
-		html = this._fixBreaksInSpecialTags(html)
+		// 渲染 Markdown
+		let html = md.render(content)
 
 		return html
 	}
@@ -472,27 +539,15 @@ export class MarkdownRenderer {
 		// 过滤替换串
 		content = content.replace(/@@.+?@@/g, '')
 
-		// 转义HTML（但保留我们需要的标签）
-		let html = this._escapeHtml(content)
+		// 使用基础 markdown-it 配置
+		const md = new MarkdownIt({
+			html: true,
+			breaks: true,
+			linkify: true,
+			typographer: true
+		})
 
-		// 按顺序处理各种Markdown语法
-		html = this._processCodeBlocks(html)
-		html = this._processInlineCode(html)
-		html = this._processHeadings(html)
-		html = this._processBoldAndItalic(html)
-		html = this._processStrikethrough(html)
-		html = this._processTables(html)
-		html = this._processLists(html)
-		html = this._processBlockquotes(html)
-		html = this._processLinks(html)
-		html = this._processImages(html)
-		html = this._processHorizontalRules(html)
-		html = this._processLineBreaks(html)
-
-		// 修复特定标签内的换行
-		html = this._fixBreaksInSpecialTags(html)
-
-		return html
+		return md.render(content)
 	}
 
 	/**
@@ -508,7 +563,10 @@ export class MarkdownRenderer {
 		let preview = content.length > maxLength ? content.substring(0, maxLength) + '...' : content
 
 		// 转义HTML
-		preview = this._escapeHtml(preview)
+		preview = preview
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
 
 		// 简单的Markdown渲染（只处理粗体和斜体，用于列表预览）
 		preview = preview
@@ -519,412 +577,6 @@ export class MarkdownRenderer {
 			.replace(/\n/g, ' ')
 
 		return preview
-	}
-
-	// ==================== 带主题样式的方法 ====================
-
-	/**
-	 * 处理代码块（带主题样式）
-	 * @private
-	 */
-	static _processCodeBlocksWithTheme(html, styles) {
-		return html.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
-			const language = lang || ''
-			const trimmedCode = code.trim()
-			return `<pre style="${styles.codeBlock}"><code>${trimmedCode}</code></pre>\n`
-		})
-	}
-
-	/**
-	 * 处理行内代码（带主题样式）
-	 * @private
-	 */
-	static _processInlineCodeWithTheme(html, styles) {
-		return html.replace(/`([^`\n]+)`/g, `<code style="${styles.inlineCode}">$1</code>`)
-	}
-
-	/**
-	 * 处理标题（带主题样式）
-	 * @private
-	 */
-	static _processHeadingsWithTheme(html, styles) {
-		html = html.replace(/^######\s+(.+)$/gm, `<h6 style="${styles.h6}">$1</h6>`)
-		html = html.replace(/^#####\s+(.+)$/gm, `<h5 style="${styles.h5}">$1</h5>`)
-		html = html.replace(/^####\s+(.+)$/gm, `<h4 style="${styles.h4}">$1</h4>`)
-		html = html.replace(/^###\s+(.+)$/gm, `<h3 style="${styles.h3}">$1</h3>`)
-		html = html.replace(/^##\s+(.+)$/gm, `<h2 style="${styles.h2}">$1</h2>`)
-		html = html.replace(/^#\s+(.+)$/gm, `<h1 style="${styles.h1}">$1</h1>`)
-		return html
-	}
-
-	/**
-	 * 处理粗体和斜体（带主题样式）
-	 * @private
-	 */
-	static _processBoldAndItalicWithTheme(html, styles) {
-		html = html.replace(/\*\*([^*\n]+)\*\*/g, `<strong style="${styles.strong}">$1</strong>`)
-		html = html.replace(/__([^_\n]+)__/g, `<strong style="${styles.strong}">$1</strong>`)
-		html = html.replace(/\*([^*\n]+)\*/g, `<em style="${styles.em}">$1</em>`)
-		html = html.replace(/_([^_\n]+)_/g, `<em style="${styles.em}">$1</em>`)
-		return html
-	}
-
-	/**
-	 * 处理删除线（带主题样式）
-	 * @private
-	 */
-	static _processStrikethroughWithTheme(html, styles) {
-		return html.replace(/~~([^~\n]+)~~/g, `<del style="${styles.del}">$1</del>`)
-	}
-
-	/**
-	 * 处理表格（带主题样式）
-	 * @private
-	 */
-	static _processTablesWithTheme(html, styles) {
-		const lines = html.split('\n')
-		let inTable = false
-		let tableRows = []
-		let headerProcessed = false
-		const processedLines = []
-
-		for (let i = 0; i < lines.length; i++) {
-			const line = lines[i].trim()
-
-			if (line.startsWith('|') && line.endsWith('|')) {
-				const cells = line.substring(1, line.length - 1)
-					.split('|')
-					.map(cell => cell.trim())
-
-				const isSeparator = cells.some(cell =>
-					/^-+:?$|^:-+:?$|^:-+$/.test(cell)
-				)
-
-				if (!isSeparator) {
-					if (!inTable) {
-						inTable = true
-						tableRows = []
-						headerProcessed = false
-					}
-
-					const isHeader = !headerProcessed
-					if (isHeader) {
-						headerProcessed = true
-					}
-
-					const cellStyle = isHeader ? styles.th : styles.td
-					const tag = isHeader ? 'th' : 'td'
-					const rowHtml = cells.map(cell => `<${tag} style="${cellStyle}">${cell}</${tag}>`).join('')
-					tableRows.push(`<tr>${rowHtml}</tr>`)
-				}
-				continue
-			}
-
-			if (inTable) {
-				if (tableRows.length > 0) {
-					const tableHtml = `<table style="${styles.table}">${tableRows.join('')}</table>`
-					processedLines.push(tableHtml)
-				}
-				inTable = false
-				tableRows = []
-				headerProcessed = false
-			}
-
-			processedLines.push(line)
-		}
-
-		if (inTable && tableRows.length > 0) {
-			const tableHtml = `<table style="${styles.table}">${tableRows.join('')}</table>`
-			processedLines.push(tableHtml)
-		}
-
-		return processedLines.join('\n')
-	}
-
-	/**
-	 * 处理列表（带主题样式）
-	 * @private
-	 */
-	static _processListsWithTheme(html, styles) {
-		// 无序列表
-		html = html.replace(/^[\s]*[-*]\s+(.+)$/gm, `<li style="${styles.listItem}">• $1</li>`)
-
-		// 合并连续的li为ul
-		html = html.replace(/(<li style="[^"]*">.*<\/li>\n?)+/g, (match) => {
-			return `<ul style="${styles.unorderedList}">${match}</ul>`
-		})
-
-		// 有序列表
-		html = html.replace(/^[\s]*(\d+)\.\s+(.+)$/gm, `<li style="${styles.listItem}" value="$1">$2</li>`)
-
-		// 合并连续的有序列表
-		html = html.replace(/(<li style="[^"]*"[^>]*>.*<\/li>\n?)+/g, (match) => {
-			// 如果已经包裹在ul中，跳过
-			if (match.includes('<ul')) return match
-			return `<ol style="${styles.orderedList}">${match}</ol>`
-		})
-
-		return html
-	}
-
-	/**
-	 * 处理引用（带主题样式）
-	 * @private
-	 */
-	static _processBlockquotesWithTheme(html, styles) {
-		return html.replace(/^>\s+(.+)$/gm, `<blockquote style="${styles.blockquote}">$1</blockquote>`)
-	}
-
-	/**
-	 * 处理链接（带主题样式）
-	 * @private
-	 */
-	static _processLinksWithTheme(html, styles) {
-		return html.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
-			`<a href="$2" style="${styles.link}" target="_blank">$1</a>`)
-	}
-
-	/**
-	 * 处理图片（带主题样式）
-	 * @private
-	 */
-	static _processImagesWithTheme(html, styles) {
-		return html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,
-			'<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 8rpx; margin: 16rpx 0;">')
-	}
-
-	/**
-	 * 处理水平分割线（带主题样式）
-	 * @private
-	 */
-	static _processHorizontalRulesWithTheme(html, styles) {
-		return html.replace(/^[-*]{3,}$/gm, `<hr style="${styles.divider}">`)
-	}
-
-	/**
-	 * 转义HTML特殊字符（但保留基本结构）
-	 * @private
-	 */
-	static _escapeHtml(content) {
-		return content
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-	}
-
-	/**
-	 * 处理代码块
-	 * @private
-	 */
-	static _processCodeBlocks(html) {
-		// 支持语言标识 ```language
-		return html.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
-			const language = lang || ''
-			const trimmedCode = code.trim()
-			return `<pre class="code-block" data-language="${language}"><code class="language-${language}">${trimmedCode}</code></pre>\n`
-		})
-	}
-
-	/**
-	 * 处理行内代码
-	 * @private
-	 */
-	static _processInlineCode(html) {
-		return html.replace(/`([^`\n]+)`/g, '<code class="inline-code">$1</code>')
-	}
-
-	/**
-	 * 处理标题
-	 * @private
-	 */
-	static _processHeadings(html) {
-		html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>')
-		html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>')
-		html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>')
-		html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
-		html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>')
-		html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>')
-		return html
-	}
-
-	/**
-	 * 处理粗体和斜体
-	 * @private
-	 */
-	static _processBoldAndItalic(html) {
-		// 粗体 **text** 或 __text__
-		html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
-		html = html.replace(/__([^_\n]+)__/g, '<strong>$1</strong>')
-
-		// 斜体 *text* 或 _text_
-		html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
-		html = html.replace(/_([^_\n]+)_/g, '<em>$1</em>')
-
-		return html
-	}
-
-	/**
-	 * 处理删除线
-	 * @private
-	 */
-	static _processStrikethrough(html) {
-		return html.replace(/~~([^~\n]+)~~/g, '<del>$1</del>')
-	}
-
-	/**
-	 * 处理表格
-	 * @private
-	 */
-	static _processTables(html) {
-		const lines = html.split('\n')
-		let inTable = false
-		let tableRows = []
-		let headerProcessed = false
-		const processedLines = []
-
-		for (let i = 0; i < lines.length; i++) {
-			const line = lines[i].trim()
-
-			// 检测表格行
-			if (line.startsWith('|') && line.endsWith('|')) {
-				const cells = line.substring(1, line.length - 1)
-					.split('|')
-					.map(cell => cell.trim())
-
-				// 检查是否是分隔行
-				const isSeparator = cells.some(cell =>
-					/^-+:?$|^:-+:?$|^:-+$/.test(cell)
-				)
-
-				if (!isSeparator) {
-					if (!inTable) {
-						inTable = true
-						tableRows = []
-						headerProcessed = false
-					}
-
-					const isHeader = !headerProcessed
-					if (isHeader) {
-						headerProcessed = true
-					}
-
-					const tag = isHeader ? 'th' : 'td'
-					const rowHtml = cells.map(cell => `<${tag}>${cell}</${tag}>`).join('')
-					tableRows.push(`<tr>${rowHtml}</tr>`)
-				}
-				continue
-			}
-
-			// 输出表格
-			if (inTable) {
-				if (tableRows.length > 0) {
-					const tableHtml = `<table class="markdown-table">${tableRows.join('')}</table>`
-					processedLines.push(tableHtml)
-				}
-				inTable = false
-				tableRows = []
-				headerProcessed = false
-			}
-
-			processedLines.push(line)
-		}
-
-		// 处理最后的表格
-		if (inTable && tableRows.length > 0) {
-			const tableHtml = `<table class="markdown-table">${tableRows.join('')}</table>`
-			processedLines.push(tableHtml)
-		}
-
-		return processedLines.join('\n')
-	}
-
-	/**
-	 * 处理列表
-	 * @private
-	 */
-	static _processLists(html) {
-		// 无序列表
-		html = html.replace(/^[\s]*[-*]\s+(.+)$/gm, '<li class="list-item">$1</li>')
-
-		// 合并连续的li为ul
-		html = html.replace(/(<li class="list-item">.*<\/li>\n?)+/g, (match) => {
-			return `<ul class="list-unstyled">${match}</ul>`
-		})
-
-		// 有序列表
-		html = html.replace(/^[\s]*(\d+)\.\s+(.+)$/gm, '<li class="list-item-ordered" value="$1">$2</li>')
-
-		// 合并连续的有序列表
-		html = html.replace(/(<li class="list-item-ordered".*<\/li>\n?)+/g, (match) => {
-			return `<ol class="list-ordered">${match}</ol>`
-		})
-
-		return html
-	}
-
-	/**
-	 * 处理引用
-	 * @private
-	 */
-	static _processBlockquotes(html) {
-		return html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>')
-	}
-
-	/**
-	 * 处理链接
-	 * @private
-	 */
-	static _processLinks(html) {
-		return html.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
-			'<a href="$2" class="link" target="_blank">$1</a>')
-	}
-
-	/**
-	 * 处理图片
-	 * @private
-	 */
-	static _processImages(html) {
-		return html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,
-			'<img src="$2" alt="$1" class="markdown-image">')
-	}
-
-	/**
-	 * 处理水平分割线
-	 * @private
-	 */
-	static _processHorizontalRules(html) {
-		return html.replace(/^[-*]{3,}$/gm, '<hr class="divider">')
-	}
-
-	/**
-	 * 处理换行
-	 * @private
-	 */
-	static _processLineBreaks(html) {
-		return html.replace(/\n/g, '<br>')
-	}
-
-	/**
-	 * 修复特定标签内的换行符
-	 * @private
-	 */
-	static _fixBreaksInSpecialTags(html) {
-		// 修复pre标签
-		html = html.replace(/<pre(?:\s[^>]*)?>(.*?)<\/pre>/gis, (match, content) => {
-			return `<pre>${content.replace(/<br>/g, '\n')}</pre>`
-		})
-
-		// 修复table标签
-		html = html.replace(/<table(?:\s[^>]*)?>(.*?)<\/table>/gis, (match, content) => {
-			return `<table>${content.replace(/<br>/g, '')}</table>`
-		})
-
-		// 修复ul和ol标签
-		html = html.replace(/<(ul|ol)([^>]*)>(.*?)<\/\1>/gis, (match, tag, attrs, content) => {
-			return `<${tag}${attrs}>${content.replace(/<\/li><br>/g, '</li>')}</${tag}>`
-		})
-
-		return html
 	}
 }
 

@@ -89,6 +89,18 @@ const Message = sequelize.define('Message', {
     defaultValue: 'default',
     comment: 'Markdown主题样式：default, github, emerald, ocean, warm, dark'
   },
+  originalContent: {
+    type: DataTypes.TEXT,
+    field: 'original_content',
+    allowNull: true,
+    comment: '原始内容（AI优化前的内容）'
+  },
+  aiOptimizedContent: {
+    type: DataTypes.TEXT,
+    field: 'ai_optimized_content',
+    allowNull: true,
+    comment: 'AI优化后的内容'
+  },
   publishTime: {
     type: DataTypes.DATE,
     field: 'publish_time',

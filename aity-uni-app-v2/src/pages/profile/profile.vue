@@ -77,7 +77,7 @@
 			<view v-if="userStore.isAdmin" class="menu-item" @click="goToAiConfig">
 				<view class="menu-left">
 					<text class="menu-icon">🤖</text>
-					<text class="menu-text">AI配置管理</text>
+					<text class="menu-text">AI管理</text>
 				</view>
 				<text class="menu-arrow">›</text>
 			</view>

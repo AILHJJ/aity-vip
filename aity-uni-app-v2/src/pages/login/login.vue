@@ -68,7 +68,7 @@ const userStore = useUserStore()
 const formData = ref({
 	account: '',
 	password: '',
-	rememberMe: false
+	rememberMe: true  // 默认勾选记住我
 })
 
 const loading = ref(false)

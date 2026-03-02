@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>连板天梯</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: #f5f7fa;
+      max-width: 414px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: #f56c6c;
+      color: #fff;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .header-icons {
+      display: flex;
+      gap: 16px;
+      font-size: 20px;
+    }
+
+    .market-bar {
+      background: #f56c6c;
+      color: #fff;
+      padding: 8px 16px 16px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .market-item {
+      text-align: center;
+    }
+
+    .market-name {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-bottom: 4px;
+    }
+
+    .market-value {
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .market-change {
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .market-change.up {
+      color: #fff;
+    }
+
+    .market-change.down {
+      color: #c0c4cc;
+    }
+
+    .stock-count {
+      text-align: right;
+    }
+
+    .stock-count-value {
+      font-size: 14px;
+    }
+
+    .stock-count-change {
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .nav-tabs {
+      background: #f56c6c;
+      display: flex;
+      padding: 0 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .nav-tab {
+      flex: 1;
+      text-align: center;
+      padding: 12px 0;
+      font-size: 14px;
+      color: rgba(255,255,255,0.8);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .nav-tab.active {
+      color: #fff;
+      font-weight: bold;
+    }
+
+    .nav-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 30px;
+      height: 3px;
+      background: #fff;
+      border-radius: 2px;
+    }
+
+    .date-selector {
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e4e7ed;
+    }
+
+    .date-arrow {
+      font-size: 14px;
+      color: #909399;
+      cursor: pointer;
+    }
+
+    .date-display {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 16px;
+      font-size: 15px;
+      color: #303133;
+      font-weight: 500;
+    }
+
+    .calendar-icon {
+      font-size: 16px;
+    }
+
+    .view-tabs {
+      background: #fff;
+      display: flex;
+      padding: 8px 16px;
+      gap: 12px;
+      border-bottom: 1px solid #e4e7ed;
+    }
+
+    .view-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 0;
+      font-size: 14px;
+      color: #606266;
+      border: 1px solid #dcdfe6;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .view-tab.active {
+      color: #f56c6c;
+      border-color: #f56c6c;
+      background: #fef0f0;
+    }
+
+    .filter-bar {
+      background: #fff;
+      display: flex;
+      padding: 8px 16px;
+      gap: 8px;
+      border-bottom: 1px solid #e4e7ed;
+      overflow-x: auto;
+    }
+
+    .filter-item {
+      padding: 6px 12px;
+      font-size: 13px;
+      color: #606266;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .filter-item.active {
+      color: #f56c6c;
+      background: #fef0f0;
+    }
+
+    .filter-more {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #909399;
+    }
+
+    .board-overview {
+      background: #fff;
+      padding: 16px;
+    }
+
+    .board-section {
+      margin-bottom: 16px;
+    }
+
+    .board-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .board-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .board-title {
+      font-size: 15px;
+      font-weight: bold;
+      color: #303133;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .board-count {
+      background: #f56c6c;
+      color: #fff;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+
+    .expand-btn {
+      margin-left: auto;
+      font-size: 18px;
+      color: #c0c4cc;
+      cursor: pointer;
+    }
+
+    .stock-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .stock-item {
+      text-align: center;
+      padding: 12px 8px;
+      background: #f9fafc;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .stock-item-name {
+      font-size: 14px;
+      color: #303133;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .stock-item-detail {
+      font-size: 11px;
+      color: #f56c6c;
+    }
+
+    .list-view {
+      background: #fff;
+    }
+
+    .list-header {
+      display: flex;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e4e7ed;
+      font-size: 13px;
+      color: #909399;
+    }
+
+    .list-header-item {
+      flex: 1;
+      text-align: center;
+    }
+
+    .list-header-item:first-child {
+      text-align: left;
+      flex: 1.5;
+    }
+
+    .list-row {
+      display: flex;
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f2f5;
+      align-items: center;
+    }
+
+    .list-cell {
+      flex: 1;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .list-cell:first-child {
+      text-align: left;
+      flex: 1.5;
+    }
+
+    .stock-name-cell {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stock-name-main {
+      font-size: 15px;
+      color: #303133;
+      font-weight: 500;
+    }
+
+    .stock-code-sub {
+      font-size: 11px;
+      color: #909399;
+      margin-top: 2px;
+    }
+
+    .detail-tag {
+      display: inline-block;
+      font-size: 10px;
+      color: #f56c6c;
+      border: 1px solid #f56c6c;
+      padding: 1px 4px;
+      border-radius: 2px;
+      margin-left: 4px;
+    }
+
+    .price-up {
+      color: #f56c6c;
+    }
+
+    .price-down {
+      color: #67c23a;
+    }
+
+    .change-up {
+      color: #f56c6c;
+    }
+
+    .change-down {
+      color: #67c23a;
+    }
+
+    .reason-cell {
+      font-size: 12px;
+      color: #606266;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .promotion-view {
+      background: #fff;
+      padding: 16px;
+    }
+
+    .promotion-section {
+      margin-bottom: 16px;
+      border: 1px solid #e4e7ed;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .promotion-header {
+      display: flex;
+      background: #f9fafc;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    .promotion-yesterday {
+      flex: 1;
+      color: #909399;
+    }
+
+    .promotion-arrow {
+      width: 40px;
+      text-align: center;
+      color: #f56c6c;
+    }
+
+    .promotion-today {
+      flex: 1;
+      text-align: right;
+      color: #f56c6c;
+    }
+
+    .promotion-content {
+      display: flex;
+      padding: 12px;
+    }
+
+    .promotion-list {
+      flex: 1;
+    }
+
+    .promotion-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 14px;
+    }
+
+    .promotion-item-name {
+      color: #303133;
+    }
+
+    .promotion-item-change {
+      font-weight: 500;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-top: 1px solid #e4e7ed;
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0;
+      max-width: 414px;
+      margin: 0 auto;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 11px;
+      color: #909399;
+      cursor: pointer;
+    }
+
+    .nav-item.active {
+      color: #f56c6c;
+    }
+
+    .nav-icon {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .disclaimer {
+      background: #fff;
+      padding: 12px 16px;
+      font-size: 11px;
+      color: #c0c4cc;
+      line-height: 1.5;
+      margin-bottom: 60px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div style="width: 60px;"></div>
+    <h1>市场 选股 打板</h1>
+    <div class="header-icons">
+      <span>🔄</span>
+      <span>🔍</span>
+    </div>
+  </div>
+
+  <div class="market-bar">
+    <div class="market-item">
+      <div class="market-name">上证指数</div>
+      <div class="market-value">4185.41</div>
+      <div class="market-change up">+22.53 +0.54%</div>
+    </div>
+    <div class="market-item">
+      <div class="market-name">深证成指</div>
+      <div class="market-value" style="color: #67c23a;">14489.84</div>
+      <div class="market-change down">-5.25 -0.04%</div>
+    </div>
+    <div class="market-item">
+      <div class="market-name">创业板指</div>
+      <div class="market-value">3311.83</div>
+      <div class="market-change up">+1.53 +0.05%</div>
+    </div>
+    <div class="stock-count">
+      <div class="market-name">涨跌家数</div>
+      <div class="stock-count-value">1226 / 4189</div>
+      <div class="stock-count-change">
+        <span style="color: #f56c6c;">▲</span>
+        <span style="color: #67c23a;">▼</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <div class="nav-tab">打板</div>
+    <div class="nav-tab active">连板</div>
+    <div class="nav-tab">解盘</div>
+    <div class="nav-tab">直播</div>
+    <div class="nav-tab">竞价</div>
+    <div class="nav-tab">轮动</div>
+  </div>
+
+  <div class="date-selector">
+    <div class="date-arrow">◀ 上一日</div>
+    <div class="date-display">
+      <span class="calendar-icon">📅</span>
+      <span>2026-3-2 周一</span>
+    </div>
+    <div class="date-arrow">下一日 ▶</div>
+  </div>
+
+  <div class="view-tabs">
+    <div class="view-tab active" onclick="switchView('overview')">连板天梯</div>
+    <div class="view-tab" onclick="switchView('list')">强势晋级</div>
+    <div class="view-tab" onclick="switchView('promotion')">📊</div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-item active">全部</div>
+    <div class="filter-item">主板</div>
+    <div class="filter-item">创业</div>
+    <div class="filter-item">科创</div>
+    <div class="filter-item">北证</div>
+    <div class="filter-item filter-more">
+      <span>筛选</span>
+      <span>▼</span>
+    </div>
+  </div>
+
+  <!-- 总览视图 -->
+  <div id="overview-view" class="board-overview">
+    <div class="board-section">
+      <div class="board-header">
+        <div class="board-title">
+          <span>3板</span>
+          <span class="board-count">+</span>
+        </div>
+        <div class="expand-btn">+</div>
+      </div>
+      <div class="stock-grid">
+        <div class="stock-item">
+          <div class="stock-item-name">泰嘉股份</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="board-section">
+      <div class="board-header">
+        <div class="board-title">
+          <span>2板</span>
+          <span class="board-count">+</span>
+        </div>
+        <div class="expand-btn">+</div>
+      </div>
+      <div class="stock-grid">
+        <div class="stock-item">
+          <div class="stock-item-name">中国天楹</div>
+        </div>
+        <div class="stock-item">
+          <div class="stock-item-name">新金路</div>
+        </div>
+        <div class="stock-item">
+          <div class="stock-item-name">赫美集团</div>
+        </div>
+        <div class="stock-item">
+          <div class="stock-item-name">翔鹭钨业</div>
+        </div>
+        <div class="stock-item">
+          <div class="stock-item-name">华盛昌</div>
+        </div>
+        <div class="stock-item">
+          <div class="stock-item-name">亚盛集团</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="board-section">
+      <div class="board-header">
+        <div class="board-title">
+          <span>首板</span>
+          <span class="board-count">52</span>
+        </div>
+        <div class="expand-btn">+</div>
+      </div>
+      <div class="stock-grid">
+        <div class="stock-item">
+          <div class="stock-item-name">华锡有色</div>
+        </div>
+        <div class="stock-item">
+          <div class="stock-item-name">涪陵电力</div>
+        </div>
+        <div class="stock-item">
+          <div class="stock-item-name">烽火通信</div>
+        </div>
+        <div class="stock-item">
+          <div class="stock-item-name">中国瑞林</div>
+        </div>
+        <div class="stock-item">
+          <div class="stock-item-name">水发燃气</div>
+        </div>
+        <div class="stock-item">
+          <div class="stock-item-name">和顺石油</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 列表视图 -->
+  <div id="list-view" class="list-view" style="display: none;">
+    <div class="list-header">
+      <div class="list-header-item">
+        编辑 <span style="font-size: 11px;">✎</span>
+      </div>
+      <div class="list-header-item">现价 ▼</div>
+      <div class="list-header-item">涨幅 ▼</div>
+      <div class="list-header-item">涨停原因 ▼</div>
+    </div>
+
+    <div class="list-row">
+      <div class="list-cell">
+        <div class="stock-name-cell">
+          <div class="stock-name-main">
+            中国石油
+            <span class="detail-tag">明细</span>
+          </div>
+          <div class="stock-code-sub">601857</div>
+        </div>
+      </div>
+      <div class="list-cell price-up">11.94</div>
+      <div class="list-cell change-up">9.94%</div>
+      <div class="list-cell reason-cell">周期股,天然气,国...</div>
+    </div>
+
+    <div class="list-row">
+      <div class="list-cell">
+        <div class="stock-name-cell">
+          <div class="stock-name-main">
+            九安医疗
+            <span class="detail-tag">明细</span>
+          </div>
+          <div class="stock-code-sub">002432</div>
+        </div>
+      </div>
+      <div class="list-cell price-up">48.83</div>
+      <div class="list-cell change-up">10.00%</div>
+      <div class="list-cell reason-cell">医疗器械,跨境电商,...</div>
+    </div>
+
+    <div class="list-row">
+      <div class="list-cell">
+        <div class="stock-name-cell">
+          <div class="stock-name-main">
+            西部材料
+            <span class="detail-tag">明细</span>
+          </div>
+          <div class="stock-code-sub">002149</div>
+        </div>
+      </div>
+      <div class="list-cell price-up">57.31</div>
+      <div class="list-cell change-up">10.00%</div>
+      <div class="list-cell reason-cell">商业航天,周期股</div>
+    </div>
+
+    <div class="list-row">
+      <div class="list-cell">
+        <div class="stock-name-cell">
+          <div class="stock-name-main">
+            白云电器
+            <span class="detail-tag">明细</span>
+          </div>
+          <div class="stock-code-sub">603861</div>
+        </div>
+      </div>
+      <div class="list-cell price-up">20.49</div>
+      <div class="list-cell change-up">9.98%</div>
+      <div class="list-cell reason-cell">储能,一带一路,电...</div>
+    </div>
+
+    <div class="list-row">
+      <div class="list-cell">
+        <div class="stock-name-cell">
+          <div class="stock-name-main">
+            合锻智能
+            <span class="detail-tag">明细</span>
+          </div>
+          <div class="stock-code-sub">603011</div>
+        </div>
+      </div>
+      <div class="list-cell price-up">28.28</div>
+      <div class="list-cell change-up">10.00%</div>
+      <div class="list-cell reason-cell">商业航天,人工智能,...</div>
+    </div>
+
+    <div class="list-row">
+      <div class="list-cell">
+        <div class="stock-name-cell">
+          <div class="stock-name-main">
+            新锦动力
+            <span class="detail-tag">明细</span>
+          </div>
+          <div class="stock-code-sub">300157</div>
+        </div>
+      </div>
+      <div class="list-cell price-up">8.39</div>
+      <div class="list-cell change-up">20.03%</div>
+      <div class="list-cell reason-cell">人工智能,储能,天...</div>
+    </div>
+  </div>
+
+  <!-- 晋级视图 -->
+  <div id="promotion-view" class="promotion-view" style="display: none;">
+    <div class="promotion-section">
+      <div class="promotion-header">
+        <div class="promotion-yesterday">昨日7板(1)</div>
+        <div class="promotion-arrow">➜</div>
+        <div class="promotion-today">今日8板(0)</div>
+      </div>
+      <div class="promotion-content">
+        <div class="promotion-list" style="border-right: 1px solid #e4e7ed;">
+          <div class="promotion-item">
+            <span class="promotion-item-name">豫能控股</span>
+            <span class="promotion-item-change price-up">4.57%</span>
+          </div>
+        </div>
+        <div class="promotion-list" style="padding-left: 12px;">
+          <div style="color: #c0c4cc; font-size: 13px;">无</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="promotion-section">
+      <div class="promotion-header">
+        <div class="promotion-yesterday">昨日4板(1)</div>
+        <div class="promotion-arrow">➜</div>
+        <div class="promotion-today">今日5板(0)</div>
+      </div>
+      <div class="promotion-content">
+        <div class="promotion-list" style="border-right: 1px solid #e4e7ed;">
+          <div class="promotion-item">
+            <span class="promotion-item-name">金正大</span>
+            <span class="promotion-item-change price-down">-4.19%</span>
+          </div>
+        </div>
+        <div class="promotion-list" style="padding-left: 12px;">
+          <div style="color: #c0c4cc; font-size: 13px;">无</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="promotion-section">
+      <div class="promotion-header">
+        <div class="promotion-yesterday">昨日3板(3)</div>
+        <div class="promotion-arrow">➜</div>
+        <div class="promotion-today">今日4板(0)</div>
+      </div>
+      <div class="promotion-content">
+        <div class="promotion-list" style="border-right: 1px solid #e4e7ed;">
+          <div class="promotion-item">
+            <span class="promotion-item-name">章源钨业</span>
+            <span class="promotion-item-change price-up">8.25%</span>
+          </div>
+          <div class="promotion-item">
+            <span class="promotion-item-name">赣能股份</span>
+            <span class="promotion-item-change price-up">1.98%</span>
+          </div>
+          <div class="promotion-item">
+            <span class="promotion-item-name">洪兴股份</span>
+            <span class="promotion-item-change price-down">-9.07%</span>
+          </div>
+        </div>
+        <div class="promotion-list" style="padding-left: 12px;">
+          <div style="color: #c0c4cc; font-size: 13px;">无</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="promotion-section">
+      <div class="promotion-header">
+        <div class="promotion-yesterday">昨日2板(5)</div>
+        <div class="promotion-arrow">➜</div>
+        <div class="promotion-today">今日3板(1)</div>
+      </div>
+      <div class="promotion-content">
+        <div class="promotion-list" style="border-right: 1px solid #e4e7ed;">
+          <div class="promotion-item">
+            <span class="promotion-item-name">泰嘉股份</span>
+            <span class="promotion-item-change price-up">10.01%</span>
+          </div>
+          <div class="promotion-item">
+            <span class="promotion-item-name">长源东谷</span>
+            <span class="promotion-item-change price-up">5.37%</span>
+          </div>
+          <div class="promotion-item">
+            <span class="promotion-item-name">神马电力</span>
+            <span class="promotion-item-change price-up">4.34%</span>
+          </div>
+          <div class="promotion-item">
+            <span class="promotion-item-name">华银电力</span>
+            <span class="promotion-item-change price-up">2.02%</span>
+          </div>
+          <div class="promotion-item">
+            <span class="promotion-item-name">北京科锐</span>
+            <span class="promotion-item-change price-down">-3.41%</span>
+          </div>
+        </div>
+        <div class="promotion-list" style="padding-left: 12px;">
+          <div class="promotion-item">
+            <span class="promotion-item-name">泰嘉股份</span>
+            <span class="promotion-item-change price-up">10.01%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    免责声明：本公司力求但不保证数据的完全准确，仅供参考，不作为投资决策的依据，本公司不对因据此操作产生的盈亏承担任何责任。
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item">
+      <div class="nav-icon">🏠</div>
+      <div>首页</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">➕</div>
+      <div>自选</div>
+    </div>
+    <div class="nav-item active">
+      <div class="nav-icon">📊</div>
+      <div>行情</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">💱</div>
+      <div>交易</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">📰</div>
+      <div>资讯</div>
+    </div>
+  </div>
+
+  <script>
+    function switchView(view) {
+      document.getElementById('overview-view').style.display = 'none';
+      document.getElementById('list-view').style.display = 'none';
+      document.getElementById('promotion-view').style.display = 'none';
+      
+      document.querySelectorAll('.view-tab').forEach(tab => tab.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      if (view === 'overview') {
+        document.getElementById('overview-view').style.display = 'block';
+      } else if (view === 'list') {
+        document.getElementById('list-view').style.display = 'block';
+      } else if (view === 'promotion') {
+        document.getElementById('promotion-view').style.display = 'block';
+      }
+    }
+
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    document.querySelectorAll('.filter-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const siblings = this.parentElement.querySelectorAll('.filter-item');
+        siblings.forEach(s => s.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    document.querySelectorAll('.stock-item').forEach(item => {
+      item.addEventListener('click', function() {
+        alert('点击了股票：' + this.querySelector('.stock-item-name').textContent);
+      });
+    });
+
+    document.querySelectorAll('.list-row').forEach(row => {
+      row.addEventListener('click', function() {
+        alert('点击了股票列表项');
+      });
+    });
+  </script>
+</body>
+</html>
