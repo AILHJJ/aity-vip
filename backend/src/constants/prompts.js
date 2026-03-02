@@ -124,7 +124,7 @@ const MODEL_SPECIFIC_PROMPTS = {
 4. **突出重点**:操作建议、标的、价位等关键信息特别醒目
 
 5. **克雷薄/回避废话**：直接输出结果，删除总结性文字
-6. **输出格式与上述一致`
+6. **输出格式与上述一致
 
 ## 输出格式
 {"optimizedContent":"优化后的Markdown内容","optimizationNote":"一句话说明优化要点"}
