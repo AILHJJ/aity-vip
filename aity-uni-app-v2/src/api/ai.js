@@ -122,6 +122,14 @@ export function getPromptOptionsApi(id) {
 }
 
 /**
+ * 应用每个模型的专属提示词
+ * @returns {Promise}
+ */
+export function applyModelSpecificPromptsApi() {
+  return post('/ai/prompt/apply-model-specific')
+}
+
+/**
  * 生成内容摘要
  * @param {Object} data 请求数据
  * @param {String} data.content - 原始内容
@@ -153,6 +161,8 @@ export default {
   getDefaultPromptApi,
   updateAllPromptsApi,
   resetAllPromptsApi,
+  getPromptOptionsApi,
+  applyModelSpecificPromptsApi,
   summarizeContentApi,
   getRecommendedTopicsApi
 }
