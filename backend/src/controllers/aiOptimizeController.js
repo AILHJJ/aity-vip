@@ -26,31 +26,6 @@ function badRequest(message = 'Bad request') {
   };
 }
 
-// 统一的智能优化提示词
-// 核心思路：让AI根据内容特点自主调整，不做过多预判
-// 重要：必须返回纯JSON格式，不要有任何其他文字
-const BASE_PROMPT = `你是一位专业的投资研报编辑助手。请优化以下投研消息。
-
-## 优化规则
-1. 使用Markdown格式：标题(###)、列表(-)、粗体(**)
-2. 核心内容置顶，用1-2句话概括
-3. **保留原文所有信息**：不删除、不添加、不篡改
-4. **保留专业术语和准确数据**：股价、点位、百分比等
-5. **保留所有URL链接**：原文中的URL必须原样保留
-6. 如有操作建议/标的，要特别醒目
-
-## 输出格式（严格遵守）
-
-你必须且只能输出以下JSON格式，不要输出任何其他文字、解释或说明：
-
-{"optimizedContent":"优化后的Markdown内容","optimizationNote":"一句话说明优化要点"}
-
-注意：
-- optimizedContent: 优化后的正文（Markdown格式）
-- optimizationNote: 简要说明做了什么优化
-- 直接输出JSON，不要用代码块包裹
-- 不要有任何开头或结尾的说明文字`;
-
 // 优化文案
 async function optimizeContent(req, res) {
   try {
