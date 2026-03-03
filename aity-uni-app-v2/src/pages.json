@@ -99,6 +99,13 @@
 			}
 		},
 		{
+			"path": "pages/market/market-ladder",
+			"style": {
+				"navigationBarTitleText": "连板天梯",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/change-password/change-password",
 			"style": {
 				"navigationBarTitleText": "修改密码"

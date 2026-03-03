@@ -1,24 +1,128 @@
 <template>
   <view class="market-page">
+    <!-- 装饰背景 -->
+    <view class="decoration decoration-1"></view>
+    <view class="decoration decoration-2"></view>
+
     <!-- 顶部Header -->
     <view class="header-bar">
       <view class="header-left" @click="goBack">
         <text class="back-icon">‹</text>
       </view>
       <view class="header-center">
-        <text class="header-title">行情中心</text>
-        <text class="header-subtitle">实时市场数据</text>
+        <view class="header-title">
+          <view class="header-icon">📊</view>
+          <text class="title-text">行情中心</text>
+        </view>
       </view>
-      <view class="header-right"></view>
+      <view class="header-right">
+        <view class="update-indicator">
+          <view class="glow-dot"></view>
+          <text class="time-text">{{ currentTime }}</text>
+          <view class="refresh-icon" :class="{ spinning: isRefreshing }" @click="handleRefresh"></view>
+        </view>
+      </view>
     </view>
 
-    <!-- 指数行情卡片 -->
-    <view class="index-section">
-      <view class="section-title">
-        <text class="title-text">主要指数</text>
-        <text class="update-time">{{ updateTime }}</text>
+    <!-- 市场温度计 -->
+    <view class="section">
+      <view class="section-header">
+        <view class="section-title">
+          <text class="section-icon">🌡️</text>
+          <text class="title-text">市场温度计</text>
+        </view>
       </view>
-      <scroll-view class="index-scroll" scroll-x>
+      <view class="card thermometer-card">
+        <view class="thermometer-content">
+          <!-- 仪表盘 -->
+          <view class="gauge-container">
+            <view class="gauge-ring">
+              <svg viewBox="0 0 100 100" class="gauge-svg">
+                <defs>
+                  <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#00d4ff"/>
+                    <stop offset="50%" style="stop-color:#a855f7"/>
+                    <stop offset="100%" style="stop-color:#ff4757"/>
+                  </linearGradient>
+                </defs>
+                <circle class="gauge-bg" cx="50" cy="50" r="42" />
+                <circle
+                  class="gauge-fill"
+                  cx="50"
+                  cy="50"
+                  r="42"
+                  :style="{ strokeDashoffset: gaugeOffset }"
+                />
+              </svg>
+              <view class="gauge-value">
+                <text class="gauge-number">{{ marketSentiment.score }}</text>
+                <text class="gauge-label">情绪分</text>
+              </view>
+            </view>
+          </view>
+          <!-- 统计信息 -->
+          <view class="gauge-info">
+            <view class="sentiment-status" :class="sentimentClass">
+              <text class="status-icon">{{ sentimentIcon }}</text>
+              <text class="status-text">{{ marketSentiment.status }}</text>
+            </view>
+            <view class="stats-grid">
+              <view class="stat-item">
+                <view class="stat-icon up">📈</view>
+                <text class="stat-value up">{{ marketData.upCount }}</text>
+              </view>
+              <view class="stat-item">
+                <view class="stat-icon down">📉</view>
+                <text class="stat-value down">{{ marketData.downCount }}</text>
+              </view>
+              <view class="stat-item">
+                <view class="stat-icon limit-up">🔥</view>
+                <text class="stat-value limit-up">{{ marketData.limitUpCount }}</text>
+              </view>
+              <view class="stat-item">
+                <view class="stat-icon limit-down">❄️</view>
+                <text class="stat-value limit-down">{{ marketData.limitDownCount }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <!-- 涨跌分布条 -->
+        <view class="distribution-bar">
+          <text class="bar-label">涨跌分布</text>
+          <view class="bar-container">
+            <view class="bar-segment limit-down" :style="{ width: distribution.limitDown + '%' }">
+              <text v-if="distribution.limitDown > 5">{{ marketData.limitDownCount }}</text>
+            </view>
+            <view class="bar-segment down" :style="{ width: distribution.down + '%' }">
+              <text v-if="distribution.down > 8">-5~0</text>
+            </view>
+            <view class="bar-segment flat" :style="{ width: distribution.flat + '%' }">
+              <text v-if="distribution.flat > 8">0~3</text>
+            </view>
+            <view class="bar-segment up" :style="{ width: distribution.up + '%' }">
+              <text v-if="distribution.up > 8">3~10</text>
+            </view>
+            <view class="bar-segment limit-up" :style="{ width: distribution.limitUp + '%' }">
+              <text v-if="distribution.limitUp > 5">{{ marketData.limitUpCount }}</text>
+            </view>
+          </view>
+        </view>
+        <view class="expand-btn" @click="toggleThermometer">
+          <text>查看详细分布</text>
+          <text class="expand-icon">{{ thermometerExpanded ? '▲' : '▼' }}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 指数行情 -->
+    <view class="section">
+      <view class="section-header">
+        <view class="section-title">
+          <text class="section-icon">📰</text>
+          <text class="title-text">指数行情</text>
+        </view>
+      </view>
+      <scroll-view class="index-scroll" scroll-x :show-scrollbar="false">
         <view class="index-cards">
           <view
             v-for="(item, index) in indexData"
@@ -28,101 +132,108 @@
           >
             <text class="index-name">{{ item.name }}</text>
             <text class="index-price">{{ formatPrice(item.price) }}</text>
-            <view class="index-change">
-              <text class="change-pct">{{ formatChangePct(item.changePct) }}</text>
-            </view>
+            <text class="index-change">{{ formatChangePct(item.changePct) }}</text>
           </view>
         </view>
       </scroll-view>
     </view>
 
     <!-- 连板天梯 -->
-    <view class="ladder-section">
-      <view class="section-title">
-        <text class="title-text">连板天梯</text>
-        <text class="total-count">共 {{ ladderTotal }} 只涨停</text>
+    <view class="section">
+      <view class="section-header">
+        <view class="section-title">
+          <text class="section-icon">🪜</text>
+          <text class="title-text">连板天梯</text>
+        </view>
+        <view class="section-action" @click="goToLadderDetail">
+          <text>查看全部</text>
+          <text class="action-icon">→</text>
+        </view>
       </view>
-      <scroll-view class="ladder-scroll" scroll-y>
-        <view
-          v-for="level in ladderData"
-          :key="level.days"
-          class="ladder-level"
-        >
-          <view class="level-header">
-            <view class="level-badge" :class="getLevelClass(level.days)">
-              <text class="badge-text">{{ level.days }}连板</text>
-            </view>
-            <text class="level-count">{{ level.count }}只</text>
-          </view>
-          <view class="level-stocks">
-            <view
-              v-for="stock in level.stocks"
-              :key="stock.code"
-              class="stock-item"
-            >
-              <view class="stock-info">
-                <text class="stock-name">{{ stock.name }}</text>
-                <text class="stock-code">{{ stock.code }}</text>
-              </view>
-              <view class="stock-badge">
-                <text class="badge-text">涨停</text>
-              </view>
+      <view class="card ladder-card">
+        <view class="ladder-summary">
+          <view class="ladder-high">
+            <text class="crown-icon">👑</text>
+            <view class="ladder-high-info">
+              <text class="ladder-high-days">{{ ladderData.highestDays }}连板</text>
+              <text class="ladder-high-label">最高连板</text>
             </view>
           </view>
+          <view class="ladder-total">
+            <text>共 {{ ladderData.totalCount }} 只涨停</text>
+          </view>
         </view>
-        <view v-if="ladderData.length === 0 && !loading" class="empty-tip">
-          <text>暂无数据</text>
+        <view class="ladder-levels">
+          <view
+            v-for="level in ladderData.levels"
+            :key="level.days"
+            class="level-tag"
+            :class="getLevelClass(level.days)"
+          >
+            <text>{{ level.days }}板</text>
+            <text class="level-count">×{{ level.count }}</text>
+          </view>
         </view>
-      </scroll-view>
+        <view class="expand-btn" @click="goToLadderDetail">
+          <text>查看完整天梯</text>
+          <text class="expand-icon">▼</text>
+        </view>
+      </view>
     </view>
 
-    <!-- 行业资金流向 -->
-    <view class="fund-flow-section">
-      <view class="section-title">
-        <text class="title-text">行业资金流向</text>
-        <view class="flow-tabs">
-          <text
-            class="tab-item"
-            :class="{ active: fundFlowType === 'inflow' }"
-            @click="switchFundFlow('inflow')"
-          >流入</text>
-          <text
-            class="tab-item"
-            :class="{ active: fundFlowType === 'outflow' }"
-            @click="switchFundFlow('outflow')"
-          >流出</text>
+    <!-- 资金流向 -->
+    <view class="section" style="padding-bottom: 120rpx;">
+      <view class="section-header">
+        <view class="section-title">
+          <text class="section-icon">💰</text>
+          <text class="title-text">资金流向</text>
         </view>
       </view>
-      <view class="fund-flow-list">
-        <view
-          v-for="(item, index) in fundFlowData"
-          :key="index"
-          class="flow-item"
-        >
-          <view class="flow-rank">
-            <text class="rank-num">{{ index + 1 }}</text>
+      <view class="card fund-card">
+        <view class="flow-tabs">
+          <view
+            class="flow-tab"
+            :class="{ active: fundFlowType === 'inflow' }"
+            @click="switchFundFlow('inflow')"
+          >
+            <text>🔥 流入</text>
           </view>
-          <view class="flow-info">
-            <text class="flow-name">{{ item.name }}</text>
-            <view class="flow-stats">
-              <text class="stat-item">涨 {{ item.upCount || 0 }}</text>
-              <text class="stat-item">跌 {{ item.downCount || 0 }}</text>
-              <text class="stat-item">涨停 {{ item.limitUpCount || 0 }}</text>
-            </view>
-          </view>
-          <view class="flow-amount" :class="fundFlowType === 'inflow' ? 'inflow' : 'outflow'">
-            <text class="amount-value">{{ formatAmount(item.netInflow) }}</text>
-            <text class="amount-pct">{{ item.netInflowPct ? item.netInflowPct.toFixed(2) + '%' : '0%' }}</text>
+          <view
+            class="flow-tab"
+            :class="{ active: fundFlowType === 'outflow' }"
+            @click="switchFundFlow('outflow')"
+          >
+            <text>❄️ 流出</text>
           </view>
         </view>
-        <view v-if="fundFlowData.length === 0 && !loading" class="empty-tip">
-          <text>暂无数据</text>
+        <view class="flow-list">
+          <view
+            v-for="(item, index) in fundFlowData"
+            :key="index"
+            class="flow-item"
+          >
+            <view class="flow-rank" :class="getRankClass(index)">
+              <text>{{ index + 1 }}</text>
+            </view>
+            <view class="flow-info">
+              <text class="flow-name">{{ item.name }}</text>
+              <text class="flow-stats">涨{{ item.upCount || 0 }} 跌{{ item.downCount || 0 }} 涨停{{ item.limitUpCount || 0 }}</text>
+            </view>
+            <view class="flow-amount" :class="fundFlowType">
+              <text class="amount-value">{{ formatAmount(item.netInflow) }}</text>
+              <text class="amount-pct">{{ formatPct(item.netInflowPct) }}</text>
+            </view>
+          </view>
+        </view>
+        <view class="expand-btn" @click="toggleFundFlow">
+          <text>查看更多行业</text>
+          <text class="expand-icon">▼</text>
         </view>
       </view>
     </view>
 
     <!-- 加载状态 -->
-    <view v-if="loading" class="loading-container">
+    <view v-if="loading" class="loading-overlay">
       <view class="loading-spinner"></view>
       <text class="loading-text">加载中...</text>
     </view>
@@ -130,62 +241,142 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { getIndexQuoteApi, getLimitUpLadderApi, getIndustryFundFlowApi } from '../../api/market.js'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import {
+  getMarketOverviewApi,
+  getIndexQuoteApi,
+  getLimitUpLadderApi,
+  getIndustryFundFlowApi
+} from '../../api/market.js'
 import { useUserStore } from '../../store/user'
 
 const userStore = useUserStore()
 
-// 返回上一页
+// 状态
+const loading = ref(false)
+const isRefreshing = ref(false)
+const currentTime = ref('')
+const thermometerExpanded = ref(false)
+const fundFlowType = ref('inflow')
+
+// 数据
+const marketData = ref({
+  upCount: 0,
+  downCount: 0,
+  limitUpCount: 0,
+  limitDownCount: 0,
+  totalStocks: 0,
+  amount: 0
+})
+
+const indexData = ref([])
+const ladderData = ref({
+  highestDays: 0,
+  totalCount: 0,
+  levels: []
+})
+const fundFlowData = ref([])
+
+// 计算属性
+const marketSentiment = computed(() => {
+  const upRatio = marketData.value.totalStocks > 0
+    ? (marketData.value.upCount / marketData.value.totalStocks) * 100
+    : 50
+  const limitRatio = marketData.value.totalStocks > 0
+    ? (marketData.value.limitUpCount / marketData.value.totalStocks) * 100
+    : 0
+
+  let score = Math.round(upRatio * 0.7 + limitRatio * 3)
+  score = Math.min(100, Math.max(0, score))
+
+  let status = '中性'
+  if (score >= 70) status = '偏热'
+  else if (score >= 50) status = '温和'
+  else if (score >= 30) status = '偏冷'
+  else status = '冰点'
+
+  return { score, status }
+})
+
+const gaugeOffset = computed(() => {
+  const circumference = 2 * Math.PI * 42
+  const progress = marketSentiment.value.score / 100
+  return circumference * (1 - progress)
+})
+
+const sentimentClass = computed(() => {
+  const score = marketSentiment.value.score
+  if (score >= 70) return 'hot'
+  if (score >= 50) return 'warm'
+  if (score >= 30) return 'cool'
+  return 'cold'
+})
+
+const sentimentIcon = computed(() => {
+  const score = marketSentiment.value.score
+  if (score >= 70) return '🔥'
+  if (score >= 50) return '☀️'
+  if (score >= 30) return '🌤️'
+  return '❄️'
+})
+
+const distribution = computed(() => {
+  const total = marketData.value.totalStocks || 1
+  return {
+    limitDown: (marketData.value.limitDownCount / total) * 100,
+    down: 20,
+    flat: 15,
+    up: 45,
+    limitUp: (marketData.value.limitUpCount / total) * 100
+  }
+})
+
+// 方法
+const updateTime = () => {
+  const now = new Date()
+  currentTime.value = now.toTimeString().slice(0, 8)
+}
+
 const goBack = () => {
   const pages = getCurrentPages()
   if (pages.length > 1) {
     uni.navigateBack()
   } else {
-    // 如果没有上一页，跳转到首页
-    uni.switchTab({
-      url: '/pages/messages/messages'
-    })
+    uni.switchTab({ url: '/pages/messages/messages' })
   }
 }
 
-// 检查登录状态
-const checkLogin = () => {
-  if (!userStore.isLoggedIn) {
-    uni.showToast({
-      title: '请先登录',
-      icon: 'none',
-      duration: 2000
-    })
-    setTimeout(() => {
-      uni.navigateTo({
-        url: '/pages/login/login'
-      })
-    }, 1500)
-    return false
-  }
-  return true
+const goToLadderDetail = () => {
+  uni.navigateTo({ url: '/pages/market/market-ladder' })
 }
 
-// 数据状态
-const loading = ref(false)
-const updateTime = ref('')
-const indexData = ref([])
-const ladderData = ref([])
-const ladderTotal = ref(0)
-const fundFlowType = ref('inflow')
-const fundFlowData = ref([])
+const toggleThermometer = () => {
+  thermometerExpanded.value = !thermometerExpanded.value
+}
 
-// 格式化函数
+const toggleFundFlow = () => {
+  // 可以跳转到详情页或展开更多
+  uni.showToast({ title: '功能开发中', icon: 'none' })
+}
+
+const switchFundFlow = (type) => {
+  fundFlowType.value = type
+  loadFundFlowData()
+}
+
+const handleRefresh = async () => {
+  if (isRefreshing.value) return
+  isRefreshing.value = true
+  await refreshData()
+  setTimeout(() => {
+    isRefreshing.value = false
+  }, 1000)
+}
+
+// 格式化方法
 const formatPrice = (price) => {
   if (!price) return '--'
   return parseFloat(price).toFixed(2)
-}
-
-const formatChange = (change) => {
-  if (!change) return '0.00'
-  const num = parseFloat(change)
-  return num >= 0 ? '+' + num.toFixed(2) : num.toFixed(2)
 }
 
 const formatChangePct = (pct) => {
@@ -205,25 +396,54 @@ const formatAmount = (amount) => {
   return num.toFixed(2)
 }
 
+const formatPct = (pct) => {
+  if (!pct) return '0%'
+  const num = parseFloat(pct)
+  return (num >= 0 ? '+' : '') + num.toFixed(2) + '%'
+}
+
 const getChangeClass = (pct) => {
   if (!pct) return ''
   const num = parseFloat(pct)
-  if (num > 0) return 'up'
-  if (num < 0) return 'down'
-  return ''
+  return num >= 0 ? 'up' : 'down'
 }
 
 const getLevelClass = (days) => {
-  if (days >= 5) return 'level-high'
-  if (days >= 3) return 'level-mid'
-  return 'level-low'
+  if (days >= 6) return 'high'
+  if (days >= 4) return 'mid'
+  return 'low'
 }
 
-// 加载数据
+const getRankClass = (index) => {
+  if (index === 0) return 'gold'
+  if (index === 1) return 'silver'
+  if (index === 2) return 'bronze'
+  return 'normal'
+}
+
+// 数据加载
+const loadMarketOverview = async () => {
+  try {
+    const res = await getMarketOverviewApi()
+    if (res.code === 200 && res.data) {
+      marketData.value = {
+        upCount: res.data.upCount || 0,
+        downCount: res.data.downCount || 0,
+        limitUpCount: res.data.limitUpCount || 0,
+        limitDownCount: res.data.limitDownCount || 0,
+        totalStocks: res.data.totalStocks || 4000,
+        amount: res.data.amount || 0
+      }
+    }
+  } catch (e) {
+    console.error('加载市场概览失败:', e)
+  }
+}
+
 const loadIndexData = async () => {
   try {
     const res = await getIndexQuoteApi()
-    if (res.code === 200) {
+    if (res.code === 200 && res.data) {
       indexData.value = res.data || []
     }
   } catch (e) {
@@ -234,10 +454,12 @@ const loadIndexData = async () => {
 const loadLadderData = async () => {
   try {
     const res = await getLimitUpLadderApi()
-    if (res.code === 200) {
-      ladderData.value = res.data?.ladder || []
-      ladderTotal.value = res.data?.total || 0
-      updateTime.value = res.data?.updateTime || ''
+    if (res.code === 200 && res.data) {
+      ladderData.value = {
+        highestDays: res.data.highestDays || 0,
+        totalCount: res.data.total || 0,
+        levels: res.data.levels || []
+      }
     }
   } catch (e) {
     console.error('加载连板天梯失败:', e)
@@ -246,25 +468,20 @@ const loadLadderData = async () => {
 
 const loadFundFlowData = async () => {
   try {
-    const res = await getIndustryFundFlowApi({ type: fundFlowType.value, top: 10 })
-    if (res.code === 200) {
-      fundFlowData.value = res.data?.industries || []
+    const res = await getIndustryFundFlowApi({ type: fundFlowType.value, top: 5 })
+    if (res.code === 200 && res.data) {
+      fundFlowData.value = res.data.industries || res.data || []
     }
   } catch (e) {
     console.error('加载资金流向失败:', e)
   }
 }
 
-const switchFundFlow = (type) => {
-  fundFlowType.value = type
-  loadFundFlowData()
-}
-
-// 刷新所有数据
 const refreshData = async () => {
   loading.value = true
   try {
     await Promise.all([
+      loadMarketOverview(),
       loadIndexData(),
       loadLadderData(),
       loadFundFlowData()
@@ -274,29 +491,98 @@ const refreshData = async () => {
   }
 }
 
+// 检查登录
+const checkLogin = () => {
+  if (!userStore.isLoggedIn) {
+    uni.showToast({ title: '请先登录', icon: 'none', duration: 2000 })
+    setTimeout(() => {
+      uni.navigateTo({ url: '/pages/login/login' })
+    }, 1500)
+    return false
+  }
+  return true
+}
+
+// 生命周期
+let timeTimer = null
+
 onMounted(() => {
-  // 检查登录状态
+  updateTime()
+  timeTimer = setInterval(updateTime, 1000)
+
   if (checkLogin()) {
     refreshData()
+  }
+})
+
+onUnmounted(() => {
+  if (timeTimer) {
+    clearInterval(timeTimer)
   }
 })
 </script>
 
 <style lang="scss" scoped>
+// 基础变量
+$neon-blue: #00d4ff;
+$neon-purple: #a855f7;
+$neon-red: #ff4757;
+$neon-green: #2ed573;
+$neon-gold: #fdcb6e;
+$bg-dark: #0a0a1a;
+$bg-mid: #1a1a3e;
+
 .market-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-  padding-bottom: 120rpx;
+  background: linear-gradient(180deg, $bg-dark 0%, $bg-mid 50%, darken($bg-mid, 5%) 100%);
+  position: relative;
+  overflow-x: hidden;
+}
+
+// 装饰元素
+.decoration {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+
+  &.decoration-1 {
+    top: 15%;
+    right: -50px;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle, rgba($neon-purple, 0.15) 0%, transparent 70%);
+  }
+
+  &.decoration-2 {
+    bottom: 25%;
+    left: -40px;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba($neon-blue, 0.12) 0%, transparent 70%);
+  }
 }
 
 // Header
 .header-bar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, rgba($neon-blue, 0.12) 0%, rgba($neon-purple, 0.12) 100%);
   padding: 28rpx 32rpx;
   padding-top: calc(28rpx + env(safe-area-inset-top));
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 1px solid rgba($neon-blue, 0.2);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba($neon-blue, 0.5), transparent);
+  }
 
   .header-left {
     width: 60rpx;
@@ -314,57 +600,359 @@ onMounted(() => {
 
   .header-center {
     flex: 1;
-    text-align: center;
+    display: flex;
+    justify-content: center;
 
     .header-title {
-      display: block;
-      font-size: 40rpx;
-      font-weight: 600;
-      color: #ffffff;
-    }
+      display: flex;
+      align-items: center;
+      gap: 12rpx;
 
-    .header-subtitle {
-      display: block;
-      font-size: 24rpx;
-      color: rgba(255, 255, 255, 0.8);
-      margin-top: 8rpx;
+      .header-icon {
+        width: 44rpx;
+        height: 44rpx;
+        background: linear-gradient(135deg, $neon-blue, $neon-purple);
+        border-radius: 10rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24rpx;
+      }
+
+      .title-text {
+        font-size: 36rpx;
+        font-weight: 600;
+        background: linear-gradient(90deg, $neon-blue, $neon-purple);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
     }
   }
 
   .header-right {
-    width: 60rpx;
+    width: 160rpx;
+    display: flex;
+    justify-content: flex-end;
+
+    .update-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8rpx;
+      padding: 8rpx 16rpx;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20rpx;
+
+      .glow-dot {
+        width: 12rpx;
+        height: 12rpx;
+        border-radius: 50%;
+        background: $neon-blue;
+        box-shadow: 0 0 10rpx $neon-blue, 0 0 20rpx rgba($neon-blue, 0.5);
+        animation: glowPulse 2s ease-in-out infinite;
+      }
+
+      .time-text {
+        font-size: 22rpx;
+        color: rgba(255, 255, 255, 0.7);
+        font-family: 'SF Mono', 'Consolas', monospace;
+      }
+
+      .refresh-icon {
+        width: 28rpx;
+        height: 28rpx;
+        border: 3rpx solid rgba($neon-blue, 0.6);
+        border-top-color: transparent;
+        border-radius: 50%;
+
+        &.spinning {
+          animation: spin 1s linear infinite;
+        }
+      }
+    }
   }
 }
 
-// 通用section标题
-.section-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24rpx 32rpx 16rpx;
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
 
-  .title-text {
-    font-size: 32rpx;
-    font-weight: 600;
-    color: #ffffff;
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// 通用Section
+.section {
+  padding: 24rpx 32rpx;
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20rpx;
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 12rpx;
+
+      .section-icon {
+        font-size: 32rpx;
+      }
+
+      .title-text {
+        font-size: 30rpx;
+        font-weight: 600;
+        color: #ffffff;
+      }
+    }
+
+    .section-action {
+      display: flex;
+      align-items: center;
+      gap: 8rpx;
+      font-size: 24rpx;
+      color: $neon-blue;
+
+      .action-icon {
+        font-size: 24rpx;
+      }
+    }
+  }
+}
+
+// 卡片基础样式
+.card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba($neon-blue, 0.15);
+  border-radius: 24rpx;
+  padding: 24rpx;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba($neon-blue, 0.5), transparent);
+  }
+}
+
+// 市场温度计
+.thermometer-card {
+  .thermometer-content {
+    display: flex;
+    align-items: center;
+    gap: 32rpx;
+    margin-bottom: 24rpx;
   }
 
-  .update-time, .total-count {
-    font-size: 24rpx;
-    color: rgba(255, 255, 255, 0.6);
+  .gauge-container {
+    flex-shrink: 0;
+
+    .gauge-ring {
+      width: 140rpx;
+      height: 140rpx;
+      position: relative;
+
+      .gauge-svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+
+        .gauge-bg {
+          fill: none;
+          stroke: rgba(255, 255, 255, 0.1);
+          stroke-width: 8;
+        }
+
+        .gauge-fill {
+          fill: none;
+          stroke: url(#gaugeGradient);
+          stroke-width: 8;
+          stroke-linecap: round;
+          stroke-dasharray: 264;
+          filter: drop-shadow(0 0 8rpx rgba($neon-blue, 0.5));
+          transition: stroke-dashoffset 1s ease-out;
+        }
+      }
+
+      .gauge-value {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+
+        .gauge-number {
+          display: block;
+          font-size: 44rpx;
+          font-weight: 700;
+          background: linear-gradient(135deg, $neon-blue, $neon-purple);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .gauge-label {
+          display: block;
+          font-size: 18rpx;
+          color: rgba(255, 255, 255, 0.5);
+        }
+      }
+    }
+  }
+
+  .gauge-info {
+    flex: 1;
+
+    .sentiment-status {
+      display: flex;
+      align-items: center;
+      gap: 12rpx;
+      margin-bottom: 20rpx;
+      padding: 12rpx 20rpx;
+      border-radius: 20rpx;
+      width: fit-content;
+
+      &.hot {
+        background: rgba($neon-red, 0.2);
+        .status-text { color: $neon-red; }
+      }
+
+      &.warm {
+        background: rgba($neon-gold, 0.2);
+        .status-text { color: $neon-gold; }
+      }
+
+      &.cool {
+        background: rgba($neon-blue, 0.2);
+        .status-text { color: $neon-blue; }
+      }
+
+      &.cold {
+        background: rgba(#74b9ff, 0.2);
+        .status-text { color: #74b9ff; }
+      }
+
+      .status-icon {
+        font-size: 28rpx;
+      }
+
+      .status-text {
+        font-size: 26rpx;
+        font-weight: 600;
+      }
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16rpx;
+
+      .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 12rpx;
+
+        .stat-icon {
+          width: 44rpx;
+          height: 44rpx;
+          border-radius: 10rpx;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20rpx;
+
+          &.up { background: rgba($neon-red, 0.15); }
+          &.down { background: rgba($neon-green, 0.15); }
+          &.limit-up { background: rgba($neon-red, 0.25); }
+          &.limit-down { background: rgba(#74b9ff, 0.2); }
+        }
+
+        .stat-value {
+          font-size: 30rpx;
+          font-weight: 600;
+
+          &.up { color: $neon-red; }
+          &.down { color: $neon-green; }
+          &.limit-up { color: lighten($neon-red, 10%); }
+          &.limit-down { color: #74b9ff; }
+        }
+      }
+    }
+  }
+
+  .distribution-bar {
+    margin-bottom: 20rpx;
+
+    .bar-label {
+      font-size: 22rpx;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 12rpx;
+      display: block;
+    }
+
+    .bar-container {
+      display: flex;
+      height: 44rpx;
+      border-radius: 22rpx;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.05);
+
+      .bar-segment {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18rpx;
+        font-weight: 600;
+        color: #fff;
+        transition: width 0.5s ease;
+
+        &.limit-down { background: linear-gradient(135deg, #74b9ff, #0984e3); }
+        &.down { background: linear-gradient(135deg, $neon-green, #26de81); }
+        &.flat { background: linear-gradient(135deg, #636e72, #b2bec3); }
+        &.up { background: linear-gradient(135deg, lighten($neon-red, 15%), $neon-red); }
+        &.limit-up { background: linear-gradient(135deg, $neon-red, darken($neon-red, 10%)); }
+      }
+    }
+  }
+}
+
+// 展开按钮
+.expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 16rpx;
+  background: rgba($neon-blue, 0.1);
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  color: $neon-blue;
+  margin-top: 16rpx;
+
+  .expand-icon {
+    font-size: 20rpx;
+    transition: transform 0.3s ease;
   }
 }
 
 // 指数行情
-.index-section {
-  .index-scroll {
-    white-space: nowrap;
-  }
+.index-scroll {
+  white-space: nowrap;
+  margin: 0 -32rpx;
+  padding: 0 32rpx;
 
   .index-cards {
     display: inline-flex;
-    padding: 0 24rpx;
     gap: 20rpx;
+    padding: 8rpx 0;
   }
 
   .index-card {
@@ -372,192 +960,204 @@ onMounted(() => {
     flex-direction: column;
     min-width: 200rpx;
     padding: 24rpx;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba($neon-blue, 0.1);
     border-radius: 16rpx;
-    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
 
     &.up {
-      background: linear-gradient(135deg, rgba(234, 67, 83, 0.3) 0%, rgba(234, 67, 83, 0.1) 100%);
+      border-color: rgba($neon-red, 0.3);
+      background: linear-gradient(135deg, rgba($neon-red, 0.08) 0%, rgba($neon-red, 0.02) 100%);
     }
 
     &.down {
-      background: linear-gradient(135deg, rgba(46, 204, 113, 0.3) 0%, rgba(46, 204, 113, 0.1) 100%);
+      border-color: rgba($neon-green, 0.3);
+      background: linear-gradient(135deg, rgba($neon-green, 0.08) 0%, rgba($neon-green, 0.02) 100%);
     }
 
     .index-name {
-      font-size: 24rpx;
-      color: rgba(255, 255, 255, 0.8);
+      font-size: 22rpx;
+      color: rgba(255, 255, 255, 0.6);
       margin-bottom: 12rpx;
     }
 
     .index-price {
       font-size: 40rpx;
-      font-weight: 600;
+      font-weight: 700;
       color: #ffffff;
+      margin-bottom: 8rpx;
     }
 
     .index-change {
-      display: flex;
-      gap: 12rpx;
-      margin-top: 8rpx;
-
-      .change-value, .change-pct {
-        font-size: 24rpx;
-        color: #ea4353;
-      }
+      font-size: 26rpx;
+      font-weight: 600;
     }
 
+    &.up .index-price,
+    &.up .index-change {
+      color: $neon-red;
+    }
+
+    &.down .index-price,
     &.down .index-change {
-      .change-value, .change-pct {
-        color: #2ecc71;
-      }
+      color: $neon-green;
     }
   }
 }
 
 // 连板天梯
-.ladder-section {
-  margin-top: 24rpx;
-
-  .ladder-scroll {
-    max-height: 600rpx;
-    padding: 0 24rpx;
-  }
-
-  .ladder-level {
+.ladder-card {
+  .ladder-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 24rpx;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 16rpx;
-    padding: 20rpx;
 
-    .level-header {
+    .ladder-high {
       display: flex;
       align-items: center;
       gap: 16rpx;
-      margin-bottom: 16rpx;
 
-      .level-badge {
-        padding: 8rpx 20rpx;
-        border-radius: 20rpx;
-
-        &.level-high {
-          background: linear-gradient(135deg, #ea4353 0%, #ff6b6b 100%);
-        }
-
-        &.level-mid {
-          background: linear-gradient(135deg, #f39c12 0%, #ffb74d 100%);
-        }
-
-        &.level-low {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .badge-text {
-          font-size: 24rpx;
-          font-weight: 600;
-          color: #ffffff;
-        }
+      .crown-icon {
+        font-size: 40rpx;
       }
 
-      .level-count {
-        font-size: 24rpx;
-        color: rgba(255, 255, 255, 0.6);
-      }
-    }
-
-    .level-stocks {
-      display: flex;
-      flex-direction: column;
-      gap: 12rpx;
-    }
-
-    .stock-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16rpx;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 12rpx;
-
-      .stock-info {
+      .ladder-high-info {
         display: flex;
         flex-direction: column;
 
-        .stock-name {
-          font-size: 28rpx;
-          color: #ffffff;
-          font-weight: 500;
+        .ladder-high-days {
+          font-size: 36rpx;
+          font-weight: 700;
+          background: linear-gradient(135deg, lighten($neon-red, 10%), $neon-red);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
 
-        .stock-code {
-          font-size: 22rpx;
+        .ladder-high-label {
+          font-size: 20rpx;
           color: rgba(255, 255, 255, 0.5);
-          margin-top: 4rpx;
         }
       }
+    }
 
-      .stock-badge {
-        padding: 6rpx 16rpx;
-        background: linear-gradient(135deg, #ea4353 0%, #ff6b6b 100%);
-        border-radius: 12rpx;
+    .ladder-total {
+      padding: 12rpx 24rpx;
+      background: rgba($neon-purple, 0.2);
+      border-radius: 24rpx;
+      font-size: 26rpx;
+      color: $neon-purple;
+      font-weight: 500;
+    }
+  }
 
-        .badge-text {
-          font-size: 22rpx;
-          color: #ffffff;
-          font-weight: 500;
-        }
+  .ladder-levels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16rpx;
+    margin-bottom: 8rpx;
+
+    .level-tag {
+      display: flex;
+      align-items: center;
+      gap: 8rpx;
+      padding: 10rpx 20rpx;
+      border-radius: 24rpx;
+      font-size: 24rpx;
+      font-weight: 500;
+
+      .level-count {
+        opacity: 0.8;
+      }
+
+      &.high {
+        background: linear-gradient(135deg, rgba($neon-red, 0.25), rgba($neon-red, 0.15));
+        color: lighten($neon-red, 10%);
+        border: 1px solid rgba($neon-red, 0.3);
+      }
+
+      &.mid {
+        background: linear-gradient(135deg, rgba($neon-gold, 0.25), rgba($neon-gold, 0.15));
+        color: $neon-gold;
+        border: 1px solid rgba($neon-gold, 0.3);
+      }
+
+      &.low {
+        background: linear-gradient(135deg, rgba($neon-blue, 0.25), rgba($neon-purple, 0.15));
+        color: $neon-blue;
+        border: 1px solid rgba($neon-blue, 0.3);
       }
     }
   }
 }
 
 // 资金流向
-.fund-flow-section {
-  margin-top: 24rpx;
-
+.fund-card {
   .flow-tabs {
     display: flex;
-    gap: 24rpx;
+    gap: 16rpx;
+    margin-bottom: 20rpx;
 
-    .tab-item {
-      font-size: 26rpx;
-      color: rgba(255, 255, 255, 0.6);
-      padding: 8rpx 20rpx;
-      border-radius: 20rpx;
+    .flow-tab {
+      padding: 12rpx 28rpx;
+      border-radius: 24rpx;
+      font-size: 24rpx;
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.5);
+      transition: all 0.3s ease;
 
       &.active {
-        color: #ffffff;
-        background: rgba(102, 126, 234, 0.5);
+        background: linear-gradient(135deg, rgba($neon-red, 0.25), rgba($neon-red, 0.15));
+        color: $neon-red;
       }
     }
   }
 
-  .fund-flow-list {
-    padding: 0 24rpx;
+  .flow-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16rpx;
   }
 
   .flow-item {
     display: flex;
     align-items: center;
+    gap: 20rpx;
     padding: 20rpx;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12rpx;
-    margin-bottom: 16rpx;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 16rpx;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 
     .flow-rank {
       width: 48rpx;
       height: 48rpx;
+      border-radius: 12rpx;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 8rpx;
-      margin-right: 20rpx;
+      font-size: 26rpx;
+      font-weight: 700;
 
-      .rank-num {
-        font-size: 28rpx;
-        font-weight: 600;
-        color: #ffffff;
+      &.gold {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        color: #fff;
+      }
+
+      &.silver {
+        background: linear-gradient(135deg, #bdc3c7, #95a5a6);
+        color: #fff;
+      }
+
+      &.bronze {
+        background: linear-gradient(135deg, #e17055, #d35400);
+        color: #fff;
+      }
+
+      &.normal {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.5);
       }
     }
 
@@ -569,34 +1169,17 @@ onMounted(() => {
         font-size: 28rpx;
         color: #ffffff;
         font-weight: 500;
+        margin-bottom: 6rpx;
       }
 
       .flow-stats {
-        display: flex;
-        gap: 16rpx;
-        margin-top: 8rpx;
-
-        .stat-item {
-          font-size: 22rpx;
-          color: rgba(255, 255, 255, 0.5);
-        }
+        font-size: 20rpx;
+        color: rgba(255, 255, 255, 0.4);
       }
     }
 
     .flow-amount {
       text-align: right;
-
-      &.inflow {
-        .amount-value, .amount-pct {
-          color: #ea4353;
-        }
-      }
-
-      &.outflow {
-        .amount-value, .amount-pct {
-          color: #2ecc71;
-        }
-      }
 
       .amount-value {
         display: block;
@@ -606,53 +1189,48 @@ onMounted(() => {
 
       .amount-pct {
         display: block;
-        font-size: 22rpx;
+        font-size: 20rpx;
         margin-top: 4rpx;
+      }
+
+      &.inflow {
+        .amount-value, .amount-pct { color: $neon-red; }
+      }
+
+      &.outflow {
+        .amount-value, .amount-pct { color: $neon-green; }
       }
     }
   }
 }
 
-// 空状态
-.empty-tip {
-  text-align: center;
-  padding: 40rpx;
-
-  text {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 26rpx;
-  }
-}
-
 // 加载状态
-.loading-container {
+.loading-overlay {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba($bg-dark, 0.8);
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  z-index: 1000;
 
   .loading-spinner {
-    width: 60rpx;
-    height: 60rpx;
-    border: 4rpx solid rgba(255, 255, 255, 0.2);
-    border-top-color: #667eea;
+    width: 80rpx;
+    height: 80rpx;
+    border: 6rpx solid rgba(255, 255, 255, 0.1);
+    border-top-color: $neon-blue;
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
 
   .loading-text {
-    margin-top: 16rpx;
-    font-size: 26rpx;
+    margin-top: 24rpx;
+    font-size: 28rpx;
     color: rgba(255, 255, 255, 0.8);
-  }
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
   }
 }
 </style>

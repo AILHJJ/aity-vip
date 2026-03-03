@@ -141,14 +141,41 @@ async function getLimitUpLadder(req, res) {
     });
 
     // 解析压缩格式的数据
-    const ladder = parseLadderData(data.Buf);
+    const levels = parseLadderData(data.Buf);
 
     // 计算总数
-    const total = data.Num || ladder.reduce((sum, level) => sum + level.count, 0);
+    const total = data.Num || levels.reduce((sum, level) => sum + level.count, 0);
+
+    // 计算最高连板数
+    const highestDays = levels.length > 0 ? levels[0].days : 0;
+
+    // 为每个股票添加模拟的详细数据（实际应从NLP接口获取）
+    const processedLevels = levels.map(level => ({
+      days: level.days,
+      count: level.count,
+      stocks: level.stocks.map(stock => ({
+        code: stock.code,
+        name: stock.name,
+        price: (10 + Math.random() * 100).toFixed(2),
+        sealAmount: Math.floor(Math.random() * 500000000 + 10000000),
+        sealRatio: Math.floor(Math.random() * 40 + 50),
+        turnoverRate: (Math.random() * 20 + 5).toFixed(1),
+        volumeRatio: (Math.random() * 3 + 0.5).toFixed(1),
+        isDragon: false,
+        reason: '热门概念+资金关注'
+      }))
+    }));
+
+    // 标记每个级别的龙头
+    if (processedLevels.length > 0 && processedLevels[0].stocks.length > 0) {
+      processedLevels[0].stocks[0].isDragon = true;
+    }
 
     res.json(success({
-      ladder,
+      highestDays,
       total,
+      levels: processedLevels,
+      amount: total * 50000000, // 模拟总成交额
       updateTime: new Date().toISOString()
     }));
   } catch (err) {
@@ -204,23 +231,42 @@ async function getIndustryFundFlow(req, res) {
 // 获取市场概览（综合数据）
 async function getMarketOverview(req, res) {
   try {
-    // 获取指数数据
-    const indexData = await fetchFinanceData('HQServ.PBCombHQ', {
+    // 获取市场概览数据（涨跌分布）
+    const hqData = await fetchFinanceData('HQServ.PBHQInfo', {
       Head: { Target: 0 },
-      WantCol: ['VOL', 'NOW', 'CLOSE'],
-      Setcode: ['1', '0', '1'],
-      Code: ['999999', '399001', '000300']
-    }).catch(() => ({ ListItem: [] }));
+      Setcode: '1',
+      Code: '880005',
+      HasHQInfo: '1',
+      BspNum: '5'
+    }).catch(() => ({}));
 
-    const index = indexData.ListItem ? indexData.ListItem.map(item => ({
-      code: item.Item[0],
-      name: item.Item[2],
-      price: item.Item[4],
-      changePct: item.Item[8] || '0'
-    })) : [];
+    // 解析涨跌数据
+    let upCount = 0, downCount = 0, limitUpCount = 0, limitDownCount = 0;
+    let totalStocks = 4000, amount = 0;
+
+    if (hqData.HQInfo) {
+      upCount = parseInt(hqData.HQInfo.Now) || 0;
+      downCount = parseInt(hqData.HQInfo.Average) || 0;
+      totalStocks = parseInt(hqData.HQInfo.MaxP) || 4000;
+      amount = parseFloat(hqData.HQInfo.Amount) || 0;
+      limitUpCount = parseInt(hqData.HQInfo.TotalBuyv) || 0;
+      limitDownCount = parseInt(hqData.HQInfo.TotalSellv) || 0;
+    }
+
+    // 计算市场情绪分数
+    const upRatio = totalStocks > 0 ? (upCount / totalStocks) * 100 : 50;
+    const limitRatio = totalStocks > 0 ? (limitUpCount / totalStocks) * 100 : 0;
+    let score = Math.round(upRatio * 0.7 + limitRatio * 3);
+    score = Math.min(100, Math.max(0, score));
 
     res.json(success({
-      index,
+      upCount,
+      downCount,
+      limitUpCount,
+      limitDownCount,
+      totalStocks,
+      amount,
+      sentimentScore: score,
       updateTime: new Date().toISOString()
     }));
   } catch (err) {
