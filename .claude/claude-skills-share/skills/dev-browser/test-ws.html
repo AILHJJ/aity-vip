@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const messagesDiv = document.getElementById('messages');
+
+        function log(message) {
+            const p = document.createElement('p');
+            p.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            messagesDiv.appendChild(p);
+        }
+
+        // Try to connect to the extension WebSocket endpoint
+        const ws = new WebSocket('ws://127.0.0.1:9222/extension');
+
+        ws.onopen = () => {
+            statusDiv.textContent = 'Connected!';
+            statusDiv.style.color = 'green';
+            log('WebSocket connection established');
+        };
+
+        ws.onerror = (error) => {
+            statusDiv.textContent = 'Connection Error';
+            statusDiv.style.color = 'red';
+            log('Error: ' + error.message);
+        };
+
+        ws.onclose = (event) => {
+            statusDiv.textContent = 'Connection Closed';
+            statusDiv.style.color = 'orange';
+            log('Closed: ' + event.code + ' - ' + event.reason);
+        };
+
+        ws.onmessage = (event) => {
+            log('Message received: ' + event.data);
+        };
+
+        // Test sending a message after 2 seconds
+        setTimeout(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+                const testMessage = {
+                    method: 'log',
+                    params: {
+                        level: 'info',
+                        args: ['Test message from browser']
+                    }
+                };
+                ws.send(JSON.stringify(testMessage));
+                log('Test message sent');
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

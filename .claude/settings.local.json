@@ -149,7 +149,18 @@
       "Bash(\"C:/Program Files (x86)/Google/Chrome/Application/chrome.exe\":*)",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjI0LCJlbWFpbCI6ImJkQHFxLmNvbSIsInJvbGUiOiJ2aXBfc2hvcnQiLCJpYXQiOjE3NzIyNTU1MjYsImV4cCI6MTc3MjM0MTkyNn0.mEc0aVkUb7DHGXvnMipLU2P6IuS0gphapGl3X9JKIx4\")",
       "Bash(ping:*)",
-      "Bash(tr:*)"
+      "Bash(tr:*)",
+      "Skill(brainstorming)",
+      "Skill(canvas-design)",
+      "Bash(\"D:/your-mcp-proxy/AITY_VIP/chrome-win64/chrome.exe\" --headless --disable-gpu --screenshot=\"D:/your-mcp-proxy/AITY_VIP/docs/design/prototypes/market-center-home.png\" --window-size=390,1600 \"file:///D:/your-mcp-proxy/AITY_VIP/docs/design/prototypes/market-center-prototype.html\")",
+      "Bash(\"D:/your-mcp-proxy/AITY_VIP/chrome-win64/chrome.exe\":*)",
+      "Skill(frontend-design)",
+      "Bash(tar:*)",
+      "Skill(xlsx)",
+      "Skill(writing-plans)",
+      "Bash(python:*)",
+      "SlashCommand(/writing-plans)",
+      "Skill(markitdown-skill)"
     ],
     "deny": [],
     "ask": []

@@ -275,6 +275,38 @@
 				</view>
 			</view>
 		</view>
+
+		<!-- 恢复默认提示词弹窗 -->
+		<view class="modal-overlay" v-if="showResetModal" @click="showResetModal = false">
+			<view class="modal-content modal-small" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">恢复默认提示词</text>
+					<text class="modal-close" @click="showResetModal = false">✕</text>
+				</view>
+				<view class="modal-body">
+					<view class="reset-options">
+						<view class="reset-option" :class="{ active: resetMode === 'unified' }" @click="resetMode = 'unified'">
+							<text class="option-icon">📝</text>
+							<view class="option-content">
+								<text class="option-title">统一默认提示词</text>
+								<text class="option-desc">清空所有自定义，使用通用默认</text>
+							</view>
+						</view>
+						<view class="reset-option" :class="{ active: resetMode === 'specific' }" @click="resetMode = 'specific'">
+							<text class="option-icon">🎯</text>
+							<view class="option-content">
+								<text class="option-title">模型专属提示词</text>
+								<text class="option-desc">每个模型使用其专属优化提示词</text>
+							</view>
+						</view>
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="modal-btn cancel" @click="showResetModal = false">取消</button>
+					<button class="modal-btn confirm" @click="confirmReset" :disabled="!resetMode">确认</button>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -299,6 +331,15 @@ const providers = ref([])
 const activeModel = ref(null)
 const summary = ref(null)
 const selectedProviderIndex = ref(0)
+
+// 提示词管理相关
+const currentPrompt = ref('')
+const savingPrompt = ref(false)
+const resetting = ref(false)
+const promptInfoExpanded = ref(false)
+const showResetModal = ref(false)
+const resetMode = ref('')
+const currentPromptMode = ref('统一默认')
 
 // 当前选中的厂商
 const currentProvider = computed(() => {

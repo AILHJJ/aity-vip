@@ -131,3 +131,8 @@ const MODEL_SPECIFIC_PROMPTS = {
 
 直接输出JSON:`
 };
+
+module.exports = {
+  BASE_PROMPT,
+  MODEL_SPECIFIC_PROMPTS
+};

@@ -101,7 +101,7 @@
     <!-- Tab Content -->
     <view class="tab-content">
       <!-- Ladder Tab -->
-      <view v-if="activeTab === 'ladder'" class="ladder-section">
+      <view class="ladder-section">
         <view
           v-for="level in filteredLadderLevels"
           :key="level.days"
@@ -302,6 +302,18 @@ const updateTime = ref('')
 const activeTab = ref('ladder')
 const activeFilter = ref('all')
 const fundFlowType = ref('inflow')
+// 个股展开状态
+const expandedStocks = ref([])
+
+const toggleStockExpand = (code) => {
+  const idx = expandedStocks.value.indexOf(code)
+  if (idx > -1) {
+    expandedStocks.value.splice(idx, 1)
+  } else {
+    expandedStocks.value.push(code)
+  }
+}
+
 const expandedLevels = ref([3]) // 默认展开3连板
 const showDetailModal = ref(false)
 const selectedStock = ref({})
@@ -514,7 +526,11 @@ const formatPct = (pct) => {
 }
 const updateUpdateTime = () => {
   const now = new Date()
-  updateTime.value = `${now.getFullYear()}-${String(now.getMonth() + 1).pad(2, '0').pad(2)} ${String(now.getHours()).pad(2, '0')}:${String(now.getMinutes()).pad(2, '0')} 更新`
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  updateTime.value = `${now.getFullYear()}-${month}-${day} ${hours}:${minutes} 更新`
 }
 
 const loadMarketOverview = async () => {
@@ -1212,4 +1228,133 @@ $bg-card: #1e2636;
   font-size: 28rpx;
   color: rgba(255,255,255,0.8);
 }
+
+/* 市场温度计 - 2x2网格布局 */
+.thermometer-section {
+  margin: 20rpx;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 16rpx;
+  padding: 20rpx;
+  border: 1rpx solid rgba(0, 255, 255, 0.2);
+}
+.thermo-header {
+  margin-bottom: 16rpx;
+}
+.thermo-title {
+  font-size: 28rpx;
+  color: #00ffff;
+  font-weight: bold;
+}
+.thermo-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+.thermo-row {
+  display: flex;
+  gap: 12rpx;
+}
+.thermo-card {
+  flex: 1;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  text-align: center;
+}
+.thermo-card.up-card {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%);
+  border: 1rpx solid rgba(34, 197, 94, 0.3);
+}
+.thermo-card.down-card {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
+  border: 1rpx solid rgba(239, 68, 68, 0.3);
+}
+.thermo-label {
+  display: block;
+  font-size: 24rpx;
+  color: #888;
+  margin-bottom: 8rpx;
+}
+.thermo-value {
+  display: block;
+  font-size: 40rpx;
+  font-weight: bold;
+}
+.thermo-value.up {
+  color: #22c55e;
+}
+.thermo-value.down {
+  color: #ef4444;
+}
+
+/* 情绪条样式调整 */
+.sentiment-bar-section {
+  margin: 0 20rpx 20rpx;
+}
+.sentiment-bar-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12rpx;
+  padding: 20rpx;
+  border: 1rpx solid rgba(0, 255, 255, 0.1);
+}
+
+/* 独立卡片容器 */
+.cards-container {
+  padding: 0 20rpx;
+}
+.card-section {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  padding: 20rpx;
+  border: 1rpx solid rgba(0, 255, 255, 0.2);
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+}
+.card-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+}
+.card-title {
+  font-size: 30rpx;
+  color: #fff;
+  font-weight: bold;
+}
+
+/* 个股展开功能 */
+.stock-item-wrapper {
+  margin-bottom: 12rpx;
+}
+.stock-expand-content {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8rpx;
+  padding: 16rpx;
+  margin-top: 8rpx;
+  border: 1rpx solid rgba(0, 255, 255, 0.1);
+}
+.expand-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+.expand-label {
+  font-size: 22rpx;
+  color: #888;
+  width: 100rpx;
+}
+.expand-value {
+  font-size: 22rpx;
+  color: #fff;
+  flex: 1;
+}
+.expand-btn {
+  font-size: 20rpx;
+  color: #00ffff;
+  padding: 8rpx;
+}
+
 </style>

@@ -1,0 +1,67 @@
+{
+  "timestamp": "2026-02-28T02:42:53.493Z",
+  "baseUrl": "http://localhost:5173",
+  "duration": "28.09s",
+  "summary": {
+    "total": 11,
+    "passed": 11,
+    "failed": 0
+  },
+  "tests": [
+    {
+      "name": "用户登录",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "首页加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "消息列表加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "消息详情加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "讨论列表加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "收藏页面加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "个人中心加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "用户管理加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "AI投顾加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "行情中心加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "页面导航流程",
+      "passed": true,
+      "error": null
+    }
+  ]
+}
