@@ -12,22 +12,23 @@ function scanApiDocs() {
   const apiDocs = [];
 
   for (const file of files) {
-    if (!file.match(/^\d{2}-.*-api\.md$/)) continue;
+    if (!file.match(/^\d{2}-.*-api\.md$/) && !file.match(/^\d{2}-.*-events\.md$/)) continue;
 
     const filePath = path.join(API_DIR, file);
     const content = fs.readFileSync(filePath, 'utf-8');
 
-    // 提取文档信息
-    const moduleName = content.match(/^# (.+) API文档/m)?.[1] || '未知模块';
+    // 提取文档信息 - 支持多种格式
+    let moduleName = content.match(/^# (.+?)(?:\s|$)/m)?.[1] || '未知模块';
+    // 移除 "API文档" 后缀
+    moduleName = moduleName.replace(/\s*API文档$/, '').replace(/\s*文档$/, '');
+
     const version = content.match(/\*\*版本\*\*:\s*(.+)/m)?.[1] || 'v1.0.0';
     const lastUpdate = content.match(/\*\*最后更新\*\*:\s*(.+)/m)?.[1] || '未知';
     const maintainer = content.match(/\*\*维护人\*\*:\s*(.+)/m)?.[1] || '未分配';
 
-    // 计算接口数量（通过"接口概览"表格行数）
-    const overviewMatch = content.match(/## 一、接口概览[\s\S]+?\n\n/m);
-    const interfaceCount = overviewMatch
-      ? (overviewMatch[0].match(/\|/g) || []).length / 4 - 1
-      : 0;
+    // 计算接口数量 - 统计"### X."开头的章节
+    const sections = content.match(/^###\s+\d+\./gm) || [];
+    const interfaceCount = sections.length;
 
     apiDocs.push({
       file,
