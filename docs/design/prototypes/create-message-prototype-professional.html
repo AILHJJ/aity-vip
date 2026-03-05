@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>发布消息 - 专业丰富型</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            max-width: 414px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .back-btn {
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .publish-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        .container {
+            padding: 16px;
+        }
+
+        .section {
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-icon {
+            font-size: 18px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .form-input {
+            width: 100%;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-textarea {
+            width: 100%;
+            min-height: 180px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            transition: all 0.3s;
+        }
+
+        .form-textarea:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .action-icon {
+            font-size: 16px;
+        }
+
+        .hint-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #856404;
+        }
+
+        .hint-icon {
+            margin-right: 6px;
+        }
+
+        .char-counter {
+            text-align: right;
+            font-size: 12px;
+            color: #999;
+            margin-top: 6px;
+        }
+
+        .attachment-section {
+            border: 2px dashed #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .attachment-section:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .upload-icon {
+            font-size: 32px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+
+        .upload-text {
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="back-btn">←</div>
+        <div class="header-title">发布消息</div>
+        <button class="publish-btn">发布</button>
+    </div>
+
+    <div class="container">
+        <!-- 基本信息 -->
+        <div class="section">
+            <div class="section-title">
+                <span class="section-icon">📋</span>
+                基本信息
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">策略类型</label>
+                    <select class="form-input">
+                        <option>短线策略</option>
+                        <option>中线策略</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">消息类型</label>
+                    <select class="form-input">
+                        <option>早盘关注</option>
+                        <option>尾盘关注</option>
+                        <option>盘前点评</option>
+                        <option>收盘点评</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="hint-box">
+                <span class="hint-icon">💡</span>
+                <span>系统已根据当前时间自动选择"早盘关注"</span>
+            </div>
+        </div>
+
+        <!-- 消息内容 -->
+        <div class="section">
+            <div class="section-title">
+                <span class="section-icon">✍️</span>
+                消息内容
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">标题</label>
+                <input type="text" class="form-input" placeholder="输入标题（选填，建议添加以提高阅读性）">
+            </div>
+
+            <div class="form-group" style="margin-top: 12px;">
+                <label class="form-label">正文</label>
+                <textarea class="form-textarea" placeholder="支持 Markdown 格式&#10;&#10;例如：&#10;**加粗** *斜体* # 标题"></textarea>
+                <div class="char-counter">0/5000</div>
+            </div>
+
+            <div class="quick-actions">
+                <button class="action-btn">
+                    <span class="action-icon">🎨</span>
+                    <span>选择主题</span>
+                </button>
+                <button class="action-btn">
+                    <span class="action-icon">🤖</span>
+                    <span>AI优化</span>
+                </button>
+                <button class="action-btn">
+                    <span class="action-icon">📈</span>
+                    <span>添加股票</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 附件上传 -->
+        <div class="section">
+            <div class="section-title">
+                <span class="section-icon">📎</span>
+                附件上传
+            </div>
+
+            <div class="attachment-section">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">点击或拖拽文件到此处上传</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
