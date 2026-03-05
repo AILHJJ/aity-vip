@@ -58,9 +58,9 @@ API集成和对接：
 
 #### AI投顾助手
 基于大语言模型的智能投顾系统，支持流式对话和金融工具调用。
-- [功能说明](./06-功能模块/ai-assistant/README.md)
-- [技术实现](./06-功能模块/ai-assistant/technical-implementation.md)
-- [数据格式](./06-功能模块/ai-assistant/data-format.md)
+- [功能说明](./06-功能模块/AI投顾助手/README.md)
+- [技术实现](./06-功能模块/AI投顾助手/technical-implementation.md)
+- [数据格式](./06-功能模块/AI投顾助手/data-format.md)
 - [API接口](./03-开发指南/api/03-ai-assistant-api.md)
 
 **核心特性**：
@@ -72,8 +72,8 @@ API集成和对接：
 
 #### 行情中心
 实时行情数据展示和市场分析工具。
-- [功能说明](./06-功能模块/market-center/README.md)
-- [设计理念](./06-功能模块/market-center/design-philosophy.md)
+- [功能说明](./06-功能模块/行情中心/README.md)
+- [设计理念](./06-功能模块/行情中心/design-philosophy.md)
 - [API接口](./03-开发指南/api/02-financial-data-api.md)
 
 **核心特性**：
@@ -84,7 +84,7 @@ API集成和对接：
 
 #### 打板监控
 涨停跌停实时监控和预警系统。
-- [功能说明](./06-功能模块/trading-board/README.md)
+- [功能说明](./06-功能模块/打板监控/README.md)
 - [API接口](./03-开发指南/api/02-trading-board-api.md)
 
 **核心特性**：
