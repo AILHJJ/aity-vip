@@ -2,6 +2,18 @@
 	<view class="create-message-container">
 		<scroll-view class="form-scroll" scroll-y>
 			<view class="form-container">
+				<!-- 风险提示Banner -->
+				<view class="risk-warning-banner" :class="{ collapsed: !showRiskWarning }">
+					<view class="warning-header" @click="showRiskWarning = !showRiskWarning">
+						<text class="warning-icon">⚠️</text>
+						<text class="warning-title">风险提示</text>
+						<text class="collapse-icon">{{ showRiskWarning ? '▼' : '▶' }}</text>
+					</view>
+					<view v-if="showRiskWarning" class="warning-content">
+						<text class="warning-text">以下内容为个人交易总结，仅作为复盘交流使用，不作为投资建议。股市有风险，投资需谨慎。</text>
+					</view>
+				</view>
+
 				<!-- 快捷设置：策略类型和推送对象（优化为单行简洁布局） -->
 				<view class="form-item quick-settings">
 					<view class="quick-setting-row">
@@ -171,6 +183,40 @@
 					</button>
 				</view>
 
+				<!-- 股票行情关联 -->
+				<view class="form-item stock-code-item">
+					<text class="form-label">关联股票（可选）</text>
+					<view class="stock-input-container">
+						<input
+							v-model="stockCodeInput"
+							type="text"
+							placeholder="输入股票代码，如：000001"
+							placeholder-style="color: #999999"
+							class="stock-input"
+							@confirm="handleAddStock"
+						/>
+						<button class="stock-search-btn" @click="handleSearchStock">
+							<text class="btn-icon">🔍</text>
+						</button>
+						<button class="stock-add-btn" @click="handleAddStock">
+							<text class="btn-text">添加</text>
+						</button>
+					</view>
+					<view v-if="formData.stockCodes.length > 0" class="stock-tags-container">
+						<view
+							v-for="(code, index) in formData.stockCodes"
+							:key="index"
+							class="stock-tag"
+						>
+							<text class="stock-tag-text">{{ code }}</text>
+							<text class="stock-tag-remove" @click="handleRemoveStock(index)">×</text>
+						</view>
+					</view>
+					<view class="form-hint">
+						<text class="hint-text">支持输入股票代码关联个股行情，最多添加10只股票</text>
+					</view>
+				</view>
+
 				<!-- 附件上传 -->
 				<view class="form-item attachment-item">
 					<text class="form-label">附件（可选）</text>
@@ -292,13 +338,16 @@ const formData = ref({
 	theme: 'default', // Markdown主题（默认：简约白）
 	title: '',
 	content: '',
-	attachments: []
+	attachments: [],
+	stockCodes: [] // 关联股票代码
 })
 
 const submitting = ref(false)
 const editMode = ref(false)
 const editMessageId = ref(0)
 const draftTimer = ref(null)
+const stockCodeInput = ref('') // 股票代码输入
+const showRiskWarning = ref(true) // 风险提示展开状态
 
 // AI优化相关状态
 const isOptimizing = ref(false)
@@ -412,6 +461,114 @@ const handleThemePickerChange = (e) => {
 			duration: 1000
 		})
 	}
+}
+
+// ========== 股票代码关联功能 ==========
+
+// 判断市场代码（与 message-detail.vue 保持一致）
+const getMarketCode = (stockCode) => {
+	const code = String(stockCode)
+	if (code.startsWith('6')) {
+		return 1 // 上海交易所
+	} else if (code.startsWith('0') || code.startsWith('3')) {
+		return 0 // 深圳交易所
+	} else if (code.startsWith('8') || code.startsWith('92')) {
+		return 2 // 北京交易所
+	} else {
+		return 0 // 默认值
+	}
+}
+
+// 验证股票代码格式
+const validateStockCode = (code) => {
+	const codeStr = String(code).trim()
+	// 支持6位数字股票代码
+	return /^\d{6}$/.test(codeStr)
+}
+
+// 添加股票代码
+const handleAddStock = () => {
+	const code = stockCodeInput.value.trim()
+
+	if (!code) {
+		uni.showToast({
+			title: '请输入股票代码',
+			icon: 'none'
+		})
+		return
+	}
+
+	// 验证格式
+	if (!validateStockCode(code)) {
+		uni.showToast({
+			title: '请输入6位数字股票代码',
+			icon: 'none'
+		})
+		return
+	}
+
+	// 检查是否已存在
+	if (formData.value.stockCodes.includes(code)) {
+		uni.showToast({
+			title: '该股票已添加',
+			icon: 'none'
+		})
+		return
+	}
+
+	// 检查数量限制
+	if (formData.value.stockCodes.length >= 10) {
+		uni.showToast({
+			title: '最多添加10只股票',
+			icon: 'none'
+		})
+		return
+	}
+
+	// 添加股票代码
+	formData.value.stockCodes.push(code)
+	stockCodeInput.value = ''
+
+	uni.showToast({
+		title: '添加成功',
+		icon: 'success',
+		duration: 1500
+	})
+}
+
+// 删除股票代码
+const handleRemoveStock = (index) => {
+	formData.value.stockCodes.splice(index, 1)
+}
+
+// 搜索股票（跳转到行情页面查看）
+const handleSearchStock = () => {
+	const code = stockCodeInput.value.trim()
+
+	if (!code) {
+		uni.showToast({
+			title: '请输入股票代码',
+			icon: 'none'
+		})
+		return
+	}
+
+	// 验证格式
+	if (!validateStockCode(code)) {
+		uni.showToast({
+			title: '请输入6位数字股票代码',
+			icon: 'none'
+		})
+		return
+	}
+
+	// 生成行情URL并跳转
+	const setcode = getMarketCode(code)
+	const marketUrl = `https://txhq.icfqs.com:8005/site/hq-H5/h5/index.html#/page_detail/page-detail/page-detail?code=${code}&setcode=${setcode}&opentype=native`
+
+	uni.navigateTo({
+		url: `/pages/webview/webview?url=${encodeURIComponent(marketUrl)}`
+	})
 }
 
 // 小程序粘贴图片按钮
@@ -862,13 +1019,22 @@ const handleSubmit = async () => {
 			}
 		}
 
+		// 构建最终内容（如果有股票代码，附加到内容末尾）
+		let finalContent = formData.value.content.trim()
+
+		// 如果有关联的股票代码，转换为 $股票名称(代码)$ 格式并附加到内容末尾
+		if (formData.value.stockCodes.length > 0) {
+			const stockTags = formData.value.stockCodes.map(code => `$个股(${code})$`).join('\n')
+			finalContent = finalContent + '\n\n---\n\n' + stockTags
+		}
+
 		// 将Vue的Proxy对象转换为纯JavaScript对象
 		const data = {
 			title: formData.value.title.trim(),
 			type: formData.value.messageType || MESSAGE_TYPES.MORNING_FOCUS, // 使用选中的消息类型
 			tags: tags,
 			theme: formData.value.theme || 'default', // 添加主题字段
-			content: formData.value.content.trim(),
+			content: finalContent,
 			attachments: uploadedAttachments
 		}
 

@@ -53,6 +53,12 @@
 				</text>
 			</view>
 
+			<!-- 风险提示 -->
+			<view class="risk-warning">
+				<text class="warning-icon">⚠️</text>
+				<text class="warning-text">风险提示：以下内容仅作为个人复盘记录，不作为投资建议。股市有风险，投资需谨慎。</text>
+			</view>
+
 			<!-- Markdown主题选择器 - 已移除，主题由发帖者选择 -->
 
 			<!-- 版本切换标签 - 只在有优化版本时显示 -->
@@ -79,6 +85,28 @@
 			<view class="message-content" :class="{ 'with-version-switch': hasOptimizedVersion }">
 				<rich-text v-if="renderedContent" :nodes="renderedContent"></rich-text>
 				<text v-else class="content-text">{{ displayContent }}</text>
+			</view>
+
+			<!-- 股票标签卡片 -->
+			<view v-if="extractedStocks.length > 0" class="stock-cards-section">
+				<view class="section-title">📈 相关股票</view>
+				<view class="stock-cards-container">
+					<view
+						v-for="(stock, index) in extractedStocks"
+						:key="index"
+						class="stock-card"
+						@click="openMarketChartForStock(stock.code)"
+					>
+						<view class="stock-info">
+							<text class="stock-name">{{ stock.name }}</text>
+							<text class="stock-code">{{ stock.code }}</text>
+						</view>
+						<view class="stock-action">
+							<text class="action-icon">📊</text>
+							<text class="action-text">查看行情</text>
+						</view>
+					</view>
+				</view>
 			</view>
 
 			<!-- 版本标识 - 只在有优化版本时显示 -->
@@ -152,6 +180,10 @@
 						<text class="btn-icon">📤</text>
 						<text class="btn-text">分享</text>
 					</template>
+				</button>
+				<button v-if="marketChartUrl" class="action-btn" @click="openMarketChart">
+					<text class="btn-icon">📊</text>
+					<text class="btn-text">查看行情</text>
 				</button>
 				<button class="action-btn primary" @click="goToDiscuss">
 					<text class="btn-icon">💬</text>
@@ -296,6 +328,122 @@ const displayContent = computed(() => {
 // 切换版本方法
 const switchVersion = (version) => {
 	currentVersion.value = version
+}
+
+// 解析股票标签 - 支持 $股票名称(市场代码)$ 格式
+function parseStockTags(text) {
+	if (!text) return []
+	const stockTagRegex = /\$([^\(]+)\(([A-Z]{2}\d{6})\)\$/g
+	const stocks = []
+	let match
+
+	while ((match = stockTagRegex.exec(text)) !== null) {
+		stocks.push({
+			name: match[1].trim(),
+			code: match[2],
+			fullTag: match[0]
+		})
+	}
+
+	// 同时保留原有的6位数字股票代码提取（兼容旧格式）
+	const stockCodeRegex = /(?<![A-Z(])([0-9]{6})(?![)0-9])/g
+	let codeMatch
+	while ((codeMatch = stockCodeRegex.exec(text)) !== null) {
+		// 避免重复添加
+		if (!stocks.find(s => s.code === codeMatch[1])) {
+			stocks.push({
+				name: getCodeName(codeMatch[1]),
+				code: codeMatch[1],
+				fullTag: codeMatch[1]
+			})
+		}
+	}
+
+	// 新增：支持 $个股(代码)$ 格式 - 如 $个股(300162)$
+	const stockTagRegex2 = /\$个股\(([0-9]{6})\)\$/g
+	let match2
+	while ((match2 = stockTagRegex2.exec(text)) !== null) {
+		// 避免重复添加
+		if (!stocks.find(s => s.code === match2[1])) {
+			stocks.push({
+				name: getCodeName(match2[1]),
+				code: match2[1],
+				fullTag: match2[0]
+			})
+		}
+	}
+
+	return stocks
+}
+
+// 根据代码推断股票名称（简单实现）
+function getCodeName(code) {
+	const codeStr = String(code)
+	if (codeStr.startsWith('6')) {
+		return '沪市股票'
+	} else if (codeStr.startsWith('0')) {
+		return '深市股票'
+	} else if (codeStr.startsWith('3')) {
+		return '创业板'
+	} else if (codeStr.startsWith('688')) {
+		return '科创板'
+	}
+	return '股票'
+}
+
+// 获取市场代码
+function getMarketCode(stockCode) {
+	const code = String(stockCode)
+	if (code.startsWith('6')) {
+		return 1 // 上海交易所
+	} else if (code.startsWith('0') || code.startsWith('3')) {
+		return 0 // 深圳交易所
+	} else if (code.startsWith('8') || code.startsWith('92')) {
+		return 2 // 北京交易所
+	} else {
+		return 0 // 默认值
+	}
+}
+
+// 生成行情图URL
+function generateMarketChartUrl(stockCode) {
+	const setcode = getMarketCode(stockCode)
+	return `https://txhq.icfqs.com:8005/site/hq-H5/h5/index.html#/page_detail/page-detail/page-detail?code=${stockCode}&setcode=${setcode}&opentype=native`
+}
+
+// 提取消息中的所有股票
+const extractedStocks = computed(() => {
+	if (!message.value) return []
+	const content = displayContent.value
+	return parseStockTags(content)
+})
+
+// 兼容旧代码的股票代码（第一个股票）
+const stockCode = computed(() => {
+	return extractedStocks.value.length > 0 ? extractedStocks.value[0].code : null
+})
+
+// 行情图URL
+const marketChartUrl = computed(() => {
+	if (!stockCode.value) return null
+	return generateMarketChartUrl(stockCode.value)
+})
+
+// 打开行情图
+const openMarketChart = () => {
+	if (marketChartUrl.value) {
+		uni.navigateTo({
+			url: `/pages/webview/webview?url=${encodeURIComponent(marketChartUrl.value)}`
+		});
+	}
+}
+
+// 打开指定股票的行情图
+const openMarketChartForStock = (stockCode) => {
+	const url = generateMarketChartUrl(stockCode)
+	uni.navigateTo({
+		url: `/pages/webview/webview?url=${encodeURIComponent(url)}`
+	})
 }
 
 // 主题切换处理（保留接口，但不在详情页显示选择器）
@@ -998,6 +1146,90 @@ onMounted(() => {
 
 .original-badge {
 	color: #666;
+}
+
+// 股票卡片区域
+.stock-cards-section {
+	margin: 30rpx 0;
+	background: linear-gradient(135deg, #f0f4ff 0%, #e8efff 100%);
+	border-radius: 16rpx;
+	padding: 28rpx;
+	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.1);
+}
+
+.section-title {
+	font-size: 32rpx;
+	font-weight: 600;
+	color: #667eea;
+	margin-bottom: 24rpx;
+	display: flex;
+	align-items: center;
+	gap: 8rpx;
+}
+
+.stock-cards-container {
+	display: flex;
+	flex-direction: column;
+	gap: 16rpx;
+}
+
+.stock-card {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background: #ffffff;
+	padding: 24rpx;
+	border-radius: 12rpx;
+	box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+	transition: all 0.3s ease;
+	cursor: pointer;
+
+	&:active {
+		transform: scale(0.98);
+		box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.2);
+	}
+}
+
+.stock-info {
+	display: flex;
+	flex-direction: column;
+	gap: 8rpx;
+}
+
+.stock-name {
+	font-size: 32rpx;
+	font-weight: 600;
+	color: #1a202c;
+}
+
+.stock-code {
+	font-size: 24rpx;
+	color: #667eea;
+	font-family: 'Consolas', 'Monaco', monospace;
+	background: rgba(102, 126, 234, 0.1);
+	padding: 4rpx 12rpx;
+	border-radius: 6rpx;
+	align-self: flex-start;
+}
+
+.stock-action {
+	display: flex;
+	align-items: center;
+	gap: 8rpx;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	padding: 12rpx 24rpx;
+	border-radius: 8rpx;
+	color: #ffffff;
+	font-size: 24rpx;
+	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+}
+
+.action-icon {
+	font-size: 28rpx;
+}
+
+.action-text {
+	font-weight: 500;
 }
 
 .content-text {
