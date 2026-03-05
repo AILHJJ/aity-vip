@@ -2,18 +2,6 @@
 	<view class="create-message-container">
 		<scroll-view class="form-scroll" scroll-y>
 			<view class="form-container">
-				<!-- 风险提示Banner -->
-				<view class="risk-warning-banner" :class="{ collapsed: !showRiskWarning }">
-					<view class="warning-header" @click="showRiskWarning = !showRiskWarning">
-						<text class="warning-icon">⚠️</text>
-						<text class="warning-title">风险提示</text>
-						<text class="collapse-icon">{{ showRiskWarning ? '▼' : '▶' }}</text>
-					</view>
-					<view v-if="showRiskWarning" class="warning-content">
-						<text class="warning-text">以下内容为个人交易总结，仅作为复盘交流使用，不作为投资建议。股市有风险，投资需谨慎。</text>
-					</view>
-				</view>
-
 				<!-- 快捷设置：策略类型和推送对象（优化为单行简洁布局） -->
 				<view class="form-item quick-settings">
 					<view class="quick-setting-row">
@@ -183,37 +171,56 @@
 					</button>
 				</view>
 
-				<!-- 股票行情关联 -->
-				<view class="form-item stock-code-item">
-					<text class="form-label">关联股票（可选）</text>
-					<view class="stock-input-container">
-						<input
-							v-model="stockCodeInput"
-							type="text"
-							placeholder="输入股票代码，如：000001"
-							placeholder-style="color: #999999"
-							class="stock-input"
-							@confirm="handleAddStock"
-						/>
-						<button class="stock-search-btn" @click="handleSearchStock">
-							<text class="btn-icon">🔍</text>
-						</button>
-						<button class="stock-add-btn" @click="handleAddStock">
-							<text class="btn-text">添加</text>
-						</button>
+				<!-- 关联股票（专业金融风格） -->
+				<view class="form-item stock-section">
+					<view class="stock-section-header">
+						<text class="stock-section-title">📈 关联股票</text>
+						<text class="stock-section-count">{{ formData.stockCodes.length }}/10</text>
 					</view>
-					<view v-if="formData.stockCodes.length > 0" class="stock-tags-container">
+
+					<!-- 股票标签展示区 -->
+					<view v-if="formData.stockCodes.length > 0" class="stock-tags-area">
 						<view
 							v-for="(code, index) in formData.stockCodes"
 							:key="index"
-							class="stock-tag"
+							class="stock-chip"
+							@click="handleViewStock(code)"
 						>
-							<text class="stock-tag-text">{{ code }}</text>
-							<text class="stock-tag-remove" @click="handleRemoveStock(index)">×</text>
+							<text class="stock-chip-code">{{ code }}</text>
+							<text class="stock-chip-market">{{ getMarketLabel(code) }}</text>
+							<text class="stock-chip-close" @click.stop="handleRemoveStock(index)">×</text>
 						</view>
 					</view>
-					<view class="form-hint">
-						<text class="hint-text">支持输入股票代码关联个股行情，最多添加10只股票</text>
+
+					<!-- 添加股票输入区 -->
+					<view class="stock-add-area">
+						<view class="stock-input-wrapper">
+							<text class="stock-input-prefix">股票代码</text>
+							<input
+								v-model="stockCodeInput"
+								type="number"
+								placeholder="000001"
+								placeholder-style="color: #bfbfbf"
+								class="stock-code-input"
+								maxlength="6"
+								@confirm="handleAddStock"
+							/>
+						</view>
+						<view class="stock-action-btns">
+							<button class="stock-action-btn stock-lookup-btn" @click="handleSearchStock">
+								<text class="action-icon">🔍</text>
+								<text class="action-text">查询</text>
+							</button>
+							<button class="stock-action-btn stock-add-btn" @click="handleAddStock">
+								<text class="action-icon">+</text>
+								<text class="action-text">添加</text>
+							</button>
+						</view>
+					</view>
+
+					<view class="stock-hint">
+						<text class="hint-icon">💡</text>
+						<text class="hint-text">添加股票代码后，读者可直接点击查看实时行情</text>
 					</view>
 				</view>
 
@@ -347,7 +354,6 @@ const editMode = ref(false)
 const editMessageId = ref(0)
 const draftTimer = ref(null)
 const stockCodeInput = ref('') // 股票代码输入
-const showRiskWarning = ref(true) // 风险提示展开状态
 
 // AI优化相关状态
 const isOptimizing = ref(false)
@@ -477,6 +483,30 @@ const getMarketCode = (stockCode) => {
 	} else {
 		return 0 // 默认值
 	}
+}
+
+// 获取市场标签
+const getMarketLabel = (stockCode) => {
+	const code = String(stockCode)
+	if (code.startsWith('6')) {
+		return '沪'
+	} else if (code.startsWith('0') || code.startsWith('3')) {
+		return '深'
+	} else if (code.startsWith('8') || code.startsWith('92')) {
+		return '京'
+	} else {
+		return 'A'
+	}
+}
+
+// 查看股票行情
+const handleViewStock = (code) => {
+	const setcode = getMarketCode(code)
+	const marketUrl = `https://txhq.icfqs.com:8005/site/hq-H5/h5/index.html#/page_detail/page-detail/page-detail?code=${code}&setcode=${setcode}&opentype=native`
+
+	uni.navigateTo({
+		url: `/pages/webview/webview?url=${encodeURIComponent(marketUrl)}`
+	})
 }
 
 // 验证股票代码格式
@@ -2758,4 +2788,200 @@ onBeforeUnmount(() => {
 .preview-btn:active {
 	transform: scale(0.95);
 }
-/* ========== 编辑页面预览主题样式 (v1.8.2修复) ========== *//* 简约白 */.markdown-preview.theme-default { background: #ffffff; color: #374151; }.markdown-preview.theme-default h1, .markdown-preview.theme-default h2, .markdown-preview.theme-default h3 { color: #1f2937; }.markdown-preview.theme-default strong { color: #667eea; }.markdown-preview.theme-default blockquote { background: #f3f4f6; border-left-color: #667eea; color: #4b5563; }/* GitHub */.markdown-preview.theme-github { background: #ffffff; color: #24292f; }.markdown-preview.theme-github h1, .markdown-preview.theme-github h2, .markdown-preview.theme-github h3 { color: #1f2328; }.markdown-preview.theme-github strong { color: #0550ae; }.markdown-preview.theme-github blockquote { background: #f6f8fa; border-left-color: #0366d6; color: #57606a; }/* 翡翠绿 */.markdown-preview.theme-emerald { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); color: #064e3b; }.markdown-preview.theme-emerald h1, .markdown-preview.theme-emerald h2, .markdown-preview.theme-emerald h3 { color: #065f46; }.markdown-preview.theme-emerald strong { color: #047857; }.markdown-preview.theme-emerald blockquote { background: rgba(16,185,129,0.15); border-left-color: #10b981; color: #065f46; }/* 蓝色海洋 */.markdown-preview.theme-ocean { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); color: #0c4a6e; }.markdown-preview.theme-ocean h1, .markdown-preview.theme-ocean h2, .markdown-preview.theme-ocean h3 { color: #075985; }.markdown-preview.theme-ocean strong { color: #0284c7; }.markdown-preview.theme-ocean blockquote { background: rgba(14,165,233,0.15); border-left-color: #0ea5e9; color: #0369a1; }/* 暖阳橙 */.markdown-preview.theme-warm { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); color: #78350f; }.markdown-preview.theme-warm h1, .markdown-preview.theme-warm h2, .markdown-preview.theme-warm h3 { color: #92400e; }.markdown-preview.theme-warm strong { color: #ea580c; }.markdown-preview.theme-warm blockquote { background: rgba(249,115,22,0.15); border-left-color: #f97316; color: #9a3412; }/* 紫罗兰 */.markdown-preview.theme-violet { background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); color: #5b21b6; }.markdown-preview.theme-violet h1, .markdown-preview.theme-violet h2, .markdown-preview.theme-violet h3 { color: #6d28d9; }.markdown-preview.theme-violet strong { color: #7c3aed; }.markdown-preview.theme-violet blockquote { background: rgba(139,92,246,0.15); border-left-color: #8b5cf6; color: #6d28d9; }/* 玫瑰红 */.markdown-preview.theme-rose { background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); color: #9f1239; }.markdown-preview.theme-rose h1, .markdown-preview.theme-rose h2, .markdown-preview.theme-rose h3 { color: #be123c; }.markdown-preview.theme-rose strong { color: #e11d48; }.markdown-preview.theme-rose blockquote { background: rgba(251,113,133,0.15); border-left-color: #fb7185; color: #be123c; }/* 青柠绿 */.markdown-preview.theme-lime { background: linear-gradient(135deg, #f7fee7 0%, #ecfccb 100%); color: #365314; }.markdown-preview.theme-lime h1, .markdown-preview.theme-lime h2, .markdown-preview.theme-lime h3 { color: #3f6212; }.markdown-preview.theme-lime strong { color: #65a30d; }.markdown-preview.theme-lime blockquote { background: rgba(132,204,22,0.15); border-left-color: #84cc16; color: #3f6212; }/* 科技蓝 */.markdown-preview.theme-tech { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); color: #1e3a8a; }.markdown-preview.theme-tech h1, .markdown-preview.theme-tech h2, .markdown-preview.theme-tech h3 { color: #1e40af; }.markdown-preview.theme-tech strong { color: #2563eb; }.markdown-preview.theme-tech blockquote { background: rgba(96,165,250,0.15); border-left-color: #60a5fa; color: #1d4ed8; }/* 石墨灰 */.markdown-preview.theme-slate { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); color: #334155; }.markdown-preview.theme-slate h1, .markdown-preview.theme-slate h2, .markdown-preview.theme-slate h3 { color: #1e293b; }.markdown-preview.theme-slate strong { color: #475569; }.markdown-preview.theme-slate blockquote { background: rgba(148,163,184,0.2); border-left-color: #94a3b8; color: #475569; }/* 日落金 */.markdown-preview.theme-sunset { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); color: #92400e; }.markdown-preview.theme-sunset h1, .markdown-preview.theme-sunset h2, .markdown-preview.theme-sunset h3 { color: #b45309; }.markdown-preview.theme-sunset strong { color: #d97706; }.markdown-preview.theme-sunset blockquote { background: rgba(251,191,36,0.2); border-left-color: #fbbf24; color: #92400e; }</style>
+/* ========== 编辑页面预览主题样式 (v1.8.2修复) ========== *//* 简约白 */.markdown-preview.theme-default { background: #ffffff; color: #374151; }.markdown-preview.theme-default h1, .markdown-preview.theme-default h2, .markdown-preview.theme-default h3 { color: #1f2937; }.markdown-preview.theme-default strong { color: #667eea; }.markdown-preview.theme-default blockquote { background: #f3f4f6; border-left-color: #667eea; color: #4b5563; }/* GitHub */.markdown-preview.theme-github { background: #ffffff; color: #24292f; }.markdown-preview.theme-github h1, .markdown-preview.theme-github h2, .markdown-preview.theme-github h3 { color: #1f2328; }.markdown-preview.theme-github strong { color: #0550ae; }.markdown-preview.theme-github blockquote { background: #f6f8fa; border-left-color: #0366d6; color: #57606a; }/* 翡翠绿 */.markdown-preview.theme-emerald { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); color: #064e3b; }.markdown-preview.theme-emerald h1, .markdown-preview.theme-emerald h2, .markdown-preview.theme-emerald h3 { color: #065f46; }.markdown-preview.theme-emerald strong { color: #047857; }.markdown-preview.theme-emerald blockquote { background: rgba(16,185,129,0.15); border-left-color: #10b981; color: #065f46; }/* 蓝色海洋 */.markdown-preview.theme-ocean { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); color: #0c4a6e; }.markdown-preview.theme-ocean h1, .markdown-preview.theme-ocean h2, .markdown-preview.theme-ocean h3 { color: #075985; }.markdown-preview.theme-ocean strong { color: #0284c7; }.markdown-preview.theme-ocean blockquote { background: rgba(14,165,233,0.15); border-left-color: #0ea5e9; color: #0369a1; }/* 暖阳橙 */.markdown-preview.theme-warm { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); color: #78350f; }.markdown-preview.theme-warm h1, .markdown-preview.theme-warm h2, .markdown-preview.theme-warm h3 { color: #92400e; }.markdown-preview.theme-warm strong { color: #ea580c; }.markdown-preview.theme-warm blockquote { background: rgba(249,115,22,0.15); border-left-color: #f97316; color: #9a3412; }/* 紫罗兰 */.markdown-preview.theme-violet { background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); color: #5b21b6; }.markdown-preview.theme-violet h1, .markdown-preview.theme-violet h2, .markdown-preview.theme-violet h3 { color: #6d28d9; }.markdown-preview.theme-violet strong { color: #7c3aed; }.markdown-preview.theme-violet blockquote { background: rgba(139,92,246,0.15); border-left-color: #8b5cf6; color: #6d28d9; }/* 玫瑰红 */.markdown-preview.theme-rose { background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); color: #9f1239; }.markdown-preview.theme-rose h1, .markdown-preview.theme-rose h2, .markdown-preview.theme-rose h3 { color: #be123c; }.markdown-preview.theme-rose strong { color: #e11d48; }.markdown-preview.theme-rose blockquote { background: rgba(251,113,133,0.15); border-left-color: #fb7185; color: #be123c; }/* 青柠绿 */.markdown-preview.theme-lime { background: linear-gradient(135deg, #f7fee7 0%, #ecfccb 100%); color: #365314; }.markdown-preview.theme-lime h1, .markdown-preview.theme-lime h2, .markdown-preview.theme-lime h3 { color: #3f6212; }.markdown-preview.theme-lime strong { color: #65a30d; }.markdown-preview.theme-lime blockquote { background: rgba(132,204,22,0.15); border-left-color: #84cc16; color: #3f6212; }/* 科技蓝 */.markdown-preview.theme-tech { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); color: #1e3a8a; }.markdown-preview.theme-tech h1, .markdown-preview.theme-tech h2, .markdown-preview.theme-tech h3 { color: #1e40af; }.markdown-preview.theme-tech strong { color: #2563eb; }.markdown-preview.theme-tech blockquote { background: rgba(96,165,250,0.15); border-left-color: #60a5fa; color: #1d4ed8; }/* 石墨灰 */.markdown-preview.theme-slate { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); color: #334155; }.markdown-preview.theme-slate h1, .markdown-preview.theme-slate h2, .markdown-preview.theme-slate h3 { color: #1e293b; }.markdown-preview.theme-slate strong { color: #475569; }.markdown-preview.theme-slate blockquote { background: rgba(148,163,184,0.2); border-left-color: #94a3b8; color: #475569; }/* 日落金 */.markdown-preview.theme-sunset { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); color: #92400e; }.markdown-preview.theme-sunset h1, .markdown-preview.theme-sunset h2, .markdown-preview.theme-sunset h3 { color: #b45309; }.markdown-preview.theme-sunset strong { color: #d97706; }.markdown-preview.theme-sunset blockquote { background: rgba(251,191,36,0.2); border-left-color: #fbbf24; color: #92400e; }
+
+/* ========== 股票关联区域 - 专业金融风格 ========== */
+.stock-section {
+	background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+	border-radius: 16rpx;
+	padding: 28rpx;
+	border: 2rpx solid #e2e8f0;
+	margin-bottom: 32rpx;
+}
+
+.stock-section-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 24rpx;
+}
+
+.stock-section-title {
+	font-size: 32rpx;
+	font-weight: 600;
+	color: #1e293b;
+}
+
+.stock-section-count {
+	font-size: 24rpx;
+	color: #94a3b8;
+	background: #ffffff;
+	padding: 6rpx 16rpx;
+	border-radius: 20rpx;
+	border: 1rpx solid #e2e8f0;
+}
+
+/* 股票标签展示区 */
+.stock-tags-area {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16rpx;
+	margin-bottom: 24rpx;
+}
+
+/* 股票芯片样式 - 同花顺风格 */
+.stock-chip {
+	display: flex;
+	align-items: center;
+	gap: 8rpx;
+	padding: 12rpx 20rpx;
+	background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+	border: 2rpx solid #3b82f6;
+	border-radius: 12rpx;
+	box-shadow: 0 2rpx 8rpx rgba(59, 130, 246, 0.15);
+	transition: all 0.2s;
+}
+
+.stock-chip:active {
+	transform: scale(0.98);
+	box-shadow: 0 4rpx 12rpx rgba(59, 130, 246, 0.25);
+}
+
+.stock-chip-code {
+	font-size: 30rpx;
+	font-weight: 600;
+	color: #1e40af;
+	font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+	letter-spacing: 1rpx;
+}
+
+.stock-chip-market {
+	font-size: 20rpx;
+	color: #ffffff;
+	background: #3b82f6;
+	padding: 2rpx 10rpx;
+	border-radius: 6rpx;
+	font-weight: 500;
+}
+
+.stock-chip-close {
+	font-size: 32rpx;
+	color: #ef4444;
+	margin-left: 8rpx;
+	opacity: 0.7;
+	transition: opacity 0.2s;
+}
+
+.stock-chip-close:active {
+	opacity: 1;
+}
+
+/* 添加股票输入区 */
+.stock-add-area {
+	display: flex;
+	align-items: center;
+	gap: 16rpx;
+	margin-bottom: 20rpx;
+}
+
+.stock-input-wrapper {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	background: #ffffff;
+	border: 2rpx solid #cbd5e1;
+	border-radius: 12rpx;
+	padding: 0 20rpx;
+	transition: border-color 0.2s;
+}
+
+.stock-input-wrapper:focus-within {
+	border-color: #3b82f6;
+	box-shadow: 0 0 0 4rpx rgba(59, 130, 246, 0.1);
+}
+
+.stock-input-prefix {
+	font-size: 26rpx;
+	color: #64748b;
+	margin-right: 12rpx;
+	white-space: nowrap;
+}
+
+.stock-code-input {
+	flex: 1;
+	height: 80rpx;
+	font-size: 32rpx;
+	font-weight: 500;
+	color: #1e293b;
+	font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+	letter-spacing: 2rpx;
+}
+
+/* 操作按钮组 */
+.stock-action-btns {
+	display: flex;
+	gap: 12rpx;
+}
+
+.stock-action-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6rpx;
+	padding: 16rpx 24rpx;
+	border-radius: 10rpx;
+	border: none;
+	font-size: 26rpx;
+	font-weight: 500;
+	transition: all 0.2s;
+}
+
+.stock-lookup-btn {
+	background: #f1f5f9;
+	color: #475569;
+	border: 2rpx solid #cbd5e1;
+}
+
+.stock-lookup-btn:active {
+	background: #e2e8f0;
+}
+
+.stock-add-btn {
+	background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+	color: #ffffff;
+	box-shadow: 0 4rpx 12rpx rgba(59, 130, 246, 0.3);
+}
+
+.stock-add-btn:active {
+	transform: scale(0.98);
+}
+
+.action-icon {
+	font-size: 28rpx;
+}
+
+.action-text {
+	font-size: 26rpx;
+}
+
+/* 提示信息 */
+.stock-hint {
+	display: flex;
+	align-items: center;
+	gap: 10rpx;
+	padding: 16rpx 20rpx;
+	background: rgba(59, 130, 246, 0.08);
+	border-radius: 10rpx;
+	border: 1rpx solid rgba(59, 130, 246, 0.2);
+}
+
+.hint-icon {
+	font-size: 28rpx;
+}
+
+.hint-text {
+	font-size: 24rpx;
+	color: #3b82f6;
+	line-height: 1.5;
+}
+</style>

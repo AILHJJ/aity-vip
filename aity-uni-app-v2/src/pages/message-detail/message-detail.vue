@@ -87,26 +87,30 @@
 				<text v-else class="content-text">{{ displayContent }}</text>
 			</view>
 
-			<!-- 股票标签卡片 -->
+			<!-- 股票标签卡片 - 金融社区横向滚动风格 -->
 			<view v-if="extractedStocks.length > 0" class="stock-cards-section">
-				<view class="section-title">📈 相关股票</view>
-				<view class="stock-cards-container">
+				<view class="section-header">
+					<text class="section-title">📈 相关股票</text>
+					<text class="stock-count">{{ extractedStocks.length }}只</text>
+				</view>
+				<scroll-view class="stock-scroll-container" scroll-x enable-flex>
 					<view
 						v-for="(stock, index) in extractedStocks"
 						:key="index"
-						class="stock-card"
+						class="stock-chip"
 						@click="openMarketChartForStock(stock.code)"
 					>
-						<view class="stock-info">
-							<text class="stock-name">{{ stock.name }}</text>
-							<text class="stock-code">{{ stock.code }}</text>
+						<view class="stock-chip-header">
+							<text class="stock-chip-code">{{ stock.code }}</text>
+							<text class="stock-chip-market">{{ getMarketLabel(stock.code) }}</text>
 						</view>
-						<view class="stock-action">
+						<text class="stock-chip-name">{{ stock.name }}</text>
+						<view class="stock-chip-action">
 							<text class="action-icon">📊</text>
 							<text class="action-text">查看行情</text>
 						</view>
 					</view>
-				</view>
+				</scroll-view>
 			</view>
 
 			<!-- 版本标识 - 只在有优化版本时显示 -->
@@ -435,6 +439,20 @@ const openMarketChart = () => {
 		uni.navigateTo({
 			url: `/pages/webview/webview?url=${encodeURIComponent(marketChartUrl.value)}`
 		});
+	}
+}
+
+// 获取市场标签
+const getMarketLabel = (stockCode) => {
+	const code = String(stockCode)
+	if (code.startsWith('6')) {
+		return '沪'
+	} else if (code.startsWith('0') || code.startsWith('3')) {
+		return '深'
+	} else if (code.startsWith('8') || code.startsWith('92')) {
+		return '京'
+	} else {
+		return 'A'
 	}
 }
 
@@ -1148,84 +1166,118 @@ onMounted(() => {
 	color: #666;
 }
 
-// 股票卡片区域
+// 股票卡片区域 - 金融社区横向滚动风格
 .stock-cards-section {
 	margin: 30rpx 0;
-	background: linear-gradient(135deg, #f0f4ff 0%, #e8efff 100%);
+	background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 	border-radius: 16rpx;
 	padding: 28rpx;
-	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.1);
+	border: 2rpx solid #e2e8f0;
+}
+
+.section-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 24rpx;
 }
 
 .section-title {
 	font-size: 32rpx;
 	font-weight: 600;
-	color: #667eea;
-	margin-bottom: 24rpx;
+	color: #1e293b;
 	display: flex;
 	align-items: center;
 	gap: 8rpx;
 }
 
-.stock-cards-container {
-	display: flex;
-	flex-direction: column;
-	gap: 16rpx;
+.stock-count {
+	font-size: 24rpx;
+	color: #94a3b8;
+	background: #ffffff;
+	padding: 6rpx 16rpx;
+	border-radius: 20rpx;
+	border: 1rpx solid #e2e8f0;
 }
 
-.stock-card {
+.stock-scroll-container {
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	background: #ffffff;
-	padding: 24rpx;
-	border-radius: 12rpx;
-	box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
-	transition: all 0.3s ease;
+	flex-wrap: nowrap;
+	white-space: nowrap;
+	padding-bottom: 12rpx;
+}
+
+// 股票芯片卡片样式 - 同花顺风格
+.stock-chip {
+	flex-shrink: 0;
+	width: 220rpx;
+	display: flex;
+	flex-direction: column;
+	gap: 12rpx;
+	padding: 20rpx;
+	margin-right: 16rpx;
+	background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+	border: 2rpx solid #3b82f6;
+	border-radius: 16rpx;
+	box-shadow: 0 4rpx 12rpx rgba(59, 130, 246, 0.15);
+	transition: all 0.2s;
 	cursor: pointer;
 
 	&:active {
 		transform: scale(0.98);
-		box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.2);
+		box-shadow: 0 6rpx 16rpx rgba(59, 130, 246, 0.25);
 	}
 }
 
-.stock-info {
-	display: flex;
-	flex-direction: column;
-	gap: 8rpx;
-}
-
-.stock-name {
-	font-size: 32rpx;
-	font-weight: 600;
-	color: #1a202c;
-}
-
-.stock-code {
-	font-size: 24rpx;
-	color: #667eea;
-	font-family: 'Consolas', 'Monaco', monospace;
-	background: rgba(102, 126, 234, 0.1);
-	padding: 4rpx 12rpx;
-	border-radius: 6rpx;
-	align-self: flex-start;
-}
-
-.stock-action {
+.stock-chip-header {
 	display: flex;
 	align-items: center;
-	gap: 8rpx;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	padding: 12rpx 24rpx;
-	border-radius: 8rpx;
-	color: #ffffff;
-	font-size: 24rpx;
-	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+	justify-content: space-between;
 }
 
-.action-icon {
-	font-size: 28rpx;
+.stock-chip-code {
+	font-size: 32rpx;
+	font-weight: 600;
+	color: #1e40af;
+	font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+	letter-spacing: 1rpx;
+}
+
+.stock-chip-market {
+	font-size: 20rpx;
+	color: #ffffff;
+	background: #3b82f6;
+	padding: 4rpx 12rpx;
+	border-radius: 6rpx;
+	font-weight: 500;
+}
+
+.stock-chip-name {
+	font-size: 26rpx;
+	color: #64748b;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.stock-chip-action {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6rpx;
+	padding: 12rpx 0;
+	border-top: 1rpx solid #e2e8f0;
+	margin-top: 4rpx;
+}
+
+.stock-chip-action .action-icon {
+	font-size: 24rpx;
+}
+
+.stock-chip-action .action-text {
+	font-size: 22rpx;
+	color: #3b82f6;
+	font-weight: 500;
 }
 
 .action-text {
