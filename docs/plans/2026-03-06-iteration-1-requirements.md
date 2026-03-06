@@ -126,10 +126,10 @@ const stockCodeRegex = /(?<!\$个股\()(?<![A-Z(])([0-9]{6})(?!\)\$)(?![)0-9])/g
 
 #### 待改造页面
 - [ ] 首页 (home)
-- [ ] 消息列表 (messages)
-- [ ] 消息详情 (message-detail) - 部分完成
+- [x] 消息列表 (messages) - 已完成
+- [x] 消息详情 (message-detail) - 已完成
 - [ ] 发布消息 (create-message)
-- [ ] 个人中心 (profile)
+- [x] 个人中心 (profile) - 已完成
 - [ ] 行情中心 (market)
 
 #### 改造方式

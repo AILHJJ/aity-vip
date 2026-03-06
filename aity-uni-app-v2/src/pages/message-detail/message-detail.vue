@@ -919,18 +919,19 @@ onMounted(() => {
 <style lang="scss" scoped>
 @import '../../styles/markdown-themes.scss';
 
+/* 消息详情页 - 金融科技风格 */
 .detail-container {
 	min-height: 100vh;
-	background: #f5f5f5;
+	background: var(--bg-primary);
 }
 
 .loading-container {
-	background: #ffffff;
+	background: var(--bg-card);
 	padding: 30rpx;
 }
 
 .skeleton-screen {
-	background: #ffffff;
+	background: var(--bg-card);
 }
 
 .skeleton-header {

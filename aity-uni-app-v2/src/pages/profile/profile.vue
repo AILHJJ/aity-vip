@@ -290,12 +290,13 @@ const handleLogout = () => {
 <style lang="scss" scoped>
 .profile-container {
 	min-height: 100vh;
-	background: #f5f5f5;
+	background-color: var(--bg-primary);
 	padding-bottom: 40rpx;
 }
 
+/* 用户卡片 - 深色模式使用科技渐变 */
 .user-card {
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
 	padding: 60rpx 40rpx;
 	display: flex;
 	align-items: center;
@@ -353,11 +354,14 @@ const handleLogout = () => {
 	align-self: flex-start;
 }
 
+/* 菜单区块 - 玻璃拟态 */
 .menu-section {
-	background: #ffffff;
+	background-color: var(--bg-card);
 	margin: 20rpx;
 	border-radius: 16rpx;
 	overflow: hidden;
+	border: 1rpx solid var(--border-primary);
+	box-shadow: var(--shadow-card);
 }
 
 .menu-item {
@@ -365,12 +369,12 @@ const handleLogout = () => {
 	align-items: center;
 	justify-content: space-between;
 	padding: 30rpx;
-	border-bottom: 1rpx solid #f0f0f0;
-	transition: background 0.2s;
+	border-bottom: 1rpx solid var(--border-secondary);
+	transition: all 0.2s ease;
 }
 
 .menu-item:active {
-	background: #f5f5f5;
+	background-color: var(--bg-hover);
 }
 
 .menu-item:last-child {
@@ -389,13 +393,13 @@ const handleLogout = () => {
 
 .menu-text {
 	font-size: 30rpx;
-	color: #333333;
+	color: var(--text-primary);
 }
 
 .menu-tag {
 	font-size: 20rpx;
 	color: #ffffff;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
 	padding: 4rpx 12rpx;
 	border-radius: 8rpx;
 	margin-left: 8rpx;
@@ -409,8 +413,8 @@ const handleLogout = () => {
 
 .menu-count {
 	font-size: 26rpx;
-	color: #999999;
-	background: #f5f5f5;
+	color: var(--text-secondary);
+	background-color: var(--bg-tertiary);
 	padding: 4rpx 16rpx;
 	border-radius: 12rpx;
 }
@@ -423,7 +427,7 @@ const handleLogout = () => {
 	min-width: 36rpx;
 	height: 36rpx;
 	padding: 0 8rpx;
-	background: #ff5252;
+	background: var(--color-up);
 	border-radius: 18rpx;
 	margin-right: 10rpx;
 }
@@ -437,12 +441,12 @@ const handleLogout = () => {
 
 .menu-arrow {
 	font-size: 48rpx;
-	color: #cccccc;
+	color: var(--text-tertiary);
 	font-weight: 300;
 }
 
 .security-badge {
-	background: #ff9800;
+	background: var(--color-accent);
 	padding: 4rpx 12rpx;
 	border-radius: 8rpx;
 	margin-right: 10rpx;
@@ -463,16 +467,17 @@ const handleLogout = () => {
 	width: 100%;
 	height: 90rpx;
 	line-height: 90rpx;
-	background: #ffffff;
-	color: #ff5252;
+	background-color: var(--bg-card);
+	color: var(--color-up);
 	font-size: 32rpx;
 	border-radius: 16rpx;
-	border: none;
+	border: 1rpx solid var(--border-primary);
 	text-align: center;
 }
 
 .logout-btn:active {
 	opacity: 0.8;
+	background-color: var(--bg-hover);
 }
 
 .version-info {
@@ -482,7 +487,7 @@ const handleLogout = () => {
 
 .version-text {
 	font-size: 24rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 }
 
 /* 主题预览样式 */
@@ -494,12 +499,12 @@ const handleLogout = () => {
 }
 
 .theme-preview.light-preview {
-	background: #f3f4f6;
-	color: #666666;
+	background-color: var(--bg-tertiary);
+	color: var(--text-secondary);
 }
 
 .theme-preview.dark-preview {
 	background: rgba(56, 189, 248, 0.15);
-	color: #60a5fa;
+	color: var(--color-primary);
 }
 </style>

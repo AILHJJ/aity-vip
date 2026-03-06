@@ -636,17 +636,19 @@ onShow(() => {
 </script>
 
 <style lang="scss" scoped>
+/* 消息列表页面 - 金融科技风格 */
 .messages-container {
 	height: 100vh;
 	display: flex;
 	flex-direction: column;
-	background: #f5f5f5;
+	background: var(--bg-primary);
 }
 
+/* 管理员操作栏 */
 .admin-bar {
 	padding: 20rpx;
-	background: #ffffff;
-	border-bottom: 1rpx solid #e0e0e0;
+	background: var(--bg-card);
+	border-bottom: 1rpx solid var(--border-primary);
 }
 
 .create-btn {
@@ -656,13 +658,19 @@ onShow(() => {
 	align-items: center;
 	justify-content: center;
 	gap: 10rpx;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
 	border: none;
 	border-radius: 40rpx;
 	color: #ffffff;
 	font-size: 30rpx;
 	font-weight: 500;
-	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+	box-shadow: 0 4rpx 12rpx rgba(56, 189, 248, 0.3);
+	transition: all 0.3s ease;
+}
+
+.create-btn:active {
+	transform: scale(0.98);
+	box-shadow: 0 2rpx 8rpx rgba(56, 189, 248, 0.2);
 }
 
 .create-icon {
@@ -673,13 +681,14 @@ onShow(() => {
 	font-size: 30rpx;
 }
 
+/* 搜索栏 - 玻璃拟态风格 */
 .search-bar {
 	display: flex;
 	align-items: center;
 	gap: 20rpx;
 	padding: 20rpx;
-	background: #ffffff;
-	border-bottom: 1rpx solid #e0e0e0;
+	background: var(--bg-card);
+	border-bottom: 1rpx solid var(--border-primary);
 }
 
 .search-input-wrapper {
@@ -688,27 +697,44 @@ onShow(() => {
 	align-items: center;
 	height: 70rpx;
 	padding: 0 20rpx;
-	background: #f5f5f5;
+	background: var(--bg-tertiary);
 	border-radius: 35rpx;
+	border: 1rpx solid var(--border-secondary);
+	transition: all 0.3s ease;
+}
+
+.search-input-wrapper:focus-within {
+	border-color: var(--color-primary);
+	box-shadow: 0 0 0 2rpx rgba(56, 189, 248, 0.1);
 }
 
 .search-icon {
 	font-size: 32rpx;
 	margin-right: 10rpx;
+	opacity: 0.6;
 }
 
 .search-input {
 	flex: 1;
 	font-size: 28rpx;
-	color: #333333;
+	color: var(--text-primary);
 	background: transparent;
+}
+
+.search-input::placeholder {
+	color: var(--text-placeholder);
 }
 
 .clear-icon {
 	font-size: 40rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 	margin-left: 10rpx;
 	line-height: 1;
+	transition: all 0.2s ease;
+}
+
+.clear-icon:active {
+	opacity: 0.6;
 }
 
 .search-btn {
@@ -718,16 +744,22 @@ onShow(() => {
 	padding: 0;
 	font-size: 28rpx;
 	color: #ffffff;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
 	border: none;
 	border-radius: 35rpx;
 	text-align: center;
+	transition: all 0.3s ease;
 }
 
+.search-btn:active {
+	transform: scale(0.95);
+}
+
+/* 筛选栏 */
 .filter-bar {
-	background: #ffffff;
+	background: var(--bg-card);
 	padding: 20rpx 0;
-	border-bottom: 1rpx solid #e0e0e0;
+	border-bottom: 1rpx solid var(--border-primary);
 }
 
 .filter-scroll {
@@ -744,36 +776,40 @@ onShow(() => {
 	padding: 12rpx 30rpx;
 	margin-right: 20rpx;
 	font-size: 28rpx;
-	color: #666666;
-	background: #f5f5f5;
+	color: var(--text-secondary);
+	background: var(--bg-tertiary);
 	border-radius: 30rpx;
 	transition: all 0.3s;
+	border: 1rpx solid transparent;
 }
 
 .filter-item.active {
 	color: #ffffff;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+	box-shadow: 0 2rpx 8rpx rgba(56, 189, 248, 0.3);
 }
 
+/* 消息滚动区域 */
 .messages-scroll {
 	flex: 1;
 	overflow-y: auto;
 }
 
+/* 刷新提示 */
 .refresh-tip {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
 	padding: 40rpx 0;
-	background: #f5f5f5;
+	background: var(--bg-primary);
 }
 
 .refresh-loading {
 	width: 40rpx;
 	height: 40rpx;
-	border: 3rpx solid #e0e0e0;
-	border-top-color: #667eea;
+	border: 3rpx solid var(--border-primary);
+	border-top-color: var(--color-primary);
 	border-radius: 50%;
 	animation: spin 0.8s linear infinite;
 }
@@ -781,9 +817,10 @@ onShow(() => {
 .refresh-text {
 	margin-top: 15rpx;
 	font-size: 24rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 }
 
+/* 加载状态 */
 .loading-container {
 	display: flex;
 	flex-direction: column;
@@ -795,8 +832,8 @@ onShow(() => {
 .loading-spinner {
 	width: 60rpx;
 	height: 60rpx;
-	border: 4rpx solid #e0e0e0;
-	border-top-color: #667eea;
+	border: 4rpx solid var(--border-primary);
+	border-top-color: var(--color-primary);
 	border-radius: 50%;
 	animation: spin 1s linear infinite;
 }
@@ -808,7 +845,7 @@ onShow(() => {
 .loading-text {
 	margin-top: 20rpx;
 	font-size: 28rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 	animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -817,6 +854,7 @@ onShow(() => {
 	50% { opacity: 1; }
 }
 
+/* 空状态 */
 .empty-state {
 	display: flex;
 	flex-direction: column;
@@ -828,38 +866,65 @@ onShow(() => {
 .empty-icon {
 	font-size: 120rpx;
 	margin-bottom: 30rpx;
+	opacity: 0.5;
 }
 
 .empty-text {
 	font-size: 28rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 }
 
+/* 消息列表 */
 .messages-list {
 	padding: 20rpx;
 }
 
+/* 消息卡片 - 数据卡片风格 */
 .message-item {
-	background: #ffffff;
+	background: var(--bg-card);
 	border-radius: 16rpx;
 	padding: 30rpx;
 	margin-bottom: 20rpx;
-	box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+	box-shadow: var(--shadow-card);
+	border: 1rpx solid var(--border-primary);
 	border-left: 4rpx solid transparent;
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-	// 性能优化：提示浏览器哪些属性会变化
 	will-change: transform, box-shadow, border-left-color;
+	position: relative;
+	overflow: hidden;
+
+	// 深色模式发光效果
+	&::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: linear-gradient(135deg, rgba(56, 189, 248, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+		opacity: 0;
+		transition: opacity 0.3s ease;
+		pointer-events: none;
+	}
 
 	&:active {
 		transform: scale(0.98);
-		border-left-color: #667eea;
-		box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+		border-left-color: var(--color-primary);
+		box-shadow: var(--shadow-md);
+
+		&::before {
+			opacity: 1;
+		}
 	}
 
-	// 未读状态
+	// 未读状态 - 金融科技风格高亮
 	&.unread {
-		background: linear-gradient(to right, #f8f9ff, #ffffff);
-		border-left-color: #667eea;
+		background: linear-gradient(135deg, var(--bg-card) 0%, rgba(56, 189, 248, 0.08) 100%);
+		border-left-color: var(--color-primary);
+
+		&::before {
+			opacity: 0.5;
+		}
 	}
 }
 
@@ -868,6 +933,8 @@ onShow(() => {
 	align-items: center;
 	justify-content: space-between;
 	margin-bottom: 20rpx;
+	position: relative;
+	z-index: 1;
 }
 
 .header-right {
@@ -876,12 +943,14 @@ onShow(() => {
 	gap: 12rpx;
 }
 
+/* 未读红点 - 脉冲动画 */
 .unread-dot {
 	width: 16rpx;
 	height: 16rpx;
-	background: #ff5252;
+	background: var(--color-up);
 	border-radius: 50%;
 	animation: unread-pulse 2s ease-in-out infinite;
+	box-shadow: 0 0 8rpx rgba(239, 68, 68, 0.5);
 }
 
 @keyframes unread-pulse {
@@ -891,18 +960,19 @@ onShow(() => {
 	}
 	50% {
 		opacity: 0.6;
-		transform: scale(1.1);
+		transform: scale(1.2);
 	}
 }
 
+/* 消息类型标签 - 渐变风格 */
 .message-type-badge {
 	padding: 8rpx 20rpx;
 	font-size: 24rpx;
 	color: #ffffff;
 	border-radius: 20rpx;
 	font-weight: 500;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
+	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+	box-shadow: 0 2rpx 8rpx rgba(56, 189, 248, 0.3);
 
 	// 为不同类型设置不同的渐变色
 	&.type-pre_market_comment {
@@ -958,22 +1028,24 @@ onShow(() => {
 
 .message-time {
 	font-size: 24rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 }
 
 .message-title {
 	font-size: 32rpx;
 	font-weight: bold;
-	color: #333333;
+	color: var(--text-primary);
 	margin-bottom: 15rpx;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	position: relative;
+	z-index: 1;
 }
 
 .message-content {
 	font-size: 28rpx;
-	color: #666666;
+	color: var(--text-secondary);
 	line-height: 1.6;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -983,6 +1055,8 @@ onShow(() => {
 	margin-bottom: 20rpx;
 	word-wrap: break-word;
 	word-break: break-word;
+	position: relative;
+	z-index: 1;
 
 	// 优化Markdown元素在列表中的显示
 	::v-deep h1,

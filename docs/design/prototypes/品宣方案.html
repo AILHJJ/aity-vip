@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>问小达「可视化洞察」品宣执行手册</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans SC"', 'Inter', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        tech: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                            950: '#082f49',
+                        },
+                        fin: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        },
+                        ai: {
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'gradient-x': 'gradient-x 15s ease infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        'gradient-x': {
+                            '0%, 100%': { 'background-position': '0% 50%' },
+                            '50%': { 'background-position': '100% 50%' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #020617;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        
+        .glass {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .glass-strong {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .text-gradient {
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #fbbf24 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .bg-gradient-mesh {
+            background: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(251, 191, 36, 0.1) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(14, 165, 233, 0.15) 0px, transparent 50%);
+        }
+        
+        .grid-lines {
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+        
+        .neon-border {
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3), inset 0 0 20px rgba(56, 189, 248, 0.1);
+        }
+        
+        .timeline-line {
+            background: linear-gradient(to bottom, #0ea5e9, #8b5cf6, #f59e0b);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            border-color: rgba(56, 189, 248, 0.5);
+        }
+        
+        .metric-glow {
+            text-shadow: 0 0 20px currentColor;
+        }
+        
+        .phase-active {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(139, 92, 246, 0.2));
+            border-left: 4px solid #0ea5e9;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased">
+
+    <!-- 背景网格 -->
+    <div class="fixed inset-0 grid-lines pointer-events-none z-0"></div>
+    
+    <!-- 浮动背景元素 -->
+    <div class="fixed top-20 left-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-float pointer-events-none"></div>
+    <div class="fixed bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-float pointer-events-none" style="animation-delay: 2s;"></div>
+    <div class="fixed top-1/2 left-1/3 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl animate-float pointer-events-none" style="animation-delay: 4s;"></div>
+
+    <!-- 导航栏 -->
+    <nav class="fixed top-0 w-full z-50 glass-strong border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <i class="fas fa-chart-line text-white text-sm"></i>
+                    </div>
+                    <span class="font-bold text-lg tracking-tight">问小达<span class="text-blue-400">Pro</span></span>
+                </div>
+                <div class="hidden md:flex items-center gap-6 text-sm text-gray-400">
+                    <span class="flex items-center gap-2"><i class="fas fa-calendar"></i> 2026.03</span>
+                    <span class="flex items-center gap-2"><i class="fas fa-shield-alt text-green-400"></i> 已加密</span>
+                    <span class="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs border border-blue-500/30">执行手册 V1.0</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 px-4 overflow-hidden">
+        <div class="max-w-6xl mx-auto text-center relative z-10">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-blue-500/30 text-blue-400 text-sm mb-6 animate-pulse-slow">
+                <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                战略级产品升级
+            </div>
+            
+            <h1 class="text-5xl md:text-7xl font-black mb-6 leading-tight">
+                <span class="block text-white mb-2">问小达</span>
+                <span class="text-gradient bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-amber-400">
+                    可视化洞察
+                </span>
+                <span class="block text-3xl md:text-4xl mt-4 text-gray-400 font-light">品宣执行手册</span>
+            </h1>
+            
+            <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+                从"文本回答工具"进化为"可视化洞察助手"<br>
+                <span class="text-blue-400 font-mono">Data Speaks Visually</span>
+            </p>
+
+            <div class="flex flex-wrap justify-center gap-4 text-sm font-mono">
+                <div class="glass px-6 py-3 rounded-lg border border-white/10 flex items-center gap-3">
+                    <i class="fas fa-users text-blue-400"></i>
+                    <span>目标覆盖: <span class="text-white">5000万+</span></span>
+                </div>
+                <div class="glass px-6 py-3 rounded-lg border border-white/10 flex items-center gap-3">
+                    <i class="fas fa-rocket text-purple-400"></i>
+                    <span>上线日期: <span class="text-white">2026.04.15</span></span>
+                </div>
+                <div class="glass px-6 py-3 rounded-lg border border-white/10 flex items-center gap-3">
+                    <i class="fas fa-chart-bar text-amber-400"></i>
+                    <span>预期MAU增长: <span class="text-white">15-20%</span></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 核心信息金字塔 -->
+    <section class="py-16 px-4 relative">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-3 mb-10">
+                <div class="w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full"></div>
+                <h2 class="text-2xl font-bold text-white">核心传播信息</h2>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="space-y-6">
+                    <div class="glass p-6 rounded-2xl border-l-4 border-blue-500 card-hover">
+                        <div class="text-blue-400 text-sm font-mono mb-2">核心价值</div>
+                        <h3 class="text-xl font-bold text-white mb-2">认知降维，秒懂复杂</h3>
+                        <p class="text-gray-400 text-sm">纯文字→可视化卡片，阅读时间降低60%</p>
+                    </div>
+                    
+                    <div class="glass p-6 rounded-2xl border-l-4 border-purple-500 card-hover ml-0 md:ml-8">
+                        <div class="text-purple-400 text-sm font-mono mb-2">功能差异</div>
+                        <h3 class="text-xl font-bold text-white mb-2">5大智能图表形态</h3>
+                        <p class="text-gray-400 text-sm">趋势图/对比表/流程图/指标卡/混合排版</p>
+                    </div>
+                    
+                    <div class="glass p-6 rounded-2xl border-l-4 border-amber-500 card-hover ml-0 md:ml-16">
+                        <div class="text-amber-400 text-sm font-mono mb-2">情感利益</div>
+                        <h3 class="text-xl font-bold text-white mb-2">专业级洞察，零门槛获取</h3>
+                        <p class="text-gray-400 text-sm">小白用户也能看懂金融数据</p>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <div class="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-3xl blur-2xl opacity-20"></div>
+                    <div class="relative glass rounded-3xl p-8 border border-white/20">
+                        <div class="text-center mb-6">
+                            <div class="text-6xl font-black text-gradient mb-2">让数据</div>
+                            <div class="text-4xl font-bold text-white">自己会说话</div>
+                        </div>
+                        
+                        <div class="space-y-3 mt-8">
+                            <div class="flex items-center gap-3 text-sm text-gray-300">
+                                <i class="fas fa-check-circle text-green-400"></i>
+                                <span>复杂问题，一眼看懂</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-sm text-gray-300">
+                                <i class="fas fa-check-circle text-green-400"></i>
+                                <span>可截图分享的知识卡片</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-sm text-gray-300">
+                                <i class="fas fa-check-circle text-green-400"></i>
+                                <span>朋友圈晒图神器</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 pt-6 border-t border-white/10 flex justify-between items-center text-xs text-gray-500 font-mono">
+                            <span>SLOGAN V1.0</span>
+                            <span>2026.03.06</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 目标受众分层 -->
+    <section class="py-16 px-4 bg-gradient-mesh">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-3 mb-10">
+                <div class="w-1 h-8 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
+                <h2 class="text-2xl font-bold text-white">目标受众分层策略</h2>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- 核心圈层 -->
+                <div class="glass-strong rounded-2xl p-6 border border-blue-500/30 relative overflow-hidden group card-hover">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-blue-500/20 transition-all"></div>
+                    
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
+                            <i class="fas fa-bullseye text-lg"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs text-blue-400 font-mono">PRIMARY</div>
+                            <h3 class="font-bold text-white">核心圈层</h3>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="text-sm text-gray-300 font-medium mb-2">泛金融/职场人群</div>
+                        <div class="text-xs text-gray-500">25-40岁 | 一二线城市 | 高频决策者</div>
+                    </div>
+
+                    <div class="bg-blue-950/50 rounded-lg p-4 border border-blue-500/20">
+                        <div class="text-xs text-gray-400 mb-1">痛点</div>
+                        <div class="text-sm text-gray-200">每天被大量数字信息轰炸，缺乏快速理解工具</div>
+                    </div>
+
+                    <div class="mt-4 flex items-start gap-2 text-sm text-blue-300">
+                        <i class="fas fa-quote-left text-xs mt-1 opacity-50"></i>
+                        <span>"财报数据秒懂，开会汇报有图有真相"</span>
+                    </div>
+                </div>
+
+                <!-- 渗透圈层 -->
+                <div class="glass-strong rounded-2xl p-6 border border-purple-500/30 relative overflow-hidden group card-hover">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-purple-500/20 transition-all"></div>
+                    
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
+                            <i class="fas fa-graduation-cap text-lg"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs text-purple-400 font-mono">SECONDARY</div>
+                            <h3 class="font-bold text-white">渗透圈层</h3>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="text-sm text-gray-300 font-medium mb-2">学生/知识爱好者</div>
+                        <div class="text-xs text-gray-500">18-30岁 | 学习型用户 | 效率工具偏好</div>
+                    </div>
+
+                    <div class="bg-purple-950/50 rounded-lg p-4 border border-purple-500/20">
+                        <div class="text-xs text-gray-400 mb-1">痛点</div>
+                        <div class="text-sm text-gray-200">学习资料文字冗长，难抓重点</div>
+                    </div>
+
+                    <div class="mt-4 flex items-start gap-2 text-sm text-purple-300">
+                        <i class="fas fa-quote-left text-xs mt-1 opacity-50"></i>
+                        <span>"论文数据一键可视化，复习效率翻倍"</span>
+                    </div>
+                </div>
+
+                <!-- 专业圈层 -->
+                <div class="glass-strong rounded-2xl p-6 border border-amber-500/30 relative overflow-hidden group card-hover">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-amber-500/20 transition-all"></div>
+                    
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
+                            <i class="fas fa-user-tie text-lg"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs text-amber-400 font-mono">TERTIARY</div>
+                            <h3 class="font-bold text-white">专业圈层</h3>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="text-sm text-gray-300 font-medium mb-2">金融分析师/产品经理</div>
+                        <div class="text-xs text-gray-500">专业用户 | 高净值 | B端影响力</div>
+                    </div>
+
+                    <div class="bg-amber-950/50 rounded-lg p-4 border border-amber-500/20">
+                        <div class="text-xs text-gray-400 mb-1">痛点</div>
+                        <div class="text-sm text-gray-200">需要快速验证数据假设，但工具太重</div>
+                    </div>
+
+                    <div class="mt-4 flex items-start gap-2 text-sm text-amber-300">
+                        <i class="fas fa-quote-left text-xs mt-1 opacity-50"></i>
+                        <span>"轻量级专业分析，移动端也能深度洞察"</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 传播节奏时间轴 -->
+    <section class="py-16 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-3 mb-12">
+                <div class="w-1 h-8 bg-gradient-to-b from-green-500 to-blue-500 rounded-full"></div>
+                <h2 class="text-2xl font-bold text-white">传播节奏规划</h2>
+                <span class="ml-auto text-sm text-gray-500 font-mono">4周战役周期</span>
+            </div>
+
+            <div class="relative">
+                <!-- 时间轴线 -->
+                <div class="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 timeline-line transform md:-translate-x-1/2"></div>
+
+                <!-- Phase 1 -->
+                <div class="relative mb-12 md:mb-0">
+                    <div class="md:flex items-center justify-between">
+                        <div class="hidden md:block md:w-5/12 md:text-right md:pr-8">
+                            <div class="glass p-6 rounded-2xl border border-blue-500/30 card-hover">
+                                <h3 class="text-xl font-bold text-white mb-2">悬念预热期</h3>
+                                <p class="text-gray-400 text-sm mb-4">T-7 至 T-1</p>
+                                <ul class="space-y-2 text-sm text-gray-300">
+                                    <li class="flex items-center justify-end gap-2">
+                                        <span>倒计时海报发布</span>
+                                        <i class="fas fa-image text-blue-400"></i>
+                                    </li>
+                                    <li class="flex items-center justify-end gap-2">
+                                        <span>KOL剧透内测版</span>
+                                        <i class="fas fa-user-secret text-purple-400"></i>
+                                    </li>
+                                    <li class="flex items-center justify-end gap-2">
+                                        <span>5大模板预览</span>
+                                        <i class="fas fa-layer-group text-amber-400"></i>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="absolute left-4 md:left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full bg-blue-500 border-4 border-slate-900 z-10 flex items-center justify-center">
+                            <i class="fas fa-hourglass-start text-white text-xs"></i>
+                        </div>
+
+                        <div class="md:w-5/12 md:pl-8 ml-12 md:ml-0">
+                            <div class="md:hidden glass p-6 rounded-2xl border border-blue-500/30 mb-4">
+                                <h3 class="text-xl font-bold text-white mb-2">悬念预热期</h3>
+                                <p class="text-gray-400 text-sm">T-7 至 T-1</p>
+                            </div>
+                            <div class="text-blue-400 font-mono text-sm mb-2">目标：制造期待</div>
+                            <p class="text-gray-300 text-sm leading-relaxed">
+                                通过倒计时海报和KOL神秘剧透，铺垫"纯文本已死"认知，建立用户对新形态的好奇与期待。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 2 -->
+                <div class="relative mb-12 md:mb-0 md:mt-12">
+                    <div class="md:flex items-center justify-between">
+                        <div class="md:w-5/12 md:text-right md:pr-8 ml-12 md:ml-0 order-2">
+                            <div class="text-purple-400 font-mono text-sm mb-2 text-left md:text-right">目标：功能认知+转化</div>
+                            <p class="text-gray-300 text-sm leading-relaxed text-left md:text-right">
+                                发布日全渠道爆发，通过新旧版本对比图建立直观认知，配合UGC话题引导用户晒图分享。
+                            </p>
+                        </div>
+                        
+                        <div class="absolute left-4 md:left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full bg-purple-500 border-4 border-slate-900 z-10 flex items-center justify-center">
+                            <i class="fas fa-rocket text-white text-xs"></i>
+                        </div>
+
+                        <div class="hidden md:block md:w-5/12 md:pl-8 order-3">
+                            <div class="glass p-6 rounded-2xl border border-purple-500/30 card-hover">
+                                <h3 class="text-xl font-bold text-white mb-2">爆发期</h3>
+                                <p class="text-gray-400 text-sm mb-4">Launch Day ±3天</p>
+                                <div class="space-y-3">
+                                    <div class="bg-purple-950/30 p-3 rounded-lg border border-purple-500/20">
+                                        <div class="text-xs text-purple-400 mb-1">主视觉</div>
+                                        <div class="text-sm text-gray-200">全渠道推送"一张图看懂升级"</div>
+                                    </div>
+                                    <div class="bg-purple-950/30 p-3 rounded-lg border border-purple-500/20">
+                                        <div class="text-xs text-purple-400 mb-1">社交战役</div>
+                                        <div class="text-sm text-gray-200">#我的问小达神回复#话题</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="md:hidden glass p-6 rounded-2xl border border-purple-500/30 mb-4 ml-12">
+                            <h3 class="text-xl font-bold text-white mb-2">爆发期</h3>
+                            <p class="text-gray-400 text-sm">Launch Day ±3天</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 3 -->
+                <div class="relative md:mt-12">
+                    <div class="md:flex items-center justify-between">
+                        <div class="hidden md:block md:w-5/12 md:text-right md:pr-8">
+                            <div class="glass p-6 rounded-2xl border border-amber-500/30 card-hover">
+                                <h3 class="text-xl font-bold text-white mb-2">深度渗透期</h3>
+                                <p class="text-gray-400 text-sm mb-4">T+4 至 T+30</p>
+                                <ul class="space-y-2 text-sm text-gray-300">
+                                    <li class="flex items-center justify-end gap-2">
+                                        <span>财经自媒体合作</span>
+                                        <i class="fas fa-handshake text-amber-400"></i>
+                                    </li>
+                                    <li class="flex items-center justify-end gap-2">
+                                        <span>真实用户故事包装</span>
+                                        <i class="fas fa-book-open text-green-400"></i>
+                                    </li>
+                                    <li class="flex items-center justify-end gap-2">
+                                        <span>技术深度解读文</span>
+                                        <i class="fas fa-code text-blue-400"></i>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="absolute left-4 md:left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full bg-amber-500 border-4 border-slate-900 z-10 flex items-center justify-center">
+                            <i class="fas fa-chart-network text-white text-xs"></i>
+                        </div>
+
+                        <div class="md:w-5/12 md:pl-8 ml-12 md:ml-0">
+                            <div class="md:hidden glass p-6 rounded-2xl border border-amber-500/30 mb-4">
+                                <h3 class="text-xl font-bold text-white mb-2">深度渗透期</h3>
+                                <p class="text-gray-400 text-sm">T+4 至 T+30</p>
+                            </div>
+                            <div class="text-amber-400 font-mono text-sm mb-2">目标：专业用户渗透</div>
+                            <p class="text-gray-300 text-sm leading-relaxed">
+                                通过财报季特别活动绑定金融场景，挖掘真实用户投资故事，建立专业领域的口碑壁垒。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 内容物料库 -->
+    <section class="py-16 px-4 bg-gradient-mesh">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-3 mb-10">
+                <div class="w-1 h-8 bg-gradient-to-b from-pink-500 to-rose-500 rounded-full"></div>
+                <h2 class="text-2xl font-bold text-white">内容物料库</h2>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 主KV -->
+                <div class="glass rounded-xl p-6 border border-white/10 card-hover group">
+                    <div class="h-32 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg mb-4 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <i class="fas fa-image text-4xl text-white/50"></i>
+                    </div>
+                    <h3 class="font-bold text-white mb-2">主视觉 KV</h3>
+                    <p class="text-xs text-gray-400 mb-3">文字"融化"重组为图表的动效设计，科技蓝+数据青+纯净白配色</p>
+                    <div class="flex gap-2">
+                        <span class="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-400">PSD</span>
+                        <span class="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-400">AI</span>
+                    </div>
+                </div>
+
+                <!-- 场景模板 -->
+                <div class="glass rounded-xl p-6 border border-white/10 card-hover group">
+                    <div class="h-32 bg-gradient-to-br from-green-600 to-teal-600 rounded-lg mb-4 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <i class="fas fa-layer-group text-4xl text-white/50"></i>
+                    </div>
+                    <h3 class="font-bold text-white mb-2">场景化模板（5套）</h3>
+                    <p class="text-xs text-gray-400 mb-3">数据解读/趋势分析/对比决策/流程讲解/知识普及场景</p>
+                    <div class="flex gap-2">
+                        <span class="text-xs px-2 py-1 rounded bg-green-500/20 text-green-400">Sketch</span>
+                        <span class="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-400">Figma</span>
+                    </div>
+                </div>
+
+                <!-- 社交媒体 -->
+                <div class="glass rounded-xl p-6 border border-white/10 card-hover group">
+                    <div class="h-32 bg-gradient-to-br from-pink-600 to-rose-600 rounded-lg mb-4 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <i class="fas fa-share-alt text-4xl text-white/50"></i>
+                    </div>
+                    <h3 class="font-bold text-white mb-2">社交媒体套件</h3>
+                    <p class="text-xs text-gray-400 mb-3">九宫格海报/15秒短视频模板/动态表情包</p>
+                    <div class="flex gap-2">
+                        <span class="text-xs px-2 py-1 rounded bg-pink-500/20 text-pink-400">MP4</span>
+                        <span class="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400">GIF</span>
+                    </div>
+                </div>
+
+                <!-- PR稿件 -->
+                <div class="glass rounded-xl p-6 border border-white/10 card-hover group">
+                    <div class="h-32 bg-gradient-to-br from-amber-600 to-orange-600 rounded-lg mb-4 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <i class="fas fa-newspaper text-4xl text-white/50"></i>
+                    </div>
+                    <h3 class="font-bold text-white mb-2">PR传播包</h3>
+                    <p class="text-xs text-gray-400 mb-3">36氪独家首发/证券时报/深度解读长文/白皮书</p>
+                    <div class="flex gap-2">
+                        <span class="text-xs px-2 py-1 rounded bg-amber-500/20 text-amber-400">DOCX</span>
+                        <span class="text-xs px-2 py-1 rounded bg-orange-500/20 text-orange-400">PDF</span>
+                    </div>
+                </div>
+
+                <!-- 文案弹药 -->
+                <div class="glass rounded-xl p-6 border border-white/10 card-hover group">
+                    <div class="h-32 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg mb-4 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <i class="fas fa-font text-4xl text-white/50"></i>
+                    </div>
+                    <h3 class="font-bold text-white mb-2">文案弹药库</h3>
+                    <p class="text-xs text-gray-400 mb-3">短文案(Push)/中长文案(公众号)/专业向(虎嗅)</p>
+                    <div class="flex gap-2">
+                        <span class="text-xs px-2 py-1 rounded bg-indigo-500/20 text-indigo-400">XLSX</span>
+                    </div>
+                </div>
+
+                <!-- 数据报告 -->
+                <div class="glass rounded-xl p-6 border border-white/10 card-hover group">
+                    <div class="h-32 bg-gradient-to-br from-gray-700 to-gray-900 rounded-lg mb-4 flex items-center justify-center group-hover:scale-105 transition-transform border border-white/10">
+                        <i class="fas fa-file-chart-line text-4xl text-white/50"></i>
+                    </div>
+                    <h3 class="font-bold text-white mb-2">数据监测报表</h3>
+                    <p class="text-xs text-gray-400 mb-3">实时数据看板/竞品监测表/用户反馈收集表</p>
+                    <div class="flex gap-2">
+                        <span class="text-xs px-2 py-1 rounded bg-gray-500/20 text-gray-400">BI</span>
+                        <span class="text-xs px-2 py-1 rounded bg-green-500/20 text-green-400">Excel</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 渠道投放矩阵 -->
+    <section class="py-16 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-3 mb-10">
+                <div class="w-1 h-8 bg-gradient-to-b from-cyan-500 to-blue-500 rounded-full"></div>
+                <h2 class="text-2xl font-bold text-white">渠道投放矩阵</h2>
+            </div>
+
+            <div class="space-y-6">
+                <!-- 自有渠道 -->
+                <div class="glass rounded-2xl p-6 border border-green-500/30">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400">
+                            <i class="fas fa-home text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">自有渠道矩阵</h3>
+                            <p class="text-sm text-gray-400">0成本精准触达</p>
+                        </div>
+                        <div class="ml-auto text-green-400 font-mono">Free</div>
+                    </div>
+
+                    <div class="grid md:grid-cols-4 gap-4">
+                        <div class="bg-green-950/30 border border-green-500/20 rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2 text-green-400">
+                                <i class="fas fa-mobile-alt"></i>
+                                <span class="font-bold text-sm">App Push</span>
+                            </div>
+                            <p class="text-xs text-gray-400">"问小达会画图了！立即体验新版"</p>
+                            <div class="mt-2 text-xs text-green-600">发布日+次日</div>
+                        </div>
+
+                        <div class="bg-green-950/30 border border-green-500/20 rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2 text-green-400">
+                                <i class="fas fa-image"></i>
+                                <span class="font-bold text-sm">站内Banner</span>
+                            </div>
+                            <p class="text-xs text-gray-400">全屏沉浸式升级引导</p>
+                            <div class="mt-2 text-xs text-green-600">持续2周</div>
+                        </div>
+
+                        <div class="bg-green-950/30 border border-green-500/20 rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2 text-green-400">
+                                <i class="fas fa-comment-alt"></i>
+                                <span class="font-bold text-sm">公众号头条</span>
+                            </div>
+                            <p class="text-xs text-gray-400">产品升级深度解读</p>
+                            <div class="mt-2 text-xs text-green-600">发布日</div>
+                        </div>
+
+                        <div class="bg-green-950/30 border border-green-500/20 rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2 text-green-400">
+                                <i class="fas fa-users"></i>
+                                <span class="font-bold text-sm">用户社群</span>
+                            </div>
+                            <p class="text-xs text-gray-400">内测抢先体验+反馈收集</p>
+                            <div class="mt-2 text-xs text-green-600">提前3天</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 付费渠道 -->
+                <div class="glass rounded-2xl p-6 border border-blue-500/30">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
+                            <i class="fas fa-bullhorn text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">付费投放矩阵</h3>
+                            <p class="text-sm text-gray-400">精准流量获取</p>
+                        </div>
+                        <div class="ml-auto text-blue-400 font-mono">Paid</div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="relative overflow-hidden bg-blue-950/30 border border-blue-500/20 rounded-lg p-4">
+                            <div class="absolute top-0 right-0 bg-blue-500 text-white text-xs px-2 py-1 rounded-bl">30%</div>
+                            <div class="flex items-center gap-2 mb-2 text-blue-400">
+                                <i class="fab fa-zhihu text-lg"></i>
+                                <span class="font-bold">知乎</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mb-2">"AI工具""数据分析"话题信息流</p>
+                            <div class="text-xs text-blue-300">侧重专业用户</div>
+                        </div>
+
+                        <div class="relative overflow-hidden bg-pink-950/30 border border-pink-500/20 rounded-lg p-4">
+                            <div class="absolute top-0 right-0 bg-pink-500 text-white text-xs px-2 py-1 rounded-bl">25%</div>
+                            <div class="flex items-center gap-2 mb-2 text-pink-400">
+                                <i class="fas fa-shopping-bag text-lg"></i>
+                                <span class="font-bold">小红书</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mb-2">职场效率/学习工具标签KOL种草</p>
+                            <div class="text-xs text-pink-300">突出"截图好看"</div>
+                        </div>
+
+                        <div class="relative overflow-hidden bg-amber-950/30 border border-amber-500/20 rounded-lg p-4">
+                            <div class="absolute top-0 right-0 bg-amber-500 text-white text-xs px-2 py-1 rounded-bl">25%</div>
+                            <div class="flex items-center gap-2 mb-2 text-amber-400">
+                                <i class="fas fa-chart-line text-lg"></i>
+                                <span class="font-bold">财经类App</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mb-2">同花顺/雪球开屏或信息流</p>
+                            <div class="text-xs text-amber-300">Phase 3投放</div>
+                        </div>
+
+                        <div class="relative overflow-hidden bg-green-950/30 border border-green-500/20 rounded-lg p-4">
+                            <div class="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-bl">20%</div>
+                            <div class="flex items-center gap-2 mb-2 text-green-400">
+                                <i class="fab fa-weixin text-lg"></i>
+                                <span class="font-bold">视频号</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mb-2">15秒功能演示短视频</p>
+                            <div class="text-xs text-green-300">病毒传播</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- KPI 仪表盘 -->
+    <section class="py-16 px-4 bg-gradient-mesh">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-3 mb-10">
+                <div class="w-1 h-8 bg-gradient-to-b from-red-500 to-orange-500 rounded-full"></div>
+                <h2 class="text-2xl font-bold text-white">效果评估指标</h2>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                <!-- 传播指标 -->
+                <div class="glass-strong rounded-2xl p-6 border border-blue-500/30">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fas fa-broadcast-tower text-blue-400"></i>
+                        传播指标 <span class="text-xs text-gray-500 font-normal">Week 1</span>
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-400">全渠道曝光量</span>
+                                <span class="text-blue-400 font-mono">≥5000万</span>
+                            </div>
+                            <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-500 w-3/4 rounded-full"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-400">话题阅读量</span>
+                                <span class="text-blue-400 font-mono">≥1000万</span>
+                            </div>
+                            <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-400 w-2/3 rounded-full"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-400">UGC投稿量</span>
+                                <span class="text-blue-400 font-mono">≥5000条</span>
+                            </div>
+                            <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-300 w-1/2 rounded-full"></div>
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-white/10">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-400">App更新率(7日)</span>
+                                <span class="text-2xl font-bold text-white metric-glow">60%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 业务指标 -->
+                <div class="glass-strong rounded-2xl p-6 border border-purple-500/30">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fas fa-chart-pie text-purple-400"></i>
+                        业务指标 <span class="text-xs text-gray-500 font-normal">Month 1</span>
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="bg-purple-950/30 p-3 rounded-lg border border-purple-500/20">
+                            <div class="text-xs text-purple-400 mb-1">功能渗透率</div>
+                            <div class="flex items-end gap-2">
+                                <span class="text-3xl font-bold text-white">40%</span>
+                                <span class="text-xs text-gray-400 mb-1">可视化回答占比</span>
+                            </div>
+                        </div>
+                        <div class="bg-purple-950/30 p-3 rounded-lg border border-purple-500/20">
+                            <div class="text-xs text-purple-400 mb-1">用户留存提升</div>
+                            <div class="flex items-end gap-2">
+                                <span class="text-3xl font-bold text-white">+5%</span>
+                                <span class="text-xs text-gray-400 mb-1">7日留存率</span>
+                            </div>
+                        </div>
+                        <div class="bg-purple-950/30 p-3 rounded-lg border border-purple-500/20">
+                            <div class="text-xs text-purple-400 mb-1">社交分享率</div>
+                            <div class="flex items-end gap-2">
+                                <span class="text-3xl font-bold text-white">15%</span>
+                                <span class="text-xs text-gray-400 mb-1">卡片分享率</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 品牌指标 -->
+                <div class="glass-strong rounded-2xl p-6 border border-amber-500/30">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fas fa-crown text-amber-400"></i>
+                        品牌指标 <span class="text-xs text-gray-500 font-normal">Quarter 1</span>
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="text-sm text-gray-400 mb-2">"可视化AI"心智占有率</div>
+                            <div class="flex items-center gap-4">
+                                <div class="relative w-24 h-24">
+                                    <svg class="w-full h-full transform -rotate-90">
+                                        <circle cx="48" cy="48" r="40" stroke="#1e293b" stroke-width="8" fill="none"></circle>
+                                        <circle cx="48" cy="48" r="40" stroke="#f59e0b" stroke-width="8" fill="none" stroke-dasharray="251.2" stroke-dashoffset="163.3"></circle>
+                                    </svg>
+                                    <div class="absolute inset-0 flex items-center justify-center text-xl font-bold text-white">35%</div>
+                                </div>
+                                <div class="text-xs text-gray-400 flex-1">对比竞品目标市场认知度</div>
+                            </div>
+                        </div>
+                        <div class="pt-4 border-t border-white/10">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-400">NPS评分提升</span>
+                                <span class="text-2xl font-bold text-amber-400 metric-glow">+10</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">问小达功能净推荐值</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 风险控制 -->
+            <div class="glass rounded-2xl p-6 border border-red-500/30">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <i class="fas fa-shield-alt text-red-400"></i>
+                    风险管控预案
+                </h3>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-red-950/20 border border-red-500/20 rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2 text-red-400 font-bold text-sm">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            用户不适应
+                        </div>
+                        <p class="text-xs text-gray-400">保留"简洁文本模式"切换选项</p>
+                    </div>
+                    <div class="bg-orange-950/20 border border-orange-500/20 rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2 text-orange-400 font-bold text-sm">
+                            <i class="fas fa-tachometer-alt"></i>
+                            渲染速度慢
+                        </div>
+                        <p class="text-xs text-gray-400">品宣强调"200ms极速渲染"技术指标</p>
+                    </div>
+                    <div class="bg-yellow-950/20 border border-yellow-500/20 rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2 text-yellow-400 font-bold text-sm">
+                            <i class="fas fa-users-slash"></i>
+                            竞品快速跟进
+                        </div>
+                        <p class="text-xs text-gray-400">强调"首发优势"和"证券垂直场景"</p>
+                    </div>
+                    <div class="bg-blue-950/20 border border-blue-500/20 rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2 text-blue-400 font-bold text-sm">
+                            <i class="fas fa-bug"></i>
+                            效果不达预期
+                        </div>
+                        <p class="text-xs text-gray-400">提前准备"最佳实践"教程引导</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 执行时间表 -->
+    <section class="py-16 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-3 mb-10">
+                <div class="w-1 h-8 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full"></div>
+                <h2 class="text-2xl font-bold text-white">执行时间表</h2>
+            </div>
+
+            <div class="glass rounded-2xl p-8 border border-white/10 overflow-x-auto">
+                <div class="min-w-[800px]">
+                    <!-- 甘特图头部 -->
+                    <div class="grid grid-cols-12 gap-2 mb-4 text-xs text-gray-400 font-mono border-b border-white/10 pb-2">
+                        <div class="col-span-3">任务/时间</div>
+                        <div class="col-span-1 text-center">D-14</div>
+                        <div class="col-span-1 text-center">D-10</div>
+                        <div class="col-span-1 text-center">D-7</div>
+                        <div class="col-span-1 text-center">D-Day</div>
+                        <div class="col-span-1 text-center">D+3</div>
+                        <div class="col-span-1 text-center">D+7</div>
+                        <div class="col-span-1 text-center">D+15</div>
+                        <div class="col-span-1 text-center">D+30</div>
+                        <div class="col-span-2 text-center">负责人</div>
+                    </div>
+
+                    <!-- 任务行 -->
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-12 gap-2 items-center text-sm">
+                            <div class="col-span-3 text-gray-300 flex items-center gap-2">
+                                <i class="fas fa-paint-brush text-pink-400"></i>
+                                视觉物料设计定稿
+                            </div>
+                            <div class="col-span-2 h-6 bg-pink-500/30 rounded border border-pink-500/50 relative">
+                                <div class="absolute inset-0 bg-pink-500/50 rounded" style="width: 100%"></div>
+                            </div>
+                            <div class="col-span-5"></div>
+                            <div class="col-span-2 text-gray-400 text-xs">设计团队</div>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-2 items-center text-sm">
+                            <div class="col-span-3 text-gray-300 flex items-center gap-2">
+                                <i class="fas fa-handshake text-blue-400"></i>
+                                媒体Briefing与KOL签约
+                            </div>
+                            <div class="col-span-1"></div>
+                            <div class="col-span-2 h-6 bg-blue-500/30 rounded border border-blue-500/50 relative">
+                                <div class="absolute inset-0 bg-blue-500/50 rounded" style="width: 100%"></div>
+                            </div>
+                            <div class="col-span-4"></div>
+                            <div class="col-span-2 text-gray-400 text-xs">市场总监</div>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-2 items-center text-sm">
+                            <div class="col-span-3 text-gray-300 flex items-center gap-2">
+                                <i class="fas fa-hourglass-start text-purple-400"></i>
+                                预热内容发布（倒计时）
+                            </div>
+                            <div class="col-span-2"></div>
+                            <div class="col-span-1 h-6 bg-purple-500/30 rounded border border-purple-500/50 relative">
+                                <div class="absolute inset-0 bg-purple-500/50 rounded" style="width: 100%"></div>
+                            </div>
+                            <div class="col-span-4"></div>
+                            <div class="col-span-2 text-gray-400 text-xs">新媒体运营</div>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-2 items-center text-sm">
+                            <div class="col-span-3 text-gray-300 flex items-center gap-2">
+                                <i class="fas fa-rocket text-green-400"></i>
+                                产品正式上线
+                            </div>
+                            <div class="col-span-3"></div>
+                            <div class="col-span-1 h-6 bg-green-500 rounded border border-green-400 relative flex items-center justify-center text-xs font-bold text-black">
+                                D-Day
+                            </div>
+                            <div class="col-span-4"></div>
+                            <div class="col-span-1 text-gray-400 text-xs">产研团队</div>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-2 items-center text-sm">
+                            <div class="col-span-3 text-gray-300 flex items-center gap-2">
+                                <i class="fas fa-bullhorn text-amber-400"></i>
+                                主KV全渠道投放
+                            </div>
+                            <div class="col-span-3"></div>
+                            <div class="col-span-1 h-6 bg-amber-500/30 rounded border border-amber-500/50 relative">
+                                <div class="absolute inset-0 bg-amber-500/50 rounded" style="width: 100%"></div>
+                            </div>
+                            <div class="col-span-4"></div>
+                            <div class="col-span-1 text-gray-400 text-xs">投放团队</div>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-2 items-center text-sm">
+                            <div class="col-span-3 text-gray-300 flex items-center gap-2">
+                                <i class="fas fa-chart-line text-cyan-400"></i>
+                                数据监测与优化
+                            </div>
+                            <div class="col-span-3"></div>
+                            <div class="col-span-5 h-6 bg-cyan-500/20 rounded border border-cyan-500/30 relative">
+                                <div class="absolute inset-0 bg-cyan-500/30 rounded" style="width: 100%"></div>
+                            </div>
+                            <div class="col-span-1 text-gray-400 text-xs">增长团队</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/10 bg-black/50 backdrop-blur-lg py-8 px-4 mt-12">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    <i class="fas fa-chart-line text-white text-sm"></i>
+                </div>
+                <span class="font-bold text-lg text-white">问小达<span class="text-blue-400">Pro</span></span>
+            </div>
+            
+            <div class="text-center md:text-right text-sm text-gray-500">
+                <div class="font-mono text-xs mb-1">CONFIDENTIAL • INTERNAL USE ONLY</div>
+                <div>© 2026 问小达产品团队 | 品宣执行手册 V1.0</div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 滚动显示动画
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // 初始化所有卡片动画
+        document.querySelectorAll('.card-hover').forEach((el, index) => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = `all 0.6s ease ${index * 0.1}s`;
+            observer.observe(el);
+        });
+
+        // 添加鼠标跟随效果
+        document.addEventListener('mousemove', (e) => {
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+            
+            document.querySelectorAll('.glass, .glass-strong').forEach(el => {
+                const rect = el.getBoundingClientRect();
+                const elX = (e.clientX - rect.left) / rect.width;
+                const elY = (e.clientY - rect.top) / rect.height;
+                
+                if (elX >= 0 && elX <= 1 && elY >= 0 && elY <= 1) {
+                    el.style.background = `radial-gradient(circle at ${elX * 100}% ${elY * 100}%, rgba(56, 189, 248, 0.1), rgba(30, 41, 59, 0.4))`;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

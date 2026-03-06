@@ -110,6 +110,13 @@
 			"style": {
 				"navigationBarTitleText": "修改密码"
 			}
+		},
+		{
+			"path": "pages/webview/webview",
+			"style": {
+				"navigationBarTitleText": "行情图",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"tabBar": {
