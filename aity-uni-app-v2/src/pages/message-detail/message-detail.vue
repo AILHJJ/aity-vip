@@ -53,10 +53,15 @@
 				</text>
 			</view>
 
-			<!-- 风险提示 -->
-			<view class="risk-warning">
-				<text class="warning-icon">⚠️</text>
-				<text class="warning-text">风险提示：以下内容仅作为个人复盘记录，不作为投资建议。股市有风险，投资需谨慎。</text>
+			<!-- 风险提示 - 专业金融风格 -->
+			<view class="risk-disclaimer">
+				<view class="disclaimer-left">
+					<text class="disclaimer-icon">⚠</text>
+				</view>
+				<view class="disclaimer-content">
+					<text class="disclaimer-title">风险提示</text>
+					<text class="disclaimer-text">本内容仅供参考，不构成投资建议。市场有风险，投资需谨慎。</text>
+				</view>
 			</view>
 
 			<!-- Markdown主题选择器 - 已移除，主题由发帖者选择 -->
@@ -185,10 +190,7 @@
 						<text class="btn-text">分享</text>
 					</template>
 				</button>
-				<button v-if="marketChartUrl" class="action-btn" @click="openMarketChart">
-					<text class="btn-icon">📊</text>
-					<text class="btn-text">查看行情</text>
-				</button>
+				<!-- 移除查看行情按钮 - 用户可直接点击股票卡片查看行情 -->
 				<button class="action-btn primary" @click="goToDiscuss">
 					<text class="btn-icon">💬</text>
 					<text class="btn-text">发起讨论</text>
@@ -350,11 +352,25 @@ function parseStockTags(text) {
 	}
 
 	// 同时保留原有的6位数字股票代码提取（兼容旧格式）
+	// 添加验证：只识别有效的股票代码开头
+	const isValidStockCodePrefix = (code) => {
+		const firstChar = code.charAt(0)
+		if (firstChar === '6') return true // 上海
+		if (firstChar === '0' || firstChar === '3') return true // 深圳
+		if (firstChar === '8') return true // 北京
+		if (code.startsWith('92')) return true // 北京
+		return false
+	}
+
 	const stockCodeRegex = /(?<![A-Z(])([0-9]{6})(?![)0-9])/g
 	let codeMatch
 	while ((codeMatch = stockCodeRegex.exec(text)) !== null) {
+		// 验证股票代码开头是否有效
+		if (!isValidStockCodePrefix(codeMatch[1])) {
+			continue // 跳过无效代码
+		}
 		// 避免重复添加
-		if (!stocks.find(s => s.code === codeMatch[1])) {
+		if (!stocks.find(s => s.code === codeMatch[1]) && isValidStockCodePrefix(codeMatch[1])) {
 			stocks.push({
 				name: getCodeName(codeMatch[1]),
 				code: codeMatch[1],
@@ -364,11 +380,12 @@ function parseStockTags(text) {
 	}
 
 	// 新增：支持 $个股(代码)$ 格式 - 如 $个股(300162)$
+	// 同时验证股票代码开头是否有效
 	const stockTagRegex2 = /\$个股\(([0-9]{6})\)\$/g
 	let match2
 	while ((match2 = stockTagRegex2.exec(text)) !== null) {
-		// 避免重复添加
-		if (!stocks.find(s => s.code === match2[1])) {
+		// 避免重复添加，同时验证股票代码开头
+		if (!stocks.find(s => s.code === match2[1]) && isValidStockCodePrefix(match2[1])) {
 			stocks.push({
 				name: getCodeName(match2[1]),
 				code: match2[1],
@@ -1084,6 +1101,54 @@ onMounted(() => {
 	color: #667eea;
 	background: #f0f2ff;
 	border-radius: 16rpx;
+}
+
+// 风险提示 - 专业金融风格
+.risk-disclaimer {
+	display: flex;
+	align-items: flex-start;
+	gap: 16rpx;
+	padding: 20rpx 24rpx;
+	margin-bottom: 30rpx;
+	background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+	border: 2rpx solid #f59e0b;
+	border-radius: 12rpx;
+}
+
+.disclaimer-left {
+	flex-shrink: 0;
+	width: 48rpx;
+	height: 48rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #f59e0b;
+	border-radius: 50%;
+}
+
+.disclaimer-icon {
+	font-size: 28rpx;
+	color: #ffffff;
+	font-weight: bold;
+}
+
+.disclaimer-content {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 4rpx;
+}
+
+.disclaimer-title {
+	font-size: 26rpx;
+	font-weight: 600;
+	color: #92400e;
+}
+
+.disclaimer-text {
+	font-size: 22rpx;
+	color: #a16207;
+	line-height: 1.5;
 }
 
 .theme-selector-wrapper {

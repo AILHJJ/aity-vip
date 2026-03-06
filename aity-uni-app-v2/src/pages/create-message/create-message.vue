@@ -57,9 +57,6 @@
 							<text class="picker-arrow">▼</text>
 						</view>
 					</picker>
-					<view class="form-hint">
-						<text class="hint-text">选择消息类型（默认：早盘关注）</text>
-					</view>
 				</view>
 
 
@@ -509,11 +506,32 @@ const handleViewStock = (code) => {
 	})
 }
 
-// 验证股票代码格式
+// 验证股票代码格式（根据股票代码开头规则验证）
 const validateStockCode = (code) => {
 	const codeStr = String(code).trim()
-	// 支持6位数字股票代码
-	return /^\d{6}$/.test(codeStr)
+	// 必须是6位数字
+	if (!/^\d{6}$/.test(codeStr)) {
+		return false
+	}
+	// 根据股票代码开头验证：
+	// 6 开头 - 上海交易所（主板、科创板60/61/62/68）
+	// 0 开头 - 深圳交易所（主板00、中小板002）
+	// 3 开头 - 深圳交易所（创业板30）
+	// 8 开头 - 北京交易所（81/83/87等）
+	// 92 开头 - 北京交易所
+	const firstChar = codeStr.charAt(0)
+	const firstTwoChars = codeStr.substring(0, 2)
+
+	if (firstChar === '6') {
+		return true // 上海交易所
+	} else if (firstChar === '0' || firstChar === '3') {
+		return true // 深圳交易所
+	} else if (firstChar === '8') {
+		return true // 北京交易所
+	} else if (firstTwoChars === '92') {
+		return true // 北京交易所
+	}
+	return false
 }
 
 // 添加股票代码
@@ -531,7 +549,7 @@ const handleAddStock = () => {
 	// 验证格式
 	if (!validateStockCode(code)) {
 		uni.showToast({
-			title: '请输入6位数字股票代码',
+			title: '请输入有效股票代码(6/0/3/8开头)',
 			icon: 'none'
 		})
 		return
@@ -586,7 +604,7 @@ const handleSearchStock = () => {
 	// 验证格式
 	if (!validateStockCode(code)) {
 		uni.showToast({
-			title: '请输入6位数字股票代码',
+			title: '请输入有效股票代码(6/0/3/8开头)',
 			icon: 'none'
 		})
 		return
@@ -1052,10 +1070,39 @@ const handleSubmit = async () => {
 		// 构建最终内容（如果有股票代码，附加到内容末尾）
 		let finalContent = formData.value.content.trim()
 
-		// 如果有关联的股票代码，转换为 $股票名称(代码)$ 格式并附加到内容末尾
+		// 【方案B】自动扫描内容中的有效股票代码并转换为标签格式
+		// 验证股票代码开头的函数
+		const isValidStockCodePrefix = (code) => {
+			const firstChar = code.charAt(0)
+			if (firstChar === '6') return true // 上海
+			if (firstChar === '0' || firstChar === '3') return true // 深圳
+			if (firstChar === '8') return true // 北京
+			if (code.startsWith('92')) return true // 北京
+			return false
+		}
+
+		// 匹配内容中的6位数字股票代码（排除已经被$个股()$包裹的）
+		const stockCodeRegex = /(?<!\$个股\()(?<![A-Z(])([0-9]{6})(?!\)\$)(?![)0-9])/g
+		finalContent = finalContent.replace(stockCodeRegex, (match) => {
+			// 验证是否是有效的股票代码开头
+			if (isValidStockCodePrefix(match)) {
+				return `$个股(${match})$`
+			}
+			return match // 不是有效股票代码，保持原样
+		})
+
+		// 如果有手动关联的股票代码，也转换为标签格式并附加到内容末尾（避免重复）
 		if (formData.value.stockCodes.length > 0) {
-			const stockTags = formData.value.stockCodes.map(code => `$个股(${code})$`).join('\n')
-			finalContent = finalContent + '\n\n---\n\n' + stockTags
+			// 检查内容中是否已经包含这些股票代码的标签
+			const existingTags = finalContent.match(/\$个股\(([0-9]{6})\)\$/g) || []
+			const existingCodes = existingTags.map(tag => tag.match(/\$个股\(([0-9]{6})\)\$/)[1])
+
+			// 只添加内容中还没有的股票代码
+			const newCodes = formData.value.stockCodes.filter(code => !existingCodes.includes(code))
+			if (newCodes.length > 0) {
+				const stockTags = newCodes.map(code => `$个股(${code})$`).join('\n')
+				finalContent = finalContent + '\n\n---\n\n' + stockTags
+			}
 		}
 
 		// 将Vue的Proxy对象转换为纯JavaScript对象
@@ -1615,6 +1662,14 @@ onMounted(async () => {
 				// Markdown主题（从 theme 字段获取，如果没有则使用默认值）
 				const messageTheme = res.data.theme || 'default'
 
+				// 从内容中解析股票代码
+				const stockCodes = []
+				const stockTagRegex = /\$个股\(([0-9]{6})\)\$/g
+				let match
+				while ((match = stockTagRegex.exec(res.data.content || '')) !== null) {
+					stockCodes.push(match[1])
+				}
+
 				formData.value = {
 					strategy: strategyTag,
 					pushTarget: pushTargetTag,
@@ -1622,7 +1677,8 @@ onMounted(async () => {
 					theme: messageTheme,
 					title: res.data.title || '',
 					content: res.data.content || '',
-					attachments: processedAttachments
+					attachments: processedAttachments,
+					stockCodes: stockCodes
 				}
 
 				console.log('编辑模式 - formData已设置:', formData.value)

@@ -519,11 +519,37 @@ export class MarkdownRenderer {
 		// 过滤替换串
 		content = content.replace(/@@.+?@@/g, '')
 
+		// 【方案C】渲染股票代码标签为高亮样式
+		// 将 $个股(代码)$ 格式转换为高亮的span标签
+		content = content.replace(/\$个股\(([0-9]{6})\)\$/g, (match, code) => {
+			// 根据股票代码开头添加市场标识
+			let market = ''
+			let marketColor = '#3b82f6'
+			const firstChar = code.charAt(0)
+			if (firstChar === '6') {
+				market = '沪'
+				marketColor = '#ef4444'
+			} else if (firstChar === '0' || firstChar === '3') {
+				market = '深'
+				marketColor = '#22c55e'
+			} else if (firstChar === '8' || code.startsWith('92')) {
+				market = '京'
+				marketColor = '#f59e0b'
+			}
+
+			// 返回高亮样式的股票代码标签
+			return `<span style="display: inline-flex; align-items: center; gap: 4rpx; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 2rpx solid #3b82f6; border-radius: 8rpx; padding: 4rpx 12rpx; margin: 0 4rpx; font-family: 'SF Mono', 'Monaco', 'Consolas', monospace; font-size: 28rpx; font-weight: 600; color: #1e40af;"><span style="background: ${marketColor}; color: #fff; padding: 2rpx 8rpx; border-radius: 4rpx; font-size: 20rpx;">${market}</span>${code}</span>`
+		})
+
 		// 创建带主题的 markdown-it 实例
 		const md = createThemedMarkdownIt(theme)
+		const styles = ThemeStyles[theme] || ThemeStyles.default
 
 		// 渲染 Markdown
 		let html = md.render(content)
+
+		// 包装在容器中，应用背景样式
+		html = `<div style="${styles.container}">${html}</div>`
 
 		return html
 	}
