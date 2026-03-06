@@ -1,0 +1,328 @@
+/**
+ * 主题 CSS 变量定义
+ * 支持浅色模式和深色模式切换
+ * 深色模式参考品宣方案设计风格
+ */
+
+/* ==================== 基础变量 ==================== */
+:root {
+  /* 浅色模式（默认） */
+
+  /* 背景色 */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.8);
+  --bg-glass-strong: rgba(255, 255, 255, 0.95);
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+  --bg-input: #ffffff;
+  --bg-hover: #f3f4f6;
+
+  /* 文字颜色 */
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --text-tertiary: #999999;
+  --text-placeholder: #c0c0c0;
+  --text-link: #3b82f6;
+  --text-inverse: #ffffff;
+
+  /* 边框颜色 */
+  --border-primary: #e5e7eb;
+  --border-secondary: #f3f4f6;
+  --border-focus: #3b82f6;
+
+  /* 主题色 */
+  --color-primary: #3b82f6;
+  --color-primary-light: #60a5fa;
+  --color-primary-dark: #2563eb;
+  --color-secondary: #8b5cf6;
+  --color-secondary-light: #a78bfa;
+  --color-accent: #f59e0b;
+  --color-accent-light: #fbbf24;
+
+  /* 金融数据颜色 */
+  --color-up: #ef4444;
+  --color-up-bg: rgba(239, 68, 68, 0.1);
+  --color-down: #22c55e;
+  --color-down-bg: rgba(34, 197, 94, 0.1);
+  --color-neutral: #6b7280;
+
+  /* 股票市场颜色 */
+  --color-sh: #ef4444; /* 上海-红 */
+  --color-sz: #22c55e; /* 深圳-绿 */
+  --color-bj: #f59e0b; /* 北京-橙 */
+
+  /* 阴影 */
+  --shadow-sm: 0 1rpx 2rpx rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8rpx 24rpx rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+
+  /* 玻璃拟态 */
+  --glass-blur: 12px;
+  --glass-border: rgba(255, 255, 255, 0.1);
+
+  /* 导航栏 */
+  --nav-bg: #ffffff;
+  --nav-border: #f3f4f6;
+  --nav-text: #1a1a1a;
+
+  /* TabBar */
+  --tabbar-bg: #ffffff;
+  --tabbar-text: #999999;
+  --tabbar-text-active: #3b82f6;
+
+  /* 按钮颜色 */
+  --btn-primary-bg: #3b82f6;
+  --btn-primary-text: #ffffff;
+  --btn-secondary-bg: #f3f4f6;
+  --btn-secondary-text: #1a1a1a;
+  --btn-danger-bg: #ef4444;
+  --btn-danger-text: #ffffff;
+
+  /* 输入框 */
+  --input-bg: #ffffff;
+  --input-border: #e5e7eb;
+  --input-text: #1a1a1a;
+  --input-placeholder: #c0c0c0;
+  --input-focus-border: #3b82f6;
+
+  /* 标签 */
+  --tag-bg: #f3f4f6;
+  --tag-text: #666666;
+  --tag-border: transparent;
+}
+
+/* ==================== 深色模式 ==================== */
+.dark-mode {
+  /* 背景色 - 参考品宣方案深蓝黑 */
+  --bg-primary: #020617;
+  --bg-secondary: #0f172a;
+  --bg-tertiary: #1e293b;
+  --bg-card: rgba(30, 41, 59, 0.4);
+  --bg-glass: rgba(30, 41, 59, 0.4);
+  --bg-glass-strong: rgba(15, 23, 42, 0.8);
+  --bg-overlay: rgba(0, 0, 0, 0.7);
+  --bg-input: rgba(30, 41, 59, 0.6);
+  --bg-hover: rgba(56, 189, 248, 0.1);
+
+  /* 文字颜色 */
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-placeholder: #475569;
+  --text-link: #60a5fa;
+  --text-inverse: #020617;
+
+  /* 边框颜色 */
+  --border-primary: rgba(255, 255, 255, 0.1);
+  --border-secondary: rgba(255, 255, 255, 0.05);
+  --border-focus: #60a5fa;
+
+  /* 主题色 - 深色模式下更亮 */
+  --color-primary: #60a5fa;
+  --color-primary-light: #93c5fd;
+  --color-primary-dark: #3b82f6;
+  --color-secondary: #a78bfa;
+  --color-secondary-light: #c4b5fd;
+  --color-accent: #fbbf24;
+  --color-accent-light: #fcd34d;
+
+  /* 金融数据颜色 - 深色模式柔和版 */
+  --color-up: #f87171;
+  --color-up-bg: rgba(248, 113, 113, 0.15);
+  --color-down: #4ade80;
+  --color-down-bg: rgba(74, 222, 128, 0.15);
+  --color-neutral: #94a3b8;
+
+  /* 股票市场颜色 - 保持一致 */
+  --color-sh: #f87171;
+  --color-sz: #4ade80;
+  --color-bj: #fbbf24;
+
+  /* 阴影 - 深色模式更深 */
+  --shadow-sm: 0 1rpx 2rpx rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4rpx 12rpx rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8rpx 24rpx rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 4rpx 16rpx rgba(0, 0, 0, 0.3);
+
+  /* 玻璃拟态 - 深色版 */
+  --glass-blur: 16px;
+  --glass-border: rgba(255, 255, 255, 0.15);
+
+  /* 导航栏 */
+  --nav-bg: rgba(15, 23, 42, 0.9);
+  --nav-border: rgba(255, 255, 255, 0.1);
+  --nav-text: #e2e8f0;
+
+  /* TabBar */
+  --tabbar-bg: rgba(15, 23, 42, 0.95);
+  --tabbar-text: #64748b;
+  --tabbar-text-active: #60a5fa;
+
+  /* 按钮颜色 */
+  --btn-primary-bg: #3b82f6;
+  --btn-primary-text: #ffffff;
+  --btn-secondary-bg: rgba(56, 189, 248, 0.15);
+  --btn-secondary-text: #e2e8f0;
+  --btn-danger-bg: #dc2626;
+  --btn-danger-text: #ffffff;
+
+  /* 输入框 */
+  --input-bg: rgba(30, 41, 59, 0.6);
+  --input-border: rgba(255, 255, 255, 0.1);
+  --input-text: #e2e8f0;
+  --input-placeholder: #64748b;
+  --input-focus-border: #60a5fa;
+
+  /* 标签 */
+  --tag-bg: rgba(56, 189, 248, 0.15);
+  --tag-text: #94a3b8;
+  --tag-border: rgba(56, 189, 248, 0.3);
+}
+
+/* ==================== 通用主题类 ==================== */
+
+/* 背景类 */
+.bg-primary { background-color: var(--bg-primary); }
+.bg-secondary { background-color: var(--bg-secondary); }
+.bg-card { background-color: var(--bg-card); }
+.bg-glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1rpx solid var(--glass-border);
+}
+.bg-glass-strong {
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1rpx solid var(--glass-border);
+}
+
+/* 文字类 */
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.text-link { color: var(--text-link); }
+.text-up { color: var(--color-up); }
+.text-down { color: var(--color-down); }
+
+/* 边框类 */
+.border-primary { border-color: var(--border-primary); }
+.border-secondary { border-color: var(--border-secondary); }
+
+/* 卡片基础样式 */
+.theme-card {
+  background-color: var(--bg-card);
+  border: 1rpx solid var(--border-primary);
+  border-radius: 16rpx;
+  box-shadow: var(--shadow-card);
+}
+
+.theme-card-glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1rpx solid var(--glass-border);
+  border-radius: 16rpx;
+}
+
+/* 按钮样式 */
+.btn-primary {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+
+.btn-secondary {
+  background-color: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+}
+
+.btn-danger {
+  background-color: var(--btn-danger-bg);
+  color: var(--btn-danger-text);
+}
+
+/* 输入框样式 */
+.theme-input {
+  background-color: var(--input-bg);
+  border: 1rpx solid var(--input-border);
+  color: var(--input-text);
+}
+
+.theme-input::placeholder {
+  color: var(--input-placeholder);
+}
+
+.theme-input:focus {
+  border-color: var(--input-focus-border);
+}
+
+/* 标签样式 */
+.theme-tag {
+  background-color: var(--tag-bg);
+  color: var(--tag-text);
+  border: 1rpx solid var(--tag-border);
+}
+
+/* 分割线 */
+.theme-divider {
+  height: 1rpx;
+  background-color: var(--border-primary);
+}
+
+/* 股票代码标签 */
+.stock-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  font-weight: 600;
+  font-size: 28rpx;
+  background: linear-gradient(135deg, var(--bg-glass), var(--bg-tertiary));
+  border: 2rpx solid var(--color-primary);
+  color: var(--color-primary-dark);
+}
+
+.stock-tag .market-badge {
+  padding: 2rpx 8rpx;
+  border-radius: 4rpx;
+  font-size: 20rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.stock-tag .market-badge.sh { background: var(--color-sh); }
+.stock-tag .market-badge.sz { background: var(--color-sz); }
+.stock-tag .market-badge.bj { background: var(--color-bj); }
+
+/* 涨跌标签 */
+.change-up {
+  color: var(--color-up);
+  background: var(--color-up-bg);
+  padding: 2rpx 8rpx;
+  border-radius: 4rpx;
+}
+
+.change-down {
+  color: var(--color-down);
+  background: var(--color-down-bg);
+  padding: 2rpx 8rpx;
+  border-radius: 4rpx;
+}
+
+/* 霓虹光效边框（深色模式特有） */
+.dark-mode .neon-border {
+  box-shadow: 0 0 20rpx rgba(56, 189, 248, 0.3), inset 0 0 20rpx rgba(56, 189, 248, 0.1);
+}
+
+/* 网格背景（深色模式特有） */
+.dark-mode .grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1rpx, transparent 1rpx);
+  background-size: 50rpx 50rpx;
+}

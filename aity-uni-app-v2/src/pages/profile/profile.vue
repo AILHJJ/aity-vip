@@ -98,6 +98,20 @@
 				</view>
 			</view>
 
+			<!-- 主题设置 -->
+			<view class="menu-item" @click="showThemeSettings">
+				<view class="menu-left">
+					<text class="menu-icon">🎨</text>
+					<text class="menu-text">主题设置</text>
+				</view>
+				<view class="menu-right">
+					<text class="theme-preview" :class="themeStore.isDark ? 'dark-preview' : 'light-preview'">
+						{{ themeStore.mode === 'system' ? '跟随系统' : (themeStore.isDark ? '深色' : '浅色') }}
+					</text>
+					<text class="menu-arrow">›</text>
+				</view>
+			</view>
+
 			<view class="menu-item" @click="showAbout">
 				<view class="menu-left">
 					<text class="menu-icon">ℹ️</text>
@@ -124,10 +138,20 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
+import { useThemeStore, ThemeMode } from '../../store/theme'
 import { USER_ROLE_LABELS } from '../../utils/constants'
 import { getDiscussionsApi } from '../../api/discussion'
 
 const userStore = useUserStore()
+const themeStore = useThemeStore()
+
+// 主题选择器状态
+const showThemePicker = ref(false)
+const themeOptions = [
+	{ value: ThemeMode.LIGHT, label: '浅色模式', icon: '☀️' },
+	{ value: ThemeMode.DARK, label: '深色模式', icon: '🌙' },
+	{ value: ThemeMode.SYSTEM, label: '跟随系统', icon: '🔄' }
+]
 
 // 统计数据
 const favoriteCount = ref(0)
@@ -227,6 +251,25 @@ const showAbout = () => {
 		content: 'VIP投研内部分享系统\n\n一个面向内部用户的私密投研分享平台\n\n版本：v1.0.0',
 		showCancel: false,
 		confirmText: '知道了'
+	})
+}
+
+// 显示主题设置弹窗
+const showThemeSettings = () => {
+	const currentMode = themeStore.mode
+	const options = themeOptions.map(t => {
+		const prefix = t.value === currentMode ? '✓ ' : '   '
+		return `${prefix}${t.label}`
+	}).join('\n')
+
+	uni.showActionSheet({
+		itemList: options.split('\n'),
+		success: (res) => {
+			const selectedOption = themeOptions[res.tapIndex]
+			if (selectedOption) {
+				themeStore.setMode(selectedOption.value)
+			}
+		}
 	})
 }
 
@@ -440,5 +483,23 @@ const handleLogout = () => {
 .version-text {
 	font-size: 24rpx;
 	color: #999999;
+}
+
+/* 主题预览样式 */
+.theme-preview {
+	font-size: 24rpx;
+	padding: 6rpx 16rpx;
+	border-radius: 12rpx;
+	margin-right: 10rpx;
+}
+
+.theme-preview.light-preview {
+	background: #f3f4f6;
+	color: #666666;
+}
+
+.theme-preview.dark-preview {
+	background: rgba(56, 189, 248, 0.15);
+	color: #60a5fa;
 }
 </style>
