@@ -200,6 +200,24 @@ const handleLogin = async () => {
 	box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.1);
 }
 
+/* H5端桌面优化 - 使用媒体查询 */
+/* #ifdef H5 */
+@media screen and (min-width: 768px) {
+	.login-box {
+		max-width: 480px;
+		padding: 45px 40px;
+		border-radius: 16px;
+	}
+}
+
+@media screen and (min-width: 1200px) {
+	.login-box {
+		max-width: 520px;
+		padding: 55px 50px;
+	}
+}
+/* #endif */
+
 .logo-section {
 	text-align: center;
 	margin-bottom: 60rpx;
@@ -253,6 +271,19 @@ const handleLogin = async () => {
 	}
 }
 
+/* H5端输入框优化 */
+/* #ifdef H5 */
+@media screen and (min-width: 768px) {
+	.form-input {
+		height: 48px;
+		padding: 0 16px;
+		font-size: 15px;
+		border: 1px solid #e0e0e0;
+		border-radius: 6px;
+	}
+}
+/* #endif */
+
 .form-actions {
 	display: flex;
 	justify-content: flex-start;
@@ -290,6 +321,30 @@ const handleLogin = async () => {
 .login-btn[disabled] {
 	opacity: 0.6;
 }
+
+/* H5端按钮优化 */
+/* #ifdef H5 */
+@media screen and (min-width: 768px) {
+	.login-btn {
+		height: 50px;
+		line-height: 50px;
+		font-size: 17px;
+		border-radius: 6px;
+		margin-top: 15px;
+		cursor: pointer;
+		transition: transform 0.2s, box-shadow 0.2s;
+	}
+
+	.login-btn:hover:not([disabled]) {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+	}
+
+	.login-btn:active:not([disabled]) {
+		transform: translateY(0);
+	}
+}
+/* #endif */
 
 .footer-section {
 	text-align: center;
