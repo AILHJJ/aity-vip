@@ -20,7 +20,9 @@
       "Bash(findstr:*)",
       "Bash(curl:*)",
       "Bash(powershell:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npm run build:mp-weixin:cloud:*)",
+      "Bash(npm run build:mp-weixin:local:*)"
     ],
     "deny": [],
     "ask": []

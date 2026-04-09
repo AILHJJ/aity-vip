@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>问小达3.0 - PC/Web版（3.0组件集成版）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* TDX色彩系统 */
+            --primary-color: #4691f7;
+            --accent-color: #7b5cff;
+            --up-color: #f01414;
+            --down-color: #229d45;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-tertiary: #999;
+            --border-color: #e5e5e5;
+            --bg-hover: #f5f5f5;
+            --shadow-light: 0 1px 8px 0 rgba(0, 0, 0, 0.03);
+            --shadow-medium: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
+            --shadow-heavy: 0 4px 20px 0 rgba(0, 0, 0, 0.12);
+
+            /* 间距规范 */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 12px;
+            --space-lg: 16px;
+            --space-xl: 24px;
+
+            /* 圆角规范 */
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            --radius-xl: 12px;
+
+            /* 字体规范 */
+            --font-size-xs: 12px;
+            --font-size-sm: 13px;
+            --font-size-base: 14px;
+            --font-size-lg: 16px;
+            --font-size-xl: 18px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            font-size: var(--font-size-base);
+            color: var(--text-primary);
+            background: linear-gradient(138deg, #e7ebfc 0%, #efe7f8 100%);
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 左侧栏 */
+        .sidebar-left {
+            width: 240px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .sidebar-left.collapsed {
+            width: 60px;
+        }
+
+        .sidebar-left.collapsed .sidebar-content,
+        .sidebar-left.collapsed .sidebar-footer {
+            display: none;
+        }
+
+        .sidebar-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-sm);
+        }
+
+        .brand-logo svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .brand-name {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            color: var(--primary-color);
+            white-space: nowrap;
+        }
+
+        .sidebar-left.collapsed .brand-name {
+            display: none;
+        }
+
+        .version-switch {
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .sidebar-left.collapsed .version-switch {
+            display: none;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-md);
+        }
+
+        .new-chat-section {
+            margin-bottom: var(--space-lg);
+        }
+
+        .new-chat-btn {
+            width: 100%;
+            padding: var(--space-md);
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            font-size: var(--font-size-base);
+            transition: background 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            background: #3a7ed8;
+        }
+
+        .new-chat-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .sidebar-tabs {
+            display: flex;
+            gap: var(--space-xs);
+            margin-bottom: var(--space-md);
+        }
+
+        .sidebar-tab {
+            flex: 1;
+            padding: var(--space-sm) var(--space-md);
+            text-align: center;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .sidebar-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .sidebar-tab:hover {
+            color: var(--primary-color);
+        }
+
+        .sidebar-left.collapsed .sidebar-tabs {
+            display: none;
+        }
+
+        .history-list,
+        .collection-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
+        }
+
+        .history-item,
+        .collection-item {
+            padding: var(--space-sm) var(--space-md);
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+            color: var(--text-primary);
+            transition: all 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item:hover,
+        .collection-item:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-color);
+        }
+
+        .history-item.active,
+        .collection-item.active {
+            background: rgba(70, 145, 247, 0.1);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .sidebar-footer {
+            padding: var(--space-lg);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .user-name {
+            flex: 1;
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+        }
+
+        .vip-badge {
+            padding: 2px 6px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            font-size: 10px;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            padding: var(--space-sm) var(--space-md);
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            margin-top: var(--space-sm);
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: var(--space-sm) var(--space-md);
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+        }
+
+        .sidebar-left.collapsed .sidebar-footer {
+            display: none;
+        }
+
+        /* 收起后的图标按钮 */
+        .collapsed-icons {
+            display: none;
+            flex-direction: column;
+            gap: var(--space-sm);
+            padding: var(--space-md);
+            align-items: center;
+        }
+
+        .sidebar-left.collapsed .collapsed-icons {
+            display: flex;
+            height: 100%;
+            justify-content: center;
+        }
+
+        .sidebar-icon-btn {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            padding: 0;
+        }
+
+        .sidebar-icon-btn:hover {
+            background: rgba(70, 145, 247, 0.1);
+            color: var(--primary-color);
+        }
+
+        .sidebar-icon-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .sidebar-icon-btn span {
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        /* 切换按钮 */
+        .sidebar-toggle {
+            position: absolute;
+            left: 240px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 60px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-left: none;
+            border-radius: 0 10px 10px 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 12px;
+            transition: left 0.3s ease;
+            z-index: 100;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--bg-hover);
+            color: var(--primary-color);
+        }
+
+        .sidebar-left.collapsed ~ .sidebar-toggle {
+            left: 60px;
+        }
+
+        /* 中间主体区域 */
+        .center-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chat-view {
+            flex: 1;
+            width: 100%;
+            max-width: 1000px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: var(--space-xl) var(--space-lg);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-lg);
+        }
+
+        /* 欢迎页面组件（3.0样式） */
+        .ui-welcome {
+            font-size: var(--font-size-base);
+            color: var(--text-primary);
+            padding: var(--space-lg) var(--space-md);
+            display: flex;
+        }
+
+        .ui-welcome-block {
+            flex: 1;
+        }
+
+        .ui-welcome-card {
+            padding: var(--space-md);
+            background: rgba(255, 255, 255, 0.5);
+            border: 0.5px solid #ffffff;
+            box-shadow: var(--shadow-light);
+            backdrop-filter: blur(3px);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-lg);
+        }
+
+        .ui-welcome-text {
+            font-size: var(--font-size-lg);
+            font-weight: 400;
+            text-align: justify;
+            color: #333;
+            line-height: 24px;
+        }
+
+        .ui-welcome-message {
+            cursor: pointer;
+            margin-bottom: var(--space-md);
+        }
+
+        .message-item {
+            height: 44px;
+            background: rgba(255, 255, 255, 0.5);
+            border: 0.5px solid #ffffff;
+            box-shadow: var(--shadow-light);
+            backdrop-filter: blur(3px);
+            padding: 0 var(--space-md);
+            font-size: var(--font-size-lg);
+            font-weight: 400;
+            text-align: left;
+            color: #333;
+            line-height: 44px;
+            border-radius: 22.5px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .message-item:hover {
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: var(--shadow-medium);
+        }
+
+        /* 对话消息组件 */
+        .message-container {
+            display: flex;
+            gap: var(--space-md);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-user {
+            justify-content: flex-end;
+        }
+
+        .message-ai {
+            justify-content: flex-start;
+        }
+
+        .user-avatar,
+        .ai-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .ai-avatar {
+            background: linear-gradient(135deg, #4691f7 0%, #7b5cff 100%);
+        }
+
+        .user-avatar svg,
+        .ai-avatar svg {
+            width: 20px;
+            height: 20px;
+            color: white;
+        }
+
+        .message-bubble {
+            max-width: 90%;
+            padding: var(--space-md) var(--space-lg);
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-light);
+            word-wrap: break-word;
+            line-height: 1.6;
+        }
+
+        .message-user .message-bubble {
+            background: linear-gradient(135deg, #4691f7 0%, #7b5cff 100%);
+            color: white;
+        }
+
+        .message-ai .message-content {
+            max-width: calc(100% - 46px);
+        }
+
+        .ai-message-text {
+            color: var(--text-primary);
+            line-height: 1.8;
+        }
+
+        .ai-message-text p {
+            margin-bottom: var(--space-md);
+        }
+
+        .ai-message-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 思考过程组件（3.0样式） */
+        .ui-think {
+            margin-bottom: var(--space-md);
+        }
+
+        .think-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) var(--space-md);
+            background: rgba(70, 145, 247, 0.1);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .think-header svg {
+            width: 16px;
+            height: 16px;
+            color: var(--primary-color);
+            transition: transform 0.3s ease;
+        }
+
+        .think-header.expanded svg {
+            transform: rotate(180deg);
+        }
+
+        .think-title {
+            flex: 1;
+            font-size: var(--font-size-sm);
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .think-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            padding: 0 var(--space-md);
+            background: rgba(70, 145, 247, 0.05);
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+        }
+
+        .think-content.expanded {
+            max-height: 500px;
+            padding: var(--space-md);
+        }
+
+        .think-text {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        /* 搜索输入组件（3.0样式） */
+        .ui-search {
+            position: relative;
+            width: 100%;
+            max-width: 1000px;
+            padding: var(--space-lg);
+            background: white;
+            box-shadow: var(--shadow-heavy);
+            border-radius: var(--radius-xl);
+            margin: var(--space-lg);
+        }
+
+        .ui-search-main {
+            position: relative;
+        }
+
+        .ui-search-input {
+            position: relative;
+            width: 100%;
+        }
+
+        .ui-search-text {
+            width: 100%;
+            min-height: 24px;
+            max-height: 120px;
+            padding: var(--space-md);
+            padding-right: var(--space-xl);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-base);
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .ui-search-text:focus {
+            border-color: var(--primary-color);
+        }
+
+        .ui-search-action-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: var(--space-md);
+        }
+
+        .ui-search-sdsk {
+            padding: var(--space-sm) var(--space-md);
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .ui-search-sdsk:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .ui-search-sdsk-active {
+            background: rgba(70, 145, 247, 0.1);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .ui-search-bar-right {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .ui-search-send {
+            width: 32px;
+            height: 32px;
+            background: var(--primary-color);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .ui-search-send:hover {
+            background: #3a7ed8;
+        }
+
+        .ui-search-send svg {
+            width: 16px;
+            height: 16px;
+            color: white;
+        }
+
+        .ui-search-send-disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .ui-search-tip {
+            margin-top: var(--space-sm);
+            font-size: var(--font-size-xs);
+            color: var(--text-tertiary);
+            text-align: center;
+        }
+
+        /* 右侧详情栏 */
+        .sidebar-right {
+            width: 520px;
+            height: 100%;
+            background: white;
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            z-index: 50;
+        }
+
+        .sidebar-right.show {
+            transform: translateX(0);
+            position: relative;
+        }
+
+        .detail-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .detail-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .detail-total {
+            margin-left: var(--space-sm);
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+
+        .detail-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .add-favorite-btn {
+            padding: var(--space-sm) var(--space-md);
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+            transition: background 0.2s;
+        }
+
+        .add-favorite-btn:hover {
+            background: #3a7ed8;
+        }
+
+        .close-detail-btn {
+            width: 32px;
+            height: 32px;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .close-detail-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .detail-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-lg);
+        }
+
+        .condition-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+        }
+
+        .condition-tag {
+            padding: var(--space-xs) var(--space-sm);
+            background: rgba(70, 145, 247, 0.1);
+            border: 1px solid var(--primary-color);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-xs);
+            color: var(--primary-color);
+        }
+
+        .stock-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .stock-table th,
+        .stock-table td {
+            padding: var(--space-sm) var(--space-md);
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stock-table th {
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
+            font-weight: 500;
+            background: var(--bg-hover);
+        }
+
+        .stock-table td {
+            font-size: var(--font-size-sm);
+            color: var(--text-primary);
+        }
+
+        .stock-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .stock-link:hover {
+            text-decoration: underline;
+        }
+
+        .stock-table .up-color {
+            color: var(--up-color);
+        }
+
+        .stock-table .down-color {
+            color: var(--down-color);
+        }
+
+        .load-more-btn {
+            width: 100%;
+            padding: var(--space-md);
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            margin-top: var(--space-lg);
+            transition: all 0.2s;
+        }
+
+        .load-more-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 左侧栏 -->
+        <aside class="sidebar-left" id="sidebarLeft">
+            <div class="sidebar-header">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    <span class="brand-name">问小达</span>
+                </div>
+                <div class="version-switch" onclick="switchVersion()">
+                    <span style="font-size: 16px;">↩</span> 切换回普通版本
+                </div>
+            </div>
+
+            <div class="sidebar-content">
+                <div class="new-chat-section">
+                    <button class="new-chat-btn" onclick="startNewChat()">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                        </svg>
+                        <span>新会话</span>
+                    </button>
+                </div>
+
+                <div class="sidebar-tabs">
+                    <button class="sidebar-tab active" onclick="switchSidebarTab('history')">历史对话</button>
+                    <button class="sidebar-tab" onclick="switchSidebarTab('collection')">收藏问句</button>
+                </div>
+
+                <div class="history-list" id="historyList">
+                    <div class="history-item active" onclick="selectHistory(this)">
+                        📈 分析今天A股市场表现
+                    </div>
+                    <div class="history-item" onclick="selectHistory(this)">
+                        💰 推荐几只低估值股票
+                    </div>
+                    <div class="history-item" onclick="selectHistory(this)">
+                        📊 查看科技板块龙头股
+                    </div>
+                    <div class="history-item" onclick="selectHistory(this)">
+                        🔍 分析贵州茅台的财务数据
+                    </div>
+                    <div class="history-item" onclick="selectHistory(this)">
+                        🎯 今日涨停板股票分析
+                    </div>
+                </div>
+
+                <div class="collection-list" id="collectionList" style="display: none;">
+                    <div class="collection-item" onclick="selectCollection(this)">
+                        帮我选一些优质股票
+                    </div>
+                    <div class="collection-item" onclick="selectCollection(this)">
+                        分析市场热点板块
+                    </div>
+                    <div class="collection-item" onclick="selectCollection(this)">
+                        查看自选股表现
+                    </div>
+                    <div class="collection-item" onclick="selectCollection(this)">
+                        推荐一些成长性好的股票
+                    </div>
+                    <div class="collection-item" onclick="selectCollection(this)">
+                        今日大盘走势分析
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar"></div>
+                    <div class="user-name">投资者</div>
+                    <div class="vip-badge">VIP</div>
+                </div>
+                <button class="logout-btn" onclick="handleLogout()">退出登录</button>
+            </div>
+
+            <div class="collapsed-icons">
+                <button class="sidebar-icon-btn" onclick="startNewChat()" title="新会话">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                    </svg>
+                    <span>新会话</span>
+                </button>
+                <button class="sidebar-icon-btn" onclick="switchSidebarTab('history')" title="历史对话">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                    </svg>
+                    <span>历史</span>
+                </button>
+                <button class="sidebar-icon-btn" onclick="switchSidebarTab('collection')" title="收藏问句">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                    </svg>
+                    <span>收藏</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 切换按钮 -->
+        <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+            <span id="toggleIcon">◀</span>
+        </button>
+
+        <!-- 中间主体区域 -->
+        <main class="center-wrapper">
+            <div class="chat-view" id="chatView">
+                <!-- 欢迎页面（3.0组件样式） -->
+                <div class="ui-welcome" id="uiWelcome">
+                    <div class="ui-welcome-block">
+                        <div class="ui-welcome-card">
+                            <div class="ui-welcome-text text-bottom">
+                                <p>您好！我是问小达，您的AI金融助手。</p>
+                                <p>今天A股市场表现强劲，上证指数上涨1.2%，深证成指上涨1.5%，创业板指上涨1.8%。市场成交量明显放大，资金净流入超过200亿元。</p>
+                                <p>北向资金大幅净流入，科技板块领涨，半导体、人工智能相关股票表现亮眼。建议关注具备核心技术的优质标的。</p>
+                            </div>
+                        </div>
+
+                        <div class="ui-welcome-message" onclick="clickWelcomeQuestion('今天市场热点是什么？')">
+                            <div class="message-item">今天市场热点是什么？</div>
+                        </div>
+
+                        <div class="ui-welcome-message" onclick="clickWelcomeQuestion('推荐一些低估值股票')">
+                            <div class="message-item">推荐一些低估值股票</div>
+                        </div>
+
+                        <div class="ui-welcome-message" onclick="clickWelcomeQuestion('分析科技板块的投资机会')">
+                            <div class="message-item">分析科技板块的投资机会</div>
+                        </div>
+
+                        <div class="ui-welcome-message" onclick="clickWelcomeQuestion('查看自选股的表现')">
+                            <div class="message-item">查看自选股的表现</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 对话消息将动态添加到这里 -->
+            </div>
+
+            <!-- 搜索输入组件（3.0样式） -->
+            <div class="ui-search">
+                <div class="ui-search-main">
+                    <div class="ui-search-input">
+                        <textarea
+                            class="ui-search-text"
+                            id="searchInput"
+                            placeholder="输入您的问题，享受即时的数据分析与专业解答"
+                            rows="1"
+                            onkeydown="handleKeyDown(event)"
+                            oninput="autoResizeTextarea(this)"
+                        ></textarea>
+                    </div>
+                    <div class="ui-search-action-bar">
+                        <div class="ui-search-sdsk" id="deepThinkingBtn" onclick="toggleDeepThinking()">
+                            深度思考
+                        </div>
+                        <div class="ui-search-bar-right">
+                            <button class="ui-search-send" onclick="sendMessage()">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="ui-search-tip">本内容由AI生成，仅供参考，不构成投资意见</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 右侧详情栏 -->
+        <aside class="sidebar-right" id="sidebarRight">
+            <div class="detail-header">
+                <div>
+                    <span class="detail-title">选股结果</span>
+                    <span class="detail-total">（50）</span>
+                </div>
+                <div class="detail-actions">
+                    <button class="add-favorite-btn">+ 加自选</button>
+                    <button class="close-detail-btn" onclick="closeDetail()">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="detail-content">
+                <div class="condition-tags">
+                    <span class="condition-tag">市盈率 &lt; 20</span>
+                    <span class="condition-tag">市净率 &lt; 2</span>
+                    <span class="condition-tag">ROE &gt; 10%</span>
+                    <span class="condition-tag">负债率 &lt; 60%</span>
+                    <span class="condition-tag">连续3年盈利</span>
+                </div>
+
+                <table class="stock-table">
+                    <thead>
+                        <tr>
+                            <th>股票代码</th>
+                            <th>股票名称</th>
+                            <th>最新价</th>
+                            <th>涨跌幅</th>
+                            <th>市盈率</th>
+                            <th>市净率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>000001</td>
+                            <td><a class="stock-link" href="javascript:void(0)">平安银行</a></td>
+                            <td>12.50</td>
+                            <td class="up-color">+2.35%</td>
+                            <td>5.82</td>
+                            <td>0.65</td>
+                        </tr>
+                        <tr>
+                            <td>000002</td>
+                            <td><a class="stock-link" href="javascript:void(0)">万科A</a></td>
+                            <td>18.20</td>
+                            <td class="down-color">-1.52%</td>
+                            <td>8.45</td>
+                            <td>1.12</td>
+                        </tr>
+                        <tr>
+                            <td>000333</td>
+                            <td><a class="stock-link" href="javascript:void(0)">美的集团</a></td>
+                            <td>65.80</td>
+                            <td class="up-color">+1.25%</td>
+                            <td>12.30</td>
+                            <td>3.45</td>
+                        </tr>
+                        <tr>
+                            <td>000651</td>
+                            <td><a class="stock-link" href="javascript:void(0)">格力电器</a></td>
+                            <td>35.60</td>
+                            <td class="up-color">+0.85%</td>
+                            <td>8.92</td>
+                            <td>2.18</td>
+                        </tr>
+                        <tr>
+                            <td>000858</td>
+                            <td><a class="stock-link" href="javascript:void(0)">五粮液</a></td>
+                            <td>158.20</td>
+                            <td class="down-color">-0.75%</td>
+                            <td>18.50</td>
+                            <td>5.82</td>
+                        </tr>
+                        <tr>
+                            <td>002415</td>
+                            <td><a class="stock-link" href="javascript:void(0)">海康威视</a></td>
+                            <td>32.50</td>
+                            <td class="up-color">+2.15%</td>
+                            <td>15.20</td>
+                            <td>3.25</td>
+                        </tr>
+                        <tr>
+                            <td>002594</td>
+                            <td><a class="stock-link" href="javascript:void(0)">比亚迪</a></td>
+                            <td>245.80</td>
+                            <td class="up-color">+3.25%</td>
+                            <td>25.80</td>
+                            <td>6.15</td>
+                        </tr>
+                        <tr>
+                            <td>600036</td>
+                            <td><a class="stock-link" href="javascript:void(0)">招商银行</a></td>
+                            <td>42.50</td>
+                            <td class="up-color">+1.85%</td>
+                            <td>7.25</td>
+                            <td>1.15</td>
+                        </tr>
+                        <tr>
+                            <td>600519</td>
+                            <td><a class="stock-link" href="javascript:void(0)">贵州茅台</a></td>
+                            <td>1680.00</td>
+                            <td class="down-color">-0.50%</td>
+                            <td>28.50</td>
+                            <td>8.92</td>
+                        </tr>
+                        <tr>
+                            <td>600900</td>
+                            <td><a class="stock-link" href="javascript:void(0)">长江电力</a></td>
+                            <td>24.50</td>
+                            <td class="up-color">+0.95%</td>
+                            <td>16.20</td>
+                            <td>1.85</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <button class="load-more-btn" onclick="loadMoreStocks()">查看更多</button>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // 全局变量
+        let isDeepThinking = false;
+        let messageCount = 0;
+        let currentTab = 'history';
+
+        // 侧边栏切换
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebarLeft');
+            const toggleIcon = document.getElementById('toggleIcon');
+            sidebar.classList.toggle('collapsed');
+
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.textContent = '▶';
+            } else {
+                toggleIcon.textContent = '◀';
+            }
+        }
+
+        // 切换侧边栏标签页
+        function switchSidebarTab(tab) {
+            currentTab = tab;
+            const historyList = document.getElementById('historyList');
+            const collectionList = document.getElementById('collectionList');
+            const tabs = document.querySelectorAll('.sidebar-tab');
+
+            tabs.forEach((t, index) => {
+                if ((index === 0 && tab === 'history') || (index === 1 && tab === 'collection')) {
+                    t.classList.add('active');
+                } else {
+                    t.classList.remove('active');
+                }
+            });
+
+            if (tab === 'history') {
+                historyList.style.display = 'flex';
+                collectionList.style.display = 'none';
+            } else {
+                historyList.style.display = 'none';
+                collectionList.style.display = 'flex';
+            }
+        }
+
+        // 选择历史对话
+        function selectHistory(element) {
+            const items = document.querySelectorAll('.history-item');
+            items.forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        // 选择收藏问句
+        function selectCollection(element) {
+            const items = document.querySelectorAll('.collection-item');
+            items.forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+
+            // 将收藏问句填入输入框
+            const questionText = element.textContent.trim();
+            document.getElementById('searchInput').value = questionText;
+        }
+
+        // 开始新会话
+        function startNewChat() {
+            // 清空聊天区域
+            const chatView = document.getElementById('chatView');
+            const welcomeDiv = document.getElementById('uiWelcome');
+
+            // 移除所有消息
+            const messages = chatView.querySelectorAll('.message-container');
+            messages.forEach(msg => msg.remove());
+
+            // 显示欢迎页面
+            welcomeDiv.style.display = 'flex';
+
+            // 清空输入框
+            document.getElementById('searchInput').value = '';
+        }
+
+        // 切换版本
+        function switchVersion() {
+            alert('切换到普通版本功能需要后端支持，这里仅为原型演示。');
+        }
+
+        // 退出登录
+        function handleLogout() {
+            if (confirm('确定要退出登录吗？')) {
+                alert('已退出登录（原型演示）');
+            }
+        }
+
+        // 深度思考开关
+        function toggleDeepThinking() {
+            isDeepThinking = !isDeepThinking;
+            const btn = document.getElementById('deepThinkingBtn');
+
+            if (isDeepThinking) {
+                btn.classList.add('ui-search-sdsk-active');
+            } else {
+                btn.classList.remove('ui-search-sdsk-active');
+            }
+        }
+
+        // 点击欢迎页面的推荐问句
+        function clickWelcomeQuestion(question) {
+            document.getElementById('searchInput').value = question;
+            sendMessage();
+        }
+
+        // 发送消息
+        function sendMessage() {
+            const input = document.getElementById('searchInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // 隐藏欢迎页面
+            const welcomeDiv = document.getElementById('uiWelcome');
+            welcomeDiv.style.display = 'none';
+
+            // 添加用户消息
+            addUserMessage(message);
+
+            // 清空输入框
+            input.value = '';
+            input.style.height = '24px';
+
+            // 模拟AI回复
+            setTimeout(() => {
+                if (isDeepThinking) {
+                    addAIMessageWithThinking(message);
+                } else {
+                    addAIMessage(message);
+                }
+            }, 500);
+        }
+
+        // 添加用户消息
+        function addUserMessage(message) {
+            const chatView = document.getElementById('chatView');
+            messageCount++;
+
+            const messageContainer = document.createElement('div');
+            messageContainer.className = 'message-container message-user';
+            messageContainer.innerHTML = `
+                <div class="message-bubble">${escapeHtml(message)}</div>
+                <div class="user-avatar">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                </div>
+            `;
+
+            chatView.appendChild(messageContainer);
+            chatView.scrollTop = chatView.scrollHeight;
+        }
+
+        // 添加AI消息（带思考过程）
+        function addAIMessageWithThinking(userMessage) {
+            const chatView = document.getElementById('chatView');
+            messageCount++;
+
+            const messageContainer = document.createElement('div');
+            messageContainer.className = 'message-container message-ai';
+
+            // 思考过程
+            const thinkProcess = `
+                <div class="ui-think">
+                    <div class="think-header" onclick="toggleThinkContent(this)">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+                        </svg>
+                        <span class="think-title">深度思考中...</span>
+                    </div>
+                    <div class="think-content">
+                        <div class="think-text">正在分析您的问题：${escapeHtml(userMessage)}
+
+步骤1：理解用户需求
+用户想了解股票相关信息，需要从多个维度进行分析。
+
+步骤2：数据收集
+正在获取最新的市场数据、财务指标、行业分析...
+
+步骤3：深度分析
+结合基本面、技术面、市场情绪等多方面因素进行综合评估。
+
+步骤4：结论生成
+基于以上分析，为用户提供专业的投资建议。</div>
+                    </div>
+                </div>
+            `;
+
+            // AI回复
+            const aiResponse = generateAIResponse(userMessage);
+
+            messageContainer.innerHTML = `
+                <div class="ai-avatar">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                </div>
+                <div class="message-content">
+                    ${thinkProcess}
+                    <div class="message-bubble">
+                        <div class="ai-message-text">${aiResponse}</div>
+                    </div>
+                    <button class="load-more-btn" style="margin-top: 8px;" onclick="showDetail()">查看更多</button>
+                </div>
+            `;
+
+            chatView.appendChild(messageContainer);
+            chatView.scrollTop = chatView.scrollHeight;
+        }
+
+        // 添加AI消息（不带思考过程）
+        function addAIMessage(userMessage) {
+            const chatView = document.getElementById('chatView');
+            messageCount++;
+
+            const messageContainer = document.createElement('div');
+            messageContainer.className = 'message-container message-ai';
+
+            const aiResponse = generateAIResponse(userMessage);
+
+            messageContainer.innerHTML = `
+                <div class="ai-avatar">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                </div>
+                <div class="message-content">
+                    <div class="message-bubble">
+                        <div class="ai-message-text">${aiResponse}</div>
+                    </div>
+                    <button class="load-more-btn" style="margin-top: 8px;" onclick="showDetail()">查看更多</button>
+                </div>
+            `;
+
+            chatView.appendChild(messageContainer);
+            chatView.scrollTop = chatView.scrollHeight;
+        }
+
+        // 生成AI回复
+        function generateAIResponse(userMessage) {
+            const responses = [
+                `<p>根据您的查询"<strong>${escapeHtml(userMessage)}</strong>"，我为您找到以下分析结果：</p>
+<p><strong>市场表现：</strong>今日A股三大指数集体上涨，上证指数收涨1.2%，深证成指涨1.5%，创业板指涨1.8%。两市成交额突破1万亿元，北向资金净流入超100亿元。</p>
+<p><strong>板块热点：</strong></p>
+<ul>
+<li>半导体板块涨势强劲，多只个股涨停</li>
+<li>人工智能概念持续活跃</li>
+<li>新能源板块企稳回升</li>
+<li>消费电子板块表现亮眼</li>
+</ul>
+<p><strong>投资建议：</strong>当前市场情绪向好，建议关注具备核心技术优势的优质标的，注意风险控制，合理配置资产。</p>`,
+
+                `<p>关于"<strong>${escapeHtml(userMessage)}</strong>"的分析：</p>
+<p>经过深度分析，我为您筛选出符合条件的优质股票。这些公司具备以下特点：</p>
+<ul>
+<li>财务状况良好，连续多年盈利</li>
+<li>估值合理，市盈率低于行业平均水平</li>
+<li>ROE高于15%，资产质量优秀</li>
+<li>现金流充裕，负债率低于60%</li>
+<li>行业地位稳固，具备核心竞争力</li>
+</ul>
+<p><strong>风险提示：</strong>以上内容仅供参考，不构成投资建议。投资有风险，入市需谨慎。</p>`,
+
+                `<p>针对您的问题"<strong>${escapeHtml(userMessage)}</strong>"，我为您整理了详细的数据分析：</p>
+<p><strong>基本面分析：</strong>公司营收和净利润保持稳定增长，毛利率和净利率均处于行业领先水平。</p>
+<p><strong>技术面分析：</strong>股价呈现上涨趋势，成交量温和放大，技术指标MACD金叉，RSI处于合理区间。</p>
+<p><strong>市场情绪：</strong>机构评级以买入为主，北向资金持续流入，市场情绪积极。</p>
+<p><strong>综合评级：</strong>★★★★☆</p>
+<p>建议关注回调机会，可考虑逢低布局。</p>`
+            ];
+
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        // 切换思考内容展开/收起
+        function toggleThinkContent(header) {
+            header.classList.toggle('expanded');
+            const content = header.nextElementSibling;
+            content.classList.toggle('expanded');
+
+            const title = header.querySelector('.think-title');
+            if (content.classList.contains('expanded')) {
+                title.textContent = '思考过程（点击收起）';
+            } else {
+                title.textContent = '深度思考中...';
+            }
+        }
+
+        // 显示右侧详情栏
+        function showDetail() {
+            const sidebarRight = document.getElementById('sidebarRight');
+            sidebarRight.classList.add('show');
+        }
+
+        // 关闭右侧详情栏
+        function closeDetail() {
+            const sidebarRight = document.getElementById('sidebarRight');
+            sidebarRight.classList.remove('show');
+        }
+
+        // 加载更多股票
+        function loadMoreStocks() {
+            alert('加载更多数据（原型演示）');
+        }
+
+        // 处理键盘事件
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // 自动调整textarea高度
+        function autoResizeTextarea(textarea) {
+            textarea.style.height = '24px';
+            const newHeight = Math.min(textarea.scrollHeight, 120);
+            textarea.style.height = newHeight + 'px';
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('问小达3.0 PC版原型已加载');
+        });
+    </script>
+</body>
+</html>

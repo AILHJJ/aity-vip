@@ -18,15 +18,9 @@ export default defineConfig({
     }
   },
   build: {
-    // 生产环境移除 console 和 debugger
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-        pure_funcs: ['console.log']
-      }
-    },
+    // 使用esbuild替代terser（更快的压缩速度，更低的内存占用）
+    minify: 'esbuild',
+    target: 'es2015',
     // 代码分割优化
     rollupOptions: {
       output: {

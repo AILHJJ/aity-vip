@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>问小达PC/Web版原型图 V6 Final - 完全优化版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* 通达信主色调 */
+            --primary-color: #4691f7;
+            --primary-hover: #3b7fd9;
+            --accent-color: #7c75cb;
+
+            /* 涨跌色 - 通达信风格 */
+            --up-color: #f01414;
+            --down-color: #229d45;
+
+            /* 背景色 - 完全复用真实项目 */
+            --bg-main: linear-gradient(138deg, #e7ebfc 9%, #efe7f8 67%);
+            --bg-sidebar: #ffffff;
+
+            /* 文字颜色 */
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+
+            /* 边框和分割 */
+            --border-color: #e4e7ed;
+            --border-light: #ebeef5;
+
+            /* 阴影 */
+            --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --shadow-sidebar: 2px 0 8px rgba(0, 0, 0, 0.06);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        /* ========== 整体布局 ========== */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        /* ========== 主体三栏布局 ========== */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ========== 左侧栏 ========== */
+        .sidebar-left {
+            width: 260px;
+            min-width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            position: relative;
+            box-shadow: var(--shadow-sidebar);
+            z-index: 10;
+        }
+
+        .sidebar-left.collapsed {
+            width: 60px;
+            min-width: 60px;
+            overflow: visible;
+        }
+
+        /* V5: 左侧栏顶部区域 */
+        .sidebar-header-v5 {
+            padding: 16px 12px;
+            border-bottom: 1px solid var(--border-color);
+            background: #fafbfc;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .sidebar-brand-logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-brand-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-brand-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .sidebar-brand-slogan {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .sidebar-version-switch {
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .sidebar-version-switch:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .sidebar-version-icon {
+            width: 14px;
+            height: 14px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Cpath d='M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'/%3E%3C/svg%3E") no-repeat center;
+            background-size: contain;
+            flex-shrink: 0;
+        }
+
+        /* 左侧栏收起时只显示图标 */
+        .sidebar-left.collapsed .sidebar-header-v5 {
+            padding: 8px;
+        }
+
+        .sidebar-left.collapsed .sidebar-brand {
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-left.collapsed .sidebar-brand-text,
+        .sidebar-left.collapsed .sidebar-version-switch span {
+            display: none;
+        }
+
+        .sidebar-left.collapsed .sidebar-version-switch {
+            padding: 8px;
+            justify-content: center;
+        }
+
+        /* 新会话按钮 */
+        .new-chat-btn {
+            margin: 12px;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(70, 145, 247, 0.25);
+        }
+
+        .new-chat-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(70, 145, 247, 0.35);
+        }
+
+        /* Tab切换 */
+        .tab-nav {
+            display: flex;
+            border-bottom: 1px solid var(--border-light);
+            background: #fafbfc;
+        }
+
+        .tab-item {
+            flex: 1;
+            padding: 14px 0;
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tab-item.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: 500;
+            background: white;
+        }
+
+        /* 列表内容 */
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .sidebar-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: #c0c4cc;
+            border-radius: 3px;
+        }
+
+        .history-item {
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 2px;
+            border: 1px solid transparent;
+        }
+
+        .history-item:hover {
+            background: #f5f7fa;
+            border-color: var(--border-light);
+        }
+
+        .history-item.active {
+            background: #ecf5ff;
+            border-color: #b3d8ff;
+        }
+
+        .history-item-title {
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-item-title .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .history-item-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding-left: 14px;
+        }
+
+        /* 收藏问句分类 */
+        .collect-tabs {
+            display: flex;
+            padding: 8px 12px;
+            gap: 6px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .collect-tab {
+            padding: 5px 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: #f0f2f5;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .collect-tab.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .collect-item {
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .collect-item:hover {
+            background: #f5f7fa;
+            border-color: var(--border-light);
+        }
+
+        .collect-item-text {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        /* 左侧栏底部用户信息 */
+        .sidebar-footer {
+            padding: 12px;
+            border-top: 1px solid var(--border-color);
+            background: #fafbfc;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .user-info:hover {
+            background: #f0f2f5;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .user-detail {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-status {
+            font-size: 12px;
+            color: var(--down-color);
+        }
+
+        /* 侧边栏收起按钮 */
+        .sidebar-toggle {
+            position: absolute;
+            top: 50%;
+            right: -14px;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 56px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-left: none;
+            border-radius: 0 14px 14px 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: var(--text-muted);
+            z-index: 10;
+            transition: all 0.2s;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* ========== 中间主体区域 - 完全复用真实项目 ========== */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 完全复用真实项目的布局结构 */
+        .tdx-container {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(138deg, #e7ebfc 9%, #efe7f8 67%);
+        }
+
+        .tdx-container-main {
+            overflow: hidden;
+        }
+
+        .tdx-main {
+            position: absolute;
+            top: 0;
+            bottom: 56px;
+            left: 0;
+            right: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+        }
+
+        .tdx-view {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            left: 0;
+            right: 0;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 0 0 100px;
+        }
+
+        .tdx-container-version1_5 .tdx-view {
+            padding-bottom: 100px;
+        }
+
+        /* 自定义滚动条 */
+        .tdx-view::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .tdx-view::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .tdx-view::-webkit-scrollbar-thumb {
+            background: #c0c4cc;
+            border-radius: 3px;
+        }
+
+        /* 下拉刷新 - 完全复用真实项目 */
+        .van-pull-refresh {
+            min-height: 100%;
+            position: relative;
+        }
+
+        .pull-refresh-track {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            transform: translateY(-100%);
+            transition: transform 0.3s;
+        }
+
+        .pull-refresh-track.loading {
+            transform: translateY(0);
+        }
+
+        .pull-refresh-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* 免责声明 - 完全复用真实项目 */
+        .van-notice-bar {
+            height: 36px;
+            padding: 0 16px;
+            background: #fffbe8;
+            color: #ed6a0c;
+            font-size: 12px;
+            line-height: 36px;
+            border-bottom: 1px solid #ffe58f;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .van-notice-bar__content {
+            flex: 1;
+        }
+
+        .van-notice-bar__close {
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        /* 欢迎页面 */
+        .welcome-container {
+            padding: 40px 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .welcome-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--accent-color) 0%, #6366f1 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(124, 117, 203, 0.2);
+        }
+
+        .welcome-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .welcome-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .welcome-questions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .welcome-question-item {
+            padding: 14px 16px;
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .welcome-question-item:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(70, 145, 247, 0.1);
+        }
+
+        /* 对话消息样式 */
+        .chat-message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-user {
+            display: flex;
+            justify-content: flex-end;
+            padding: 20px 24px;
+        }
+
+        .message-user .message-bubble {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            color: white;
+            border-radius: 18px 18px 4px 18px;
+            padding: 12px 18px;
+            max-width: 80%;
+            box-shadow: 0 2px 8px rgba(70, 145, 247, 0.2);
+        }
+
+        .message-ai {
+            padding: 20px 24px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .ai-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent-color) 0%, #6366f1 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(124, 117, 203, 0.2);
+        }
+
+        .message-ai .message-content {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            max-width: 80%;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            flex: 1;
+        }
+
+        .message-text {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-primary);
+        }
+
+        /* 思考过程 - 完全复用真实项目样式 */
+        .think-process-container {
+            background: linear-gradient(138deg, #f0f4ff 0%, #f5f0ff 100%);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #e0d8ff;
+        }
+
+        .think-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--accent-color);
+            font-weight: 500;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .think-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .step-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        /* 数据表格 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 13px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .data-table th {
+            background: #f5f7fa;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover {
+            background: #f5f7fa;
+        }
+
+        .stock-link {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .stock-link:hover {
+            text-decoration: underline;
+        }
+
+        .price-up {
+            color: var(--up-color);
+            font-weight: 500;
+        }
+
+        .price-down {
+            color: var(--down-color);
+            font-weight: 500;
+        }
+
+        /* 查看更多按钮 */
+        .view-more-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 16px;
+            background: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.2s;
+        }
+
+        .view-more-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* 消息操作按钮 */
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .msg-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .msg-action-btn:hover {
+            background: #f5f7fa;
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        /* 底部输入框 - 完全复用真实项目设计 */
+        .tdx-fixed-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .tdx-control {
+            width: 100%;
+            max-width: 900px;
+            position: relative;
+            padding: 0 10px 15px 10px;
+            background: linear-gradient(138deg, #e7ebfc 9%, #efe7f8 67%);
+        }
+
+        /* 输入框组件 */
+        .ui-search {
+            width: 100%;
+            position: relative;
+        }
+
+        .ui-search-main {
+            width: 100%;
+            padding: 10px;
+            border-radius: 0 0 8px 8px;
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0px 1px 8px 0px rgba(0, 0, 0, 0.03);
+            backdrop-filter: blur(2.5px);
+        }
+
+        .ui-search-input {
+            border-radius: 4px;
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .ui-search-text {
+            width: 100%;
+            line-height: 24px;
+            border: 0;
+            outline: 0;
+            padding: 0 8px;
+            resize: none;
+            vertical-align: bottom;
+            color: #333;
+            font-size: 14px;
+            font-family: inherit;
+            min-height: 24px;
+            max-height: 72px;
+            background: transparent;
+        }
+
+        .ui-search-text::placeholder {
+            color: #999;
+        }
+
+        .ui-search-action-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* 深度思考按钮 */
+        .ui-search-sdsk {
+            padding: 0 10px;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: 0px 1px 8px 0px rgba(0, 0, 0, 0.03);
+            backdrop-filter: blur(2.5px);
+            border: 0.5px solid #dddddd;
+            border-radius: 14.5px;
+            font-size: 12px;
+            line-height: 28px;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ui-search-sdsk:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .ui-search-sdsk-active {
+            border: none;
+            background: linear-gradient(180deg, #4691f7, #7c75cb);
+            color: white;
+        }
+
+        .ui-search-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* 发送按钮 */
+        .ui-search-send {
+            width: 29px;
+            height: 29px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234691f7'%3E%3Cpath d='M2.01 21L23 12 2.01 3 2 10l15 2-15 2z'/%3E%3C/svg%3E") no-repeat center;
+            background-size: 20px 20px;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s;
+        }
+
+        .ui-search-send:hover {
+            transform: scale(1.1);
+        }
+
+        /* 分类标签栏 */
+        .category-tabs-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 6px 6px 0 0;
+            padding: 6px 10px;
+            position: relative;
+        }
+
+        .category-expand-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+            transition: all 0.2s;
+            box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .category-expand-btn:hover {
+            background: white;
+            color: var(--primary-color);
+        }
+
+        .category-tabs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            flex: 1;
+            padding: 2px 0;
+            transition: all 0.3s ease;
+            max-height: 40px;
+            opacity: 1;
+        }
+
+        .category-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .category-tabs.collapsed {
+            max-height: 0;
+            opacity: 0;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .category-tab {
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            flex-shrink: 0;
+        }
+
+        .category-tab:hover {
+            background: white;
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .category-tab.active {
+            background: linear-gradient(180deg, #4691f7, #7c75cb);
+            color: white;
+            font-weight: 500;
+        }
+
+        /* ========== 右侧栏 ========== */
+        .sidebar-right {
+            width: 0;
+            background: var(--bg-sidebar);
+            border-left: 1px solid var(--border-color);
+            overflow: hidden;
+            transition: width 0.3s ease;
+            flex-shrink: 0;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.06);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-right.expanded {
+            width: 520px;
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: #fafbfc;
+        }
+
+        .detail-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .detail-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .detail-count {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .detail-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 解析条件展示行 */
+        .parsing-conditions {
+            padding: 12px 20px;
+            background: linear-gradient(138deg, #f0f4ff 0%, #f8f5ff 100%);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .parsing-conditions-title {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .parsing-conditions-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .parsing-tag {
+            padding: 4px 12px;
+            background: white;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            border-radius: 12px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .parsing-tag-icon {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .add-favorite-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, var(--down-color) 0%, #16a34a 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-favorite-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+        }
+
+        .close-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #f0f2f5;
+            color: var(--text-primary);
+        }
+
+        .detail-content {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .detail-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .detail-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .detail-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .detail-content::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* 分页区域样式 */
+        .pagination-load-more {
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-color);
+            background: #fafbfc;
+            text-align: center;
+        }
+
+        .load-more-btn {
+            padding: 8px 24px;
+            background: white;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .load-more-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .detail-table th {
+            background: #f5f7fa;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 500;
+            color: var(--text-secondary);
+            position: sticky;
+            top: 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .detail-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .detail-table tr:hover {
+            background: #f5f7fa;
+        }
+
+        /* PC版专用 */
+        .pc-only {
+            display: inline;
+        }
+
+        /* 原型说明 */
+        .prototype-note {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 13px;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body class="pc-version tdx-container-version1_5">
+    <div class="app-container tdx-container">
+        <!-- V6: 无顶部栏，直接开始三栏布局 -->
+        <div class="main-layout">
+            <!-- 左侧栏 -->
+            <aside class="sidebar-left" id="sidebarLeft">
+                <!-- V5: 左侧栏顶部区域 -->
+                <div class="sidebar-header-v5">
+                    <div class="sidebar-brand">
+                        <div class="sidebar-brand-logo"></div>
+                        <div class="sidebar-brand-text">
+                            <span class="sidebar-brand-name">问小达</span>
+                            <span class="sidebar-brand-slogan">让投资成为一句话的事</span>
+                        </div>
+                    </div>
+                    <button class="sidebar-version-switch" onclick="location.href='https://wenda.tdx.com.cn/site/wenda/index.html'">
+                        <div class="sidebar-version-icon"></div>
+                        <span>切换回普通版本</span>
+                    </button>
+                </div>
+
+                <button class="sidebar-toggle" onclick="toggleSidebar()" title="收起/展开侧边栏">◀</button>
+
+                <button class="new-chat-btn" onclick="startNewChat()">
+                    <span>+</span>
+                    <span>开启新会话</span>
+                </button>
+
+                <!-- Tab切换 -->
+                <div class="tab-nav">
+                    <div class="tab-item active" onclick="switchTab(this, 'history')">历史对话</div>
+                    <div class="tab-item" onclick="switchTab(this, 'collect')">收藏问句</div>
+                </div>
+
+                <!-- 历史对话列表 -->
+                <div id="history-panel" class="sidebar-content">
+                    <div class="history-item active" onclick="selectHistory(this)">
+                        <div class="history-item-title">
+                            <span class="dot"></span>
+                            贵州茅台的最新股价是多少？
+                        </div>
+                        <div class="history-item-time">2026-03-12 10:30</div>
+                    </div>
+                    <div class="history-item" onclick="selectHistory(this)">
+                        <div class="history-item-title">
+                            <span class="dot"></span>
+                            帮我找一下今天涨停的股票
+                        </div>
+                        <div class="history-item-time">2026-03-11 15:20</div>
+                    </div>
+                    <div class="history-item" onclick="selectHistory(this)">
+                        <div class="history-item-title">
+                            <span class="dot"></span>
+                            最新的CPI数据是多少
+                        </div>
+                        <div class="history-item-time">2026-03-10 09:15</div>
+                    </div>
+                </div>
+
+                <!-- 收藏问句列表 -->
+                <div id="collect-panel" class="sidebar-content" style="display: none;">
+                    <div class="collect-tabs">
+                        <span class="collect-tab active" onclick="switchCollectTab(this)">AI对话</span>
+                        <span class="collect-tab" onclick="switchCollectTab(this)">A股</span>
+                        <span class="collect-tab" onclick="switchCollectTab(this)">基金</span>
+                        <span class="collect-tab" onclick="switchCollectTab(this)">指数</span>
+                    </div>
+                    <div style="padding: 8px;">
+                        <div class="collect-item" onclick="executeQuestion('今天涨停且资金流入的股票')">
+                            <span class="collect-item-text">今天涨停且资金流入的股票</span>
+                        </div>
+                        <div class="collect-item" onclick="executeQuestion('市盈率低于20的银行股')">
+                            <span class="collect-item-text">市盈率低于20的银行股</span>
+                        </div>
+                        <div class="collect-item" onclick="executeQuestion('MACD金叉的科技股')">
+                            <span class="collect-item-text">MACD金叉的科技股</span>
+                        </div>
+                        <div class="collect-item" onclick="executeQuestion('连续3日上涨的股票')">
+                            <span class="collect-item-text">连续3日上涨的股票</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 底部用户信息 -->
+                <div class="sidebar-footer">
+                    <div class="user-info">
+                        <div class="user-avatar">张</div>
+                        <div class="user-detail">
+                            <div class="user-name">张先生</div>
+                            <div class="user-status">点击退出登录</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 中间主体 - 完全复用真实项目tdx-wenda-ai的设计 -->
+            <main class="main-content">
+                <!-- 完全复用真实项目的布局结构 -->
+                <div class="tdx-container tdx-container-main">
+                    <div class="tdx-main">
+                        <div class="tdx-view" id="tdxView">
+                            <!-- 下拉刷新 -->
+                            <div class="pull-refresh-track" id="pullRefreshTrack">
+                                <div class="pull-refresh-text">下拉加载历史记录</div>
+                            </div>
+
+                            <!-- 免责声明 -->
+                            <div class="van-notice-bar" id="noticeBar">
+                                <div class="van-notice-bar__content">
+                                    免责声明：本内容仅供参考，不构成投资建议，本公司不对据此操作产生的盈亏承担任何责任
+                                </div>
+                                <div class="van-notice-bar__close" onclick="closeNotice()">×</div>
+                            </div>
+
+                            <!-- 欢迎页面 -->
+                            <div class="welcome-container" id="welcomeContainer">
+                                <div class="welcome-avatar">AI</div>
+                                <div class="welcome-title">Hi~,我是您的智能助手小达！</div>
+                                <div class="welcome-subtitle">
+                                    您可以问我关于股票、基金、指数的各种问题，我会尽力为您提供专业的分析和建议。
+                                </div>
+                                <div class="welcome-questions">
+                                    <div class="welcome-question-item" onclick="askWelcomeQuestion('帮我找一下今天涨停的股票')">
+                                        帮我找一下今天涨停的股票
+                                    </div>
+                                    <div class="welcome-question-item" onclick="askWelcomeQuestion('贵州茅台的最新股价是多少')">
+                                        贵州茅台的最新股价是多少
+                                    </div>
+                                    <div class="welcome-question-item" onclick="askWelcomeQuestion('市盈率低于20的银行股有哪些')">
+                                        市盈率低于20的银行股有哪些
+                                    </div>
+                                    <div class="welcome-question-item" onclick="askWelcomeQuestion('北向资金今日流入情况')">
+                                        北向资金今日流入情况
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 对话消息容器 -->
+                            <div id="chatMessages"></div>
+                        </div>
+                    </div>
+
+                    <!-- 完全复用真实项目的底部输入框 -->
+                    <div class="tdx-fixed-bottom" id="tdxFixedBottom">
+                        <div class="tdx-control">
+                            <!-- 分类标签栏和输入框整合在一起 -->
+                            <div class="ui-search">
+                                <!-- 分类标签栏 -->
+                                <div class="category-tabs-wrapper">
+                                    <button class="category-expand-btn" onclick="toggleCategoryTabs()">
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                                            <path d="M6 8L2 4h8z"/>
+                                        </svg>
+                                    </button>
+                                    <div class="category-tabs" id="categoryTabs">
+                                        <div class="category-tab active" onclick="selectCategory(this, '投资目标')">投资目标</div>
+                                        <div class="category-tab" onclick="selectCategory(this, '大势研判')">大势研判</div>
+                                        <div class="category-tab" onclick="selectCategory(this, '行业分析')">行业分析</div>
+                                        <div class="category-tab" onclick="selectCategory(this, '股票诊断')">股票诊断</div>
+                                        <div class="category-tab" onclick="selectCategory(this, '选股票')">选股票</div>
+                                        <div class="category-tab" onclick="selectCategory(this, '买卖点研判')">买卖点研判</div>
+                                        <div class="category-tab" onclick="selectCategory(this, '走势预测')">走势预测</div>
+                                        <div class="category-tab" onclick="selectCategory(this, 'AI复盘')">AI复盘</div>
+                                        <div class="category-tab" onclick="selectCategory(this, '账户管理')">账户管理</div>
+                                        <div class="category-tab" onclick="selectCategory(this, '热力雷达')">热力雷达</div>
+                                        <div class="category-tab" onclick="selectCategory(this, '智能图说')">智能图说</div>
+                                    </div>
+                                </div>
+                                <!-- 输入框主体 -->
+                                <div class="ui-search-main">
+                                    <div class="ui-search-input">
+                                        <textarea class="ui-search-text" placeholder="输入您的问题，享受即时的数据分析与专业解答" rows="1" id="searchInput"></textarea>
+                                    </div>
+                                    <div class="ui-search-action-bar">
+                                        <div class="ui-search-sdsk" id="deepThinkBtn" onclick="toggleDeepThink(this)">
+                                            深度思考
+                                        </div>
+                                        <div class="ui-search-bar-right">
+                                            <button class="ui-search-send" onclick="sendMessage()"></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- 右侧栏 -->
+            <aside class="sidebar-right" id="detailSidebar">
+                <div class="detail-header">
+                    <div class="detail-header-left">
+                        <span class="detail-title">今天涨停的股票</span>
+                        <span class="detail-count">156只</span>
+                    </div>
+                    <div class="detail-header-actions">
+                        <button class="add-favorite-btn pc-only" onclick="addFavorite()">
+                            <span>+ 加自选</span>
+                        </button>
+                        <button class="close-btn" onclick="toggleDetail()">×</button>
+                    </div>
+                </div>
+
+                <!-- 解析条件展示行 -->
+                <div class="parsing-conditions">
+                    <div class="parsing-conditions-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                        <span>解析条件</span>
+                    </div>
+                    <div class="parsing-conditions-tags">
+                        <span class="parsing-tag">
+                            <span class="parsing-tag-icon">✓</span>
+                            涨跌幅=涨停
+                        </span>
+                        <span class="parsing-tag">
+                            <span class="parsing-tag-icon">✓</span>
+                            按成交额降序
+                        </span>
+                        <span class="parsing-tag">
+                            <span class="parsing-tag-icon">✓</span>
+                            当日数据
+                        </span>
+                    </div>
+                </div>
+
+                <div class="detail-content" id="detailContent">
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>代码</th>
+                                <th>名称</th>
+                                <th>最新价</th>
+                                <th>涨跌幅</th>
+                                <th>成交额</th>
+                                <th>换手率</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailTableBody">
+                            <tr>
+                                <td>000001</td>
+                                <td><a href="javascript:void(0)" class="stock-link">平安银行</a></td>
+                                <td>12.45</td>
+                                <td class="price-up">+10.02%</td>
+                                <td>28.6亿</td>
+                                <td>3.25%</td>
+                            </tr>
+                            <tr>
+                                <td>000002</td>
+                                <td><a href="javascript:void(0)" class="stock-link">万科A</a></td>
+                                <td>8.92</td>
+                                <td class="price-up">+10.01%</td>
+                                <td>18.3亿</td>
+                                <td>2.18%</td>
+                            </tr>
+                            <tr>
+                                <td>600519</td>
+                                <td><a href="javascript:void(0)" class="stock-link">贵州茅台</a></td>
+                                <td>1789.00</td>
+                                <td class="price-up">+10.00%</td>
+                                <td>15.2亿</td>
+                                <td>0.85%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页加载更多 -->
+                <div class="pagination-load-more">
+                    <button class="load-more-btn" onclick="loadMoreStocks()">
+                        查看更多 (1/16页)
+                    </button>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- 原型说明 -->
+    <div class="prototype-note">
+        V6 Final 完全优化版 | 完全复用真实项目tdx-wenda-ai | 整合所有交互功能 | 下拉刷新+解析条件+分页加载+操作按钮
+    </div>
+
+    <script>
+        let currentPage = 1;
+        const totalPages = 16;
+        let isPullRefreshLoading = false;
+
+        // Tab切换
+        function switchTab(el, tab) {
+            document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
+            el.classList.add('active');
+
+            document.getElementById('history-panel').style.display = tab === 'history' ? 'block' : 'none';
+            document.getElementById('collect-panel').style.display = tab === 'collect' ? 'block' : 'none';
+        }
+
+        function switchCollectTab(el) {
+            document.querySelectorAll('.collect-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function selectHistory(el) {
+            document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function toggleDetail() {
+            const sidebar = document.getElementById('detailSidebar');
+            sidebar.classList.toggle('expanded');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebarLeft');
+            sidebar.classList.toggle('collapsed');
+            const toggleBtn = sidebar.querySelector('.sidebar-toggle');
+            if (sidebar.classList.contains('collapsed')) {
+                toggleBtn.innerHTML = '▶';
+            } else {
+                toggleBtn.innerHTML = '◀';
+            }
+        }
+
+        function startNewChat() {
+            alert('开启新会话：清空当前对话，创建新的threadId');
+            document.getElementById('chatMessages').innerHTML = '';
+            document.getElementById('welcomeContainer').style.display = 'block';
+        }
+
+        function executeQuestion(question) {
+            alert('执行问句：' + question);
+        }
+
+        function toggleCategoryTabs() {
+            const tabs = document.getElementById('categoryTabs');
+            const btn = document.querySelector('.category-expand-btn');
+            tabs.classList.toggle('collapsed');
+            btn.classList.toggle('collapsed');
+        }
+
+        function selectCategory(el, categoryName) {
+            document.querySelectorAll('.category-tab').forEach(tab => tab.classList.remove('active'));
+            el.classList.add('active');
+            console.log('选择分类:', categoryName);
+        }
+
+        function toggleDeepThink(el) {
+            el.classList.toggle('ui-search-sdsk-active');
+        }
+
+        function closeNotice() {
+            document.getElementById('noticeBar').style.display = 'none';
+        }
+
+        function addFavorite() {
+            alert('添加到自选股（仅PC客户端支持）');
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('searchInput');
+            const text = input.value.trim();
+            if (text) {
+                addMessage(text);
+                input.value = '';
+            }
+        }
+
+        function askWelcomeQuestion(question) {
+            addMessage(question);
+        }
+
+        function addMessage(text) {
+            const welcomeContainer = document.getElementById('welcomeContainer');
+            if (welcomeContainer) {
+                welcomeContainer.style.display = 'none';
+            }
+
+            const chatMessages = document.getElementById('chatMessages');
+
+            // 添加用户消息
+            const userMsg = document.createElement('div');
+            userMsg.className = 'chat-message message-user';
+            userMsg.innerHTML = `
+                <div class="message-bubble">
+                    <div class="message-text">${text}</div>
+                </div>
+            `;
+            chatMessages.appendChild(userMsg);
+
+            // 添加AI回复（模拟）
+            setTimeout(() => {
+                const aiMsg = document.createElement('div');
+                aiMsg.className = 'chat-message message-ai';
+                aiMsg.innerHTML = `
+                    <div class="ai-avatar">AI</div>
+                    <div class="message-content">
+                        <div class="think-process-container">
+                            <div class="think-header">
+                                <span>🧠</span>
+                                <span>深度思考过程</span>
+                            </div>
+                            <div class="think-step">
+                                <span class="step-icon">1</span>
+                                <span class="step-text">理解用户需求：${text}</span>
+                            </div>
+                            <div class="think-step">
+                                <span class="step-icon">2</span>
+                                <span class="step-text">正在分析数据...</span>
+                            </div>
+                        </div>
+                        <div class="message-text">
+                            为您找到相关数据，共<strong>156</strong>只股票：
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>代码</th>
+                                    <th>名称</th>
+                                    <th>最新价</th>
+                                    <th>涨跌幅</th>
+                                    <th>成交额(亿)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>000001</td>
+                                    <td><a href="javascript:void(0)" class="stock-link">平安银行</a></td>
+                                    <td>12.45</td>
+                                    <td class="price-up">+10.02%</td>
+                                    <td>28.6</td>
+                                </tr>
+                                <tr>
+                                    <td>000002</td>
+                                    <td><a href="javascript:void(0)" class="stock-link">万科A</a></td>
+                                    <td>8.92</td>
+                                    <td class="price-up">+10.01%</td>
+                                    <td>18.3</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button class="view-more-btn" onclick="toggleDetail()">
+                            <span>查看更多</span>
+                            <span>→</span>
+                        </button>
+                        <div class="message-actions">
+                            <button class="msg-action-btn">
+                                <span>☆</span>
+                                <span>收藏</span>
+                            </button>
+                            <button class="msg-action-btn">
+                                <span>↗</span>
+                                <span>分享</span>
+                            </button>
+                            <button class="msg-action-btn">
+                                <span>⧉</span>
+                                <span>复制</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                chatMessages.appendChild(aiMsg);
+
+                // 滚动到底部
+                const tdxView = document.getElementById('tdxView');
+                tdxView.scrollTop = tdxView.scrollHeight;
+            }, 500);
+        }
+
+        // 下拉刷新
+        const tdxView = document.getElementById('tdxView');
+        let startY = 0;
+        let currentY = 0;
+
+        tdxView.addEventListener('touchstart', (e) => {
+            if (tdxView.scrollTop === 0) {
+                startY = e.touches[0].clientY;
+            }
+        });
+
+        tdxView.addEventListener('touchmove', (e) => {
+            if (tdxView.scrollTop === 0 && !isPullRefreshLoading) {
+                currentY = e.touches[0].clientY;
+                const diff = currentY - startY;
+                if (diff > 0 && diff < 100) {
+                    const track = document.getElementById('pullRefreshTrack');
+                    track.style.transform = `translateY(${-100 + diff}%)`;
+                }
+            }
+        });
+
+        tdxView.addEventListener('touchend', () => {
+            const track = document.getElementById('pullRefreshTrack');
+            const diff = currentY - startY;
+
+            if (diff >= 50 && !isPullRefreshLoading) {
+                // 触发刷新
+                track.classList.add('loading');
+                track.querySelector('.pull-refresh-text').textContent = '加载中...';
+                isPullRefreshLoading = true;
+
+                setTimeout(() => {
+                    track.classList.remove('loading');
+                    track.querySelector('.pull-refresh-text').textContent = '下拉加载历史记录';
+                    track.style.transform = 'translateY(-100%)';
+                    isPullRefreshLoading = false;
+                    startY = 0;
+                    currentY = 0;
+                    alert('已加载历史记录');
+                }, 1500);
+            } else {
+                track.style.transform = 'translateY(-100%)';
+            }
+            startY = 0;
+            currentY = 0;
+        });
+
+        // 分页加载
+        function loadMoreStocks() {
+            if (currentPage >= totalPages) {
+                alert('已加载全部数据');
+                return;
+            }
+
+            const btn = document.querySelector('.load-more-btn');
+            btn.textContent = '加载中...';
+
+            setTimeout(() => {
+                currentPage++;
+                const tbody = document.getElementById('detailTableBody');
+
+                // 模拟添加新数据
+                for (let i = 0; i < 5; i++) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>60${currentPage}${String(i).padStart(3, '0')}</td>
+                        <td><a href="javascript:void(0)" class="stock-link">示例股票${currentPage}-${i}</a></td>
+                        <td>${(Math.random() * 100 + 10).toFixed(2)}</td>
+                        <td class="price-up">+${(Math.random() * 5 + 5).toFixed(2)}%</td>
+                        <td>${(Math.random() * 10).toFixed(1)}亿</td>
+                        <td>${(Math.random() * 5).toFixed(2)}%</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+
+                if (currentPage >= totalPages) {
+                    btn.textContent = '已加载全部';
+                    btn.disabled = true;
+                } else {
+                    btn.textContent = `查看更多 (${currentPage}/${totalPages}页)`;
+                }
+            }, 500);
+        }
+
+        // 回车发送
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

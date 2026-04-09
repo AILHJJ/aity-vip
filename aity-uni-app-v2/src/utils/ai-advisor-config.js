@@ -7,8 +7,6 @@
  * - 生产环境：连接生产服务器代理
  */
 
-// 导入用户store（用于生成用户专属的存储key）
-import { useUserStore } from '@/store/user'
 import { API_BASE_URL, IS_PRODUCTION } from './config'
 
 // API配置 - 使用后端代理
@@ -42,7 +40,8 @@ export function getApiBaseUrl() {
  */
 export function getUserStorageKey(key) {
   try {
-    // 获取用户store
+    // 延迟导入用户store（避免循环依赖）
+    const { useUserStore } = require('@/store/user')
     const userStore = useUserStore()
     const userId = userStore.userId || 'anonymous'
 

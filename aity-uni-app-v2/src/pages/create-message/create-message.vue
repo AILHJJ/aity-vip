@@ -1720,7 +1720,7 @@ onBeforeUnmount(() => {
 <style lang="scss" scoped>
 .create-message-container {
 	height: 100vh;
-	background: #f5f5f5;
+	background-color: var(--bg-primary);
 }
 
 .form-scroll {
@@ -1738,7 +1738,7 @@ onBeforeUnmount(() => {
 .form-label {
 	display: block;
 	font-size: 28rpx;
-	color: #333333;
+	color: var(--text-primary);
 	margin-bottom: 20rpx;
 	font-weight: 500;
 }
@@ -1778,25 +1778,25 @@ onBeforeUnmount(() => {
 	justify-content: space-between;
 	height: 80rpx;
 	padding: 0 24rpx;
-	background: #ffffff;
-	border: 2rpx solid #667eea;
+	background: var(--bg-secondary);
+	border: 2rpx solid var(--color-primary);
 	border-radius: 12rpx;
 	transition: all 0.3s;
 }
 
 .quick-picker:active {
-	background: #f0f0f0;
+	background: var(--bg-hover);
 }
 
 .quick-value {
 	font-size: 30rpx;
-	color: #333333;
+	color: var(--text-primary);
 	font-weight: 500;
 }
 
 .quick-arrow {
 	font-size: 24rpx;
-	color: #667eea;
+	color: var(--color-primary);
 }
 
 .form-label-row {
@@ -1808,7 +1808,7 @@ onBeforeUnmount(() => {
 
 .mode-switch {
 	display: flex;
-	background: #f0f0f0;
+	background: var(--bg-tertiary);
 	border-radius: 8rpx;
 	padding: 4rpx;
 }
@@ -1816,15 +1816,15 @@ onBeforeUnmount(() => {
 .mode-btn {
 	padding: 8rpx 24rpx;
 	font-size: 24rpx;
-	color: #666666;
+	color: var(--text-secondary);
 	border-radius: 6rpx;
 	transition: all 0.3s;
 	cursor: pointer;
 }
 
 .mode-btn.active {
-	background: #ffffff;
-	color: #667eea;
+	background: var(--bg-secondary);
+	color: var(--color-primary);
 	font-weight: 500;
 	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.2);
 }
@@ -1838,9 +1838,9 @@ onBeforeUnmount(() => {
 	height: 88rpx;
 	padding: 0 24rpx;
 	font-size: 28rpx;
-	color: #333333;
-	background-color: #ffffff;
-	border: 2rpx solid #e0e0e0;
+	color: var(--text-primary);
+	background-color: var(--bg-secondary);
+	border: 2rpx solid var(--border-primary);
 	border-radius: 8rpx;
 	box-sizing: border-box;
 }
@@ -1851,8 +1851,8 @@ onBeforeUnmount(() => {
 	justify-content: space-between;
 	height: 88rpx;
 	padding: 0 24rpx;
-	background-color: #ffffff;
-	border: 2rpx solid #e0e0e0;
+	background-color: var(--bg-secondary);
+	border: 2rpx solid var(--border-primary);
 	border-radius: 8rpx;
 }
 
@@ -1886,17 +1886,17 @@ onBeforeUnmount(() => {
 
 .picker-text {
 	font-size: 28rpx;
-	color: #333333;
+	color: var(--text-primary);
 }
 
 .picker-placeholder {
 	font-size: 28rpx;
-	color: #999999;
+	color: var(--text-placeholder);
 }
 
 .picker-arrow {
 	font-size: 20rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 }
 
 .form-textarea {
@@ -1904,9 +1904,9 @@ onBeforeUnmount(() => {
 	min-height: 300rpx;
 	padding: 24rpx;
 	font-size: 28rpx;
-	color: #333333;
-	background-color: #ffffff;
-	border: 2rpx solid #e0e0e0;
+	color: var(--text-primary);
+	background-color: var(--bg-secondary);
+	border: 2rpx solid var(--border-primary);
 	border-radius: 8rpx;
 	box-sizing: border-box;
 	line-height: 1.6;
@@ -1917,8 +1917,8 @@ onBeforeUnmount(() => {
 	align-items: center;
 	gap: 12rpx;
 	padding: 16rpx 20rpx;
-	background: #fafafa;
-	border: 2rpx solid #e0e0e0;
+	background: var(--bg-tertiary);
+	border: 2rpx solid var(--border-primary);
 	border-bottom: none;
 	border-radius: 8rpx 8rpx 0 0;
 	margin-bottom: 0;
@@ -1934,18 +1934,18 @@ onBeforeUnmount(() => {
 	font-size: 28rpx;
 	font-weight: 600;
 	font-family: Arial, sans-serif;
-	color: #666666;
-	background: #ffffff;
-	border: 2rpx solid #d9d9d9;
+	color: var(--text-secondary);
+	background: var(--bg-secondary);
+	border: 2rpx solid var(--border-primary);
 	border-radius: 6rpx;
 	transition: all 0.2s;
 	cursor: pointer;
 }
 
 .toolbar-btn:active {
-	background: #667eea;
+	background: var(--color-primary);
 	color: #ffffff;
-	border-color: #667eea;
+	border-color: var(--color-primary);
 	transform: scale(0.95);
 }
 
@@ -1957,8 +1957,8 @@ onBeforeUnmount(() => {
 	min-height: 400rpx;
 	max-height: 800rpx;
 	padding: 32rpx 28rpx;
-	background-color: #ffffff;
-	border: 2rpx solid #e0e0e0;
+	background-color: var(--bg-secondary);
+	border: 2rpx solid var(--border-primary);
 	border-radius: 8rpx;
 	box-sizing: border-box;
 	overflow-y: auto;
@@ -1966,13 +1966,12 @@ onBeforeUnmount(() => {
 
 .markdown-preview {
 	font-size: 30rpx;
-	color: #2c3e50;
+	color: var(--text-primary);
 	line-height: 1.9;
 	word-wrap: break-word;
 	overflow-wrap: break-word;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
-
 /* Markdown渲染样式 - 参考mdnice */
 .markdown-preview h1,
 .markdown-preview h2,
@@ -1980,7 +1979,7 @@ onBeforeUnmount(() => {
 	margin: 48rpx 0 24rpx;
 	font-weight: 700;
 	line-height: 1.4;
-	color: #1a1a1a;
+	color: var(--text-primary);
 }
 
 .markdown-preview h1 {

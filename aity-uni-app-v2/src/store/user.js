@@ -3,7 +3,6 @@
  */
 import { defineStore } from 'pinia'
 import { loginApi, logoutApi, getCurrentUserApi, changePasswordApi } from '../api/auth'
-import { clearChatHistory } from '@/utils/ai-advisor-config'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -101,7 +100,11 @@ export const useUserStore = defineStore('user', {
       } finally {
         // 清除AI对话历史（用户隔离，确保隐私）
         try {
-          clearChatHistory()
+          const userId = this.userId || 'anonymous'
+          const historyKey = `ai_advisor_${userId}_chat_history`
+          const threadKey = `ai_advisor_${userId}_thread_id`
+          uni.removeStorageSync(historyKey)
+          uni.removeStorageSync(threadKey)
         } catch (error) {
           console.error('清除对话历史失败:', error)
         }

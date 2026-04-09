@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>问小达PC/Web版原型图 V3</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* 主色调 - 金融蓝 */
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent-color: #8b5cf6;
+
+            /* 涨跌色 */
+            --up-color: #fc4a4a;
+            --down-color: #229d45;
+
+            /* 背景色 */
+            --bg-main: #f5f7fa;
+            --bg-sidebar: #ffffff;
+            --bg-header: #ffffff;
+
+            /* 文字颜色 */
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+
+            /* 边框和分割 */
+            --border-color: #e4e7ed;
+            --border-light: #ebeef5;
+
+            /* 阴影 */
+            --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --shadow-sidebar: 2px 0 8px rgba(0, 0, 0, 0.06);
+            --shadow-right: -2px 0 8px rgba(0, 0, 0, 0.06);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-main);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        /* ========== 整体布局 ========== */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        /* ========== 顶部栏 ========== */
+        .header {
+            height: 56px;
+            padding: 0 20px;
+            background: var(--bg-header);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand-logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .brand-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .version-switch {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            background: #f0f2f5;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .version-switch:hover {
+            background: #e4e7ed;
+        }
+
+        .version-switch-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 6px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Cpath d='M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'/%3E%3C/svg%3E") no-repeat center;
+            background-size: contain;
+        }
+
+        .version-switch-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* ========== 主体三栏布局 ========== */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            height: calc(100vh - 56px);
+        }
+
+        /* ========== 左侧栏 ========== */
+        .sidebar-left {
+            width: 260px;
+            min-width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            position: relative;
+            box-shadow: var(--shadow-sidebar);
+            z-index: 10;
+        }
+
+        .sidebar-left.collapsed {
+            width: 0;
+            min-width: 0;
+            border-right: none;
+            box-shadow: none;
+        }
+
+        /* 新会话按钮 */
+        .new-chat-btn {
+            margin: 12px;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+        }
+
+        .new-chat-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+        }
+
+        /* Tab切换 */
+        .tab-nav {
+            display: flex;
+            border-bottom: 1px solid var(--border-light);
+            background: #fafbfc;
+        }
+
+        .tab-item {
+            flex: 1;
+            padding: 14px 0;
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tab-item.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: 500;
+            background: white;
+        }
+
+        /* 列表内容 */
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .history-item {
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 2px;
+            border: 1px solid transparent;
+        }
+
+        .history-item:hover {
+            background: #f5f7fa;
+            border-color: var(--border-light);
+        }
+
+        .history-item.active {
+            background: #ecf5ff;
+            border-color: #b3d8ff;
+        }
+
+        .history-item-title {
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-item-title .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .history-item-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding-left: 14px;
+        }
+
+        /* 收藏问句分类 */
+        .collect-tabs {
+            display: flex;
+            padding: 8px 12px;
+            gap: 6px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .collect-tab {
+            padding: 5px 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: #f0f2f5;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .collect-tab.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .collect-item {
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .collect-item:hover {
+            background: #f5f7fa;
+            border-color: var(--border-light);
+        }
+
+        .collect-item-text {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        /* 左侧栏底部用户信息 */
+        .sidebar-footer {
+            padding: 12px;
+            border-top: 1px solid var(--border-color);
+            background: #fafbfc;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .user-info:hover {
+            background: #f0f2f5;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .user-detail {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-status {
+            font-size: 12px;
+            color: var(--down-color);
+        }
+
+        /* 侧边栏收起按钮 */
+        .sidebar-toggle {
+            position: absolute;
+            top: 50%;
+            right: -14px;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 56px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-left: none;
+            border-radius: 0 14px 14px 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: var(--text-muted);
+            z-index: 10;
+            transition: all 0.2s;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* ========== 中间主体区域 ========== */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            overflow: hidden;
+            background: var(--bg-main);
+            position: relative;
+        }
+
+        /* 居中容器 */
+        .center-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* 对话区域 */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+            padding-right: 8px;
+        }
+
+        /* 自定义滚动条 */
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: #c0c4cc;
+            border-radius: 3px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: #909399;
+        }
+
+        .chat-message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message-user .message-bubble {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+            color: white;
+            border-radius: 18px 18px 4px 18px;
+            padding: 12px 18px;
+            max-width: 80%;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+        }
+
+        .message-ai {
+            display: flex;
+            gap: 12px;
+        }
+
+        .ai-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent-color) 0%, #6366f1 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+        }
+
+        .message-ai .message-content {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            max-width: 80%;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+
+        .message-text {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-primary);
+        }
+
+        /* 深度思考展示 */
+        .thinking-section {
+            background: #faf5ff;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #e9d5ff;
+        }
+
+        .thinking-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--accent-color);
+            font-weight: 500;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .thinking-steps {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .thinking-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .step-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #e9d5ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: var(--accent-color);
+            flex-shrink: 0;
+        }
+
+        /* 数据表格 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 13px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .data-table th {
+            background: #f5f7fa;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover {
+            background: #f5f7fa;
+        }
+
+        .stock-link {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .stock-link:hover {
+            text-decoration: underline;
+        }
+
+        .price-up {
+            color: var(--up-color);
+            font-weight: 500;
+        }
+
+        .price-down {
+            color: var(--down-color);
+            font-weight: 500;
+        }
+
+        /* 查看更多按钮 */
+        .view-more-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 16px;
+            background: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.2s;
+        }
+
+        .view-more-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* 消息操作按钮 */
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .msg-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .msg-action-btn:hover {
+            background: #f5f7fa;
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        /* 输入区域 */
+        .input-area {
+            padding: 16px 0;
+            background: transparent;
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            width: 100%;
+        }
+
+        .deep-think-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .deep-think-toggle.active {
+            background: #faf5ff;
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .toggle-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            position: relative;
+        }
+
+        .deep-think-toggle.active .toggle-icon::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: var(--accent-color);
+            border-radius: 50%;
+        }
+
+        .input-box {
+            flex: 1;
+            display: flex;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .input-box:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .input-box textarea {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            font-family: inherit;
+        }
+
+        .send-btn {
+            padding: 0 20px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+            color: white;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .send-btn:hover {
+            background: linear-gradient(135deg, var(--primary-hover) 0%, #1d4ed8 100%);
+        }
+
+        /* ========== 右侧栏 ========== */
+        .sidebar-right {
+            width: 0;
+            background: var(--bg-sidebar);
+            border-left: 1px solid var(--border-color);
+            overflow: hidden;
+            transition: width 0.3s ease;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-right);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-right.expanded {
+            width: 400px;
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: #fafbfc;
+        }
+
+        .detail-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .detail-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .detail-count {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .detail-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-favorite-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, var(--down-color) 0%, #16a34a 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-favorite-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+        }
+
+        .close-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #f0f2f5;
+            color: var(--text-primary);
+        }
+
+        .detail-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .detail-table th {
+            background: #f5f7fa;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 500;
+            color: var(--text-secondary);
+            position: sticky;
+            top: 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .detail-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .detail-table tr:hover {
+            background: #f5f7fa;
+        }
+
+        /* ========== 平台控制 ========== */
+        .platform-badge {
+            position: fixed;
+            top: 68px;
+            right: 24px;
+            padding: 10px 16px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .platform-toggle {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .platform-toggle button {
+            padding: 6px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: transparent;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .platform-toggle button.active {
+            background: white;
+            color: #333;
+        }
+
+        /* Web版隐藏的元素 */
+        body.web-version .pc-only {
+            display: none !important;
+        }
+
+        body.web-version .stock-link {
+            color: inherit;
+            text-decoration: none;
+            cursor: default;
+        }
+
+        body.web-version .stock-link:hover {
+            text-decoration: none;
+        }
+
+        /* 原型说明 */
+        .prototype-note {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 13px;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body class="pc-version">
+    <!-- 平台切换控制 -->
+    <div class="platform-badge">
+        <div>当前模式：<span id="currentMode">PC客户端版</span></div>
+        <div class="platform-toggle">
+            <button class="active" onclick="switchToPC()">PC客户端版</button>
+            <button onclick="switchToWeb()">Web浏览器版</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- 顶部栏 -->
+        <header class="header">
+            <div class="header-left">
+                <div class="brand">
+                    <div class="brand-logo">问</div>
+                    <span class="brand-name">问小达AI</span>
+                </div>
+                <div class="version-switch" onclick="location.href='https://wenda.tdx.com.cn/site/wenda/index.html'">
+                    <div class="version-switch-icon"></div>
+                    <span class="version-switch-text">切换回普通版本</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <!-- 可扩展其他功能 -->
+            </div>
+        </header>
+
+        <!-- 三栏布局 -->
+        <div class="main-layout">
+            <!-- 左侧栏 -->
+            <aside class="sidebar-left" id="sidebarLeft">
+                <button class="sidebar-toggle" onclick="toggleSidebar()" title="收起/展开侧边栏">◀</button>
+
+                <button class="new-chat-btn" onclick="startNewChat()">
+                    <span>+</span>
+                    <span>开启新会话</span>
+                </button>
+
+                <!-- Tab切换 -->
+                <div class="tab-nav">
+                    <div class="tab-item active" onclick="switchTab(this, 'history')">历史对话</div>
+                    <div class="tab-item" onclick="switchTab(this, 'collect')">收藏问句</div>
+                </div>
+
+                <!-- 历史对话列表 -->
+                <div id="history-panel" class="sidebar-content">
+                    <div class="history-item active" onclick="selectHistory(this)">
+                        <div class="history-item-title">
+                            <span class="dot"></span>
+                            贵州茅台的最新股价是多少？
+                        </div>
+                        <div class="history-item-time">2026-03-12 10:30</div>
+                    </div>
+                    <div class="history-item" onclick="selectHistory(this)">
+                        <div class="history-item-title">
+                            帮我找一下今天涨停的股票
+                        </div>
+                        <div class="history-item-time">2026-03-11 15:20</div>
+                    </div>
+                    <div class="history-item" onclick="selectHistory(this)">
+                        <div class="history-item-title">
+                            最新的CPI数据是多少
+                        </div>
+                        <div class="history-item-time">2026-03-10 09:15</div>
+                    </div>
+                    <div class="history-item" onclick="selectHistory(this)">
+                        <div class="history-item-title">
+                            市盈率低于20的银行股有哪些
+                        </div>
+                        <div class="history-item-time">2026-03-09 14:30</div>
+                    </div>
+                    <div class="history-item" onclick="selectHistory(this)">
+                        <div class="history-item-title">
+                            北向资金今日流入情况
+                        </div>
+                        <div class="history-item-time">2026-03-08 16:45</div>
+                    </div>
+                </div>
+
+                <!-- 收藏问句列表 -->
+                <div id="collect-panel" class="sidebar-content" style="display: none;">
+                    <div class="collect-tabs">
+                        <span class="collect-tab active" onclick="switchCollectTab(this)">AI对话</span>
+                        <span class="collect-tab" onclick="switchCollectTab(this)">A股</span>
+                        <span class="collect-tab" onclick="switchCollectTab(this)">基金</span>
+                        <span class="collect-tab" onclick="switchCollectTab(this)">指数</span>
+                    </div>
+                    <div style="padding: 8px;">
+                        <div class="collect-item" onclick="executeQuestion('今天涨停且资金流入的股票')">
+                            <span class="collect-item-text">今天涨停且资金流入的股票</span>
+                        </div>
+                        <div class="collect-item" onclick="executeQuestion('市盈率低于20的银行股')">
+                            <span class="collect-item-text">市盈率低于20的银行股</span>
+                        </div>
+                        <div class="collect-item" onclick="executeQuestion('MACD金叉的科技股')">
+                            <span class="collect-item-text">MACD金叉的科技股</span>
+                        </div>
+                        <div class="collect-item" onclick="executeQuestion('连续3日上涨的股票')">
+                            <span class="collect-item-text">连续3日上涨的股票</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 底部用户信息 -->
+                <div class="sidebar-footer">
+                    <div class="user-info">
+                        <div class="user-avatar">张</div>
+                        <div class="user-detail">
+                            <div class="user-name">张先生</div>
+                            <div class="user-status">已登录</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 中间主体 - 居中布局 -->
+            <main class="main-content">
+                <div class="center-wrapper">
+                    <!-- 对话区域 -->
+                    <div class="chat-container" id="chatContainer">
+                        <!-- 用户消息 -->
+                        <div class="chat-message message-user">
+                            <div class="message-bubble">
+                                <div class="message-text">帮我找一下今天涨停的股票，按成交额排序</div>
+                            </div>
+                        </div>
+
+                        <!-- AI回复 -->
+                        <div class="chat-message message-ai">
+                            <div class="ai-avatar">AI</div>
+                            <div class="message-content">
+                                <!-- 深度思考 -->
+                                <div class="thinking-section">
+                                    <div class="thinking-header">
+                                        <span>🧠</span>
+                                        <span>深度思考过程</span>
+                                    </div>
+                                    <div class="thinking-steps">
+                                        <div class="thinking-step">
+                                            <span class="step-icon">1</span>
+                                            <span>理解用户需求：查找今日涨停股票</span>
+                                        </div>
+                                        <div class="thinking-step">
+                                            <span class="step-icon">2</span>
+                                            <span>调用选股接口：getStockList(filter='zt', sort='cje')</span>
+                                        </div>
+                                        <div class="thinking-step">
+                                            <span class="step-icon">3</span>
+                                            <span>获取数据成功，共156条记录</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="message-text">
+                                    为您找到今日涨停的股票共 <strong>156</strong> 只，按成交额排序如下：
+                                </div>
+
+                                <!-- 数据表格 -->
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>代码</th>
+                                            <th>名称</th>
+                                            <th>最新价</th>
+                                            <th>涨跌幅</th>
+                                            <th>成交额(亿)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>000001</td>
+                                            <td><a href="javascript:void(0)" class="stock-link pc-only">平安银行</a><span class="web-only">平安银行</span></td>
+                                            <td>12.45</td>
+                                            <td class="price-up">+10.02%</td>
+                                            <td>28.6</td>
+                                        </tr>
+                                        <tr>
+                                            <td>000002</td>
+                                            <td><a href="javascript:void(0)" class="stock-link pc-only">万科A</a><span class="web-only">万科A</span></td>
+                                            <td>8.92</td>
+                                            <td class="price-up">+10.01%</td>
+                                            <td>18.3</td>
+                                        </tr>
+                                        <tr>
+                                            <td>600519</td>
+                                            <td><a href="javascript:void(0)" class="stock-link pc-only">贵州茅台</a><span class="web-only">贵州茅台</span></td>
+                                            <td>1789.00</td>
+                                            <td class="price-up">+10.00%</td>
+                                            <td>15.2</td>
+                                        </tr>
+                                        <tr>
+                                            <td>000858</td>
+                                            <td><a href="javascript:void(0)" class="stock-link pc-only">五粮液</a><span class="web-only">五粮液</span></td>
+                                            <td>156.78</td>
+                                            <td class="price-up">+10.00%</td>
+                                            <td>12.8</td>
+                                        </tr>
+                                        <tr>
+                                            <td>002415</td>
+                                            <td><a href="javascript:void(0)" class="stock-link pc-only">海康威视</a><span class="web-only">海康威视</span></td>
+                                            <td>32.15</td>
+                                            <td class="price-up">+9.98%</td>
+                                            <td>10.5</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <button class="view-more-btn" onclick="toggleDetail()">
+                                    <span>查看更多</span>
+                                    <span>→</span>
+                                </button>
+
+                                <!-- 操作按钮 -->
+                                <div class="message-actions">
+                                    <button class="msg-action-btn">
+                                        <span>☆</span>
+                                        <span>收藏</span>
+                                    </button>
+                                    <button class="msg-action-btn">
+                                        <span>↗</span>
+                                        <span>分享</span>
+                                    </button>
+                                    <button class="msg-action-btn">
+                                        <span>⧉</span>
+                                        <span>复制</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 第二条对话 -->
+                        <div class="chat-message message-user">
+                            <div class="message-bubble">
+                                <div class="message-text">这些股票中有哪些是科技股？</div>
+                            </div>
+                        </div>
+
+                        <div class="chat-message message-ai">
+                            <div class="ai-avatar">AI</div>
+                            <div class="message-content">
+                                <div class="message-text">
+                                    在刚才的涨停股票中，科技股有以下几只：
+                                </div>
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>代码</th>
+                                            <th>名称</th>
+                                            <th>最新价</th>
+                                            <th>涨跌幅</th>
+                                            <th>所属行业</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>002415</td>
+                                            <td><a href="javascript:void(0)" class="stock-link pc-only">海康威视</a><span class="web-only">海康威视</span></td>
+                                            <td>32.15</td>
+                                            <td class="price-up">+9.98%</td>
+                                            <td>电子</td>
+                                        </tr>
+                                        <tr>
+                                            <td>300750</td>
+                                            <td><a href="javascript:void(0)" class="stock-link pc-only">宁德时代</a><span class="web-only">宁德时代</span></td>
+                                            <td>198.50</td>
+                                            <td class="price-up">+10.00%</td>
+                                            <td>电气设备</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <button class="view-more-btn" onclick="toggleDetail()">
+                                    <span>查看更多</span>
+                                    <span>→</span>
+                                </button>
+
+                                <div class="message-actions">
+                                    <button class="msg-action-btn">
+                                        <span>☆</span>
+                                        <span>收藏</span>
+                                    </button>
+                                    <button class="msg-action-btn">
+                                        <span>↗</span>
+                                        <span>分享</span>
+                                    </button>
+                                    <button class="msg-action-btn">
+                                        <span>⧉</span>
+                                        <span>复制</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 输入区域 -->
+                    <div class="input-area">
+                        <div class="input-wrapper">
+                            <button class="deep-think-toggle" onclick="this.classList.toggle('active')">
+                                <span class="toggle-icon"></span>
+                                <span>深度思考</span>
+                            </button>
+                            <div class="input-box">
+                                <textarea placeholder="请输入您的问题..." rows="1"></textarea>
+                                <button class="send-btn">发送</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- 右侧栏 -->
+            <aside class="sidebar-right" id="detailSidebar">
+                <div class="detail-header">
+                    <div class="detail-header-left">
+                        <span class="detail-title">今天涨停的股票</span>
+                        <span class="detail-count">156只</span>
+                    </div>
+                    <div class="detail-header-actions">
+                        <button class="add-favorite-btn pc-only" onclick="addFavorite()">
+                            <span>+ 加自选</span>
+                        </button>
+                        <button class="close-btn" onclick="toggleDetail()">×</button>
+                    </div>
+                </div>
+                <div class="detail-content">
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>代码</th>
+                                <th>名称</th>
+                                <th>最新价</th>
+                                <th>涨跌幅</th>
+                                <th>成交额</th>
+                                <th>换手率</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>000001</td>
+                                <td><a href="javascript:void(0)" class="stock-link pc-only">平安银行</a><span class="web-only">平安银行</span></td>
+                                <td>12.45</td>
+                                <td class="price-up">+10.02%</td>
+                                <td>28.6亿</td>
+                                <td>3.25%</td>
+                            </tr>
+                            <tr>
+                                <td>000002</td>
+                                <td><a href="javascript:void(0)" class="stock-link pc-only">万科A</a><span class="web-only">万科A</span></td>
+                                <td>8.92</td>
+                                <td class="price-up">+10.01%</td>
+                                <td>18.3亿</td>
+                                <td>2.18%</td>
+                            </tr>
+                            <tr>
+                                <td>600519</td>
+                                <td><a href="javascript:void(0)" class="stock-link pc-only">贵州茅台</a><span class="web-only">贵州茅台</span></td>
+                                <td>1789.00</td>
+                                <td class="price-up">+10.00%</td>
+                                <td>15.2亿</td>
+                                <td>0.85%</td>
+                            </tr>
+                            <tr>
+                                <td>000858</td>
+                                <td><a href="javascript:void(0)" class="stock-link pc-only">五粮液</a><span class="web-only">五粮液</span></td>
+                                <td>156.78</td>
+                                <td class="price-up">+10.00%</td>
+                                <td>12.8亿</td>
+                                <td>1.12%</td>
+                            </tr>
+                            <tr>
+                                <td>002415</td>
+                                <td><a href="javascript:void(0)" class="stock-link pc-only">海康威视</a><span class="web-only">海康威视</span></td>
+                                <td>32.15</td>
+                                <td class="price-up">+9.98%</td>
+                                <td>10.5亿</td>
+                                <td>2.56%</td>
+                            </tr>
+                            <tr>
+                                <td>300750</td>
+                                <td><a href="javascript:void(0)" class="stock-link pc-only">宁德时代</a><span class="web-only">宁德时代</span></td>
+                                <td>198.50</td>
+                                <td class="price-up">+10.00%</td>
+                                <td>9.8亿</td>
+                                <td>1.89%</td>
+                            </tr>
+                            <tr>
+                                <td>601318</td>
+                                <td><a href="javascript:void(0)" class="stock-link pc-only">中国平安</a><span class="web-only">中国平安</span></td>
+                                <td>45.32</td>
+                                <td class="price-up">+9.97%</td>
+                                <td>8.6亿</td>
+                                <td>1.45%</td>
+                            </tr>
+                            <tr>
+                                <td>600036</td>
+                                <td><a href="javascript:void(0)" class="stock-link pc-only">招商银行</a><span class="web-only">招商银行</span></td>
+                                <td>35.68</td>
+                                <td class="price-up">+9.95%</td>
+                                <td>7.2亿</td>
+                                <td>1.12%</td>
+                            </tr>
+                            <tr>
+                                <td>000333</td>
+                                <td><a href="javascript:void(0)" class="stock-link pc-only">美的集团</a><span class="web-only">美的集团</span></td>
+                                <td>62.80</td>
+                                <td class="price-up">+9.92%</td>
+                                <td>6.8亿</td>
+                                <td>0.98%</td>
+                            </tr>
+                            <tr>
+                                <td>002594</td>
+                                <td><a href="javascript:void(0)" class="stock-link pc-only">比亚迪</a><span class="web-only">比亚迪</span></td>
+                                <td>258.00</td>
+                                <td class="price-up">+9.88%</td>
+                                <td>5.5亿</td>
+                                <td>0.75%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- 原型说明 -->
+    <div class="prototype-note">
+        V3 原型图 | 右上角切换PC/Web版 | 点击"查看更多"展开详情页 | 点击◀收起侧边栏 | 滚动查看历史对话
+    </div>
+
+    <script>
+        // Tab切换
+        function switchTab(el, tab) {
+            document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
+            el.classList.add('active');
+
+            document.getElementById('history-panel').style.display = tab === 'history' ? 'block' : 'none';
+            document.getElementById('collect-panel').style.display = tab === 'collect' ? 'block' : 'none';
+        }
+
+        function switchCollectTab(el) {
+            document.querySelectorAll('.collect-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function selectHistory(el) {
+            document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function toggleDetail() {
+            const sidebar = document.getElementById('detailSidebar');
+            sidebar.classList.toggle('expanded');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebarLeft');
+            sidebar.classList.toggle('collapsed');
+            const toggleBtn = sidebar.querySelector('.sidebar-toggle');
+            if (sidebar.classList.contains('collapsed')) {
+                toggleBtn.innerHTML = '▶';
+            } else {
+                toggleBtn.innerHTML = '◀';
+            }
+        }
+
+        function startNewChat() {
+            alert('开启新会话：清空当前对话，创建新的threadId');
+        }
+
+        function executeQuestion(question) {
+            alert('执行问句：' + question);
+        }
+
+        function addFavorite() {
+            alert('添加到自选股');
+        }
+
+        function switchToPC() {
+            document.body.classList.remove('web-version');
+            document.body.classList.add('pc-version');
+            document.getElementById('currentMode').textContent = 'PC客户端版';
+
+            document.querySelectorAll('.platform-toggle button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function switchToWeb() {
+            document.body.classList.remove('pc-version');
+            document.body.classList.add('web-version');
+            document.getElementById('currentMode').textContent = 'Web浏览器版';
+
+            document.querySelectorAll('.platform-toggle button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
