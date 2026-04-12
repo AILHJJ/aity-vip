@@ -76,6 +76,14 @@ coverage/
 # Windows nul device files (erroneously created)
 nul
 
+# SSL证书和私钥（绝密 - 绝对不能提交到Git）
+*.key
+*.csr
+*.pem
+*_bundle.crt
+*_nginx/
+aity88.online_nginx/
+
 # Chrome testing browser
 chrome-win64/
 
