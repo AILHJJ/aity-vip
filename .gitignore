@@ -84,6 +84,10 @@ nul
 *_nginx/
 aity88.online_nginx/
 
+# 部署配置文件（包含敏感信息）
+scripts/deploy.config.sh
+deploy.config.sh
+
 # Chrome testing browser
 chrome-win64/
 
