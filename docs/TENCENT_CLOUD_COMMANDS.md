@@ -13,14 +13,7 @@
 - **仓库地址**: `https://github.com/AILHJJ/aity-vip.git`
 - **开发分支**: `feature/iteration-1`
 - **用户名**: `AILHJJ`
-- **访问令牌**: `YOUR_GITHUB_TOKEN_HERE`（请查看本地Git配置或密码管理器）
-
-⚠️ **获取Token**:
-- 登录GitHub账号
-- 访问 https://github.com/settings/tokens
-- 生成新的Personal Access Token
-- 选择完全访问权限（repo）
-- 复制token并妥善保管
+- **访问令牌**: `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`
 
 ---
 
