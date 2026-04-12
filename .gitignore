@@ -88,6 +88,10 @@ aity88.online_nginx/
 scripts/deploy.config.sh
 deploy.config.sh
 
+# 归档内容
+archive/
+home-decoration/
+
 # Chrome testing browser
 chrome-win64/
 

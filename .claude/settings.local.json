@@ -80,7 +80,13 @@
       "Bash(find:*)",
       "Bash(test:*)",
       "Bash(npm run start-extension:*)",
-      "Bash(npm run dev:h5:local:*)"
+      "Bash(npm run dev:h5:local:*)",
+      "Bash(git reset:*)",
+      "Bash(git log:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(chmod:*)",
+      "Bash(git config:*)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []
