@@ -13,11 +13,11 @@ pm2 status
 
 # 2. 查看最近的错误日志
 echo -e "\n[2] 查看最近的错误日志（最后50行）..."
-pm2 logs private-sharing-app-backend --err --lines 50 --nostream
+pm2 logs aity-backend --err --lines 50 --nostream
 
 # 3. 查看最近的输出日志
 echo -e "\n[3] 查看最近的输出日志（最后50行）..."
-pm2 logs private-sharing-app-backend --out --lines 50 --nostream
+pm2 logs aity-backend --out --lines 50 --nostream
 
 # 4. 检查端口占用
 echo -e "\n[4] 检查端口3001占用情况..."
@@ -44,7 +44,7 @@ df -h
 
 # 9. 查看PM2进程详细信息
 echo -e "\n[9] 查看PM2进程详细信息..."
-pm2 show private-sharing-app-backend
+pm2 show aity-backend
 
 echo -e "\n=========================================="
 echo "  诊断完成"

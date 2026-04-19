@@ -1,5 +1,5 @@
 {
-  "name": "private-sharing-app-backend",
+  "name": "aity-backend",
   "version": "1.0.0",
   "description": "Private Sharing App Backend with MySQL",
   "main": "src/index.js",
