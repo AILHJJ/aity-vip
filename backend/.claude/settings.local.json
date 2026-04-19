@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(fuser 3001/tcp)",
+      "Bash(npm list *)",
+      "Bash(ls *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3001/api/health)",
+      "Bash(node *)",
+      "Bash(curl *)"
+    ]
+  }
+}

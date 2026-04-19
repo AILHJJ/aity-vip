@@ -1,10 +1,42 @@
-# AITY VIP 测试数据快速参考
+# AITY VIP 数据库脚本快速参考
+
+## 🚨 重要通知
+
+**数据丢失恢复 (2026-04-16)**: 原生产数据库已丢失，已完成数据恢复。
+
+**最新恢复脚本**: `database-complete-restoration.sql` (v3.0 Final)  
+**包含**: 真实用户数据 + 18个AI配置 + 完整表结构
+
+**立即行动**: 
+1. 执行恢复脚本
+2. 查看 `QUICK_START_GUIDE.md` (5分钟快速恢复)
+3. 设置自动备份（见 `DATA_BACKUP_STRATEGY.md`）
+
+---
 
 ## 📦 文件清单
 
-### SQL脚本
+### 🎯 建表脚本（推荐使用）
+- **database-complete-restoration.sql** - ⚡⭐⭐ **最新恢复脚本** (v3.0 - 数据丢失后恢复版本)
+- **database-complete-setup.sql** - 完整建表脚本（表结构+用户+AI配置+测试数据）
+- **DATABASE_SETUP_GUIDE.md** - 建表详细使用指南
+- **restore-database-tables-only.sql** - 仅表结构（不含数据）
+- **restore-database-complete.sql** - 表结构+基础数据（旧版）
+
+### 📘 文档指南
+- **QUICK_START_GUIDE.md** - ⚡ 5分钟快速恢复指南
+- **DATA_RECOVERY_MANUAL.md** - 📋 完整数据恢复手册
+- **DATA_BACKUP_STRATEGY.md** - 🛡️ 数据备份与灾难恢复策略
+- **USER_PASSWORD_LIST.md** - 👥 用户密码清单
+- **DATABASE_RESTORE_GUIDE.md** - 数据库恢复指南
+
+### 测试数据脚本
 - **complete-test-data.sql** - 完整测试数据SQL脚本（模板，需替换密码哈希）
 - **complete-test-data-with-hash.sql** - 包含正确密码哈希的SQL脚本（自动生成）
+
+### 数据库工具
+- **init-database.js** - 数据库初始化脚本（自动创建数据库和表）
+- **export-database-data.js** - 数据导出脚本（从现有数据库导出）
 
 ### Node.js脚本
 - **generate-password-hash.js** - 生成bcrypt密码哈希值
@@ -13,9 +45,73 @@
 
 ### 文档
 - **complete-test-data-guide.md** - 详细使用指南
+- **DATABASE_RESTORE_GUIDE.md** - 数据库恢复指南
 - **README.md** - 本文件（快速参考）
 
-## 🚀 快速开始（3步完成）
+## 🚀 快速开始
+
+### ⚡ 数据丢失恢复（紧急）
+
+```bash
+# 如果数据库丢失，使用最新恢复脚本
+mysql -u root -p < backend/scripts/database-complete-restoration.sql
+
+# 包含：
+# ✅ 13个用户（6个正式会员 + 真实用户"等风来"）
+# ✅ 18个AI模型配置（API密钥已配置）
+# ✅ 10个完整表结构
+# ✅ 统一密码：tytls8888
+
+# 详细步骤请查看: QUICK_START_GUIDE.md
+```
+
+### 🆕 新建数据库（日常使用）
+
+```bash
+# 方法1: 使用完整建表脚本
+mysql -u root -p < backend/scripts/database-complete-setup.sql
+
+# 方法2: 使用Node脚本
+cd backend
+node scripts/init-database.js
+
+# 方法3: Navicat图形界面
+# 打开文件: backend/scripts/database-complete-setup.sql
+# 点击运行
+```
+
+**包含内容**:
+- ✅ 10个完整表结构
+- ✅ 5个测试用户（含真实用户）
+- ✅ 16个AI模型配置（API密钥已配置）
+- ✅ 4个用户分组
+- ✅ 示例消息数据
+
+**测试账号**:
+- admin / admin@example.com / tytls8888 (超级管理员)
+- 等风来 / 625668823@qq.com / tytls8888 (VIP短线用户)【真实用户】
+- vip_test / vip_test@example.com / tytls8888 (VIP中线用户)
+
+**注意**: 统一密码已更改为 `tytls8888`
+
+### 📊 添加测试数据（可选）
+
+数据库创建后，如需添加更多测试数据：
+
+```bash
+mysql -u root -p 投研图灵室_v2 < backend/scripts/complete-test-data-with-hash.sql
+```
+
+**额外添加**:
+- 19条完整消息（覆盖所有类型）
+- 10个讨论话题
+- 16条讨论回复
+- 用户收藏和已读记录
+- 消息附件
+
+---
+
+## 🚀 测试数据快速开始（3步完成）
 
 ### 方式一：自动生成（推荐）
 
@@ -44,14 +140,24 @@ mysql -u root -p 投研图灵室 < complete-test-data.sql
 
 ## 👥 测试账号
 
+### 基础账号（建表脚本创建）
+
 | 序号 | 用户名 | 邮箱 | 密码 | 角色 | 说明 |
 |-----|--------|------|------|------|------|
-| 1 | 超级管理员 | admin@aity.com | 123456 | super_admin | 拥有所有权限 |
-| 2 | 管理员 | manager@aity.com | 123456 | admin | 普通管理员 |
-| 3 | 中线VIP | vip_mid@aity.com | 123456 | vip_mid | VIP中线订阅用户 |
-| 4 | 短线VIP | vip_short@aity.com | 123456 | vip_short | VIP短线订阅用户 |
-| 5 | 试用用户 | trial@aity.com | 123456 | trial | 已过期（测试用） |
-| 6 | 测试用户 | vip_test@aity.com | 123456 | vip_mid | 新测试账号 |
+| 1 | admin | admin@example.com | 123456 | super_admin | 超级管理员 |
+| 2 | 管理员 | manager@example.com | 123456 | admin | 普通管理员 |
+| 3 | 等风来 | 625668823@qq.com | 123456 | vip_short | **真实用户** VIP短线订阅用户 |
+| 4 | vip_test | vip_test@example.com | 123456 | vip_mid | VIP中线订阅用户 |
+| 5 | 试用用户 | trial@example.com | 123456 | trial | 已过期（测试用） |
+
+### 完整测试账号（含测试数据脚本）
+
+添加测试数据后，额外包含：
+
+| 序号 | 用户名 | 邮箱 | 密码 | 角色 | 说明 |
+|-----|--------|------|------|------|------|
+| 6 | 中线VIP用户 | vip_mid@aity.com | 123456 | vip_mid | VIP中线订阅用户 |
+| 7 | 短线VIP用户 | vip_short@aity.com | 123456 | vip_short | VIP短线订阅用户 |
 
 ## 📊 测试数据统计
 
@@ -249,6 +355,36 @@ ALTER TABLE messages CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 
 ---
 
-**版本**: v1.0
-**更新**: 2026-02-06
+## 🤖 AI模型配置
+
+建表脚本已预置16个已验证可用的AI模型：
+
+### 推荐使用（默认启用）
+1. **glm-4-flash** (智谱AI) - 免费快速，性价比最高
+2. **deepseek-v3** (火山引擎) - 分析能力强
+3. **qwen3-max** (阿里云) - 旗舰模型，功能最强
+4. **qwen-turbo** (阿里云) - 极速响应，成本低
+
+### 所有模型
+- **智谱AI**: glm-4-flash, glm-4.7 (2个)
+- **火山引擎**: deepseek-v3, deepseek-r1, doubao-1.5-pro, doubao-1.5-lite (4个)
+- **阿里云**: qwen3-max, qwen3.5-plus, qwen3.5-flash, qwen-plus, qwen-turbo, deepseek-v3, deepseek-r1, kimi-k2.5, MiniMax-M2.5, glm-4.7 (10个)
+
+**API密钥已包含，无需额外配置！**
+
+---
+
+## 📚 脚本对比
+
+| 脚本 | 表结构 | 用户 | AI模型 | 消息 | 讨论 | 适用场景 |
+|------|--------|------|--------|------|------|----------|
+| **database-complete-setup.sql** | ✅ | 5个 | 16个 | 2条 | ❌ | ⭐ 新建数据库（推荐） |
+| restore-database-tables-only.sql | ✅ | 5个 | 2个 | 2条 | ❌ | 仅表结构 |
+| restore-database-complete.sql | ✅ | 5个 | 2个 | 2条 | ❌ | 旧版完整数据库 |
+| complete-test-data-with-hash.sql | ❌ | ❌ | ❌ | 19条 | ✅ | 添加测试数据 |
+
+---
+
+**版本**: v2.0
+**更新**: 2026-04-16
 **维护**: AITY VIP Team
