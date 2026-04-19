@@ -22,6 +22,9 @@ const DiscussionFavorite = sequelize.define('DiscussionFavorite', {
   }
 }, {
   tableName: 'discussion_favorites',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: false,
   indexes: [
     {
       unique: true,

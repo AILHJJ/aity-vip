@@ -87,6 +87,7 @@ aity88.online_nginx/
 # 部署配置文件（包含敏感信息）
 scripts/deploy.config.sh
 deploy.config.sh
+backend/deploy-run.js
 
 # 归档内容
 archive/

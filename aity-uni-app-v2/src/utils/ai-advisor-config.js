@@ -33,6 +33,24 @@ export function getApiBaseUrl() {
   return AI_ADVISOR_CONFIG.API_URL
 }
 
+// 延迟导入用户store（避免循环依赖）
+// 注意：小程序运行时不支持 require('@/xxx') 路径别名，必须在函数内部动态导入
+let _userStore = null
+function getUserStore() {
+  if (!_userStore) {
+    try {
+      // 方式1：尝试 uni-app 的全局 store（通过 getApp 获取）
+      const app = typeof getApp === 'function' ? getApp() : null
+      if (app && app.$store && app.$store.state && app.$store.state.user) {
+        _userStore = app.$store.state.user
+      }
+    } catch (e) {
+      // 忽略
+    }
+  }
+  return _userStore
+}
+
 /**
  * 获取当前用户的存储Key
  * @param {String} key - 基础key名称
@@ -40,10 +58,28 @@ export function getApiBaseUrl() {
  */
 export function getUserStorageKey(key) {
   try {
-    // 延迟导入用户store（避免循环依赖）
-    const { useUserStore } = require('@/store/user')
-    const userStore = useUserStore()
-    const userId = userStore.userId || 'anonymous'
+    // 尝试从 uni storage 获取用户信息（最可靠的方式）
+    const userInfo = uni.getStorageSync('userInfo') || uni.getStorageSync('user')
+    let userId = 'anonymous'
+    
+    if (userInfo) {
+      const parsed = typeof userInfo === 'string' ? JSON.parse(userInfo) : userInfo
+      userId = parsed.userId || parsed.id || parsed.uid || 'anonymous'
+    }
+    
+    // 如果 uni storage 没有，尝试 pinia store
+    if (userId === 'anonymous') {
+      try {
+        // 动态导入 pinia store（小程序安全方式）
+        const stores = require('../store/user.js')
+        if (stores && stores.useUserStore) {
+          const userStore = stores.useUserStore()
+          userId = userStore.userId || 'anonymous'
+        }
+      } catch (e) {
+        // 小程序中 require 不支持路径别名，使用降级方案
+      }
+    }
 
     // 返回用户专属的key
     return `ai_advisor_${userId}_${key}`

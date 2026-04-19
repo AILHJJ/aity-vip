@@ -260,7 +260,7 @@ async function deleteUser(req, res) {
 
     // 删除用户前先清理关联数据（按依赖顺序）
     // 1. 删除用户的讨论回复
-    await sequelize.query('DELETE FROM discussion_replies WHERE sender_id = ?', {
+    await sequelize.query('DELETE FROM discussion_replies WHERE user_id = ?', {
       replacements: [id],
       type: sequelize.QueryTypes.DELETE
     });

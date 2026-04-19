@@ -131,7 +131,7 @@ async function getMessages(req, res) {
       where,
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       include: [{
         model: User,
         as: 'senderUser',
@@ -177,6 +177,7 @@ async function getMessageById(req, res) {
     
     // 检查用户是否有权限查看该消息
     let hasPermission = true;
+    const messageTags = message.tags || []; // 防止 tags 为 null 时 .includes() 崩溃
     
     switch (currentUser.role) {
       case 'super_admin':
@@ -186,11 +187,11 @@ async function getMessageById(req, res) {
         break;
       case 'vip_mid':
         // 只能查看中线策略或全部用户的消息
-        hasPermission = message.tags.includes('mid_term') || message.tags.includes('all_users');
+        hasPermission = messageTags.includes('mid_term') || messageTags.includes('all_users');
         break;
       case 'vip_short':
         // 只能查看短线策略或全部用户的消息
-        hasPermission = message.tags.includes('short_term') || message.tags.includes('all_users');
+        hasPermission = messageTags.includes('short_term') || messageTags.includes('all_users');
         break;
       default:
         hasPermission = false;
@@ -215,7 +216,7 @@ async function getMessageById(req, res) {
     });
     
     // 获取发送者信息
-    const sender = await User.findByPk(message.sender_id, {
+    const sender = await User.findByPk(message.senderId, {
       attributes: ['name', 'avatar']
     });
     

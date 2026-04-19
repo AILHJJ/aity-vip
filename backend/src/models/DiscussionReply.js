@@ -15,14 +15,14 @@ const DiscussionReply = sequelize.define('DiscussionReply', {
     field: 'discussion_id',
     allowNull: false
   },
-  senderId: {
+  userId: {
     type: DataTypes.INTEGER,
-    field: 'sender_id',
+    field: 'user_id',
     allowNull: false
   },
-  senderName: {
+  userName: {
     type: DataTypes.STRING(100),
-    field: 'sender_name',
+    field: 'user_name',
     allowNull: false
   },
   content: {
@@ -30,11 +30,14 @@ const DiscussionReply = sequelize.define('DiscussionReply', {
     allowNull: false
   }
 }, {
-  tableName: 'discussion_replies'
+  tableName: 'discussion_replies',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: false
 });
 
 // 关联关系
 DiscussionReply.belongsTo(Discussion, { foreignKey: 'discussionId', as: 'discussion' });
-DiscussionReply.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
+DiscussionReply.belongsTo(User, { foreignKey: 'userId', as: 'sender' });
 
 module.exports = DiscussionReply;

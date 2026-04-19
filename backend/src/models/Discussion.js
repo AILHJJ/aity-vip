@@ -55,7 +55,10 @@ const Discussion = sequelize.define('Discussion', {
     comment: 'private: 只有管理员和发起者可见, public: 所有人可见'
   }
 }, {
-  tableName: 'discussions'
+  tableName: 'discussions',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
 });
 
 // 关联关系

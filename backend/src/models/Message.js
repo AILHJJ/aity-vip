@@ -114,6 +114,20 @@ const Message = sequelize.define('Message', {
     defaultValue: 'published',
     comment: 'draft:草稿, scheduled:定时发布, published:已发布'
   },
+  isPinned: {
+    type: DataTypes.BOOLEAN,
+    field: 'is_pinned',
+    allowNull: false,
+    defaultValue: false,
+    comment: '是否置顶'
+  },
+  discussionCount: {
+    type: DataTypes.INTEGER,
+    field: 'discussion_count',
+    allowNull: false,
+    defaultValue: 0,
+    comment: '讨论数量'
+  },
   createdAt: {
     type: DataTypes.DATE,
     field: 'created_at',

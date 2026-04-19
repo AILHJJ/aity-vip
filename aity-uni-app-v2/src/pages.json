@@ -8,13 +8,6 @@
 			}
 		},
 		{
-			"path": "pages/ai-advisor/ai-advisor",
-			"style": {
-				"navigationBarTitleText": "图灵",
-				"navigationStyle": "custom"
-			}
-		},
-		{
 			"path": "pages/messages/messages",
 			"style": {
 				"navigationBarTitleText": "消息中心",
@@ -117,6 +110,13 @@
 				"navigationBarTitleText": "行情图",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/ai-advisor/ai-advisor",
+			"style": {
+				"navigationBarTitleText": "图灵",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"tabBar": {
@@ -134,8 +134,8 @@
 				"text": "讨论"
 			},
 			{
-				"pagePath": "pages/ai-advisor/ai-advisor",
-				"text": "图灵"
+				"pagePath": "pages/market/market",
+				"text": "行情"
 			},
 			{
 				"pagePath": "pages/profile/profile",

@@ -127,7 +127,7 @@ async function login(req, res) {
           name: user.name,
           email: user.email,
           role: user.role,
-          groupId: user.group_id,
+          groupId: user.groupId,
           avatar: user.avatar,
           status: user.status,
           isInitialPassword: user.isInitialPassword,
@@ -165,7 +165,7 @@ async function getCurrentUser(req, res) {
       name: user.name,
       email: user.email,
       role: user.role,
-      groupId: user.group_id,
+      groupId: user.groupId,
       avatar: user.avatar,
       status: user.status
     }));

@@ -83,7 +83,7 @@ async function getDiscussions(req, res) {
     
     const discussions = await Discussion.findAll({
       where,
-      order: [['createdAt', 'DESC']] // 按创建时间倒序排序
+      order: [['created_at', 'DESC']] // 按创建时间倒序排序（使用实际列名）
     });
 
     // 获取每个讨论的回复
@@ -91,7 +91,7 @@ async function getDiscussions(req, res) {
       discussions.map(async (discussion) => {
         const replies = await DiscussionReply.findAll({
           where: { discussionId: discussion.id },
-          order: [['createdAt', 'ASC']]
+          order: [['created_at', 'ASC']]
         });
 
         // 获取发送者信息
@@ -162,7 +162,7 @@ async function getDiscussionById(req, res) {
     // 获取回复
     const replies = await DiscussionReply.findAll({
       where: { discussionId: id },
-      order: [['createdAt', 'ASC']]
+      order: [['created_at', 'ASC']]
     });
 
     // 获取发送者信息
@@ -189,7 +189,7 @@ async function getDiscussionById(req, res) {
     // 获取回复发送者信息
     const repliesWithSender = await Promise.all(
       replies.map(async (reply) => {
-        const replySender = await User.findByPk(reply.senderId, {
+        const replySender = await User.findByPk(reply.userId, {
           attributes: ['name', 'avatar']
         });
         return {
@@ -340,8 +340,8 @@ async function addDiscussionReply(req, res) {
   try {
     const { id } = req.params;
     const { content, visibility } = req.body;
-    const senderId = req.user.userId;
-    const senderRole = req.user.role;
+    const userId = req.user.userId;
+    const userRole = req.user.role;
     
     // 获取讨论
     const discussion = await Discussion.findByPk(id);
@@ -352,13 +352,13 @@ async function addDiscussionReply(req, res) {
     // 检查用户是否有权限回复该讨论
     let canReply = false;
     
-    if (senderRole === 'super_admin' || senderRole === 'admin') {
+    if (userRole === 'super_admin' || userRole === 'admin') {
       // 管理员可以回复所有讨论
       canReply = true;
     } else if (discussion.visibility === 'public') {
       // 公开讨论所有人可以回复
       canReply = true;
-    } else if (discussion.userId === senderId) {
+    } else if (discussion.userId === userId) {
       // 发起者可以回复自己的讨论
       canReply = true;
     }
@@ -368,7 +368,7 @@ async function addDiscussionReply(req, res) {
     }
     
     // 获取用户信息
-    const user = await User.findByPk(senderId);
+    const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json(notFound('User not found'));
     }
@@ -376,15 +376,15 @@ async function addDiscussionReply(req, res) {
     // 创建回复
     const reply = await DiscussionReply.create({
       discussionId: id,
-      senderId,
-      senderName: user.name,
+      userId,
+      userName: user.name,
       content
     });
     
     // 更新讨论状态和可见性
     const updateData = { status: 'replied' }; // 回复后自动变为已回复状态
     
-    if ((senderRole === 'super_admin' || senderRole === 'admin') && visibility) {
+    if ((userRole === 'super_admin' || userRole === 'admin') && visibility) {
       // 只有管理员可以修改可见性
       updateData.visibility = visibility;
     }
@@ -394,6 +394,9 @@ async function addDiscussionReply(req, res) {
     // 获取更新后的讨论
     const updatedDiscussion = await Discussion.findByPk(id);
     
+    // 查询实际回复数
+    const actualReplyCount = await DiscussionReply.count({ where: { discussionId: id } });
+    
     const replyData = {
       reply: {
         ...reply.toJSON(),
@@ -402,7 +405,7 @@ async function addDiscussionReply(req, res) {
       },
       discussion: {
         ...updatedDiscussion.toJSON(),
-        replies_count: (updatedDiscussion.replies_count || 0) + 1
+        replies_count: actualReplyCount
       }
     };
     
@@ -430,13 +433,13 @@ async function getDiscussionReplies(req, res) {
     // 获取回复
     const replies = await DiscussionReply.findAll({
       where: { discussionId: id },
-      order: [['createdAt', 'ASC']]
+      order: [['created_at', 'ASC']]
     });
 
     // 获取每个回复的发送者信息
     const repliesWithSender = await Promise.all(
       replies.map(async (reply) => {
-        const sender = await User.findByPk(reply.senderId, {
+        const sender = await User.findByPk(reply.userId, {
           attributes: ['name', 'avatar']
         });
         return {
@@ -501,7 +504,7 @@ async function getMyDiscussions(req, res) {
     // 获取当前用户发起的讨论
     const discussions = await Discussion.findAll({
       where: { userId: currentUserId },
-      order: [['createdAt', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     // 获取每个讨论的回复
@@ -509,7 +512,7 @@ async function getMyDiscussions(req, res) {
       discussions.map(async (discussion) => {
         const replies = await DiscussionReply.findAll({
           where: { discussionId: discussion.id },
-          order: [['createdAt', 'ASC']]
+          order: [['created_at', 'ASC']]
         });
 
         // 获取关联的消息信息
@@ -573,7 +576,7 @@ async function getFavoriteDiscussions(req, res) {
       where: { userId },
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       include: [{
         model: Discussion,
         as: 'discussion',

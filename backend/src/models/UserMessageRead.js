@@ -19,9 +19,18 @@ const UserMessageRead = sequelize.define('UserMessageRead', {
     type: DataTypes.INTEGER,
     field: 'message_id',
     allowNull: false
+  },
+  readAt: {
+    type: DataTypes.DATE,
+    field: 'read_at',
+    allowNull: false,
+    defaultValue: DataTypes.NOW
   }
 }, {
   tableName: 'user_message_reads',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
   indexes: [
     {
       unique: true,

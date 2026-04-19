@@ -22,6 +22,9 @@ const UserFavorite = sequelize.define('UserFavorite', {
   }
 }, {
   tableName: 'user_favorites',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: false,
   indexes: [
     {
       unique: true,

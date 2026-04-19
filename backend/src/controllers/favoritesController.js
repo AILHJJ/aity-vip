@@ -62,7 +62,7 @@ async function getFavorites(req, res) {
       where: { userId },
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       include: [{
         model: Message,
         as: 'message',

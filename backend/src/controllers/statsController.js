@@ -260,7 +260,7 @@ async function getActiveUsers(req, res) {
     // 获取最近活跃的用户（基于最近创建的讨论）
     const recentDiscussions = await Discussion.findAll({
       attributes: ['userId', 'createdAt'],
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       limit: limit * 2 // 多获取一些以防重复用户
     });
 
@@ -271,7 +271,7 @@ async function getActiveUsers(req, res) {
     const users = await User.findAll({
       where: { id: { [Op.in]: activeUserIds } },
       attributes: ['id', 'name', 'email', 'role', 'createdAt'],
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       limit
     });
 
@@ -349,7 +349,6 @@ async function getGlobalStats(req, res) {
     // 获取各角色用户数
     const vipShortCount = await User.count({ where: { role: 'vip_short' } });
     const vipMidCount = await User.count({ where: { role: 'vip_mid' } });
-    const vipLongCount = await User.count({ where: { role: 'vip_long' } });
     const trialCount = await User.count({ where: { role: 'trial' } });
     const adminCount = await User.count({
       where: {
@@ -381,7 +380,6 @@ async function getGlobalStats(req, res) {
         total: totalUsers,
         vip_short: vipShortCount,
         vip_mid: vipMidCount,
-        vip_long: vipLongCount,
         trial: trialCount,
         admin: adminCount,
         newToday: newUsersToday

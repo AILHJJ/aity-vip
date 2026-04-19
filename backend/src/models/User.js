@@ -68,7 +68,10 @@ const User = sequelize.define('User', {
     comment: '是否使用初始密码'
   }
 }, {
-  tableName: 'users'
+  tableName: 'users',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
 });
 
 // 延迟加载关联模型以避免循环依赖

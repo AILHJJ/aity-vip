@@ -722,7 +722,7 @@ async function getPromptOptions(req, res) {
     const specificPrompt = MODEL_SPECIFIC_PROMPTS[config.modelName] || null;
 
     res.json(success({
-      defaultPrompt: BASE_PROMPT,
+      defaultPrompt: DEFAULT_PROMPT,
       specificPrompt: specificPrompt,
       currentPrompt: config.promptTemplate,
       modelName: config.displayName
