@@ -86,7 +86,15 @@
       "Bash(git check-ignore:*)",
       "Bash(chmod:*)",
       "Bash(git config:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(git checkout:*)",
+      "Bash(set:*)",
+      "Bash(git rebase:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(git remote:*)",
+      "Bash(mysql:*)",
+      "Bash(ls -la *.md)",
+      "Bash(ls -la .env*)"
     ],
     "deny": [],
     "ask": []

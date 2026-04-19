@@ -167,7 +167,7 @@ npm run dev:mp-weixin
 地址: aity88.online
 SSH端口: 22
 HTTPS端口: 8443
-后端端口: 3000
+后端端口: 3001
 ```
 
 ### 部署步骤
@@ -179,7 +179,7 @@ HTTPS端口: 8443
 ssh root@aity88.online
 
 # 进入后端目录
-cd /root/AITY_VIP/backend
+cd /root/aity-vip/backend
 
 # 拉取最新代码
 git pull origin feature/iteration-1
@@ -188,11 +188,11 @@ git pull origin feature/iteration-1
 npm install
 
 # 重启服务
-pm2 restart aity-vip-backend
+pm2 restart aity-backend
 
 # 查看状态
 pm2 status
-pm2 logs aity-vip-backend --lines 50
+pm2 logs aity-backend --lines 50
 ```
 
 #### 2. 部署小程序
@@ -249,9 +249,9 @@ git push origin feature/iteration-1
 
 # 3. 如修改了后端，部署到服务器
 ssh root@aity88.online
-cd /root/AITY_VIP/backend
+cd /root/aity-vip/backend
 git pull origin feature/iteration-1
-pm2 restart aity-vip-backend
+pm2 restart aity-backend
 
 # 4. 如修改了小程序，编译并上传
 cd aity-uni-app-v2

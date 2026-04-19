@@ -14,7 +14,12 @@ const { trackRequest, trackError, getMetrics } = require('./middleware/monitorin
 // 根据 NODE_ENV 自动选择对应的 .env 文件
 // ============================================
 const NODE_ENV = process.env.NODE_ENV || 'development';
-const envFile = NODE_ENV === 'production' ? '.env.production' : '.env.development';
+const envFileMap = {
+  production: '.env.production',
+  test: '.env.test',
+  development: '.env.development'
+};
+const envFile = envFileMap[NODE_ENV] || '.env.development';
 const envPath = path.resolve(__dirname, `../${envFile}`);
 
 // 加载对应环境的配置文件
@@ -45,7 +50,7 @@ const aiRoutes = require('./routes/ai');
 
 // 创建Express应用
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')

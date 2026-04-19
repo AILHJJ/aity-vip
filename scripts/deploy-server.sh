@@ -15,11 +15,11 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # 配置变量
-PROJECT_NAME="aity-vip"
-PROJECT_DIR="/var/www/aity-vip"
+PROJECT_NAME="aity-backend"
+PROJECT_DIR="/root/aity-vip"
 BACKEND_DIR="$PROJECT_DIR/backend"
-DB_NAME="aity_vip_prod"
-DB_USER="aity_user"
+DB_NAME="投研图灵室"
+DB_USER="投研图灵室"
 NODE_VERSION="18"
 
 # 打印带颜色的消息

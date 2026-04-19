@@ -12,8 +12,8 @@
 # 默认配置
 SERVER_IP="124.221.119.134"     # 腾讯云服务器IP
 SERVER_USER="root"                 # 服务器用户名
-FRONTEND_DIR="/var/www/aity-vip/frontend"  # 前端部署目录
-BACKEND_DIR="/var/www/aity-vip/backend"    # 后端部署目录
+FRONTEND_DIR="/root/aity-vip/aity-uni-app-v2"  # 前端部署目录
+BACKEND_DIR="/root/aity-vip/backend"    # 后端部署目录
 NGINX_DIR="/etc/nginx"                       # Nginx配置目录
 
 # HTTPS配置
@@ -22,7 +22,7 @@ HTTPS_PORT="8443"
 HTTP_PORT="8080"
 
 # 路径配置
-FRONTEND_LOCAL_DIR="$(dirname "$0")/../frontend"
+FRONTEND_LOCAL_DIR="$(dirname "$0")/../aity-uni-app-v2"
 BACKEND_LOCAL_DIR="$(dirname "$0")/../backend"
 
 # 日志配置

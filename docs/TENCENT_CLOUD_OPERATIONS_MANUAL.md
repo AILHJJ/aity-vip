@@ -174,7 +174,7 @@ NODE_ENV=production
 
 # 服务器配置
 HOST=0.0.0.0
-PORT=3000
+PORT=3001
 
 # 数据库配置（本地数据库）
 DB_HOST=localhost
@@ -724,7 +724,7 @@ pm2 restart aity-backend
 firewall-cmd --state
 
 # 开放后端端口
-firewall-cmd --permanent --add-port=3000/tcp
+firewall-cmd --permanent --add-port=3001/tcp
 
 # 重载防火墙
 firewall-cmd --reload

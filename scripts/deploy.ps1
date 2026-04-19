@@ -6,8 +6,8 @@ $CONFIG = @{
     Server = @{
         IP = "124.221.119.134"
         User = "root"
-        FrontendDir = "/var/www/aity-vip/frontend"
-        BackendDir = "/var/www/aity-vip/backend"
+        FrontendDir = "/root/aity-vip/aity-uni-app-v2"
+        BackendDir = "/root/aity-vip/backend"
         NginxDir = "/etc/nginx"
         SshKey = "d:\your-mcp-proxy\AITY_VIP\AITY0127.pem"
     }

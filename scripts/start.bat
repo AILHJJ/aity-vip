@@ -52,7 +52,7 @@ timeout /t 5 /nobreak >nul
 
 REM 2. 启动前端服务
 echo [2/2] 启动前端服务...
-cd /d "%~dp0..\aity-uni-app-new"
+cd /d "%~dp0..\aity-uni-app-v2"
 
 REM 检查是否需要安装依赖
 if not exist "node_modules" (

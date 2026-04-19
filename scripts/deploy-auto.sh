@@ -16,14 +16,14 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # 配置变量
-PROJECT_DIR="/var/www/aity-vip"
+PROJECT_DIR="/root/aity-vip"
 BACKEND_DIR="$PROJECT_DIR/backend"
 NODE_VERSION="18"
 
 # 数据库配置（使用远程数据库）
 DB_HOST="124.221.119.134"
 DB_PORT="3306"
-DB_USER="fl"
+DB_USER="投研图灵室"
 DB_PASSWORD="fl10b312"
 DB_NAME="投研图灵室"
 
