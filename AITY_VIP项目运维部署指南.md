@@ -277,6 +277,31 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 60s;
+    }
+
+    # 静态文件（上传的图片）反向代理
+    # ⚠️ 必须配置此项！否则图片 404
+    location /uploads/ {
+        proxy_pass http://127.0.0.1:3001/uploads/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        expires 7d;
+        add_header Cache-Control "public, max-age=604800";
+    }
+
+    # 健康检查
+    location /health {
+        proxy_pass http://127.0.0.1:3001/health;
+        proxy_set_header Host $host;
+    }
+
+    location / {
+        root /www/wwwroot/www.aity88.online;
+        index index.html index.htm;
+        try_files $uri $uri/ /index.html;
     }
 }
 
