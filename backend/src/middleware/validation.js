@@ -14,7 +14,7 @@ function handleValidationErrors(req, res, next) {
 
 function validateLogin() {
   return [
-    body('email').optional().isEmail().withMessage('Invalid email format'),
+    body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
     body('username').optional().isLength({ min: 3, max: 50 }).withMessage('Username must be between 3 and 50 characters'),
     body('password').notEmpty().withMessage('Password is required').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
     handleValidationErrors
@@ -24,7 +24,7 @@ function validateLogin() {
 function validateCreateUser() {
   return [
     body('name').notEmpty().withMessage('姓名不能为空').isLength({ min: 1, max: 100 }).withMessage('姓名长度须在1-100个字符之间'),
-    body('email').optional().isEmail().withMessage('邮箱格式不正确'),
+    body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
     body('password').notEmpty().withMessage('密码不能为空').isLength({ min: 6 }).withMessage('密码长度不能少于6位'),
     body('role').optional().isIn(['super_admin', 'admin', 'vip_mid', 'vip_short', 'trial']).withMessage('角色值不合法'),
     body('groupId').optional().isLength({ max: 50 }).withMessage('分组ID过长'),
@@ -37,7 +37,7 @@ function validateUpdateUser() {
   return [
     param('id').isInt().withMessage('无效的用户ID'),
     body('name').optional().isLength({ min: 1, max: 100 }).withMessage('姓名长度须在1-100个字符之间'),
-    body('email').optional().isEmail().withMessage('邮箱格式不正确'),
+    body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
     body('role').optional().isIn(['super_admin', 'admin', 'vip_mid', 'vip_short', 'trial']).withMessage('角色值不合法'),
     body('groupId').optional().isLength({ max: 50 }).withMessage('分组ID过长'),
     body('status').optional().isIn(['active', 'inactive']).withMessage('状态值不合法'),

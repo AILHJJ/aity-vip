@@ -797,8 +797,10 @@ const handleSave = async () => {
 			role: userForm.value.role
 		}
 
-		// 邮箱（始终发送，支持修改为空）
-		data.email = userForm.value.email || null
+		// 邮箱（有值才发送，空值不发，让后端自动生成默认邮箱）
+		if (userForm.value.email && userForm.value.email.trim()) {
+			data.email = userForm.value.email.trim()
+		}
 
 		// 分组ID（创建时自动继承，编辑时保留）
 		if (userForm.value.groupId) {
