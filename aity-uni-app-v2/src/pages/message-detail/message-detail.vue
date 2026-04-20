@@ -162,6 +162,89 @@
 					<text class="stat-icon">💬</text>
 					<text class="stat-text">{{ message.discussionCount || 0 }} 条讨论</text>
 				</view>
+				<!-- 管理员可查看阅读详情 -->
+				<view v-if="userStore.isAdmin" class="stat-item read-detail-toggle" @click="toggleReadDetails">
+					<text class="stat-icon">📋</text>
+					<text class="stat-text read-detail-text">阅读详情</text>
+					<text class="toggle-arrow">{{ showReadDetails ? '▲' : '▼' }}</text>
+				</view>
+			</view>
+
+			<!-- 管理员阅读详情面板 -->
+			<view v-if="userStore.isAdmin && showReadDetails" class="read-details-panel">
+				<view v-if="readDetailsLoading" class="read-details-loading">
+					<text>加载中...</text>
+				</view>
+				<template v-else-if="readDetails">
+					<!-- 统计概览 -->
+					<view class="read-details-summary">
+						<view class="summary-item read">
+							<text class="summary-count">{{ readDetails.readCount }}</text>
+							<text class="summary-label">已读</text>
+						</view>
+						<view class="summary-item unread">
+							<text class="summary-count">{{ readDetails.unreadCount }}</text>
+							<text class="summary-label">未读</text>
+						</view>
+						<view class="summary-item total">
+							<text class="summary-count">{{ readDetails.totalCount }}</text>
+							<text class="summary-label">应读</text>
+						</view>
+						<!-- 阅读率进度条 -->
+						<view class="read-rate-bar">
+							<view class="read-rate-fill" :style="{ width: readRatePercent + '%' }"></view>
+							<text class="read-rate-text">{{ readRatePercent }}%</text>
+						</view>
+					</view>
+
+					<!-- 已读/未读切换 -->
+					<view class="read-details-tabs">
+						<view
+							class="detail-tab"
+							:class="{ active: readDetailsTab === 'unread' }"
+							@click="readDetailsTab = 'unread'"
+						>
+							未读 ({{ readDetails.unreadCount }})
+						</view>
+						<view
+							class="detail-tab"
+							:class="{ active: readDetailsTab === 'read' }"
+							@click="readDetailsTab = 'read'"
+						>
+							已读 ({{ readDetails.readCount }})
+						</view>
+					</view>
+
+					<!-- 用户列表 -->
+					<view class="read-details-list">
+						<view v-if="currentReadList.length === 0" class="read-details-empty">
+							<text>{{ readDetailsTab === 'read' ? '暂无已读用户' : '全部已读！' }}</text>
+						</view>
+						<view
+							v-for="user in currentReadList"
+							:key="user.id"
+							class="read-user-item"
+						>
+							<image
+								v-if="user.avatar && !avatarErrors[user.id]"
+								:src="getFullUrl(user.avatar)"
+								class="user-avatar"
+								mode="aspectFill"
+								@error="handleAvatarError(user.id)"
+							/>
+							<view v-else class="user-avatar-placeholder">
+								<text class="avatar-text">{{ (user.name || '?').charAt(0) }}</text>
+							</view>
+							<view class="user-info">
+								<text class="user-name">{{ user.name }}</text>
+								<text v-if="readDetailsTab === 'read' && user.readAt" class="read-time">
+									{{ formatFriendlyTime(user.readAt) }}
+								</text>
+							</view>
+							<text class="user-role-tag" :class="user.role">{{ getRoleLabel(user.role) }}</text>
+						</view>
+					</view>
+				</template>
 			</view>
 
 			<!-- 操作按钮 -->
@@ -278,7 +361,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
-import { getMessageDetailApi, markMessageAsReadApi, favoriteMessageApi, unfavoriteMessageApi, deleteMessageApi, pinMessageApi, unpinMessageApi } from '../../api/message'
+import { getMessageDetailApi, markMessageAsReadApi, favoriteMessageApi, unfavoriteMessageApi, deleteMessageApi, pinMessageApi, unpinMessageApi, getMessageReadDetailsApi } from '../../api/message'
 import { getDiscussionsApi } from '../../api/discussion'
 import { MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatTime, formatFriendlyTime } from '../../utils/time'
@@ -306,6 +389,13 @@ const favoriteLoading = ref(false)
 const shareLoading = ref(false)
 const deleteLoading = ref(false)
 const pinLoading = ref(false)
+
+// 阅读详情相关
+const showReadDetails = ref(false)
+const readDetails = ref(null)
+const readDetailsLoading = ref(false)
+const readDetailsTab = ref('unread')
+const avatarErrors = ref({})
 
 // Markdown主题 - 从消息数据读取，默认为default
 const markdownTheme = ref('default')
@@ -538,7 +628,10 @@ const loadMessageDetail = async () => {
 			}
 
 			// 标记为已读
-			markMessageAsReadApi(messageId.value).catch(err => {
+			markMessageAsReadApi(messageId.value).then(() => {
+				// 标记成功后刷新全局未读角标
+				userStore.fetchUnreadCount()
+			}).catch(err => {
 				console.warn('标记已读失败:', err)
 				// 不影响用户体验，静默失败
 			})
@@ -863,6 +956,66 @@ const handleTogglePin = async () => {
 	}
 }
 
+// 阅读详情：计算属性
+const readRatePercent = computed(() => {
+	if (!readDetails.value || readDetails.value.totalCount === 0) return 0
+	return Math.round((readDetails.value.readCount / readDetails.value.totalCount) * 100)
+})
+
+const currentReadList = computed(() => {
+	if (!readDetails.value) return []
+	return readDetailsTab.value === 'read' ? readDetails.value.readUsers : readDetails.value.unreadUsers
+})
+
+// 阅读详情：切换面板
+const toggleReadDetails = async () => {
+	showReadDetails.value = !showReadDetails.value
+	if (showReadDetails.value && !readDetails.value) {
+		await loadReadDetails()
+	}
+}
+
+// 阅读详情：加载数据
+const loadReadDetails = async () => {
+	readDetailsLoading.value = true
+	try {
+		const res = await getMessageReadDetailsApi(messageId.value)
+		if (res.code === 200 || res.success) {
+			readDetails.value = res.data
+		}
+	} catch (error) {
+		console.error('加载阅读详情失败:', error)
+		uni.showToast({ title: '加载失败', icon: 'none' })
+	} finally {
+		readDetailsLoading.value = false
+	}
+}
+
+// 角色标签映射
+const getRoleLabel = (role) => {
+	const map = {
+		super_admin: '超管',
+		admin: '管理员',
+		vip_mid: '中线',
+		vip_short: '短线',
+		trial: '试用'
+	}
+	return map[role] || role
+}
+
+// 头像加载失败处理
+const handleAvatarError = (userId) => {
+	avatarErrors.value[userId] = true
+}
+
+// URL 补全：相对路径拼接服务器地址
+const getFullUrl = (url) => {
+	if (!url) return ''
+	if (url.startsWith('http://') || url.startsWith('https://')) return url
+	if (url.startsWith('/uploads/')) return BASE_URL + url
+	return url
+}
+
 // 页面显示时刷新讨论列表（从创建讨论页面返回时会触发）
 onShow(() => {
 	// 只在需要时刷新讨论列表，避免不必要的请求
@@ -918,6 +1071,19 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 @import '../../styles/markdown-themes.scss';
+
+/* 微信小程序 button 组件默认样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+button::after {
+	border: none;
+}
 
 /* 消息详情页 - 金融科技风格 */
 .detail-container {
@@ -1634,6 +1800,239 @@ onMounted(() => {
 
 .admin-btn-icon {
 	font-size: 32rpx;
+}
+
+/* 阅读详情面板 */
+.read-detail-toggle {
+	cursor: pointer;
+	position: relative;
+}
+
+.read-detail-text {
+	color: #667eea;
+}
+
+.toggle-arrow {
+	font-size: 20rpx;
+	color: #667eea;
+	margin-left: 6rpx;
+}
+
+.read-details-panel {
+	margin-top: 20rpx;
+	padding: 24rpx;
+	background: #f8f9ff;
+	border-radius: 16rpx;
+	border: 2rpx solid #e8ecff;
+}
+
+.read-details-loading {
+	display: flex;
+	justify-content: center;
+	padding: 40rpx;
+	color: #999;
+	font-size: 28rpx;
+}
+
+.read-details-summary {
+	display: flex;
+	align-items: center;
+	gap: 24rpx;
+	margin-bottom: 24rpx;
+}
+
+.summary-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 12rpx 20rpx;
+	background: #ffffff;
+	border-radius: 12rpx;
+	min-width: 100rpx;
+}
+
+.summary-item.read {
+	border: 2rpx solid #52c41a;
+}
+
+.summary-item.unread {
+	border: 2rpx solid #ff4d4f;
+}
+
+.summary-item.total {
+	border: 2rpx solid #667eea;
+}
+
+.summary-count {
+	font-size: 36rpx;
+	font-weight: 700;
+	color: #333;
+}
+
+.summary-item.read .summary-count {
+	color: #52c41a;
+}
+
+.summary-item.unread .summary-count {
+	color: #ff4d4f;
+}
+
+.summary-item.total .summary-count {
+	color: #667eea;
+}
+
+.summary-label {
+	font-size: 22rpx;
+	color: #999;
+	margin-top: 4rpx;
+}
+
+.read-rate-bar {
+	flex: 1;
+	height: 32rpx;
+	background: #e8e8e8;
+	border-radius: 16rpx;
+	overflow: hidden;
+	position: relative;
+}
+
+.read-rate-fill {
+	height: 100%;
+	background: linear-gradient(90deg, #52c41a, #73d13d);
+	border-radius: 16rpx;
+	transition: width 0.6s ease;
+}
+
+.read-rate-text {
+	position: absolute;
+	right: 12rpx;
+	top: 50%;
+	transform: translateY(-50%);
+	font-size: 20rpx;
+	font-weight: 600;
+	color: #333;
+}
+
+.read-details-tabs {
+	display: flex;
+	gap: 0;
+	margin-bottom: 16rpx;
+	border-radius: 12rpx;
+	overflow: hidden;
+	border: 2rpx solid #e8ecff;
+}
+
+.detail-tab {
+	flex: 1;
+	text-align: center;
+	padding: 16rpx 0;
+	font-size: 26rpx;
+	color: #666;
+	background: #ffffff;
+	transition: all 0.3s ease;
+
+	&.active {
+		background: #667eea;
+		color: #ffffff;
+		font-weight: 600;
+	}
+}
+
+.read-details-list {
+	max-height: 600rpx;
+	overflow-y: auto;
+}
+
+.read-details-empty {
+	display: flex;
+	justify-content: center;
+	padding: 40rpx;
+	color: #999;
+	font-size: 26rpx;
+}
+
+.read-user-item {
+	display: flex;
+	align-items: center;
+	gap: 16rpx;
+	padding: 16rpx 12rpx;
+	background: #ffffff;
+	border-radius: 12rpx;
+	margin-bottom: 12rpx;
+}
+
+.user-avatar {
+	width: 64rpx;
+	height: 64rpx;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.user-avatar-placeholder {
+	width: 64rpx;
+	height: 64rpx;
+	border-radius: 50%;
+	background: #667eea;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.avatar-text {
+	color: #ffffff;
+	font-size: 28rpx;
+	font-weight: 600;
+}
+
+.user-info {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 4rpx;
+}
+
+.user-name {
+	font-size: 28rpx;
+	color: #333;
+	font-weight: 500;
+}
+
+.read-time {
+	font-size: 22rpx;
+	color: #999;
+}
+
+.user-role-tag {
+	font-size: 20rpx;
+	padding: 4rpx 12rpx;
+	border-radius: 8rpx;
+	flex-shrink: 0;
+
+	&.super_admin {
+		background: #fff1f0;
+		color: #cf1322;
+	}
+
+	&.admin {
+		background: #fff7e6;
+		color: #d46b08;
+	}
+
+	&.vip_mid {
+		background: #f0f2ff;
+		color: #667eea;
+	}
+
+	&.vip_short {
+		background: #e6fffb;
+		color: #006d75;
+	}
+
+	&.trial {
+		background: #f5f5f5;
+		color: #999;
+	}
 }
 
 .error-state {

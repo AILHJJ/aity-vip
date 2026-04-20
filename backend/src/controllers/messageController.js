@@ -487,6 +487,167 @@ async function markMessageAsRead(req, res) {
   }
 }
 
+// 获取消息阅读详情（管理员专用）
+async function getMessageReadDetails(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // 验证管理员权限
+    const currentUser = await User.findByPk(userId);
+    if (!currentUser || (currentUser.role !== 'super_admin' && currentUser.role !== 'admin')) {
+      return res.status(403).json(forbidden('Admin access is required'));
+    }
+
+    // 获取消息
+    const message = await Message.findByPk(id);
+    if (!message) {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
+    // 根据消息的 groupId + tags 确定目标用户范围
+    const userWhere = { status: 'active' };
+    const messageTags = message.tags || [];
+
+    // groupId 过滤
+    if (message.groupId && message.groupId !== 'all') {
+      userWhere.groupId = message.groupId;
+    }
+
+    // tags 权限过滤：只统计有权限看这条消息的用户
+    if (messageTags.length > 0 && !messageTags.includes('all_users')) {
+      const allowedRoles = ['super_admin', 'admin', 'trial'];
+      if (messageTags.includes('mid_term')) allowedRoles.push('vip_mid');
+      if (messageTags.includes('short_term')) allowedRoles.push('vip_short');
+      userWhere.role = { [Op.in]: allowedRoles };
+    }
+
+    // 查询所有目标用户
+    const targetUsers = await User.findAll({
+      where: userWhere,
+      attributes: ['id', 'name', 'avatar', 'role', 'groupId']
+    });
+
+    // 查询已读记录
+    const readRecords = await UserMessageRead.findAll({
+      where: { messageId: id },
+      attributes: ['userId', 'readAt']
+    });
+
+    // 构建已读用户ID集合
+    const readUserMap = new Map();
+    readRecords.forEach(record => {
+      readUserMap.set(record.userId, record.readAt);
+    });
+
+    // 分类：已读 / 未读
+    const readUsers = [];
+    const unreadUsers = [];
+
+    targetUsers.forEach(user => {
+      const readAt = readUserMap.get(user.id);
+      if (readAt) {
+        readUsers.push({
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          role: user.role,
+          groupId: user.groupId,
+          readAt
+        });
+      } else {
+        unreadUsers.push({
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          role: user.role,
+          groupId: user.groupId
+        });
+      }
+    });
+
+    res.json(success({
+      readUsers,
+      unreadUsers,
+      readCount: readUsers.length,
+      unreadCount: unreadUsers.length,
+      totalCount: targetUsers.length
+    }));
+  } catch (err) {
+    console.error('获取阅读详情失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 获取当前用户未读消息数
+async function getUnreadCount(req, res) {
+  try {
+    const userId = req.user.userId;
+
+    // 获取当前用户信息
+    const currentUser = await User.findByPk(userId);
+    if (!currentUser) {
+      return res.status(404).json(notFound('User not found'));
+    }
+
+    // 构建用户可见消息的查询条件
+    const messageWhere = {
+      [Op.or]: [
+        { status: 'published' },
+        { status: { [Op.is]: null } },
+        {
+          status: 'scheduled',
+          publishTime: { [Op.lte]: new Date() }
+        }
+      ]
+    };
+
+    // tags 权限过滤
+    if (currentUser.role !== 'trial' && currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+      const allowedTags = currentUser.role === 'vip_mid'
+        ? ['mid_term', 'all_users']
+        : ['short_term', 'all_users'];
+
+      messageWhere[Op.and] = [
+        messageWhere[Op.or] ? { [Op.or]: messageWhere[Op.or] } : {},
+        {
+          [Op.or]: [
+            { tags: null },
+            sequelize.where(
+              sequelize.fn('JSON_CONTAINS', sequelize.col('tags'), JSON.stringify(allowedTags[0])),
+              1
+            ),
+            sequelize.where(
+              sequelize.fn('JSON_CONTAINS', sequelize.col('tags'), JSON.stringify(allowedTags[1])),
+              1
+            )
+          ]
+        }
+      ];
+      delete messageWhere[Op.or];
+    }
+
+    // 获取用户已读消息ID列表
+    const readRecords = await UserMessageRead.findAll({
+      where: { userId },
+      attributes: ['messageId']
+    });
+    const readMessageIds = readRecords.map(r => r.messageId);
+
+    // 排除已读消息
+    if (readMessageIds.length > 0) {
+      messageWhere.id = { [Op.notIn]: readMessageIds };
+    }
+
+    const unreadCount = await Message.count({ where: messageWhere });
+
+    res.json(success({ unreadCount }));
+  } catch (err) {
+    console.error('获取未读消息数失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
 // 收藏消息
 async function favoriteMessage(req, res) {
   try {
@@ -601,6 +762,8 @@ module.exports = {
   updateMessage,
   deleteMessage,
   markMessageAsRead,
+  getMessageReadDetails,
+  getUnreadCount,
   favoriteMessage,
   unfavoriteMessage,
   pinMessage,

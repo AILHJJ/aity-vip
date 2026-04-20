@@ -11,6 +11,12 @@ router.get('/',
   messageController.getMessages
 );
 
+// 获取当前用户未读消息数（必须在 /:id 之前，否则会被 :id 参数匹配）
+router.get('/unread-count',
+  authenticateToken,
+  messageController.getUnreadCount
+);
+
 router.get('/:id',
   authenticateToken,
   ...validateIdParam(),
@@ -47,6 +53,14 @@ router.post('/:id/read',
   authenticateToken,
   ...validateIdParam(),
   messageController.markMessageAsRead
+);
+
+// 获取消息阅读详情（管理员专用）
+router.get('/:id/read-details',
+  authenticateToken,
+  checkAdmin,
+  ...validateIdParam(),
+  messageController.getMessageReadDetails
 );
 
 // 收藏消息

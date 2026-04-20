@@ -102,10 +102,11 @@
 						<view class="message-type-badge" :class="'type-' + message.type">
 							{{ getMessageTypeLabel(message.type) }}
 						</view>
-						<view class="header-right">
-							<view v-if="isMessageUnread(message.id)" class="unread-dot"></view>
-							<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
-						</view>
+					<view class="header-right">
+						<view v-if="isMessageUnread(message.id)" class="unread-dot"></view>
+						<view v-else class="read-tag"><text class="read-tag-text">已读</text></view>
+						<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
+					</view>
 					</view>
 
 					<view class="message-title">{{ message.title }}</view>
@@ -161,6 +162,7 @@ import { MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../uti
 import { formatFriendlyTime } from '../../utils/time'
 import { getSearchHistory, addSearchHistory, clearSearchHistory, removeSearchHistory } from '../../utils/search-history'
 import { isMessageRead, markAsRead, getUnreadCount } from '../../utils/read-status'
+import { markMessageAsReadApi } from '../../api/message'
 import dayjs from 'dayjs'
 import MessageSkeleton from '@/components/message-skeleton.vue'
 import EmptyState from '@/components/empty-state.vue'
@@ -563,9 +565,14 @@ const handleMessageFilterChange = (newFilters) => {
 
 // 跳转到详情
 const goToDetail = (id) => {
-	// 标记为已读
+	// 本地标记已读
 	markAsRead(id)
 	updateUnreadCount()
+
+	// 同步到服务端（不阻塞UI）
+	markMessageAsReadApi(id).catch(e => {
+		console.error('服务端标记已读失败:', e)
+	})
 
 	uni.navigateTo({
 		url: `/pages/message-detail/message-detail?id=${id}`
@@ -632,10 +639,26 @@ onShow(() => {
 		console.log('[消息列表] 页面返回，刷新列表')
 		loadMessages(true)
 	}
+	// 同步未读消息角标
+	userStore.fetchUnreadCount()
 })
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+
+button::after {
+	border: none;
+}
+
 /* 消息列表页面 - 金融科技风格 */
 .messages-container {
 	height: 100vh;
@@ -658,19 +681,19 @@ onShow(() => {
 	align-items: center;
 	justify-content: center;
 	gap: 10rpx;
-	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	border: none;
 	border-radius: 40rpx;
 	color: #ffffff;
 	font-size: 30rpx;
 	font-weight: 500;
-	box-shadow: 0 4rpx 12rpx rgba(56, 189, 248, 0.3);
+	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
 	transition: all 0.3s ease;
 }
 
 .create-btn:active {
 	transform: scale(0.98);
-	box-shadow: 0 2rpx 8rpx rgba(56, 189, 248, 0.2);
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.2);
 }
 
 .create-icon {
@@ -742,9 +765,10 @@ onShow(() => {
 	height: 70rpx;
 	line-height: 70rpx;
 	padding: 0;
+	margin: 0;
 	font-size: 28rpx;
 	color: #ffffff;
-	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	border: none;
 	border-radius: 35rpx;
 	text-align: center;
@@ -785,8 +809,8 @@ onShow(() => {
 
 .filter-item.active {
 	color: #ffffff;
-	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-	box-shadow: 0 2rpx 8rpx rgba(56, 189, 248, 0.3);
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
 }
 
 /* 消息滚动区域 */
@@ -953,6 +977,18 @@ onShow(() => {
 	box-shadow: 0 0 8rpx rgba(239, 68, 68, 0.5);
 }
 
+/* 已读标签 */
+.read-tag {
+	padding: 4rpx 12rpx;
+	background: var(--bg-tertiary);
+	border-radius: 8rpx;
+}
+
+.read-tag-text {
+	font-size: 20rpx;
+	color: var(--text-tertiary);
+}
+
 @keyframes unread-pulse {
 	0%, 100% {
 		opacity: 1;
@@ -971,8 +1007,8 @@ onShow(() => {
 	color: #ffffff;
 	border-radius: 20rpx;
 	font-weight: 500;
-	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-	box-shadow: 0 2rpx 8rpx rgba(56, 189, 248, 0.3);
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
 
 	// 为不同类型设置不同的渐变色
 	&.type-pre_market_comment {
@@ -1254,7 +1290,7 @@ onShow(() => {
 	top: 100%;
 	left: 0;
 	right: 0;
-	background: #ffffff;
+	background: var(--bg-card);
 	border-radius: 0 0 16rpx 16rpx;
 	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
 	z-index: 100;
@@ -1269,13 +1305,13 @@ onShow(() => {
 	justify-content: space-between;
 	margin-bottom: 20rpx;
 	padding-bottom: 15rpx;
-	border-bottom: 1rpx solid #e0e0e0;
+	border-bottom: 1rpx solid var(--border-secondary);
 }
 
 .history-title {
 	font-size: 28rpx;
 	font-weight: bold;
-	color: #333333;
+	color: var(--text-primary);
 }
 
 .history-clear {
@@ -1295,19 +1331,19 @@ onShow(() => {
 	align-items: center;
 	justify-content: space-between;
 	padding: 16rpx 20rpx;
-	background: #f5f5f5;
+	background: var(--bg-tertiary);
 	border-radius: 8rpx;
 	transition: all 0.3s;
 
 	&:active {
-		background: #e0e0e0;
+		background: var(--bg-hover);
 	}
 }
 
 .history-text {
 	flex: 1;
 	font-size: 28rpx;
-	color: #333333;
+	color: var(--text-primary);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -1315,7 +1351,7 @@ onShow(() => {
 
 .history-remove {
 	font-size: 36rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 	padding: 0 10rpx;
 	line-height: 1;
 }

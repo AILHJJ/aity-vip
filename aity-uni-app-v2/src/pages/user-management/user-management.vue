@@ -1093,6 +1093,19 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件默认样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+button::after {
+	border: none;
+}
+
 .user-management-container {
 	height: 100vh;
 	display: flex;

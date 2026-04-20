@@ -301,9 +301,40 @@ async function getIndustryFundFlow(req, res) {
       Blockid: blockId
     });
 
-    // 处理返回数据
+    // 处理返回数据 —— 实际API返回Buf字段（JSON字符串），非data.Data数组
     const industries = [];
-    if (data.Data && Array.isArray(data.Data)) {
+    if (data.Buf && typeof data.Buf === 'string') {
+      try {
+        const parsed = JSON.parse(data.Buf);
+        if (Array.isArray(parsed)) {
+          parsed.forEach(item => {
+            // Buf格式: [[市场类型, 代码, 名称, 昨收, 现价, 主力流入, 净流入], ...]
+            if (Array.isArray(item) && item.length >= 7) {
+              const lastClose = parseFloat(item[3]) || 0;
+              const price = parseFloat(item[4]) || 0;
+              const mainInflow = parseFloat(item[5]) || 0;
+              const netInflow = parseFloat(item[6]) || 0;
+              const changePct = lastClose > 0 ? ((price - lastClose) / lastClose * 100) : 0;
+              industries.push({
+                code: item[1] || '',
+                name: item[2] || '',
+                netInflow: netInflow,
+                netInflowPct: 0,
+                mainInflow: mainInflow,
+                stockCount: 0,
+                upCount: 0,
+                downCount: 0,
+                limitUpCount: 0,
+                avgChangePct: Math.round(changePct * 100) / 100
+              });
+            }
+          });
+        }
+      } catch (parseErr) {
+        console.error('解析行业资金流向Buf失败:', parseErr.message);
+      }
+    } else if (data.Data && Array.isArray(data.Data)) {
+      // 兼容旧格式
       data.Data.forEach(item => {
         industries.push({
           code: item.Code || '',

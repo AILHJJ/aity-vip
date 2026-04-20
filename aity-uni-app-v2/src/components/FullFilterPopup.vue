@@ -206,6 +206,19 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件默认样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+button::after {
+	border: none;
+}
+
 .filter-popup {
   background: #fff;
   border-radius: 24rpx 24rpx 0 0;

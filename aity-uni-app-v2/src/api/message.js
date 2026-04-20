@@ -108,6 +108,23 @@ export function unpinMessageApi(id) {
   return del(`/messages/${id}/pin`)
 }
 
+/**
+ * 获取消息阅读详情（管理员专用）
+ * @param {Number} id 消息ID
+ * @returns {Promise} { readUsers, unreadUsers, readCount, unreadCount, totalCount }
+ */
+export function getMessageReadDetailsApi(id) {
+  return get(`/messages/${id}/read-details`)
+}
+
+/**
+ * 获取当前用户未读消息数
+ * @returns {Promise} { unreadCount }
+ */
+export function getUnreadCountApi() {
+  return get('/messages/unread-count')
+}
+
 export default {
   getMessagesApi,
   getMessageDetailApi,
@@ -119,5 +136,7 @@ export default {
   unfavoriteMessageApi,
   getFavoriteMessagesApi,
   pinMessageApi,
-  unpinMessageApi
+  unpinMessageApi,
+  getMessageReadDetailsApi,
+  getUnreadCountApi
 }

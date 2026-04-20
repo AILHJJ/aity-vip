@@ -101,7 +101,11 @@
     <!-- Tab Content -->
     <view class="tab-content">
       <!-- Ladder Tab -->
-      <view class="ladder-section">
+      <view v-if="activeTab === 'ladder'" class="ladder-section">
+        <!-- 骨架屏 -->
+        <market-skeleton v-if="loading && ladderData.levels.length === 0" :count="3" :showDetail="true" />
+        <!-- 空状态 -->
+        <empty-state v-else-if="filteredLadderLevels.length === 0" type="market" title="暂无连板天梯数据" description="今日暂无涨停连板股票" :showAction="false" />
         <view
           v-for="level in filteredLadderLevels"
           :key="level.days"
@@ -149,18 +153,22 @@
           <view
             class="flow-tab"
             :class="{ active: fundFlowType === 'inflow' }"
-            @click="fundFlowType = 'inflow'"
+            @click="fundFlowType = 'inflow'; loadFundFlowData()"
           >
             <text>流入</text>
           </view>
           <view
             class="flow-tab"
             :class="{ active: fundFlowType === 'outflow' }"
-            @click="fundFlowType = 'outflow'"
+            @click="fundFlowType = 'outflow'; loadFundFlowData()"
           >
             <text>流出</text>
           </view>
         </view>
+        <!-- 骨架屏 -->
+        <market-skeleton v-if="loading && fundFlowData.length === 0" :count="5" />
+        <!-- 空状态 -->
+        <empty-state v-else-if="fundFlowData.length === 0" type="market" title="暂无资金流向数据" description="今日暂无行业资金流向记录" :showAction="false" />
         <view class="flow-list">
           <view
             v-for="(item, index) in fundFlowData"
@@ -184,7 +192,11 @@
 
       <!-- Distribution Tab -->
       <view v-if="activeTab === 'distribution'" class="distribution-section">
-        <view class="chart-container">
+        <!-- 骨架屏 -->
+        <market-skeleton v-if="loading" :count="1" />
+        <!-- 空状态 -->
+        <empty-state v-else-if="distributionData.limitDown === 0 && distributionData.up3 === 0 && distributionData.flat === 0" type="market" title="暂无涨跌分布数据" description="暂无市场涨跌分布统计" :showAction="false" />
+        <view v-else class="chart-container">
           <view class="chart-bar" v-for="(bar, index) in distributionBars" :key="index" :class="bar.type">
             <view class="bar-fill" :style="{ height: bar.height + '%' }">
               <text class="bar-value">{{ bar.count }}</text>
@@ -275,16 +287,17 @@
       </view>
     </view>
 
-    <!-- Loading -->
-    <view v-if="loading" class="loading-overlay">
+    <!-- Loading Overlay - 仅首次加载时显示 -->
+    <view v-if="loading && !hasInitialized" class="loading-overlay">
       <view class="loading-spinner"></view>
-      <text class="loading-text">加载中...</text>
+      <text class="loading-text">加载行情数据...</text>
     </view>
   </view>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import {
   getMarketOverviewApi,
   getIndexQuoteApi,
@@ -292,11 +305,14 @@ import {
   getIndustryFundFlowApi
 } from '../../api/market.js'
 import { useUserStore } from '../../store/user'
+import MarketSkeleton from '@/components/market-skeleton.vue'
+import EmptyState from '@/components/empty-state.vue'
 
 const userStore = useUserStore()
 
 
 const loading = ref(false)
+const hasInitialized = ref(false)
 const isRefreshing = ref(false)
 const updateTime = ref('')
 const activeTab = ref('ladder')
@@ -544,6 +560,25 @@ const loadMarketOverview = async () => {
         limitDownCount: res.data.limitDownCount || 0,
         totalStocks: res.data.totalStocks || 4000
       }
+      // 从概览数据推算涨跌分布（后端未提供细分数据，按比例估算）
+      const up = res.data.upCount || 0
+      const down = res.data.downCount || 0
+      const limitUp = res.data.limitUpCount || 0
+      const limitDown = res.data.limitDownCount || 0
+      const total = res.data.totalStocks || (up + down)
+      const flat = Math.max(0, total - up - down)
+      // 按比例拆分上涨/下跌到各区间
+      const upNonLimit = up - limitUp
+      const downNonLimit = down - limitDown
+      distributionData.value = {
+        limitDown: limitDown,
+        down5: Math.round(downNonLimit * 0.3),
+        down3: Math.round(downNonLimit * 0.5),
+        flat: flat,
+        up3: Math.round(upNonLimit * 0.45),
+        up5: Math.round(upNonLimit * 0.3),
+        limitUp: limitUp
+      }
     }
   } catch (e) {
     console.error('加载市场概览失败:', e)
@@ -596,6 +631,7 @@ const refreshData = async () => {
       loadLadderData(),
       loadFundFlowData()
     ])
+    hasInitialized.value = true
   } finally {
     loading.value = false
   }
@@ -625,41 +661,42 @@ onUnmounted(() => {
     clearInterval(timeTimer)
   }
 })
+
+onShow(() => {
+  // 刷新 tabBar 未读角标
+  userStore.updateTabBarBadge()
+})
 </script>
 
 <style lang="scss" scoped>
-$up-color: #ff4757;
-$down-color: #2ed573;
-$primary-color: #5d9cec;
-$bg-dark: #0f1419;
-$bg-card: #1e2636;
-
+/* 行情中心页面 - 使用统一CSS变量系统 */
 .market-page {
   min-height: 100vh;
-  background: $bg-dark;
-  color: #fff;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
-
+/* Header - 统一导航栏风格 */
 .header {
-  background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
   padding: 32rpx;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1rpx solid var(--border-primary);
 
   .header-left {
     width: 60rpx;
     .back-icon {
       font-size: 48rpx;
-      color: #fff;
+      color: var(--text-primary);
     }
   }
   .header-center {
     .header-title {
       font-size: 36rpx;
       font-weight: 600;
+      color: var(--text-primary);
     }
   }
   .header-right {
@@ -669,11 +706,11 @@ $bg-card: #1e2636;
       gap: 16rpx;
       .update-time {
         font-size: 24rpx;
-        color: rgba(255,255,255,0.6);
+        color: var(--text-tertiary);
       }
       .refresh-btn {
         padding: 8rpx 16rpx;
-        background: rgba(255,255,255,0.1);
+        background: var(--bg-tertiary);
         border-radius: 8rpx;
         .refresh-icon {
           display: inline-block;
@@ -689,6 +726,7 @@ $bg-card: #1e2636;
   to { transform: rotate(360deg); }
 }
 
+/* Index Bar - 指数行情横向滚动 */
 .index-bar {
   white-space: nowrap;
   padding: 16rpx;
@@ -701,22 +739,25 @@ $bg-card: #1e2636;
     flex-direction: column;
     min-width: 160rpx;
     padding: 16rpx;
-    background: rgba(255,255,255,0.05);
-    border-radius: 12rpx;
+    background: var(--bg-card);
+    border-radius: 16rpx;
+    border: 1rpx solid var(--border-primary);
+    box-shadow: var(--shadow-card);
     &.up {
-      .index-value, .index-change { color: $up-color; }
+      .index-value, .index-change { color: var(--color-up); }
     }
     &.down {
-      .index-value, .index-change { color: $down-color; }
+      .index-value, .index-change { color: var(--color-down); }
     }
     .index-name {
       font-size: 24rpx;
-      color: rgba(255,255,255,0.6);
+      color: var(--text-tertiary);
     }
     .index-value {
       font-size: 32rpx;
       font-weight: 600;
       margin: 8rpx 0;
+      color: var(--text-primary);
     }
     .index-change {
       font-size: 24rpx;
@@ -724,36 +765,42 @@ $bg-card: #1e2636;
   }
 }
 
+/* Stats Grid - 市场概览数据卡片 */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16rpx;
   padding: 0 32rpx;
   .stat-card {
-    background: rgba(255,255,255,0.05);
+    background: var(--bg-card);
     border-radius: 16rpx;
     padding: 20rpx;
     text-align: center;
+    border: 1rpx solid var(--border-primary);
+    box-shadow: var(--shadow-card);
     .stat-value {
       font-size: 40rpx;
       font-weight: 700;
-      &.up { color: $up-color; }
-      &.down { color: $down-color; }
+      &.up { color: var(--color-up); }
+      &.down { color: var(--color-down); }
     }
     .stat-label {
       font-size: 24rpx;
-      color: rgba(255,255,255,0.6);
+      color: var(--text-tertiary);
       margin-top: 8rpx;
     }
   }
 }
 
+/* Sentiment Section - 市场情绪 */
 .sentiment-section {
   padding: 0 32rpx 32rpx;
   .sentiment-card {
-    background: linear-gradient(135deg, #2a3447 0%, #1e2636 100%);
+    background: var(--bg-card);
     border-radius: 24rpx;
     padding: 28rpx;
+    border: 1rpx solid var(--border-primary);
+    box-shadow: var(--shadow-card);
   }
   .sentiment-header {
     display: flex;
@@ -762,17 +809,17 @@ $bg-card: #1e2636;
   }
   .sentiment-title {
     font-size: 28rpx;
-    color: rgba(255,255,255,0.8);
+    color: var(--text-secondary);
   }
   .sentiment-score {
     font-size: 36rpx;
     font-weight: 700;
-    &.up { color: $up-color; }
-    &.down { color: $down-color; }
+    &.up { color: var(--color-up); }
+    &.down { color: var(--color-down); }
   }
   .sentiment-bar {
     height: 12rpx;
-    background: #1a2030;
+    background: var(--bg-tertiary);
     border-radius: 6rpx;
     overflow: hidden;
     margin-bottom: 12rpx;
@@ -780,30 +827,33 @@ $bg-card: #1e2636;
   .sentiment-fill {
     height: 100%;
     border-radius: 6rpx;
-    background: linear-gradient(90deg, $down-color 0%, #ffa502 50%, $up-color 100%);
+    background: linear-gradient(90deg, var(--color-down) 0%, var(--color-accent) 50%, var(--color-up) 100%);
     transition: width 0.5s ease;
   }
   .sentiment-labels {
     display: flex;
     justify-content: space-between;
     font-size: 20rpx;
-    color: rgba(255,255,255,0.5);
+    color: var(--text-tertiary);
   }
 }
 
+/* Tabs - 标签切换 */
 .tabs {
   display: flex;
-  background: rgba(0,0,0,0.2);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  background: var(--bg-secondary);
+  border-bottom: 1rpx solid var(--border-primary);
   .tab {
     flex: 1;
     text-align: center;
     padding: 24rpx;
     font-size: 28rpx;
-    color: rgba(255,255,255,0.5);
+    color: var(--text-tertiary);
     position: relative;
+    transition: all 0.3s ease;
     &.active {
-      color: #fff;
+      color: var(--color-primary);
+      font-weight: 600;
       &::after {
         content: '';
         position: absolute;
@@ -812,44 +862,63 @@ $bg-card: #1e2636;
         transform: translateX(-50%);
         width: 80rpx;
         height: 6rpx;
-        background: $primary-color;
+        background: var(--color-primary);
         border-radius: 3rpx;
       }
     }
   }
 }
 
+/* Filter Bar - 筛选标签 */
 .filter-bar {
   white-space: nowrap;
   padding: 24rpx 32rpx;
-  background: rgba(0,0,0,0.2);
+  background: var(--bg-secondary);
   .filter-chip {
     display: inline-block;
     padding: 12rpx 24rpx;
-    background: rgba(255,255,255,0.1);
+    background: var(--bg-tertiary);
     border-radius: 32rpx;
     font-size: 24rpx;
-    color: rgba(255,255,255,0.6);
+    color: var(--text-secondary);
     margin-right: 16rpx;
+    transition: all 0.3s ease;
+    border: 1rpx solid transparent;
     &.active {
-      background: $primary-color;
+      background: var(--color-primary);
       color: #fff;
+      box-shadow: 0 2rpx 8rpx rgba(59, 130, 246, 0.3);
     }
   }
 }
 
+/* Tab Content */
 .tab-content {
   padding: 24rpx 32rpx;
   padding-bottom: 120rpx;
 }
 
+/* Empty Tip */
+.empty-tip {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80rpx 0;
+}
+.empty-tip-text {
+  font-size: 28rpx;
+  color: var(--text-tertiary);
+}
+
+/* Ladder Section - 连板天梯 */
 .ladder-section {
   .ladder-level {
-    background: linear-gradient(135deg, #2a3447 0%, #1e2636 100%);
+    background: var(--bg-card);
     border-radius: 24rpx;
     margin-bottom: 20rpx;
     overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.05);
+    border: 1rpx solid var(--border-primary);
+    box-shadow: var(--shadow-card);
   }
   .level-header {
     display: flex;
@@ -866,9 +935,9 @@ $bg-card: #1e2636;
     font-size: 36rpx;
     font-weight: 700;
     margin-right: 24rpx;
-    &.high { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%); }
-    &.mid { background: linear-gradient(135deg, #ffa502 0%, #ff7f00 100%); }
-    &.low { background: linear-gradient(135deg, #2ed573 0%, #26a65b 100%); }
+    &.high { background: linear-gradient(135deg, var(--color-up) 0%, #dc2626 100%); color: #fff; }
+    &.mid { background: linear-gradient(135deg, var(--color-accent) 0%, #ea580c 100%); color: #fff; }
+    &.low { background: linear-gradient(135deg, var(--color-down) 0%, #16a34a 100%); color: #fff; }
   }
   .level-info {
     flex: 1;
@@ -876,35 +945,40 @@ $bg-card: #1e2636;
   .level-title {
     font-size: 30rpx;
     font-weight: 600;
+    color: var(--text-primary);
   }
   .level-subtitle {
     font-size: 24rpx;
-    color: rgba(255,255,255,0.6);
+    color: var(--text-tertiary);
     margin-top: 4rpx;
   }
   .level-arrow {
     font-size: 24rpx;
-    color: rgba(255,255,255,0.5);
+    color: var(--text-tertiary);
     transition: transform 0.3s;
   }
   .ladder-level.expanded .level-arrow {
     transform: rotate(180deg);
   }
   .stock-list {
-    border-top: 1px solid rgba(255,255,255,0.05);
+    border-top: 1rpx solid var(--border-primary);
     .stock-item {
       display: flex;
       align-items: center;
       padding: 24rpx 28rpx;
-      border-bottom: 1px solid rgba(255,255,255,0.03);
+      border-bottom: 1rpx solid var(--border-secondary);
+      transition: background 0.2s ease;
       &:last-child {
         border-bottom: none;
+      }
+      &:active {
+        background: var(--bg-hover);
       }
     }
     .stock-rank {
       width: 40rpx;
       font-size: 24rpx;
-      color: rgba(255,255,255,0.5);
+      color: var(--text-tertiary);
     }
     .stock-info {
       flex: 1;
@@ -912,6 +986,7 @@ $bg-card: #1e2636;
     .stock-name {
       font-size: 28rpx;
       font-weight: 500;
+      color: var(--text-primary);
     }
     .stock-meta {
       display: flex;
@@ -921,16 +996,16 @@ $bg-card: #1e2636;
     }
     .stock-code {
       font-size: 22rpx;
-      color: rgba(255,255,255,0.5);
+      color: var(--text-tertiary);
     }
     .stock-tag {
       padding: 4rpx 12rpx;
       border-radius: 8rpx;
       font-size: 20rpx;
-      &.tag-t { background: rgba(255, 165, 2, 0.2); color: #ffa502; }
-      &.tag-yizi { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
-      &.tag-huanshou { background: rgba(46, 213, 115, 0.2); color: #2ed573; }
-      &.tag-new { background: rgba(93, 156, 236, 0.2); color: #5d9cec; }
+      &.tag-t { background: rgba(245, 158, 11, 0.1); color: var(--color-accent); }
+      &.tag-yizi { background: var(--color-up-bg); color: var(--color-up); }
+      &.tag-huanshou { background: var(--color-down-bg); color: var(--color-down); }
+      &.tag-new { background: rgba(139, 92, 246, 0.1); color: var(--color-secondary); }
     }
     .stock-price {
       text-align: right;
@@ -938,14 +1013,18 @@ $bg-card: #1e2636;
     .stock-value {
       font-size: 28rpx;
       font-weight: 600;
+      &.up { color: var(--color-up); }
+      &.down { color: var(--color-down); }
     }
     .stock-change {
       font-size: 24rpx;
+      color: var(--color-up);
       margin-top: 4rpx;
     }
   }
 }
 
+/* Fund Flow Section - 资金流向 */
 .fundflow-section {
   .flow-tabs {
     display: flex;
@@ -956,11 +1035,13 @@ $bg-card: #1e2636;
     padding: 16rpx 32rpx;
     border-radius: 32rpx;
     font-size: 26rpx;
-    background: rgba(255,255,255,0.05);
-    color: rgba(255,255,255,0.5);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
     &.active {
-      background: rgba($up-color, 0.2);
-      color: $up-color;
+      background: var(--color-up-bg);
+      color: var(--color-up);
+      font-weight: 500;
     }
   }
   .flow-list {
@@ -969,10 +1050,16 @@ $bg-card: #1e2636;
       align-items: center;
       gap: 24rpx;
       padding: 24rpx;
-      background: rgba(255,255,255,0.02);
+      background: var(--bg-card);
       border-radius: 16rpx;
       margin-bottom: 16rpx;
-      border: 1px solid rgba(255,255,255,0.05);
+      border: 1rpx solid var(--border-primary);
+      box-shadow: var(--shadow-card);
+      transition: all 0.3s ease;
+      &:active {
+        transform: scale(0.98);
+        box-shadow: var(--shadow-md);
+      }
     }
     .flow-rank {
       width: 56rpx;
@@ -983,27 +1070,28 @@ $bg-card: #1e2636;
       justify-content: center;
       font-size: 28rpx;
       font-weight: 700;
-      &.gold { background: linear-gradient(135deg, #f39c12, #e67e22); color: #fff; }
-      &.silver { background: linear-gradient(135deg, #bdc3c7, #95a5a6); color: #fff; }
-      &.bronze { background: linear-gradient(135deg, #e17055  #d35400); color: #fff; }
-      &.normal { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
+      &.gold { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+      &.silver { background: linear-gradient(135deg, #9ca3af, #6b7280); color: #fff; }
+      &.bronze { background: linear-gradient(135deg, #ea580c, #c2410c); color: #fff; }
+      &.normal { background: var(--bg-tertiary); color: var(--text-tertiary); }
     }
     .flow-info {
       flex: 1;
       .flow-name {
         font-size: 28rpx;
         font-weight: 500;
+        color: var(--text-primary);
       }
       .flow-stats {
         font-size: 22rpx;
-        color: rgba(255,255,255,0.4);
+        color: var(--text-tertiary);
         margin-top: 4rpx;
       }
     }
     .flow-amount {
       text-align: right;
-      &.inflow .amount-value, &.inflow .amount-pct { color: $up-color; }
-      &.outflow .amount-value, &.outflow .amount-pct { color: $down-color; }
+      &.inflow .amount-value, &.inflow .amount-pct { color: var(--color-up); }
+      &.outflow .amount-value, &.outflow .amount-pct { color: var(--color-down); }
       .amount-value {
         font-size: 28rpx;
         font-weight: 600;
@@ -1016,6 +1104,7 @@ $bg-card: #1e2636;
   }
 }
 
+/* Distribution Section - 涨跌分布 */
 .distribution-section {
   .chart-container {
     display: flex;
@@ -1023,8 +1112,10 @@ $bg-card: #1e2636;
     justify-content: space-around;
     height: 400rpx;
     padding: 40rpx;
-    background: rgba(255,255,255,0.03);
+    background: var(--bg-card);
     border-radius: 24rpx;
+    border: 1rpx solid var(--border-primary);
+    box-shadow: var(--shadow-card);
   }
   .chart-bar {
     display: flex;
@@ -1041,41 +1132,42 @@ $bg-card: #1e2636;
       transition: height 0.5s ease;
       .bar-value {
         font-size: 20rpx;
-        color: #fff;
+        color: var(--text-inverse, #fff);
         margin-bottom: 8rpx;
       }
     }
     .bar-label {
       font-size: 20rpx;
-      color: rgba(255,255,255,0.6);
+      color: var(--text-tertiary);
       margin-top: 12rpx;
       white-space: nowrap;
     }
     &.up .bar-fill {
-      background: linear-gradient(180deg, $up-color 0%, darken($up-color, 20%) 100%);
+      background: linear-gradient(180deg, var(--color-up) 0%, rgba(239, 68, 68, 0.7) 100%);
     }
     &.down .bar-fill {
-      background: linear-gradient(180deg, $down-color 0%, darken($down-color, 20%) 100%);
+      background: linear-gradient(180deg, var(--color-down) 0%, rgba(34, 197, 94, 0.7) 100%);
     }
     &.flat .bar-fill {
-      background: linear-gradient(180deg, #636e72 0%, #b2bec3 100%);
+      background: linear-gradient(180deg, #6b7280 0%, #9ca3af 100%);
     }
   }
 }
 
+/* Modal - 股票详情弹窗 */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.8);
+  background: var(--bg-overlay);
   display: flex;
   align-items: flex-end;
   z-index: 1000;
 }
 .modal-content {
-  background: linear-gradient(180deg, #1e2636 0%, #151a24 100%);
+  background: var(--bg-card);
   border-radius: 40rpx 40rpx 0 0;
   width: 100%;
   max-height: 85vh;
@@ -1091,81 +1183,90 @@ $bg-card: #1e2636;
   justify-content: space-between;
   align-items: center;
   padding: 32rpx;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1rpx solid var(--border-primary);
   .modal-title {
     .stock-title {
       font-size: 36rpx;
       font-weight: 600;
+      color: var(--text-primary);
     }
     .stock-code-small {
       font-size: 26rpx;
-      color: rgba(255,255,255,0.6);
+      color: var(--text-tertiary);
     }
   }
   .modal-close {
     width: 64rpx;
     height: 64rpx;
-    background: rgba(255,255,255,0.1);
+    background: var(--bg-tertiary);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 48rpx;
-    color: rgba(255,255,255,0.6);
+    color: var(--text-secondary);
   }
 }
 .modal-body {
   padding: 32rpx;
   max-height: 60vh;
 }
+
+/* Detail Card - 详情数据卡片 */
 .detail-card {
-  background: rgba(255,255,255,0.05);
+  background: var(--bg-tertiary);
   border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 24rpx;
+  border: 1rpx solid var(--border-secondary);
 }
 .detail-card-title {
   font-size: 26rpx;
   font-weight: 500;
   margin-bottom: 16rpx;
-  color: rgba(255,255,255,0.8);
+  color: var(--text-secondary);
 }
 .detail-row {
   display: flex;
   justify-content: space-between;
   padding: 16rpx 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1rpx solid var(--border-secondary);
   &:last-child {
     border-bottom: none;
   }
   .detail-label {
     font-size: 26rpx;
-    color: rgba(255,255,255,0.6);
+    color: var(--text-tertiary);
   }
   .detail-value {
     font-size: 26rpx;
     font-weight: 500;
-    &.up { color: $up-color; }
-    &.down { color: $down-color; }
-    &.tag-t { color: #ffa502; }
-    &.tag-yizi { color: #ff4757; }
-    &.tag-huanshou { color: #2ed573; }
+    color: var(--text-primary);
+    &.up { color: var(--color-up); }
+    &.down { color: var(--color-down); }
+    &.tag-t { color: var(--color-accent); }
+    &.tag-yizi { color: var(--color-up); }
+    &.tag-huanshou { color: var(--color-down); }
   }
 }
+
+/* Reason Card - 涨停原因 */
 .reason-card {
-  background: linear-gradient(135deg, #2a4a6d 0%, #1e3a5f 100%);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
   border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 24rpx;
+  border: 1rpx solid rgba(56, 189, 248, 0.2);
 }
 .reason-title {
   font-size: 24rpx;
-  color: rgba(255,255,255,0.7);
+  color: var(--text-secondary);
   margin-bottom: 12rpx;
 }
 .reason-content {
   font-size: 28rpx;
   line-height: 1.6;
+  color: var(--text-primary);
 }
 .reason-tags {
   display: flex;
@@ -1174,41 +1275,48 @@ $bg-card: #1e2636;
   margin-top: 16rpx;
 }
 .reason-tag {
-  background: rgba(255,255,255,0.15);
+  background: var(--bg-tertiary);
   padding: 8rpx 20rpx;
   border-radius: 24rpx;
   font-size: 24rpx;
+  color: var(--text-secondary);
+  border: 1rpx solid var(--border-primary);
 }
+
+/* Fund Grid - 资金数据网格 */
 .fund-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16rpx;
 }
 .fund-item {
-  background: rgba(255,255,255,0.05);
+  background: var(--bg-card);
   border-radius: 16rpx;
   padding: 20rpx;
   text-align: center;
+  border: 1rpx solid var(--border-secondary);
 }
 .fund-label {
   font-size: 22rpx;
-  color: rgba(255,255,255,0.5);
+  color: var(--text-tertiary);
 }
 .fund-value {
   font-size: 28rpx;
   font-weight: 600;
   margin-top: 8rpx;
-  &.up { color: $up-color; }
-  &.down { color: $down-color; }
+  color: var(--text-primary);
+  &.up { color: var(--color-up); }
+  &.down { color: var(--color-down); }
 }
 
+/* Loading Overlay */
 .loading-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba($bg-dark,0.9);
+  background: var(--bg-overlay);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1218,31 +1326,31 @@ $bg-card: #1e2636;
 .loading-spinner {
   width: 80rpx;
   height: 80rpx;
-  border: 6rpx solid rgba(255,255,255,0.1);
-  border-top-color: $primary-color;
+  border: 6rpx solid var(--border-primary);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 .loading-text {
   margin-top: 24rpx;
   font-size: 28rpx;
-  color: rgba(255,255,255,0.8);
+  color: var(--text-secondary);
 }
 
-/* 市场温度计 - 2x2网格布局 */
+/* Market Thermometer - 市场温度计（保留功能样式） */
 .thermometer-section {
   margin: 20rpx;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: var(--bg-card);
   border-radius: 16rpx;
   padding: 20rpx;
-  border: 1rpx solid rgba(0, 255, 255, 0.2);
+  border: 1rpx solid var(--border-primary);
 }
 .thermo-header {
   margin-bottom: 16rpx;
 }
 .thermo-title {
   font-size: 28rpx;
-  color: #00ffff;
+  color: var(--color-primary);
   font-weight: bold;
 }
 .thermo-grid {
@@ -1261,17 +1369,17 @@ $bg-card: #1e2636;
   text-align: center;
 }
 .thermo-card.up-card {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%);
+  background: var(--color-down-bg);
   border: 1rpx solid rgba(34, 197, 94, 0.3);
 }
 .thermo-card.down-card {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
+  background: var(--color-up-bg);
   border: 1rpx solid rgba(239, 68, 68, 0.3);
 }
 .thermo-label {
   display: block;
   font-size: 24rpx;
-  color: #888;
+  color: var(--text-tertiary);
   margin-bottom: 8rpx;
 }
 .thermo-value {
@@ -1280,40 +1388,30 @@ $bg-card: #1e2636;
   font-weight: bold;
 }
 .thermo-value.up {
-  color: #22c55e;
+  color: var(--color-down);
 }
 .thermo-value.down {
-  color: #ef4444;
+  color: var(--color-up);
 }
 
-/* 情绪条样式调整 */
-.sentiment-bar-section {
-  margin: 0 20rpx 20rpx;
-}
-.sentiment-bar-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12rpx;
-  padding: 20rpx;
-  border: 1rpx solid rgba(0, 255, 255, 0.1);
-}
-
-/* 独立卡片容器 */
+/* Cards Container */
 .cards-container {
   padding: 0 20rpx;
 }
 .card-section {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: var(--bg-card);
   border-radius: 16rpx;
   margin-bottom: 20rpx;
   padding: 20rpx;
-  border: 1rpx solid rgba(0, 255, 255, 0.2);
+  border: 1rpx solid var(--border-primary);
+  box-shadow: var(--shadow-card);
 }
 .card-header {
   display: flex;
   align-items: center;
   margin-bottom: 16rpx;
   padding-bottom: 16rpx;
-  border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1rpx solid var(--border-primary);
 }
 .card-icon {
   font-size: 32rpx;
@@ -1321,20 +1419,20 @@ $bg-card: #1e2636;
 }
 .card-title {
   font-size: 30rpx;
-  color: #fff;
+  color: var(--text-primary);
   font-weight: bold;
 }
 
-/* 个股展开功能 */
+/* Stock Expand Content */
 .stock-item-wrapper {
   margin-bottom: 12rpx;
 }
 .stock-expand-content {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--bg-tertiary);
   border-radius: 8rpx;
   padding: 16rpx;
   margin-top: 8rpx;
-  border: 1rpx solid rgba(0, 255, 255, 0.1);
+  border: 1rpx solid var(--border-primary);
 }
 .expand-row {
   display: flex;
@@ -1343,18 +1441,17 @@ $bg-card: #1e2636;
 }
 .expand-label {
   font-size: 22rpx;
-  color: #888;
+  color: var(--text-tertiary);
   width: 100rpx;
 }
 .expand-value {
   font-size: 22rpx;
-  color: #fff;
+  color: var(--text-primary);
   flex: 1;
 }
 .expand-btn {
   font-size: 20rpx;
-  color: #00ffff;
+  color: var(--color-primary);
   padding: 8rpx;
 }
-
 </style>

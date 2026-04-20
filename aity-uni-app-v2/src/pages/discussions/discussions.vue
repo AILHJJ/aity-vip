@@ -295,10 +295,25 @@ onShow(() => {
 		console.log('[讨论列表] 页面返回，刷新列表')
 		loadDiscussions(true)
 	}
+	// 刷新 tabBar 未读角标
+	userStore.updateTabBarBadge()
 })
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件默认样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+button::after {
+	border: none;
+}
+
 .discussions-container {
 	height: 100vh;
 	display: flex;

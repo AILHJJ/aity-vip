@@ -120,7 +120,7 @@ const handleLogin = async () => {
 			const isInitialPassword = result.data.user?.isInitialPassword
 			const lastLoginAt = result.data.user?.lastLoginAt
 
-			// 跳转到消息页面
+			// 跳转到消息页面（reLaunch 确保干净的页面栈）
 			setTimeout(() => {
 				// 如果是初始密码，提示用户修改
 				if (isInitialPassword) {
@@ -182,6 +182,19 @@ const handleLogin = async () => {
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件默认样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+button::after {
+	border: none;
+}
+
 .login-container {
 	min-height: 100vh;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

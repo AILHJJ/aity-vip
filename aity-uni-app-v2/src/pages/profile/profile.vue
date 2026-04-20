@@ -137,10 +137,12 @@
 
 <script setup>
 import { computed, ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import { useThemeStore, ThemeMode } from '../../store/theme'
 import { USER_ROLE_LABELS } from '../../utils/constants'
 import { getDiscussionsApi } from '../../api/discussion'
+import { getFavoriteMessagesApi } from '../../api/message'
 
 const userStore = useUserStore()
 const themeStore = useThemeStore()
@@ -171,13 +173,26 @@ const getRoleLabel = (role) => {
 // 加载统计数据
 const loadStats = async () => {
 	try {
-		// TODO: 加载收藏数 - 需要实现favorite API
-		favoriteCount.value = 0
+		// 加载收藏数
+		try {
+			const favRes = await getFavoriteMessagesApi({ page: 1, limit: 1 })
+			if (favRes.code === 200 && favRes.data) {
+				favoriteCount.value = favRes.data.pagination?.total || favRes.data.total || 0
+			}
+		} catch (e) {
+			console.error('加载收藏数失败:', e)
+		}
 
 		// 加载讨论数
-		const discRes = await getDiscussionsApi({ page: 1, limit: 1 })
-		if (discRes.success) {
-			discussionCount.value = discRes.data.total || 0
+		try {
+			const discRes = await getDiscussionsApi({ page: 1, limit: 1 })
+			if (discRes.code === 200 && discRes.data) {
+				discussionCount.value = discRes.data.pagination?.total || discRes.data.total || 0
+			} else if (discRes.success && discRes.data) {
+				discussionCount.value = discRes.data.total || 0
+			}
+		} catch (e) {
+			console.error('加载讨论数失败:', e)
 		}
 	} catch (error) {
 		console.error('加载统计数据失败:', error)
@@ -186,6 +201,11 @@ const loadStats = async () => {
 
 onMounted(() => {
 	loadStats()
+})
+
+onShow(() => {
+	// 刷新 tabBar 未读角标
+	userStore.updateTabBarBadge()
 })
 
 // 跳转到行情中心
@@ -288,6 +308,20 @@ const handleLogout = () => {
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+
+button::after {
+	border: none;
+}
+
 .profile-container {
 	min-height: 100vh;
 	background-color: var(--bg-primary);
@@ -471,8 +505,12 @@ const handleLogout = () => {
 	color: var(--color-up);
 	font-size: 32rpx;
 	border-radius: 16rpx;
-	border: 1rpx solid var(--border-primary);
+	border: none;
 	text-align: center;
+}
+
+button.logout-btn::after {
+	border: none;
 }
 
 .logout-btn:active {

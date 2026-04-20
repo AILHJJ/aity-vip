@@ -329,6 +329,20 @@ const loadLinkedMessage = async (id) => {
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+
+button::after {
+	border: none;
+}
+
 .create-discussion-container {
 	height: 100vh;
 	background: #f5f5f5;

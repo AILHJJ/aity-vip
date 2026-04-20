@@ -383,8 +383,16 @@ function createThemedMarkdownIt(theme = 'default') {
 
 	// 自定义图片渲染规则
 	md.renderer.rules.image = (tokens, idx) => {
-		const src = tokens[idx].attrGet('src')
+		let src = tokens[idx].attrGet('src')
 		const alt = tokens[idx].content || ''
+		// 补全相对路径图片URL（微信小程序 rich-text 不会自动补全域名）
+		if (src && src.startsWith('/uploads/')) {
+			// __APP_API_BASE_URL__ 由 Vite define 在编译时替换为实际 API 地址
+			// 从 API 地址推导出基础域名（去掉 /api 部分）
+			const apiBaseUrl = typeof __APP_API_BASE_URL__ !== 'undefined' ? __APP_API_BASE_URL__ : 'https://aity88.online/api'
+			const baseUrl = apiBaseUrl.replace(/\/api$/, '')
+			src = baseUrl + src
+		}
 		return `<img src="${md.utils.escapeHtml(src)}" alt="${md.utils.escapeHtml(alt)}" style="max-width: 100%; height: auto; border-radius: 8rpx; margin: 16rpx 0;">`
 	}
 

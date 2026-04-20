@@ -97,30 +97,22 @@
 
 					<!-- 编辑模式 -->
 					<view v-if="!previewMode" class="editor-container">
-						<!-- Markdown工具栏 -->
-						<view class="markdown-toolbar">
-							<text class="toolbar-btn" @click="insertMarkdown('**', '**')" title="粗体">B</text>
-							<text class="toolbar-btn" @click="insertMarkdown('*', '*')" title="斜体">I</text>
-							<text class="toolbar-btn" @click="insertMarkdown('## ', '')" title="标题">H</text>
-							<text class="toolbar-btn" @click="insertMarkdown('- ', '')" title="列表">≡</text>
-							<text class="toolbar-btn" @click="insertMarkdown('`', '`')" title="代码">&lt;/&gt;</text>
-							<text class="toolbar-btn" @click="insertMarkdown('[', '](url)')" title="链接">🔗</text>
-							<text class="toolbar-btn" @click="insertMarkdown('> ', '')" title="引用">"</text>
-							<!-- #ifdef MP-WEIXIN -->
-							<text class="toolbar-btn paste-btn" @click="handlePasteImage" title="粘贴图片">📋</text>
-							<!-- #endif -->
-						</view>
 						<textarea
 							class="form-textarea markdown-editor"
 							v-model="formData.content"
-							placeholder="支持 Markdown 格式"
+							placeholder="支持 Markdown 格式，点击下方📷按钮插入图片"
 							placeholder-style="color: #999999"
 							:maxlength="5000"
 							:show-confirm-bar="false"
-							@paste="handlePaste"
 							auto-height
 						/>
 						<view class="editor-footer">
+							<view class="editor-footer-left">
+								<view class="image-upload-btn" @click="handleUpload">
+									<text class="image-upload-icon">📷</text>
+									<text class="image-upload-text">插入图片</text>
+								</view>
+							</view>
 							<text class="char-count">{{ formData.content.length }}/5000</text>
 						</view>
 					</view>
@@ -221,9 +213,8 @@
 					</view>
 				</view>
 
-				<!-- 附件上传 -->
-				<view class="form-item attachment-item">
-					<text class="form-label">附件（可选）</text>
+				<!-- 已选图片预览 -->
+				<view v-if="formData.attachments.length > 0" class="form-item attachment-item">
 					<view class="upload-container">
 						<view
 							v-for="(file, index) in formData.attachments"
@@ -234,17 +225,6 @@
 							<text v-else class="file-name">{{ file.name }}</text>
 							<text class="file-remove" @click="handleRemoveFile(index)">×</text>
 						</view>
-						<view
-							v-if="formData.attachments.length < 9"
-							class="upload-btn"
-							@click="handleUpload"
-						>
-							<text class="upload-icon">+</text>
-							<text class="upload-text">上传图片</text>
-						</view>
-					</view>
-					<view class="form-hint">
-						<text class="hint-text">支持选择或粘贴图片，单次最多9张，每张不超过10MB</text>
 					</view>
 				</view>
 
@@ -619,217 +599,7 @@ const handleSearchStock = () => {
 	})
 }
 
-// 小程序粘贴图片按钮
-const handlePasteImage = async () => {
-	// #ifdef MP-WEIXIN
-	try {
-		// 检查图片数量限制
-		if (formData.value.attachments.length >= 9) {
-			uni.showToast({
-				title: '最多只能上传9张图片',
-				icon: 'none'
-			})
-			return
-		}
 
-		// 获取剪贴板数据
-		const res = await new Promise((resolve, reject) => {
-			uni.getClipboardData({
-				success: resolve,
-				fail: reject
-			})
-		})
-
-		if (res.data && res.data.startsWith('data:image')) {
-			// Base64 图片数据
-			const base64Data = res.data.split(',')[1]
-			const fsm = uni.getFileSystemManager()
-			const tempFilePath = `${wx.env.USER_DATA_PATH}/paste_${Date.now()}.jpg`
-
-			fsm.writeFile({
-				filePath: tempFilePath,
-				data: base64Data,
-				encoding: 'base64',
-				success: () => {
-					formData.value.attachments.push({
-						name: `粘贴图片_${formData.value.attachments.length + 1}.jpg`,
-						path: tempFilePath,
-						size: 0
-					})
-					uni.showToast({
-						title: '图片已添加',
-						icon: 'success'
-					})
-				},
-				fail: (err) => {
-					console.error('保存粘贴图片失败:', err)
-					uni.showToast({
-						title: '粘贴图片失败',
-						icon: 'none'
-					})
-				}
-			})
-		} else {
-			uni.showToast({
-				title: '剪贴板中没有图片',
-				icon: 'none'
-			})
-		}
-	} catch (error) {
-		console.error('获取剪贴板失败:', error)
-		uni.showToast({
-			title: '获取剪贴板失败',
-			icon: 'none'
-		})
-	}
-	// #endif
-}
-
-// 处理粘贴事件
-const handlePaste = (e) => {
-	// #ifdef MP-WEIXIN
-	// 微信小程序支持粘贴图片
-	const clipboardData = e.detail || {}
-
-	if (clipboardData.items && clipboardData.items.length > 0) {
-		const items = clipboardData.items
-
-		// 检查是否有图片
-		let hasImage = false
-		items.forEach((item) => {
-			if (item.kind === 'file' && item.type && item.type.startsWith('image/')) {
-				hasImage = true
-				const file = item.getAsFile()
-
-				if (file) {
-					// 检查文件大小
-					if (file.size > 10 * 1024 * 1024) {
-						uni.showToast({
-							title: '图片大小不能超过 10MB',
-							icon: 'none'
-						})
-						return
-					}
-
-					// 检查图片数量限制
-					if (formData.value.attachments.length >= 9) {
-						uni.showToast({
-							title: '最多只能上传9张图片',
-							icon: 'none'
-						})
-						return
-					}
-
-					// 读取文件
-					const reader = new FileReader()
-					reader.onload = (event) => {
-						const base64 = event.target.result
-
-						// 转换为临时文件路径
-						const fsm = uni.getFileSystemManager()
-						const tempFilePath = `${wx.env.USER_DATA_PATH}/paste_${Date.now()}.jpg`
-
-						fsm.writeFile({
-							filePath: tempFilePath,
-							data: base64.split(',')[1],
-							encoding: 'base64',
-							success: () => {
-								formData.value.attachments.push({
-									name: `粘贴图片_${formData.value.attachments.length + 1}.jpg`,
-									path: tempFilePath,
-									size: file.size
-								})
-
-								uni.showToast({
-									title: '图片已添加',
-									icon: 'success',
-									duration: 1500
-								})
-							},
-							fail: (err) => {
-								console.error('保存粘贴图片失败:', err)
-								uni.showToast({
-									title: '图片保存失败',
-									icon: 'none'
-								})
-							}
-						})
-					}
-					reader.readAsDataURL(file)
-				}
-			}
-		})
-
-		if (hasImage) {
-			// 如果有图片，阻止默认行为
-			return false
-		}
-	}
-	// #endif
-
-	// #ifdef H5
-	// H5环境支持粘贴图片
-	if (e.clipboardData && e.clipboardData.items && e.clipboardData.items.length > 0) {
-		const items = e.clipboardData.items
-		let hasImage = false
-
-		// 遍历剪贴板项
-		for (let i = 0; i < items.length; i++) {
-			const item = items[i]
-
-			// 检查是否是图片类型
-			if (item.type && item.type.indexOf('image') !== -1) {
-				e.preventDefault() // 阻止默认粘贴行为
-				hasImage = true
-
-				// 获取图片文件
-				const file = item.getAsFile()
-
-				if (!file) continue
-
-				// 检查文件大小
-				if (file.size > 10 * 1024 * 1024) {
-					uni.showToast({
-						title: '图片大小不能超过 10MB',
-						icon: 'none'
-					})
-					continue
-				}
-
-				// 检查图片数量限制
-				if (formData.value.attachments.length >= 9) {
-					uni.showToast({
-						title: '最多只能上传9张图片',
-						icon: 'none'
-					})
-					continue
-				}
-
-				// 创建临时URL
-				const tempUrl = URL.createObjectURL(file)
-
-				// 添加到附件列表
-				formData.value.attachments.push({
-					name: `粘贴图片_${formData.value.attachments.length + 1}.jpg`,
-					path: tempUrl,
-					size: file.size
-				})
-
-				uni.showToast({
-					title: '图片已添加',
-					icon: 'success',
-					duration: 1500
-				})
-
-				console.log('粘贴图片成功:', file.name, '大小:', file.size)
-			}
-		}
-	}
-	// #endif
-
-	// 对于普通文本粘贴，不阻止默认行为
-	return true
-}
 
 // 处理文件上传
 const handleUpload = () => {
@@ -1366,53 +1136,7 @@ const optimizedRenderedHtml = computed(() => {
 	return parseMarkdown(optimizedContent.value)
 })
 
-// 插入Markdown语法
-const insertMarkdown = (before, after) => {
-	const textarea = uni.createSelectorQuery().select('.form-textarea')
 
-	// 获取当前光标位置（在小程序中可能无法获取，使用末尾）
-	const content = formData.value.content
-	const cursorPosition = content.length
-
-	// 构建新内容
-	let newContent = ''
-	let newPosition = 0
-
-	if (before === '# ') {
-		// 标题：在行首插入
-		const lines = content.split('\n')
-		const currentLineIndex = content.substring(0, cursorPosition).split('\n').length - 1
-		lines[currentLineIndex] = before + lines[currentLineIndex]
-		newContent = lines.join('\n')
-		newPosition = cursorPosition + before.length
-	} else if (before === '- ' || before === '> ') {
-		// 列表和引用：在行首插入
-		const lines = content.split('\n')
-		const currentLineIndex = content.substring(0, cursorPosition).split('\n').length - 1
-		lines[currentLineIndex] = before + lines[currentLineIndex]
-		newContent = lines.join('\n')
-		newPosition = cursorPosition + before.length
-	} else if (before === '[') {
-		// 链接：插入链接模板
-		const selectedText = '' // 在小程序中无法获取选中文本
-		newContent = content.substring(0, cursorPosition) + before + selectedText + after + content.substring(cursorPosition)
-		newPosition = cursorPosition + before.length
-	} else {
-		// 其他格式：包裹光标位置
-		const selectedText = '' // 在小程序中无法获取选中文本
-		newContent = content.substring(0, cursorPosition) + before + selectedText + after + content.substring(cursorPosition)
-		newPosition = cursorPosition + before.length
-	}
-
-	formData.value.content = newContent
-
-	// 在小程序中，焦点管理可能不太准确，但我们可以尝试
-	// #ifndef MP-WEIXIN
-	setTimeout(() => {
-		// 尝试重新聚焦（仅在非小程序环境）
-	}, 100)
-	// #endif
-}
 
 // AI优化功能
 const handleAiOptimize = async () => {
@@ -1718,6 +1442,20 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+
+button::after {
+	border: none;
+}
+
 .create-message-container {
 	height: 100vh;
 	background-color: var(--bg-primary);
@@ -1912,42 +1650,7 @@ onBeforeUnmount(() => {
 	line-height: 1.6;
 }
 
-.markdown-toolbar {
-	display: flex;
-	align-items: center;
-	gap: 12rpx;
-	padding: 16rpx 20rpx;
-	background: var(--bg-tertiary);
-	border: 2rpx solid var(--border-primary);
-	border-bottom: none;
-	border-radius: 8rpx 8rpx 0 0;
-	margin-bottom: 0;
-}
 
-.toolbar-btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 56rpx;
-	height: 56rpx;
-	padding: 0 16rpx;
-	font-size: 28rpx;
-	font-weight: 600;
-	font-family: Arial, sans-serif;
-	color: var(--text-secondary);
-	background: var(--bg-secondary);
-	border: 2rpx solid var(--border-primary);
-	border-radius: 6rpx;
-	transition: all 0.2s;
-	cursor: pointer;
-}
-
-.toolbar-btn:active {
-	background: var(--color-primary);
-	color: #ffffff;
-	border-color: var(--color-primary);
-	transform: scale(0.95);
-}
 
 .form-textarea {
 	border-radius: 0 0 8rpx 8rpx;
@@ -2297,6 +2000,37 @@ onBeforeUnmount(() => {
 	color: #999999;
 }
 
+.editor-footer-left {
+	display: flex;
+	align-items: center;
+}
+
+.image-upload-btn {
+	display: flex;
+	align-items: center;
+	gap: 8rpx;
+	padding: 12rpx 28rpx;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border-radius: 32rpx;
+	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.35);
+	transition: all 0.2s;
+}
+
+.image-upload-btn:active {
+	transform: scale(0.95);
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.2);
+}
+
+.image-upload-icon {
+	font-size: 32rpx;
+}
+
+.image-upload-text {
+	font-size: 26rpx;
+	color: #ffffff;
+	font-weight: 500;
+}
+
 .hint-text-mini {
 	font-size: 24rpx;
 	color: #667eea;
@@ -2595,16 +2329,7 @@ onBeforeUnmount(() => {
 	background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
 }
 
-/* 小程序粘贴按钮样式 */
-.paste-btn {
-	background: #f0f0f0 !important;
-	color: #666 !important;
-}
 
-.paste-btn:active {
-	background: #667eea !important;
-	color: #ffffff !important;
-}
 
 /* AI优化按钮和编辑器底部样式 */
 .footer-left {

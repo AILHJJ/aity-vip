@@ -759,6 +759,19 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件默认样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+button::after {
+	border: none;
+}
+
 .ai-config-container {
 	min-height: 100vh;
 	background: #f5f7fa;
