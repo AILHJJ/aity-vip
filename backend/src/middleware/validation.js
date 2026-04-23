@@ -47,7 +47,7 @@ function validateUpdateUser() {
 
 function validateCreateMessage() {
   const validTypes = [
-    'pre_market_comment', 'morning_comment', 'morning_focus',
+    'position_handle', 'pre_market_comment', 'morning_comment', 'morning_focus',
     'afternoon_comment', 'afternoon_focus', 'close_comment',
     'risk_warning', 'system', 'important', 'daily'
   ];
@@ -66,7 +66,7 @@ function validateCreateMessage() {
 
 function validateUpdateMessage() {
   const validTypes = [
-    'pre_market_comment', 'morning_comment', 'morning_focus',
+    'position_handle', 'pre_market_comment', 'morning_comment', 'morning_focus',
     'afternoon_comment', 'afternoon_focus', 'close_comment',
     'risk_warning', 'system', 'important', 'daily'
   ];
@@ -127,7 +127,7 @@ function validateIdParam() {
 
 function validateQueryParams() {
   const validTypes = [
-    'pre_market_comment', 'morning_comment', 'morning_focus',
+    'position_handle', 'pre_market_comment', 'morning_comment', 'morning_focus',
     'afternoon_comment', 'afternoon_focus', 'close_comment',
     'risk_warning', 'system', 'important', 'daily'
   ];
