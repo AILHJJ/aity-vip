@@ -2,9 +2,6 @@
   <view class="market-page">
     <!-- Header -->
     <view class="header">
-      <view class="header-left" @click="goBack">
-        <text class="back-icon">&lt;</text>
-      </view>
       <view class="header-center">
         <text class="header-title">行情中心</text>
       </view>
@@ -36,19 +33,19 @@
 
     <!-- Stats Grid -->
     <view class="stats-grid">
-      <view class="stat-card">
+      <view class="stat-card stat-up">
         <text class="stat-value up">{{ marketData.upCount }}</text>
         <text class="stat-label">上涨</text>
       </view>
-      <view class="stat-card">
+      <view class="stat-card stat-down">
         <text class="stat-value down">{{ marketData.downCount }}</text>
         <text class="stat-label">下跌</text>
       </view>
-      <view class="stat-card">
+      <view class="stat-card stat-up">
         <text class="stat-value up">{{ marketData.limitUpCount }}</text>
         <text class="stat-label">涨停</text>
       </view>
-      <view class="stat-card">
+      <view class="stat-card stat-down">
         <text class="stat-value down">{{ marketData.limitDownCount }}</text>
         <text class="stat-label">跌停</text>
       </view>
@@ -85,8 +82,8 @@
       </view>
     </view>
 
-    <!-- Filter Bar -->
-    <scroll-view class="filter-bar" scroll-x :show-scrollbar="false">
+    <!-- Filter Bar - 只在ladder tab显示 -->
+    <scroll-view v-if="activeTab === 'ladder'" class="filter-bar" scroll-x :show-scrollbar="false">
       <view
         v-for="filter in filters"
         :key="filter.key"
@@ -184,24 +181,56 @@
             </view>
             <view class="flow-amount" :class="fundFlowType">
               <text class="amount-value">{{ formatAmount(item.netInflow) }}</text>
-              <text class="amount-pct">{{ formatPct(item.netInflowPct) }}</text>
+              <text v-if="item.netInflowPct !== undefined && item.netInflowPct !== null" class="amount-pct">{{ formatPct(item.netInflowPct) }}</text>
             </view>
           </view>
         </view>
       </view>
 
-      <!-- Distribution Tab -->
+      <!-- Distribution Tab - 通达信风格涨跌分布 -->
       <view v-if="activeTab === 'distribution'" class="distribution-section">
         <!-- 骨架屏 -->
         <market-skeleton v-if="loading" :count="1" />
         <!-- 空状态 -->
         <empty-state v-else-if="distributionData.limitDown === 0 && distributionData.up3 === 0 && distributionData.flat === 0" type="market" title="暂无涨跌分布数据" description="暂无市场涨跌分布统计" :showAction="false" />
-        <view v-else class="chart-container">
-          <view class="chart-bar" v-for="(bar, index) in distributionBars" :key="index" :class="bar.type">
-            <view class="bar-fill" :style="{ height: bar.height + '%' }">
-              <text class="bar-value">{{ bar.count }}</text>
+        <!-- 通达信风格涨跌分布 - 上下两行 -->
+        <view v-else class="tdx-distribution">
+          <!-- 第一行：涨停 +5% +3% -->
+          <view class="dist-row dist-up-row">
+            <view class="dist-item">
+              <text class="dist-value up">{{ distributionData.limitUp }}</text>
+              <text class="dist-label">涨停</text>
             </view>
-            <text class="bar-label">{{ bar.label }}</text>
+            <view class="dist-item">
+              <text class="dist-value up">{{ distributionData.up5 }}</text>
+              <text class="dist-label">+5%</text>
+            </view>
+            <view class="dist-item">
+              <text class="dist-value up">{{ distributionData.up3 }}</text>
+              <text class="dist-label">+3%</text>
+            </view>
+          </view>
+          <!-- 第二行：平 -->
+          <view class="dist-row dist-flat-row">
+            <view class="dist-item dist-flat">
+              <text class="dist-value">{{ distributionData.flat }}</text>
+              <text class="dist-label">平盘</text>
+            </view>
+          </view>
+          <!-- 第三行：-3% -5% 跌停 -->
+          <view class="dist-row dist-down-row">
+            <view class="dist-item">
+              <text class="dist-value down">{{ distributionData.down3 }}</text>
+              <text class="dist-label">-3%</text>
+            </view>
+            <view class="dist-item">
+              <text class="dist-value down">{{ distributionData.down5 }}</text>
+              <text class="dist-label">-5%</text>
+            </view>
+            <view class="dist-item">
+              <text class="dist-value down">{{ distributionData.limitDown }}</text>
+              <text class="dist-label">跌停</text>
+            </view>
           </view>
         </view>
       </view>
@@ -447,16 +476,6 @@ const distributionBars = computed(() => {
   ]
 })
 
-
-const goBack = () => {
-  const pages = getCurrentPages()
-  if (pages.length > 1) {
-    uni.navigateBack()
-  } else {
-    uni.switchTab({ url: '/pages/messages/messages' })
-  }
-}
-
 const switchTab = (key) => {
   activeTab.value = key
   if (key === 'fundflow') {
@@ -669,51 +688,75 @@ onShow(() => {
 </script>
 
 <style lang="scss" scoped>
-/* 行情中心页面 - 使用统一CSS变量系统 */
+/* 行情中心页面 - 金融科技风格全新设计 */
 .market-page {
   min-height: 100vh;
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: #0f172a;
+  color: #e2e8f0;
+  position: relative;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Header - 统一导航栏风格 */
+/* Header - 科技感导航栏 */
 .header {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
-  padding: 32rpx;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  padding: 32rpx 32rpx 24rpx;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1rpx solid var(--border-primary);
+  border-bottom: 1rpx solid rgba(56, 189, 248, 0.2);
+  position: relative;
+  z-index: 10;
 
-  .header-left {
-    width: 60rpx;
-    .back-icon {
-      font-size: 48rpx;
-      color: var(--text-primary);
-    }
-  }
   .header-center {
+    flex: 1;
     .header-title {
-      font-size: 36rpx;
+      font-size: 34rpx;
       font-weight: 600;
-      color: var(--text-primary);
+      color: #f1f5f9;
+      background: linear-gradient(90deg, #38bdf8 0%, #a78bfa 50%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
   }
+
   .header-right {
     .update-info {
       display: flex;
       align-items: center;
-      gap: 16rpx;
+      gap: 12rpx;
+
       .update-time {
-        font-size: 24rpx;
-        color: var(--text-tertiary);
+        font-size: 22rpx;
+        color: #64748b;
+        padding: 6rpx 16rpx;
+        border-radius: 12rpx;
+        background: rgba(30, 41, 59, 0.8);
+        border: 1rpx solid rgba(56, 189, 248, 0.1);
       }
+
       .refresh-btn {
-        padding: 8rpx 16rpx;
-        background: var(--bg-tertiary);
-        border-radius: 8rpx;
+        width: 64rpx;
+        height: 64rpx;
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+        border: 1rpx solid rgba(56, 189, 248, 0.2);
+        border-radius: 16rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+
+        &:active {
+          transform: scale(0.95) rotate(180deg);
+        }
+
         .refresh-icon {
           display: inline-block;
+          font-size: 32rpx;
+          color: #38bdf8;
+          font-weight: 600;
+
           &.spinning {
             animation: spin 1s linear infinite;
           }
@@ -729,38 +772,81 @@ onShow(() => {
 /* Index Bar - 指数行情横向滚动 */
 .index-bar {
   white-space: nowrap;
-  padding: 16rpx;
+  padding: 24rpx 32rpx;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border-bottom: 1rpx solid rgba(56, 189, 248, 0.1);
+
   .index-cards {
     display: inline-flex;
     gap: 16rpx;
   }
+
   .index-card {
     display: inline-flex;
     flex-direction: column;
-    min-width: 160rpx;
-    padding: 16rpx;
-    background: var(--bg-card);
+    min-width: 170rpx;
+    padding: 20rpx;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
     border-radius: 16rpx;
-    border: 1rpx solid var(--border-primary);
-    box-shadow: var(--shadow-card);
+    border: 1rpx solid rgba(56, 189, 248, 0.15);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3rpx;
+      background: #64748b;
+    }
+
     &.up {
-      .index-value, .index-change { color: var(--color-up); }
+      border-color: rgba(248, 113, 113, 0.3);
+      background: linear-gradient(135deg, rgba(248, 113, 113, 0.1) 0%, rgba(15, 23, 42, 0.9) 100%);
+
+      &::before {
+        background: linear-gradient(90deg, #f87171, #ef4444);
+      }
+
+      .index-value, .index-change {
+        color: #f87171;
+      }
     }
+
     &.down {
-      .index-value, .index-change { color: var(--color-down); }
+      border-color: rgba(74, 222, 128, 0.3);
+      background: linear-gradient(135deg, rgba(74, 222, 128, 0.1) 0%, rgba(15, 23, 42, 0.9) 100%);
+
+      &::before {
+        background: linear-gradient(90deg, #4ade80, #22c55e);
+      }
+
+      .index-value, .index-change {
+        color: #4ade80;
+      }
     }
+
     .index-name {
-      font-size: 24rpx;
-      color: var(--text-tertiary);
+      font-size: 22rpx;
+      color: #94a3b8;
+      font-weight: 500;
+      margin-bottom: 8rpx;
     }
+
     .index-value {
-      font-size: 32rpx;
-      font-weight: 600;
-      margin: 8rpx 0;
-      color: var(--text-primary);
+      font-size: 34rpx;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 4rpx;
     }
+
     .index-change {
-      font-size: 24rpx;
+      font-size: 22rpx;
+      font-weight: 600;
+      color: #64748b;
     }
   }
 }
@@ -769,101 +855,182 @@ onShow(() => {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16rpx;
-  padding: 0 32rpx;
+  gap: 12rpx;
+  padding: 24rpx 32rpx;
+  background: #0f172a;
+
   .stat-card {
-    background: var(--bg-card);
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
     border-radius: 16rpx;
-    padding: 20rpx;
+    padding: 20rpx 16rpx;
     text-align: center;
-    border: 1rpx solid var(--border-primary);
-    box-shadow: var(--shadow-card);
-    .stat-value {
-      font-size: 40rpx;
-      font-weight: 700;
-      &.up { color: var(--color-up); }
-      &.down { color: var(--color-down); }
+    border: 1rpx solid rgba(56, 189, 248, 0.1);
+    transition: all 0.3s ease;
+
+    &:active {
+      transform: scale(0.98);
     }
+
+    &.stat-up {
+      border-color: rgba(248, 113, 113, 0.2);
+      background: linear-gradient(135deg, rgba(248, 113, 113, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%);
+    }
+
+    &.stat-down {
+      border-color: rgba(74, 222, 128, 0.2);
+      background: linear-gradient(135deg, rgba(74, 222, 128, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%);
+    }
+
+    .stat-value {
+      font-size: 36rpx;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #e2e8f0;
+
+      &.up {
+        color: #f87171;
+        text-shadow: 0 0 10rpx rgba(248, 113, 113, 0.3);
+      }
+
+      &.down {
+        color: #4ade80;
+        text-shadow: 0 0 10rpx rgba(74, 222, 128, 0.3);
+      }
+    }
+
     .stat-label {
-      font-size: 24rpx;
-      color: var(--text-tertiary);
+      font-size: 22rpx;
+      color: #64748b;
       margin-top: 8rpx;
+      font-weight: 500;
     }
   }
 }
 
 /* Sentiment Section - 市场情绪 */
 .sentiment-section {
-  padding: 0 32rpx 32rpx;
+  padding: 0 32rpx 24rpx;
+
   .sentiment-card {
-    background: var(--bg-card);
-    border-radius: 24rpx;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+    border: 1rpx solid rgba(56, 189, 248, 0.2);
+    border-radius: 20rpx;
     padding: 28rpx;
-    border: 1rpx solid var(--border-primary);
-    box-shadow: var(--shadow-card);
-  }
-  .sentiment-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 16rpx;
-  }
-  .sentiment-title {
-    font-size: 28rpx;
-    color: var(--text-secondary);
-  }
-  .sentiment-score {
-    font-size: 36rpx;
-    font-weight: 700;
-    &.up { color: var(--color-up); }
-    &.down { color: var(--color-down); }
-  }
-  .sentiment-bar {
-    height: 12rpx;
-    background: var(--bg-tertiary);
-    border-radius: 6rpx;
+    position: relative;
     overflow: hidden;
-    margin-bottom: 12rpx;
-  }
-  .sentiment-fill {
-    height: 100%;
-    border-radius: 6rpx;
-    background: linear-gradient(90deg, var(--color-down) 0%, var(--color-accent) 50%, var(--color-up) 100%);
-    transition: width 0.5s ease;
-  }
-  .sentiment-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 20rpx;
-    color: var(--text-tertiary);
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2rpx;
+      background: linear-gradient(90deg, transparent, #38bdf8, #a78bfa, transparent);
+    }
+
+    .sentiment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20rpx;
+    }
+
+    .sentiment-title {
+      font-size: 26rpx;
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    .sentiment-score {
+      font-size: 36rpx;
+      font-weight: 700;
+      padding: 8rpx 20rpx;
+      border-radius: 12rpx;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1rpx solid rgba(56, 189, 248, 0.2);
+      color: #38bdf8;
+
+      &.up {
+        background: rgba(248, 113, 113, 0.1);
+        border-color: rgba(248, 113, 113, 0.2);
+        color: #f87171;
+      }
+
+      &.down {
+        background: rgba(74, 222, 128, 0.1);
+        border-color: rgba(74, 222, 128, 0.2);
+        color: #4ade80;
+      }
+    }
+
+    .sentiment-bar {
+      height: 12rpx;
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 6rpx;
+      overflow: hidden;
+      margin-bottom: 12rpx;
+
+      .sentiment-fill {
+        height: 100%;
+        border-radius: 6rpx;
+        background: linear-gradient(90deg, #4ade80 0%, #64748b 50%, #f87171 100%);
+        transition: width 0.5s ease;
+        box-shadow: 0 0 10rpx rgba(56, 189, 248, 0.3);
+      }
+    }
+
+    .sentiment-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 20rpx;
+      color: #64748b;
+      font-weight: 500;
+    }
   }
 }
 
 /* Tabs - 标签切换 */
 .tabs {
   display: flex;
-  background: var(--bg-secondary);
-  border-bottom: 1rpx solid var(--border-primary);
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border-bottom: 1rpx solid rgba(56, 189, 248, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
   .tab {
     flex: 1;
     text-align: center;
-    padding: 24rpx;
+    padding: 28rpx;
     font-size: 28rpx;
-    color: var(--text-tertiary);
+    color: #64748b;
+    background: transparent;
     position: relative;
     transition: all 0.3s ease;
+    font-weight: 500;
+
     &.active {
-      color: var(--color-primary);
+      color: #38bdf8;
       font-weight: 600;
+
       &::after {
         content: '';
         position: absolute;
         bottom: 0;
         left: 50%;
         transform: translateX(-50%);
-        width: 80rpx;
-        height: 6rpx;
-        background: var(--color-primary);
-        border-radius: 3rpx;
+        width: 60rpx;
+        height: 4rpx;
+        background: linear-gradient(90deg, #38bdf8, #a78bfa);
+        border-radius: 2rpx;
+        box-shadow: 0 0 10rpx rgba(56, 189, 248, 0.5);
+      }
+    }
+
+    &:not(.active) {
+      &:active {
+        background: rgba(56, 189, 248, 0.05);
       }
     }
   }
@@ -872,154 +1039,213 @@ onShow(() => {
 /* Filter Bar - 筛选标签 */
 .filter-bar {
   white-space: nowrap;
-  padding: 24rpx 32rpx;
-  background: var(--bg-secondary);
+  padding: 20rpx 32rpx;
+  background: #0f172a;
+
   .filter-chip {
     display: inline-block;
     padding: 12rpx 24rpx;
-    background: var(--bg-tertiary);
-    border-radius: 32rpx;
+    background: rgba(30, 41, 59, 0.6);
+    border-radius: 24rpx;
     font-size: 24rpx;
-    color: var(--text-secondary);
-    margin-right: 16rpx;
+    color: #94a3b8;
+    margin-right: 12rpx;
     transition: all 0.3s ease;
-    border: 1rpx solid transparent;
+    border: 1rpx solid rgba(56, 189, 248, 0.1);
+    font-weight: 500;
+
+    &:active {
+      transform: scale(0.95);
+    }
+
     &.active {
-      background: var(--color-primary);
-      color: #fff;
-      box-shadow: 0 2rpx 8rpx rgba(59, 130, 246, 0.3);
+      background: linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%);
+      color: #ffffff;
+      border-color: transparent;
+      box-shadow: 0 4rpx 12rpx rgba(56, 189, 248, 0.3);
+      font-weight: 600;
     }
   }
 }
 
 /* Tab Content */
 .tab-content {
-  padding: 24rpx 32rpx;
+  padding: 20rpx 32rpx;
   padding-bottom: 120rpx;
-}
-
-/* Empty Tip */
-.empty-tip {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 80rpx 0;
-}
-.empty-tip-text {
-  font-size: 28rpx;
-  color: var(--text-tertiary);
+  background: #0f172a;
 }
 
 /* Ladder Section - 连板天梯 */
 .ladder-section {
   .ladder-level {
-    background: var(--bg-card);
-    border-radius: 24rpx;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+    border-radius: 20rpx;
     margin-bottom: 20rpx;
     overflow: hidden;
-    border: 1rpx solid var(--border-primary);
-    box-shadow: var(--shadow-card);
-  }
-  .level-header {
-    display: flex;
-    align-items: center;
-    padding: 28rpx;
-  }
-  .level-badge {
-    width: 80rpx;
-    height: 80rpx;
-    border-radius: 20rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 36rpx;
-    font-weight: 700;
-    margin-right: 24rpx;
-    &.high { background: linear-gradient(135deg, var(--color-up) 0%, #dc2626 100%); color: #fff; }
-    &.mid { background: linear-gradient(135deg, var(--color-accent) 0%, #ea580c 100%); color: #fff; }
-    &.low { background: linear-gradient(135deg, var(--color-down) 0%, #16a34a 100%); color: #fff; }
-  }
-  .level-info {
-    flex: 1;
-  }
-  .level-title {
-    font-size: 30rpx;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-  .level-subtitle {
-    font-size: 24rpx;
-    color: var(--text-tertiary);
-    margin-top: 4rpx;
-  }
-  .level-arrow {
-    font-size: 24rpx;
-    color: var(--text-tertiary);
-    transition: transform 0.3s;
-  }
-  .ladder-level.expanded .level-arrow {
-    transform: rotate(180deg);
-  }
-  .stock-list {
-    border-top: 1rpx solid var(--border-primary);
-    .stock-item {
+    border: 1rpx solid rgba(56, 189, 248, 0.1);
+    transition: all 0.3s ease;
+
+    &:active {
+      transform: scale(0.99);
+      border-color: rgba(56, 189, 248, 0.2);
+    }
+
+    .level-header {
       display: flex;
       align-items: center;
-      padding: 24rpx 28rpx;
-      border-bottom: 1rpx solid var(--border-secondary);
-      transition: background 0.2s ease;
-      &:last-child {
-        border-bottom: none;
+      padding: 24rpx;
+      background: rgba(30, 41, 59, 0.4);
+      border-bottom: 1rpx solid rgba(56, 189, 248, 0.05);
+    }
+
+    .level-badge {
+      width: 72rpx;
+      height: 72rpx;
+      border-radius: 16rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32rpx;
+      font-weight: 700;
+      margin-right: 20rpx;
+
+      &.high {
+        background: linear-gradient(135deg, #f87171, #ef4444);
+        box-shadow: 0 4rpx 12rpx rgba(248, 113, 113, 0.3);
       }
-      &:active {
-        background: var(--bg-hover);
+
+      &.mid {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        box-shadow: 0 4rpx 12rpx rgba(251, 191, 36, 0.3);
+      }
+
+      &.low {
+        background: linear-gradient(135deg, #4ade80, #22c55e);
+        box-shadow: 0 4rpx 12rpx rgba(74, 222, 128, 0.3);
       }
     }
-    .stock-rank {
-      width: 40rpx;
-      font-size: 24rpx;
-      color: var(--text-tertiary);
-    }
-    .stock-info {
+
+    .level-info {
       flex: 1;
     }
-    .stock-name {
-      font-size: 28rpx;
-      font-weight: 500;
-      color: var(--text-primary);
-    }
-    .stock-meta {
-      display: flex;
-      align-items: center;
-      gap: 12rpx;
-      margin-top: 6rpx;
-    }
-    .stock-code {
-      font-size: 22rpx;
-      color: var(--text-tertiary);
-    }
-    .stock-tag {
-      padding: 4rpx 12rpx;
-      border-radius: 8rpx;
-      font-size: 20rpx;
-      &.tag-t { background: rgba(245, 158, 11, 0.1); color: var(--color-accent); }
-      &.tag-yizi { background: var(--color-up-bg); color: var(--color-up); }
-      &.tag-huanshou { background: var(--color-down-bg); color: var(--color-down); }
-      &.tag-new { background: rgba(139, 92, 246, 0.1); color: var(--color-secondary); }
-    }
-    .stock-price {
-      text-align: right;
-    }
-    .stock-value {
+
+    .level-title {
       font-size: 28rpx;
       font-weight: 600;
-      &.up { color: var(--color-up); }
-      &.down { color: var(--color-down); }
+      color: #e2e8f0;
     }
-    .stock-change {
-      font-size: 24rpx;
-      color: var(--color-up);
+
+    .level-subtitle {
+      font-size: 22rpx;
+      color: #64748b;
       margin-top: 4rpx;
+    }
+
+    .level-arrow {
+      font-size: 22rpx;
+      color: #475569;
+      transition: transform 0.3s ease;
+    }
+
+    .stock-list {
+      background: rgba(15, 23, 42, 0.6);
+
+      .stock-item {
+        display: flex;
+        align-items: center;
+        padding: 20rpx 24rpx;
+        border-bottom: 1rpx solid rgba(56, 189, 248, 0.05);
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &:active {
+          background: rgba(56, 189, 248, 0.05);
+        }
+
+        .stock-rank {
+          width: 40rpx;
+          font-size: 22rpx;
+          font-weight: 600;
+          color: #475569;
+        }
+
+        .stock-info {
+          flex: 1;
+        }
+
+        .stock-name {
+          font-size: 26rpx;
+          font-weight: 600;
+          color: #f1f5f9;
+        }
+
+        .stock-meta {
+          display: flex;
+          align-items: center;
+          gap: 12rpx;
+          margin-top: 6rpx;
+        }
+
+        .stock-code {
+          font-size: 20rpx;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .stock-tag {
+          padding: 4rpx 12rpx;
+          border-radius: 6rpx;
+          font-size: 18rpx;
+          font-weight: 600;
+
+          &.tag-t {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+          }
+
+          &.tag-yizi {
+            background: rgba(248, 113, 113, 0.15);
+            color: #f87171;
+          }
+
+          &.tag-huanshou {
+            background: rgba(74, 222, 128, 0.15);
+            color: #4ade80;
+          }
+
+          &.tag-new {
+            background: rgba(167, 139, 250, 0.15);
+            color: #a78bfa;
+          }
+        }
+
+        .stock-price {
+          text-align: right;
+        }
+
+        .stock-value {
+          font-size: 26rpx;
+          font-weight: 700;
+          color: #f1f5f9;
+
+          &.up {
+            color: #f87171;
+          }
+
+          &.down {
+            color: #4ade80;
+          }
+        }
+
+        .stock-change {
+          font-size: 22rpx;
+          color: #f87171;
+          margin-top: 4rpx;
+          font-weight: 600;
+        }
+      }
     }
   }
 }
@@ -1028,128 +1254,190 @@ onShow(() => {
 .fundflow-section {
   .flow-tabs {
     display: flex;
-    gap: 32rpx;
-    margin-bottom: 24rpx;
-  }
-  .flow-tab {
-    padding: 16rpx 32rpx;
-    border-radius: 32rpx;
-    font-size: 26rpx;
-    background: var(--bg-tertiary);
-    color: var(--text-secondary);
-    transition: all 0.3s ease;
-    &.active {
-      background: var(--color-up-bg);
-      color: var(--color-up);
+    gap: 24rpx;
+    margin-bottom: 20rpx;
+
+    .flow-tab {
+      padding: 14rpx 28rpx;
+      border-radius: 24rpx;
+      font-size: 26rpx;
+      background: rgba(30, 41, 59, 0.6);
+      color: #94a3b8;
+      transition: all 0.3s ease;
+      border: 1rpx solid rgba(56, 189, 248, 0.1);
       font-weight: 500;
+
+      &:active {
+        transform: scale(0.95);
+      }
+
+      &.active {
+        background: linear-gradient(135deg, rgba(248, 113, 113, 0.15) 0%, rgba(248, 113, 113, 0.1) 100%);
+        color: #f87171;
+        border-color: rgba(248, 113, 113, 0.3);
+      }
     }
   }
+
   .flow-list {
     .flow-item {
       display: flex;
       align-items: center;
-      gap: 24rpx;
-      padding: 24rpx;
-      background: var(--bg-card);
+      gap: 20rpx;
+      padding: 20rpx;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
       border-radius: 16rpx;
-      margin-bottom: 16rpx;
-      border: 1rpx solid var(--border-primary);
-      box-shadow: var(--shadow-card);
+      margin-bottom: 12rpx;
+      border: 1rpx solid rgba(56, 189, 248, 0.1);
       transition: all 0.3s ease;
+
       &:active {
         transform: scale(0.98);
-        box-shadow: var(--shadow-md);
+        border-color: rgba(56, 189, 248, 0.2);
       }
-    }
-    .flow-rank {
-      width: 56rpx;
-      height: 56rpx;
-      border-radius: 12rpx;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28rpx;
-      font-weight: 700;
-      &.gold { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
-      &.silver { background: linear-gradient(135deg, #9ca3af, #6b7280); color: #fff; }
-      &.bronze { background: linear-gradient(135deg, #ea580c, #c2410c); color: #fff; }
-      &.normal { background: var(--bg-tertiary); color: var(--text-tertiary); }
-    }
-    .flow-info {
-      flex: 1;
-      .flow-name {
-        font-size: 28rpx;
-        font-weight: 500;
-        color: var(--text-primary);
+
+      .flow-rank {
+        width: 52rpx;
+        height: 52rpx;
+        border-radius: 12rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26rpx;
+        font-weight: 700;
+        flex-shrink: 0;
+
+        &.gold {
+          background: linear-gradient(135deg, #fbbf24, #f59e0b);
+          box-shadow: 0 4rpx 10rpx rgba(251, 191, 36, 0.3);
+        }
+
+        &.silver {
+          background: linear-gradient(135deg, #94a3b8, #64748b);
+        }
+
+        &.bronze {
+          background: linear-gradient(135deg, #fb923c, #ea580c);
+        }
+
+        &.normal {
+          background: rgba(30, 41, 59, 0.8);
+          color: #64748b;
+        }
       }
-      .flow-stats {
-        font-size: 22rpx;
-        color: var(--text-tertiary);
-        margin-top: 4rpx;
+
+      .flow-info {
+        flex: 1;
+
+        .flow-name {
+          font-size: 26rpx;
+          font-weight: 600;
+          color: #e2e8f0;
+        }
+
+        .flow-stats {
+          font-size: 20rpx;
+          color: #64748b;
+          margin-top: 4rpx;
+        }
       }
-    }
-    .flow-amount {
-      text-align: right;
-      &.inflow .amount-value, &.inflow .amount-pct { color: var(--color-up); }
-      &.outflow .amount-value, &.outflow .amount-pct { color: var(--color-down); }
-      .amount-value {
-        font-size: 28rpx;
-        font-weight: 600;
-      }
-      .amount-pct {
-        font-size: 22rpx;
-        margin-top: 4rpx;
+
+      .flow-amount {
+        text-align: right;
+
+        .amount-value {
+          font-size: 26rpx;
+          font-weight: 700;
+          color: #e2e8f0;
+        }
+
+        .amount-pct {
+          font-size: 20rpx;
+          margin-top: 4rpx;
+          font-weight: 600;
+          color: #64748b;
+        }
+
+        &.inflow .amount-value,
+        &.inflow .amount-pct {
+          color: #f87171;
+        }
+
+        &.outflow .amount-value,
+        &.outflow .amount-pct {
+          color: #4ade80;
+        }
       }
     }
   }
 }
 
-/* Distribution Section - 涨跌分布 */
+/* Distribution Section - 涨跌分布 通达信风格 */
 .distribution-section {
-  .chart-container {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-around;
-    height: 400rpx;
-    padding: 40rpx;
-    background: var(--bg-card);
-    border-radius: 24rpx;
-    border: 1rpx solid var(--border-primary);
-    box-shadow: var(--shadow-card);
-  }
-  .chart-bar {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 80rpx;
-    .bar-fill {
-      width: 60rpx;
-      min-height: 20rpx;
-      border-radius: 8rpx 8rpx 0 0;
+  .tdx-distribution {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+    border-radius: 20rpx;
+    border: 1rpx solid rgba(56, 189, 248, 0.1);
+    overflow: hidden;
+
+    .dist-row {
       display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      transition: height 0.5s ease;
-      .bar-value {
-        font-size: 20rpx;
-        color: var(--text-inverse, #fff);
-        margin-bottom: 8rpx;
+      padding: 20rpx 32rpx;
+      border-bottom: 1rpx solid rgba(56, 189, 248, 0.05);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &.dist-up-row {
+        background: linear-gradient(90deg, rgba(248, 113, 113, 0.08) 0%, transparent 100%);
+      }
+
+      &.dist-flat-row {
+        background: rgba(30, 41, 59, 0.4);
+        justify-content: center;
+      }
+
+      &.dist-down-row {
+        background: linear-gradient(90deg, rgba(74, 222, 128, 0.08) 0%, transparent 100%);
       }
     }
-    .bar-label {
-      font-size: 20rpx;
-      color: var(--text-tertiary);
-      margin-top: 12rpx;
-      white-space: nowrap;
-    }
-    &.up .bar-fill {
-      background: linear-gradient(180deg, var(--color-up) 0%, rgba(239, 68, 68, 0.7) 100%);
-    }
-    &.down .bar-fill {
-      background: linear-gradient(180deg, var(--color-down) 0%, rgba(34, 197, 94, 0.7) 100%);
-    }
-    &.flat .bar-fill {
-      background: linear-gradient(180deg, #6b7280 0%, #9ca3af 100%);
+
+    .dist-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12rpx 0;
+
+      &.dist-flat {
+        max-width: 200rpx;
+      }
+
+      .dist-value {
+        font-size: 40rpx;
+        font-weight: 700;
+        color: #e2e8f0;
+        line-height: 1.2;
+
+        &.up {
+          color: #f87171;
+          text-shadow: 0 0 10rpx rgba(248, 113, 113, 0.3);
+        }
+
+        &.down {
+          color: #4ade80;
+          text-shadow: 0 0 10rpx rgba(74, 222, 128, 0.3);
+        }
+      }
+
+      .dist-label {
+        font-size: 22rpx;
+        color: #64748b;
+        margin-top: 8rpx;
+        font-weight: 500;
+      }
     }
   }
 }
@@ -1161,152 +1449,188 @@ onShow(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--bg-overlay);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: flex-end;
   z-index: 1000;
 }
+
 .modal-content {
-  background: var(--bg-card);
-  border-radius: 40rpx 40rpx 0 0;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 32rpx 32rpx 0 0;
   width: 100%;
   max-height: 85vh;
   overflow: hidden;
   animation: slideUp 0.3s ease;
+  border-top: 1rpx solid rgba(56, 189, 248, 0.2);
 }
+
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
+
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 32rpx;
-  border-bottom: 1rpx solid var(--border-primary);
+  padding: 28rpx 32rpx;
+  border-bottom: 1rpx solid rgba(56, 189, 248, 0.1);
+
   .modal-title {
     .stock-title {
-      font-size: 36rpx;
+      font-size: 32rpx;
       font-weight: 600;
-      color: var(--text-primary);
+      color: #f1f5f9;
     }
+
     .stock-code-small {
-      font-size: 26rpx;
-      color: var(--text-tertiary);
+      font-size: 24rpx;
+      color: #64748b;
     }
   }
+
   .modal-close {
-    width: 64rpx;
-    height: 64rpx;
-    background: var(--bg-tertiary);
+    width: 60rpx;
+    height: 60rpx;
+    background: rgba(30, 41, 59, 0.8);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 48rpx;
-    color: var(--text-secondary);
+    font-size: 44rpx;
+    color: #94a3b8;
+    border: 1rpx solid rgba(56, 189, 248, 0.1);
+    transition: all 0.3s ease;
+
+    &:active {
+      transform: scale(0.95);
+    }
   }
 }
+
 .modal-body {
-  padding: 32rpx;
+  padding: 28rpx 32rpx;
   max-height: 60vh;
 }
 
 /* Detail Card - 详情数据卡片 */
 .detail-card {
-  background: var(--bg-tertiary);
-  border-radius: 24rpx;
+  background: rgba(30, 41, 59, 0.4);
+  border-radius: 20rpx;
   padding: 24rpx;
-  margin-bottom: 24rpx;
-  border: 1rpx solid var(--border-secondary);
+  margin-bottom: 20rpx;
+  border: 1rpx solid rgba(56, 189, 248, 0.1);
 }
+
 .detail-card-title {
-  font-size: 26rpx;
-  font-weight: 500;
+  font-size: 24rpx;
+  font-weight: 600;
   margin-bottom: 16rpx;
-  color: var(--text-secondary);
+  color: #94a3b8;
 }
+
 .detail-row {
   display: flex;
   justify-content: space-between;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid var(--border-secondary);
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid rgba(56, 189, 248, 0.05);
+
   &:last-child {
     border-bottom: none;
   }
+
   .detail-label {
-    font-size: 26rpx;
-    color: var(--text-tertiary);
+    font-size: 24rpx;
+    color: #94a3b8;
   }
+
   .detail-value {
-    font-size: 26rpx;
-    font-weight: 500;
-    color: var(--text-primary);
-    &.up { color: var(--color-up); }
-    &.down { color: var(--color-down); }
-    &.tag-t { color: var(--color-accent); }
-    &.tag-yizi { color: var(--color-up); }
-    &.tag-huanshou { color: var(--color-down); }
+    font-size: 24rpx;
+    font-weight: 600;
+    color: #e2e8f0;
+
+    &.up { color: #f87171; }
+    &.down { color: #4ade80; }
+    &.tag-t { color: #fbbf24; }
+    &.tag-yizi { color: #f87171; }
+    &.tag-huanshou { color: #4ade80; }
   }
 }
 
 /* Reason Card - 涨停原因 */
 .reason-card {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
-  border-radius: 24rpx;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%);
+  border-radius: 20rpx;
   padding: 24rpx;
-  margin-bottom: 24rpx;
-  border: 1rpx solid rgba(56, 189, 248, 0.2);
+  margin-bottom: 20rpx;
+  border: 1rpx solid rgba(56, 189, 248, 0.15);
 }
+
 .reason-title {
-  font-size: 24rpx;
-  color: var(--text-secondary);
+  font-size: 22rpx;
+  color: #94a3b8;
   margin-bottom: 12rpx;
+  font-weight: 600;
 }
+
 .reason-content {
-  font-size: 28rpx;
+  font-size: 26rpx;
   line-height: 1.6;
-  color: var(--text-primary);
+  color: #e2e8f0;
 }
+
 .reason-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 12rpx;
   margin-top: 16rpx;
 }
+
 .reason-tag {
-  background: var(--bg-tertiary);
-  padding: 8rpx 20rpx;
-  border-radius: 24rpx;
-  font-size: 24rpx;
-  color: var(--text-secondary);
-  border: 1rpx solid var(--border-primary);
+  background: rgba(30, 41, 59, 0.6);
+  padding: 8rpx 16rpx;
+  border-radius: 16rpx;
+  font-size: 22rpx;
+  color: #94a3b8;
+  border: 1rpx solid rgba(56, 189, 248, 0.1);
+  font-weight: 500;
 }
 
 /* Fund Grid - 资金数据网格 */
 .fund-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16rpx;
+  gap: 12rpx;
 }
+
 .fund-item {
-  background: var(--bg-card);
-  border-radius: 16rpx;
-  padding: 20rpx;
+  background: rgba(30, 41, 59, 0.4);
+  border-radius: 14rpx;
+  padding: 18rpx;
   text-align: center;
-  border: 1rpx solid var(--border-secondary);
+  border: 1rpx solid rgba(56, 189, 248, 0.1);
+  transition: all 0.3s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
 }
+
 .fund-label {
-  font-size: 22rpx;
-  color: var(--text-tertiary);
+  font-size: 20rpx;
+  color: #64748b;
+  font-weight: 500;
 }
+
 .fund-value {
-  font-size: 28rpx;
-  font-weight: 600;
+  font-size: 26rpx;
+  font-weight: 700;
   margin-top: 8rpx;
-  color: var(--text-primary);
-  &.up { color: var(--color-up); }
-  &.down { color: var(--color-down); }
+  color: #e2e8f0;
+
+  &.up { color: #f87171; }
+  &.down { color: #4ade80; }
 }
 
 /* Loading Overlay */
@@ -1316,142 +1640,27 @@ onShow(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--bg-overlay);
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 1000;
 }
+
 .loading-spinner {
   width: 80rpx;
   height: 80rpx;
-  border: 6rpx solid var(--border-primary);
-  border-top-color: var(--color-primary);
+  border: 4rpx solid rgba(56, 189, 248, 0.2);
+  border-top-color: #38bdf8;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
 .loading-text {
   margin-top: 24rpx;
-  font-size: 28rpx;
-  color: var(--text-secondary);
-}
-
-/* Market Thermometer - 市场温度计（保留功能样式） */
-.thermometer-section {
-  margin: 20rpx;
-  background: var(--bg-card);
-  border-radius: 16rpx;
-  padding: 20rpx;
-  border: 1rpx solid var(--border-primary);
-}
-.thermo-header {
-  margin-bottom: 16rpx;
-}
-.thermo-title {
-  font-size: 28rpx;
-  color: var(--color-primary);
-  font-weight: bold;
-}
-.thermo-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-}
-.thermo-row {
-  display: flex;
-  gap: 12rpx;
-}
-.thermo-card {
-  flex: 1;
-  padding: 20rpx;
-  border-radius: 12rpx;
-  text-align: center;
-}
-.thermo-card.up-card {
-  background: var(--color-down-bg);
-  border: 1rpx solid rgba(34, 197, 94, 0.3);
-}
-.thermo-card.down-card {
-  background: var(--color-up-bg);
-  border: 1rpx solid rgba(239, 68, 68, 0.3);
-}
-.thermo-label {
-  display: block;
-  font-size: 24rpx;
-  color: var(--text-tertiary);
-  margin-bottom: 8rpx;
-}
-.thermo-value {
-  display: block;
-  font-size: 40rpx;
-  font-weight: bold;
-}
-.thermo-value.up {
-  color: var(--color-down);
-}
-.thermo-value.down {
-  color: var(--color-up);
-}
-
-/* Cards Container */
-.cards-container {
-  padding: 0 20rpx;
-}
-.card-section {
-  background: var(--bg-card);
-  border-radius: 16rpx;
-  margin-bottom: 20rpx;
-  padding: 20rpx;
-  border: 1rpx solid var(--border-primary);
-  box-shadow: var(--shadow-card);
-}
-.card-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16rpx;
-  padding-bottom: 16rpx;
-  border-bottom: 1rpx solid var(--border-primary);
-}
-.card-icon {
-  font-size: 32rpx;
-  margin-right: 12rpx;
-}
-.card-title {
-  font-size: 30rpx;
-  color: var(--text-primary);
-  font-weight: bold;
-}
-
-/* Stock Expand Content */
-.stock-item-wrapper {
-  margin-bottom: 12rpx;
-}
-.stock-expand-content {
-  background: var(--bg-tertiary);
-  border-radius: 8rpx;
-  padding: 16rpx;
-  margin-top: 8rpx;
-  border: 1rpx solid var(--border-primary);
-}
-.expand-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8rpx;
-}
-.expand-label {
-  font-size: 22rpx;
-  color: var(--text-tertiary);
-  width: 100rpx;
-}
-.expand-value {
-  font-size: 22rpx;
-  color: var(--text-primary);
-  flex: 1;
-}
-.expand-btn {
-  font-size: 20rpx;
-  color: var(--color-primary);
-  padding: 8rpx;
+  font-size: 26rpx;
+  color: #94a3b8;
+  font-weight: 500;
 }
 </style>
