@@ -127,11 +127,12 @@ async function getMessages(req, res) {
       where[Op.and] = andConditions;
     }
 
+    // 排序：置顶消息优先，然后按创建时间倒序
     const { count, rows } = await Message.findAndCountAll({
       where,
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['created_at', 'DESC']],
+      order: [['is_pinned', 'DESC'], ['created_at', 'DESC']],
       include: [{
         model: User,
         as: 'senderUser',

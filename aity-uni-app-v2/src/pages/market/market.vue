@@ -1,18 +1,15 @@
 <template>
   <view class="market-page">
-    <!-- Header -->
+    <!-- Header - 精简版 -->
     <view class="header">
       <view class="header-center">
         <text class="header-title">行情中心</text>
       </view>
-      <view class="header-right">
-        <view class="update-info">
-          <text class="update-time">{{ updateTime }}</text>
-          <view class="refresh-btn" :class="{ spinning: isRefreshing }" @click="handleRefresh">
-            <text class="refresh-icon">↻</text>
-          </view>
-        </view>
-      </view>
+    </view>
+
+    <!-- 悬浮刷新按钮 - 右上角 -->
+    <view class="fab-refresh" :class="{ spinning: isRefreshing }" @click="handleRefresh">
+      <text class="fab-refresh-icon">↻</text>
     </view>
 
     <!-- Index Bar -->
@@ -697,7 +694,7 @@ onShow(() => {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Header - 科技感导航栏 */
+/* Header - 精简科技感导航栏 */
 .header {
   background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
   padding: 32rpx 32rpx 24rpx;
@@ -720,51 +717,41 @@ onShow(() => {
       background-clip: text;
     }
   }
+}
 
-  .header-right {
-    .update-info {
-      display: flex;
-      align-items: center;
-      gap: 12rpx;
+/* 悬浮刷新按钮 - 右下角 */
+.fab-refresh {
+  position: fixed;
+  bottom: 120rpx;
+  right: 32rpx;
+  width: 80rpx;
+  height: 80rpx;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+  border: 2rpx solid rgba(56, 189, 248, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  box-shadow: 0 8rpx 24rpx rgba(56, 189, 248, 0.3);
+  transition: all 0.3s ease;
 
-      .update-time {
-        font-size: 22rpx;
-        color: #64748b;
-        padding: 6rpx 16rpx;
-        border-radius: 12rpx;
-        background: rgba(30, 41, 59, 0.8);
-        border: 1rpx solid rgba(56, 189, 248, 0.1);
-      }
+  &:active {
+    transform: scale(0.95);
+    box-shadow: 0 4rpx 12rpx rgba(56, 189, 248, 0.2);
+  }
 
-      .refresh-btn {
-        width: 64rpx;
-        height: 64rpx;
-        background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
-        border: 1rpx solid rgba(56, 189, 248, 0.2);
-        border-radius: 16rpx;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s ease;
+  &.spinning .fab-refresh-icon {
+    animation: spin 1s linear infinite;
+  }
 
-        &:active {
-          transform: scale(0.95) rotate(180deg);
-        }
-
-        .refresh-icon {
-          display: inline-block;
-          font-size: 32rpx;
-          color: #38bdf8;
-          font-weight: 600;
-
-          &.spinning {
-            animation: spin 1s linear infinite;
-          }
-        }
-      }
-    }
+  .fab-refresh-icon {
+    font-size: 36rpx;
+    color: #38bdf8;
+    font-weight: 600;
   }
 }
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

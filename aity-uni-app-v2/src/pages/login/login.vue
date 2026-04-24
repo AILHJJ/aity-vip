@@ -32,16 +32,6 @@
 					/>
 				</view>
 
-				<!-- 记住我和忘记密码 -->
-				<view class="form-actions">
-					<checkbox-group @change="handleRememberChange">
-						<label class="checkbox-label">
-							<checkbox :checked="formData.rememberMe" color="#667eea" />
-							<text class="checkbox-text">记住我</text>
-						</label>
-					</checkbox-group>
-				</view>
-
 				<!-- 登录按钮 -->
 				<button
 					class="login-btn"
@@ -67,16 +57,10 @@ const userStore = useUserStore()
 
 const formData = ref({
 	account: '',
-	password: '',
-	rememberMe: true  // 默认勾选记住我
+	password: ''
 })
 
 const loading = ref(false)
-
-// 处理记住我选择
-const handleRememberChange = (e) => {
-	formData.value.rememberMe = e.detail.value.length > 0
-}
 
 // 处理登录
 const handleLogin = async () => {
@@ -102,7 +86,7 @@ const handleLogin = async () => {
 	const loginData = {
 		[isEmail ? 'email' : 'username']: formData.value.account,
 		password: formData.value.password,
-		rememberMe: formData.value.rememberMe
+		rememberMe: true  // 默认记住用户
 	}
 
 	loading.value = true
@@ -296,26 +280,6 @@ button::after {
 	}
 }
 /* #endif */
-
-.form-actions {
-	display: flex;
-	justify-content: flex-start;
-	align-items: center;
-	margin-bottom: 20rpx;
-	min-height: 40rpx;
-}
-
-.checkbox-label {
-	display: flex;
-	align-items: center;
-	cursor: pointer;
-}
-
-.checkbox-text {
-	margin-left: 10rpx;
-	font-size: 26rpx;
-	color: #666666;
-}
 
 .login-btn {
 	width: 100%;

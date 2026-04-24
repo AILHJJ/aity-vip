@@ -5,10 +5,10 @@
 			<text class="empty-title">{{ computedTitle }}</text>
 			<text v-if="computedDescription" class="empty-description">{{ computedDescription }}</text>
 			<button
-				v-if="showAction && computedActionText"
-				:class="['empty-action', 'action-' + actionType]"
-				@click="handleAction"
-			>
+			class="empty-btn-reset"
+			:class="['empty-action', 'action-' + actionType]"
+			@click="handleAction"
+		>
 				{{ computedActionText }}
 			</button>
 		</view>
@@ -135,8 +135,8 @@ const handleAction = () => {
 </script>
 
 <style lang="scss" scoped>
-/* 微信小程序 button 组件默认样式重置 */
-button {
+/* 按钮样式 - 微信小程序组件不支持标签选择器，使用类选择器 */
+.empty-btn-reset {
 	padding: 0;
 	margin: 0;
 	background: transparent;
@@ -144,7 +144,7 @@ button {
 	line-height: normal;
 	font-size: inherit;
 }
-button::after {
+.empty-btn-reset::after {
 	border: none;
 }
 

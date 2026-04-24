@@ -10,7 +10,7 @@
 				</view>
 			</view>
 			<view class="summary-right">
-				<text class="expand-text">展开筛选</text>
+				<text class="expand-text">展开</text>
 				<text class="expand-icon">▼</text>
 			</view>
 		</view>
@@ -19,7 +19,7 @@
 		<view v-else class="filter-panel">
 			<!-- 筛选面板头部 -->
 			<view class="filter-panel-header" @click="toggleExpand">
-				<text class="header-title">推送范围筛选（管理员）</text>
+				<text class="header-title">筛选</text>
 				<view class="header-right">
 					<text class="collapse-text">收起</text>
 					<text class="collapse-icon">▲</text>
@@ -28,7 +28,6 @@
 
 			<!-- 推送范围筛选（横向滚动，直接选择） -->
 			<view class="filter-section-inline">
-				<view class="filter-section-title-inline">推送范围</view>
 				<scroll-view class="filter-options-scroll" scroll-x show-scrollbar="false">
 					<view class="filter-options">
 						<view
@@ -44,18 +43,13 @@
 				</scroll-view>
 			</view>
 
-			<!-- 说明文字 -->
-			<view class="filter-description">
-				<text class="description-text">💡 提示：这些标签表示消息的推送范围，与消息类型无关</text>
-			</view>
-
 			<!-- 操作按钮 -->
 			<view v-if="hasActiveFilters" class="action-buttons">
 				<view class="result-tip">
-					<text class="result-text">找到 {{ filteredCount }} 条消息</text>
+					<text class="result-text">找到 {{ filteredCount }} 条</text>
 				</view>
 				<view class="reset-btn-inline" @click.stop="resetFilters">
-					<text class="reset-text">重置筛选</text>
+					<text class="reset-text">重置</text>
 				</view>
 			</view>
 		</view>
@@ -83,12 +77,11 @@ const filters = ref({
 // 展开/收起状态
 const isExpanded = ref(false)
 
-// 推送范围选项
+// 推送范围选项（精简为短线VIP和中线VIP）
 const pushScopeOptions = computed(() => [
 	{ label: '全部', value: 'all' },
-	{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.SHORT_TERM], value: MESSAGE_TAGS.SHORT_TERM },
-	{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.MID_TERM], value: MESSAGE_TAGS.MID_TERM },
-	{ label: MESSAGE_TAG_LABELS[MESSAGE_TAGS.ALL_USERS], value: MESSAGE_TAGS.ALL_USERS }
+	{ label: '短线VIP用户', value: MESSAGE_TAGS.SHORT_TERM },
+	{ label: '中线VIP用户', value: MESSAGE_TAGS.MID_TERM }
 ])
 
 // 是否有激活的筛选条件

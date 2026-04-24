@@ -121,7 +121,7 @@
 						<textarea
 							class="prompt-textarea-resizable"
 							v-model="currentPrompt"
-							placeholder="输入AI优化提示词，例如：&#10;1. 使用Markdown格式输出&#10;2. 核心内容置顶&#10;3. 保留原文关键信息&#10;4. 突出操作建议"
+							placeholder="输入AI优化提示词，例如： 1. 使用Markdown格式输出 2. 核心内容置顶 3. 保留原文关键信息 4. 突出操作建议"
 							auto-height
 							:maxlength="5000"
 						/>

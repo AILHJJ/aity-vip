@@ -4,6 +4,7 @@
 
 // 消息类型
 export const MESSAGE_TYPES = {
+  POSITION_HANDLE: 'position_handle',  // 持仓处理（放在第一位）
   PRE_MARKET_COMMENT: 'pre_market_comment',
   MORNING_COMMENT: 'morning_comment',
   MORNING_FOCUS: 'morning_focus',
@@ -18,6 +19,7 @@ export const MESSAGE_TYPES = {
 
 // 消息类型标签映射
 export const MESSAGE_TYPE_LABELS = {
+  [MESSAGE_TYPES.POSITION_HANDLE]: '持仓处理',
   [MESSAGE_TYPES.PRE_MARKET_COMMENT]: '盘前点评',
   [MESSAGE_TYPES.MORNING_COMMENT]: '早盘点评',
   [MESSAGE_TYPES.MORNING_FOCUS]: '早盘关注',

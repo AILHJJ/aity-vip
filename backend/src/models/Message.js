@@ -39,6 +39,7 @@ const Message = sequelize.define('Message', {
   },
   type: {
     type: DataTypes.ENUM(
+      'position_handle',       // 持仓处理（放在第一位）
       'pre_market_comment',    // 盘前点评
       'morning_comment',       // 早盘点评
       'morning_focus',         // 早盘关注

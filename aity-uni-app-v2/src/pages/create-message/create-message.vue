@@ -2,61 +2,41 @@
 	<view class="create-message-container">
 		<scroll-view class="form-scroll" scroll-y>
 			<view class="form-container">
-				<!-- 快捷设置：策略类型和推送对象（优化为单行简洁布局） -->
+				<!-- 策略推送合并（标签按钮组） -->
 				<view class="form-item quick-settings">
-					<view class="quick-setting-row">
-						<!-- 策略类型 -->
-						<view class="quick-setting-item">
-							<text class="quick-label">策略</text>
-							<picker
-								mode="selector"
-								:range="strategyTypes"
-								range-key="label"
-								:value="strategyTypes.findIndex(s => s.value === formData.strategy)"
-								@change="handleStrategyChange"
+					<view class="setting-row">
+						<text class="setting-label">策略推送</text>
+						<view class="tag-group">
+							<view 
+								v-for="s in strategyOptions" 
+								:key="s.value"
+								class="tag-btn"
+								:class="{ active: formData.strategy === s.value }"
+								@click="handleStrategyChange(s.value)"
 							>
-								<view class="quick-picker">
-									<text class="quick-value">{{ strategyTypes.find(s => s.value === formData.strategy)?.label }}</text>
-									<text class="quick-arrow">▼</text>
-								</view>
-							</picker>
-						</view>
-
-						<!-- 推送对象（仅管理员可见） -->
-						<view v-if="userStore.isAdmin" class="quick-setting-item">
-							<text class="quick-label">推送</text>
-							<picker
-								mode="selector"
-								:range="pushTargets"
-								range-key="label"
-								:value="pushTargets.findIndex(t => t.value === formData.pushTarget)"
-								@change="handlePushTargetChange"
-							>
-								<view class="quick-picker">
-									<text class="quick-value">{{ pushTargets.find(t => t.value === formData.pushTarget)?.label }}</text>
-									<text class="quick-arrow">▼</text>
-								</view>
-							</picker>
+								<text>{{ s.label }}</text>
+							</view>
 						</view>
 					</view>
 				</view>
 
-				<!-- 消息类型（单选下拉） -->
-				<view class="form-item">
-					<text class="form-label">消息类型</text>
-					<picker
-						mode="selector"
-						:range="messageTypeOptions"
-						range-key="label"
-						:value="selectedMessageTypeIndex"
-						@change="handleMessageTypeChange"
-					>
-						<view class="picker-view">
-							<text class="picker-text" v-if="formData.messageType">{{ messageTypeOptions.find(t => t.value === formData.messageType)?.label }}</text>
-							<text class="picker-placeholder" v-else>请选择消息类型</text>
-							<text class="picker-arrow">▼</text>
+				<!-- 消息类型（标签按钮组，支持动态加载） -->
+				<view class="form-item msg-type-section">
+					<view class="form-label-row">
+						<text class="form-label">消息类型</text>
+						<text v-if="userStore.isAdmin" class="manage-types-btn" @click="showTypeManager = true">+ 管理</text>
+					</view>
+					<view class="tag-group tag-group-wrap">
+						<view 
+							v-for="t in messageTypeOptions" 
+							:key="t.value"
+							class="tag-btn"
+							:class="{ active: formData.messageType === t.value }"
+							@click="formData.messageType = t.value"
+						>
+							<text>{{ t.label }}</text>
 						</view>
-					</picker>
+					</view>
 				</view>
 
 
@@ -73,10 +53,13 @@
 					/>
 				</view>
 
-				<!-- 内容 -->
-				<view class="form-item content-item">
-					<view class="form-label-row">
-						<text class="form-label">消息内容 *</text>
+			<!-- 内容 -->
+			<view class="form-item content-item">
+				<!-- 表头：标签 + 操作按钮（同一行） -->
+				<view class="content-header">
+					<text class="form-label">消息内容 *</text>
+					<view class="content-actions">
+						<!-- 编辑/预览切换 -->
 						<view class="mode-switch">
 							<text
 								class="mode-btn"
@@ -93,42 +76,40 @@
 								预览
 							</text>
 						</view>
-					</view>
-
-					<!-- 编辑模式 -->
-					<view v-if="!previewMode" class="editor-container">
-						<textarea
-							class="form-textarea markdown-editor"
-							v-model="formData.content"
-							placeholder="支持 Markdown 格式，点击下方📷按钮插入图片"
-							placeholder-style="color: #999999"
-							:maxlength="5000"
-							:show-confirm-bar="false"
-							auto-height
-						/>
-						<view class="editor-footer">
-							<view class="editor-footer-left">
-								<view class="image-upload-btn" @click="handleUpload">
-									<text class="image-upload-icon">📷</text>
-									<text class="image-upload-text">插入图片</text>
-								</view>
-							</view>
-							<text class="char-count">{{ formData.content.length }}/5000</text>
-						</view>
-					</view>
-
-					<!-- 预览模式 -->
-					<view v-else class="preview-container">
-						<!-- 预览内容 -->
-						<scroll-view class="preview-scroll" scroll-y>
-							<view class="markdown-preview" :class="'theme-' + formData.theme" v-html="renderedHtml"></view>
-						</scroll-view>
-						<view class="editor-footer">
-							<text class="char-count">{{ formData.content.length }}/5000</text>
-							<text class="theme-hint">当前主题: {{ themeOptions.find(t => t.value === formData.theme)?.label }}</text>
+						<!-- 插入图片按钮（仅编辑模式显示） -->
+						<view v-if="!previewMode" class="image-upload-btn-small" @click="handleUpload">
+							<text>📷</text>
 						</view>
 					</view>
 				</view>
+
+				<!-- 编辑模式 -->
+				<view v-if="!previewMode" class="editor-container">
+					<textarea
+						class="form-textarea markdown-editor"
+						v-model="formData.content"
+						placeholder="支持 Markdown 格式，点击右侧📷按钮插入图片"
+						placeholder-style="color: #999999"
+						:maxlength="5000"
+						:show-confirm-bar="false"
+						auto-height
+					/>
+					<view class="editor-footer">
+						<text class="char-count">{{ formData.content.length }}/5000</text>
+					</view>
+				</view>
+
+				<!-- 预览模式 -->
+				<view v-else class="preview-container">
+					<scroll-view class="preview-scroll" scroll-y>
+						<view class="markdown-preview" :class="'theme-' + formData.theme" v-html="renderedHtml"></view>
+					</scroll-view>
+					<view class="editor-footer">
+						<text class="char-count">{{ formData.content.length }}/5000</text>
+						<text class="theme-hint">主题: {{ themeOptions.find(t => t.value === formData.theme)?.label }}</text>
+					</view>
+				</view>
+			</view>
 
 				<!-- 主题选择和AI优化（内容下方） -->
 				<view class="form-item theme-ai-row">
@@ -293,6 +274,77 @@
 				</view>
 			</view>
 		</view>
+
+		<!-- 消息类型管理弹窗 -->
+		<view v-if="showTypeManager" class="optimize-preview-modal" @click="showTypeManager = false">
+			<view class="optimize-preview-content type-manager-content" catchtap="">
+				<view class="preview-header">
+					<text class="preview-title">消息类型管理</text>
+					<text class="preview-close" @click="showTypeManager = false">×</text>
+				</view>
+
+				<scroll-view class="preview-body" scroll-y>
+					<!-- 新增类型表单 -->
+					<view class="type-add-form">
+						<view class="type-add-title">新增消息类型</view>
+						<view class="type-form-row">
+							<input
+								v-model="newType.type"
+								class="type-input"
+								placeholder="类型标识(如: custom_type)"
+								placeholder-class="type-placeholder"
+							/>
+						</view>
+						<view class="type-form-row">
+							<input
+								v-model="newType.label"
+								class="type-input"
+								placeholder="显示名称(如: 自定义类型)"
+								placeholder-class="type-placeholder"
+							/>
+						</view>
+						<view class="type-form-row type-color-row">
+							<text class="type-color-label">颜色:</text>
+							<view class="type-color-options">
+								<view
+									v-for="c in typeColorOptions"
+									:key="c"
+									class="type-color-dot"
+									:style="{ background: c }"
+									:class="{ selected: newType.color === c }"
+									@click="newType.color = c"
+								></view>
+							</view>
+						</view>
+						<view class="type-form-row">
+							<input
+								v-model="newType.icon"
+								class="type-input"
+								placeholder="图标(可选，如: 🎯)"
+								placeholder-class="type-placeholder"
+							/>
+						</view>
+						<button class="type-add-btn" :disabled="isAddingType" @click="handleAddType">
+							{{ isAddingType ? '添加中...' : '添加类型' }}
+						</button>
+					</view>
+
+					<!-- 现有类型列表 -->
+					<view class="type-list-section">
+						<view class="type-list-title">现有类型</view>
+						<view class="type-list">
+							<view v-for="t in messageTypeOptions" :key="t.value" class="type-list-item">
+								<view class="type-item-left">
+									<view class="type-color-indicator" :style="{ background: t.color || '#667eea' }"></view>
+									<text class="type-item-label">{{ t.label }}</text>
+								</view>
+								<text class="type-item-value">{{ t.value }}</text>
+							</view>
+						</view>
+					</view>
+				</scroll-view>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -302,6 +354,7 @@ import { useUserStore } from '../../store/user'
 import { createMessageApi, updateMessageApi, getMessageDetailApi } from '../../api/message'
 import { uploadImageApi } from '../../api/upload'
 import { optimizeContentApi } from '../../api/ai'
+import { getMessageTypesApi, createMessageTypeApi } from '../../api/messageType'
 import { MESSAGE_TYPES, MESSAGE_TAGS, MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS, USER_ROLES } from '../../utils/constants'
 import { BASE_URL } from '../../utils/config'
 
@@ -341,32 +394,99 @@ const originalContent = ref('')
 const previewTab = ref('optimized') // 'original' or 'optimized'
 const hasUsedOptimization = ref(false) // 标记是否使用了AI优化
 
-// 策略类型选项
-const strategyTypes = [
-	{ label: '短线策略', value: MESSAGE_TAGS.SHORT_TERM },
-	{ label: '中线策略', value: MESSAGE_TAGS.MID_TERM }
+// 策略推送选项（合并策略和推送，短线->短线VIP，中线->全部用户）
+const strategyOptions = [
+	{ label: '短线推送', value: MESSAGE_TAGS.SHORT_TERM, pushTarget: MESSAGE_TAGS.SHORT_TERM },
+	{ label: '中线推送', value: MESSAGE_TAGS.MID_TERM, pushTarget: MESSAGE_TAGS.ALL_USERS }
 ]
 
-// 推送对象选项（仅管理员可见）
-const pushTargets = [
-	{ label: '短线VIP', value: MESSAGE_TAGS.SHORT_TERM },
-	{ label: '中线VIP', value: MESSAGE_TAGS.MID_TERM },
-	{ label: '全部用户', value: MESSAGE_TAGS.ALL_USERS }
-]
-
-// 消息类型选项（单选，10种标准类型）
-const messageTypeOptions = [
-	{ label: '盘前点评', value: MESSAGE_TYPES.PRE_MARKET_COMMENT },
-	{ label: '早盘点评', value: MESSAGE_TYPES.MORNING_COMMENT },
-	{ label: '早盘关注', value: MESSAGE_TYPES.MORNING_FOCUS },
-	{ label: '尾盘点评', value: MESSAGE_TYPES.AFTERNOON_COMMENT },
-	{ label: '尾盘关注', value: MESSAGE_TYPES.AFTERNOON_FOCUS },
-	{ label: '收盘点评', value: MESSAGE_TYPES.CLOSE_COMMENT },
+// 消息类型选项（从后端动态加载）
+const messageTypeOptions = ref([])
+const defaultMessageTypes = [
+	{ label: '盘中关注', value: MESSAGE_TYPES.MORNING_FOCUS },
+	{ label: '持仓处理', value: MESSAGE_TYPES.POSITION_HANDLE },
 	{ label: '风险提示', value: MESSAGE_TYPES.RISK_WARNING },
-	{ label: '系统消息', value: MESSAGE_TYPES.SYSTEM },
-	{ label: '重要消息', value: MESSAGE_TYPES.IMPORTANT },
-	{ label: '日常消息', value: MESSAGE_TYPES.DAILY }
+	{ label: '盘面点评', value: MESSAGE_TYPES.MORNING_COMMENT },
+	{ label: '系统信息', value: MESSAGE_TYPES.SYSTEM }
 ]
+
+// 加载消息类型列表
+const loadMessageTypes = async () => {
+	try {
+		const res = await getMessageTypesApi(true)
+		if ((res.success || res.code === 200) && res.data && res.data.length > 0) {
+			messageTypeOptions.value = res.data.map(t => ({
+				label: t.icon ? `${t.icon} ${t.label}` : t.label,
+				value: t.type,
+				color: t.color,
+				id: t.id
+			}))
+		} else {
+			// 使用默认类型
+			messageTypeOptions.value = defaultMessageTypes
+		}
+	} catch (e) {
+		console.error('加载消息类型失败:', e)
+		messageTypeOptions.value = defaultMessageTypes
+	}
+}
+
+// ========== 消息类型管理 ==========
+const showTypeManager = ref(false)
+const newType = ref({ type: '', label: '', color: '#667eea', icon: '' })
+const isAddingType = ref(false)
+
+// 颜色选项
+const typeColorOptions = [
+	'#667eea', '#764ba2', '#f59e0b', '#10b981', '#06b6d4',
+	'#8b5cf6', '#ec4899', '#ef4444', '#dc2626', '#64748b',
+	'#6366f1', '#eab308'
+]
+
+// 添加新消息类型
+const handleAddType = async () => {
+	if (!newType.value.type || !newType.value.label) {
+		uni.showToast({ title: '请填写完整信息', icon: 'none' })
+		return
+	}
+
+	// 验证type格式
+	if (!/^[a-z_][a-z0-9_]*$/i.test(newType.value.type)) {
+		uni.showToast({ title: '标识只能包含英文字母、数字和下划线', icon: 'none' })
+		return
+	}
+
+	// 检查是否已存在
+	if (messageTypeOptions.value.some(t => t.value === newType.value.type)) {
+		uni.showToast({ title: '该类型标识已存在', icon: 'none' })
+		return
+	}
+
+	isAddingType.value = true
+	try {
+		const res = await createMessageTypeApi({
+			type: newType.value.type,
+			label: newType.value.label,
+			color: newType.value.color,
+			icon: newType.value.icon || ''
+		})
+
+		if (res.success || res.code === 200) {
+			uni.showToast({ title: '添加成功', icon: 'success' })
+			// 重新加载类型列表
+			await loadMessageTypes()
+			// 清空表单
+			newType.value = { type: '', label: '', color: '#667eea', icon: '' }
+		} else {
+			uni.showToast({ title: res.message || '添加失败', icon: 'none' })
+		}
+	} catch (e) {
+		console.error('添加消息类型失败:', e)
+		uni.showToast({ title: '添加失败', icon: 'none' })
+	} finally {
+		isAddingType.value = false
+	}
+}
 
 // Markdown主题选项
 const themeOptions = [
@@ -384,11 +504,6 @@ const themeOptions = [
 	{ label: '日落金', value: 'sunset', desc: '温暖金色，财富寓意', previewColor: 'linear-gradient(135deg, #92400e 0%, #fbbf24 100%)' }
 ]
 
-// 当前选中的消息类型索引
-const selectedMessageTypeIndex = computed(() => {
-	return messageTypeOptions.findIndex(t => t.value === formData.value.messageType)
-})
-
 // 当前选中的主题索引
 const selectedThemeIndex = computed(() => {
 	return themeOptions.findIndex(t => t.value === formData.value.theme)
@@ -400,32 +515,16 @@ const currentThemePreviewColor = computed(() => {
 	return theme ? theme.previewColor : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
 })
 
-// 处理策略类型选择
-const handleStrategyChange = (e) => {
-	const index = e.detail.value
-	const value = strategyTypes[index].value
+// 处理策略推送变化
+const handleStrategyChange = (value) => {
 	formData.value.strategy = value
+	// 根据策略自动设置推送对象
+	const option = strategyOptions.find(s => s.value === value)
+	if (option) {
+		formData.value.pushTarget = option.pushTarget
+	}
 	// 保存到localStorage
 	uni.setStorageSync(STRATEGY_KEY, value)
-	// 同时更新推送对象为默认值（短线策略对应短线VIP，中线策略对应中线VIP）
-	if (value === MESSAGE_TAGS.SHORT_TERM && userStore.isAdmin) {
-		formData.value.pushTarget = MESSAGE_TAGS.SHORT_TERM
-	} else if (value === MESSAGE_TAGS.MID_TERM && userStore.isAdmin) {
-		formData.value.pushTarget = MESSAGE_TAGS.MID_TERM
-	}
-}
-
-// 处理推送对象选择
-const handlePushTargetChange = (e) => {
-	const index = e.detail.value
-	const value = pushTargets[index].value
-	formData.value.pushTarget = value
-}
-
-// 处理消息类型选择（单选）
-const handleMessageTypeChange = (e) => {
-	const index = e.detail.value
-	formData.value.messageType = messageTypeOptions[index].value
 }
 
 // 处理主题选择（下拉选择器）
@@ -1053,11 +1152,10 @@ const restoreLastStrategy = () => {
 	const lastStrategy = uni.getStorageSync(STRATEGY_KEY)
 	if (lastStrategy) {
 		formData.value.strategy = lastStrategy
-		// 同时更新推送对象
-		if (lastStrategy === MESSAGE_TAGS.SHORT_TERM && userStore.isAdmin) {
-			formData.value.pushTarget = MESSAGE_TAGS.SHORT_TERM
-		} else if (lastStrategy === MESSAGE_TAGS.MID_TERM && userStore.isAdmin) {
-			formData.value.pushTarget = MESSAGE_TAGS.MID_TERM
+		// 根据策略自动设置推送对象
+		const option = strategyOptions.find(s => s.value === lastStrategy)
+		if (option) {
+			formData.value.pushTarget = option.pushTarget
 		}
 	}
 }
@@ -1324,6 +1422,9 @@ onMounted(async () => {
 		return
 	}
 
+	// 加载消息类型列表
+	await loadMessageTypes()
+
 	// 检查是否是编辑模式
 	const pages = getCurrentPages()
 	const currentPage = pages[pages.length - 1]
@@ -1481,60 +1582,104 @@ button::after {
 	font-weight: 500;
 }
 
-// 快捷设置区域（优化后）
+// 快捷设置区域（标签按钮组）
 .quick-settings {
 	background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-	padding: 32rpx;
-	border-radius: 16rpx;
+	padding: 20rpx 24rpx;
+	border-radius: 12rpx;
 	border: 2rpx solid #667eea;
-	margin-bottom: 40rpx;
+	margin-bottom: 24rpx;
 	box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.15);
 }
 
-.quick-setting-row {
+.setting-row {
 	display: flex;
-	gap: 20rpx;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 12rpx;
 }
 
-.quick-setting-item {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 16rpx;
-}
-
-.quick-label {
+.setting-label {
 	font-size: 26rpx;
 	color: #667eea;
-	font-weight: 500;
-	margin-bottom: 4rpx;
+	font-weight: 600;
+	min-width: 80rpx;
 }
 
-.quick-picker {
+// 标签按钮组
+.tag-group {
+	display: flex;
+	flex-wrap: nowrap;
+	gap: 12rpx;
+}
+
+.tag-group-wrap {
+	flex-wrap: wrap;
+	gap: 12rpx;
+}
+
+.tag-btn {
+	padding: 14rpx 28rpx;
+	background: #ffffff;
+	border: 2rpx solid #d0d7ff;
+	border-radius: 32rpx;
+	font-size: 26rpx;
+	color: #666666;
+	transition: all 0.2s;
+	white-space: nowrap;
+}
+
+.tag-btn:active {
+	transform: scale(0.95);
+}
+
+.tag-btn.active {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border-color: #667eea;
+	color: #ffffff;
+	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+}
+
+// 消息类型区域
+.msg-type-section {
+	margin-bottom: 24rpx;
+}
+
+.msg-type-section .form-label {
+	margin-bottom: 16rpx;
+}
+
+/* 内容区域表头：标签 + 操作按钮 */
+.content-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	height: 80rpx;
-	padding: 0 24rpx;
-	background: var(--bg-secondary);
-	border: 2rpx solid var(--color-primary);
-	border-radius: 12rpx;
-	transition: all 0.3s;
+	margin-bottom: 16rpx;
 }
 
-.quick-picker:active {
-	background: var(--bg-hover);
+.content-actions {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
 }
 
-.quick-value {
-	font-size: 30rpx;
-	color: var(--text-primary);
-	font-weight: 500;
+/* 插入图片小按钮 */
+.image-upload-btn-small {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 56rpx;
+	height: 56rpx;
+	background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+	border: 2rpx solid rgba(102, 126, 234, 0.3);
+	border-radius: 8rpx;
+	font-size: 28rpx;
+	transition: all 0.2s;
 }
 
-.quick-arrow {
-	font-size: 24rpx;
-	color: var(--color-primary);
+.image-upload-btn-small:active {
+	transform: scale(0.92);
+	background: linear-gradient(135deg, rgba(102, 126, 234, 0.25) 0%, rgba(118, 75, 162, 0.25) 100%);
 }
 
 .form-label-row {
@@ -2763,5 +2908,151 @@ button::after {
 	font-size: 24rpx;
 	color: #3b82f6;
 	line-height: 1.5;
+}
+
+/* ========== 消息类型管理 ========== */
+.form-label-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.manage-types-btn {
+	font-size: 26rpx;
+	color: #667eea;
+	padding: 6rpx 16rpx;
+	border-radius: 8rpx;
+	background: rgba(102, 126, 234, 0.1);
+}
+
+.type-manager-content {
+	max-height: 70vh;
+}
+
+.type-add-form {
+	padding: 20rpx;
+	background: #f8f9fa;
+	border-radius: 12rpx;
+	margin-bottom: 20rpx;
+}
+
+.type-add-title {
+	font-size: 28rpx;
+	font-weight: 600;
+	color: #1f2937;
+	margin-bottom: 20rpx;
+}
+
+.type-form-row {
+	margin-bottom: 16rpx;
+}
+
+.type-input {
+	width: 100%;
+	height: 72rpx;
+	padding: 0 20rpx;
+	background: #ffffff;
+	border: 2rpx solid #e5e7eb;
+	border-radius: 12rpx;
+	font-size: 28rpx;
+}
+
+.type-placeholder {
+	color: #9ca3af;
+}
+
+.type-color-row {
+	display: flex;
+	align-items: center;
+	gap: 16rpx;
+}
+
+.type-color-label {
+	font-size: 26rpx;
+	color: #6b7280;
+}
+
+.type-color-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12rpx;
+}
+
+.type-color-dot {
+	width: 48rpx;
+	height: 48rpx;
+	border-radius: 50%;
+	border: 4rpx solid transparent;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.type-color-dot.selected {
+	border-color: #1f2937;
+	transform: scale(1.1);
+}
+
+.type-add-btn {
+	width: 100%;
+	height: 80rpx;
+	line-height: 80rpx;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #ffffff;
+	font-size: 30rpx;
+	font-weight: 500;
+	border: none;
+	border-radius: 12rpx;
+	margin-top: 20rpx;
+}
+
+.type-list-section {
+	padding: 20rpx;
+}
+
+.type-list-title {
+	font-size: 28rpx;
+	font-weight: 600;
+	color: #1f2937;
+	margin-bottom: 16rpx;
+}
+
+.type-list {
+	background: #ffffff;
+	border-radius: 12rpx;
+	overflow: hidden;
+}
+
+.type-list-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 20rpx 24rpx;
+	border-bottom: 1rpx solid #f3f4f6;
+}
+
+.type-list-item:last-child {
+	border-bottom: none;
+}
+
+.type-item-left {
+	display: flex;
+	align-items: center;
+	gap: 16rpx;
+}
+
+.type-color-indicator {
+	width: 24rpx;
+	height: 24rpx;
+	border-radius: 6rpx;
+}
+
+.type-item-label {
+	font-size: 28rpx;
+	color: #374151;
+}
+
+.type-item-value {
+	font-size: 24rpx;
+	color: #9ca3af;
 }
 </style>

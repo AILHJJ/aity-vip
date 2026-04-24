@@ -1,14 +1,8 @@
 <template>
 	<view class="messages-container">
-		<!-- 管理员操作栏 -->
-		<view v-if="userStore.isAdmin && userInfoLoaded" class="admin-bar">
-			<button class="create-btn" @click="goToCreate">
-				<text class="create-icon">✏️</text>
-				<text class="create-text">发布消息</text>
-			</button>
-		</view>
+		<!-- 管理员操作栏 - 已移除，仅保留右下角悬浮按钮 -->
 
-		<!-- 搜索栏 -->
+		<!-- 搜索栏 - 优化版 -->
 		<view class="search-bar">
 			<view class="search-input-wrapper">
 				<text class="search-icon">🔍</text>
@@ -18,12 +12,12 @@
 					type="text"
 					placeholder="搜索消息标题或内容"
 					placeholder-style="color: #999999"
+					@input="handleSearchInput"
 					@confirm="handleSearch"
 					@focus="showSearchHistory = true"
 				/>
 				<text v-if="searchKeyword" class="clear-icon" @click="clearSearch">×</text>
 			</view>
-			<button class="search-btn" @click="handleSearch">搜索</button>
 		</view>
 
 		<!-- 搜索历史弹窗 -->
@@ -98,15 +92,15 @@
 					:class="{ unread: isMessageUnread(message.id) }"
 					@click="goToDetail(message.id)"
 				>
-					<view class="message-header">
+				<view class="message-header">
 						<view class="message-type-badge" :class="'type-' + message.type">
 							{{ getMessageTypeLabel(message.type) }}
 						</view>
-					<view class="header-right">
+					</view>
+					<view class="message-meta">
 						<view v-if="isMessageUnread(message.id)" class="unread-dot"></view>
 						<view v-else class="read-tag"><text class="read-tag-text">已读</text></view>
 						<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
-					</view>
 					</view>
 
 					<view class="message-title">{{ message.title }}</view>
@@ -231,32 +225,32 @@ const filteredMessages = computed(() => {
 		const todayStart = now.startOf('day')
 
 		if (basicFilters.value.quickType === 'today_opportunity') {
-			// 今日机会：今天的早盘关注 + 尾盘关注
+			// 今日机会：今天的盘中关注
 			filtered = filtered.filter(msg => {
 				const msgDate = dayjs(msg.createdAt)
 				const isToday = msgDate.isAfter(todayStart)
-				const isOpportunity = msg.type === 'morning_focus' || msg.type === 'afternoon_focus'
+				const isOpportunity = msg.type === 'morning_focus'
 				return isToday && isOpportunity
 			})
 		} else if (basicFilters.value.quickType === 'morning_focus') {
-			// 早盘关注
+			// 盘中关注
 			filtered = filtered.filter(msg => {
 				return msg.type === 'morning_focus'
 			})
-		} else if (basicFilters.value.quickType === 'afternoon_focus') {
-			// 尾盘关注
+		} else if (basicFilters.value.quickType === 'position_handle') {
+			// 持仓处理
 			filtered = filtered.filter(msg => {
-				return msg.type === 'afternoon_focus'
+				return msg.type === 'position_handle'
+			})
+		} else if (basicFilters.value.quickType === 'risk_warning') {
+			// 风险提示
+			filtered = filtered.filter(msg => {
+				return msg.type === 'risk_warning'
 			})
 		} else if (basicFilters.value.quickType === 'morning_comment') {
-			// 早盘点评
+			// 盘面点评
 			filtered = filtered.filter(msg => {
 				return msg.type === 'morning_comment'
-			})
-		} else if (basicFilters.value.quickType === 'afternoon_comment') {
-			// 尾盘点评
-			filtered = filtered.filter(msg => {
-				return msg.type === 'afternoon_comment'
 			})
 		}
 	}
@@ -317,9 +311,22 @@ const filteredMessages = computed(() => {
 	return filtered
 })
 
-// 获取消息类型标签
+// 获取消息类型标签（精简版本）
 const getMessageTypeLabel = (type) => {
-	return MESSAGE_TYPE_LABELS[type] || type
+	const labels = {
+		'position_handle': '持仓处理',
+		'pre_market_comment': '盘前点评',
+		'morning_comment': '盘面点评',
+		'morning_focus': '盘中关注',
+		'afternoon_comment': '尾盘点评',
+		'afternoon_focus': '尾盘关注',
+		'close_comment': '收盘点评',
+		'risk_warning': '风险提示',
+		'system': '系统信息',
+		'important': '重要消息',
+		'daily': '日常消息'
+	}
+	return labels[type] || type
 }
 
 // 渲染消息内容（使用完整的Markdown渲染，带主题内联样式）
@@ -511,19 +518,25 @@ const loadMore = () => {
 	loadMessages()
 }
 
-// 搜索
+// 搜索输入时实时搜索
+const handleSearchInput = () => {
+	// 实时搜索，不需要额外处理，computed属性会自动过滤
+}
+
+// 搜索（点击按钮或回车）
 const handleSearch = () => {
 	if (searchKeyword.value.trim()) {
 		addSearchHistory(searchKeyword.value.trim())
 		searchHistory.value = getSearchHistory()
 	}
 	showSearchHistory.value = false
-	// 搜索在客户端进行过滤，不需要重新加载
 }
 
 // 清除搜索
 const clearSearch = () => {
 	searchKeyword.value = ''
+	// 触发重新渲染
+	filteredMessages.value // 引用一下确保响应式
 }
 
 // 选择搜索历史
@@ -956,15 +969,16 @@ button::after {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: 20rpx;
+	margin-bottom: 16rpx;
 	position: relative;
 	z-index: 1;
 }
 
-.header-right {
+.message-meta {
 	display: flex;
 	align-items: center;
-	gap: 12rpx;
+	gap: 16rpx;
+	margin-bottom: 16rpx;
 }
 
 /* 未读红点 - 脉冲动画 */
@@ -1000,7 +1014,7 @@ button::after {
 	}
 }
 
-/* 消息类型标签 - 渐变风格 */
+/* 消息类型标签 - 渐变风格（精简版本） */
 .message-type-badge {
 	padding: 8rpx 20rpx;
 	font-size: 24rpx;
@@ -1010,35 +1024,14 @@ button::after {
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
 
-	// 为不同类型设置不同的渐变色
-	&.type-pre_market_comment {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
-	}
-
-	&.type-morning_comment {
-		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-		box-shadow: 0 2rpx 8rpx rgba(79, 172, 254, 0.3);
-	}
-
 	&.type-morning_focus {
 		background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
 		box-shadow: 0 2rpx 8rpx rgba(67, 233, 123, 0.3);
 	}
 
-	&.type-afternoon_comment {
-		background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-		box-shadow: 0 2rpx 8rpx rgba(250, 112, 154, 0.3);
-	}
-
-	&.type-afternoon_focus {
-		background: linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%);
-		box-shadow: 0 2rpx 8rpx rgba(255, 154, 86, 0.3);
-	}
-
-	&.type-close_comment {
-		background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
-		box-shadow: 0 2rpx 8rpx rgba(161, 140, 209, 0.3);
+	&.type-position_handle {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
 	}
 
 	&.type-risk_warning {
@@ -1046,19 +1039,14 @@ button::after {
 		box-shadow: 0 2rpx 8rpx rgba(240, 147, 251, 0.3);
 	}
 
+	&.type-morning_comment {
+		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+		box-shadow: 0 2rpx 8rpx rgba(79, 172, 254, 0.3);
+	}
+
 	&.type-system {
 		background: linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%);
 		box-shadow: 0 2rpx 8rpx rgba(149, 165, 166, 0.3);
-	}
-
-	&.type-important {
-		background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
-		box-shadow: 0 2rpx 8rpx rgba(253, 160, 133, 0.3);
-	}
-
-	&.type-daily {
-		background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
-		box-shadow: 0 2rpx 8rpx rgba(102, 166, 255, 0.3);
 	}
 }
 

@@ -6,9 +6,14 @@
   "scripts": {
     "start": "cross-env NODE_ENV=production node src/index.js",
     "dev": "cross-env NODE_ENV=development nodemon src/index.js",
+    "dev:prod": "cross-env NODE_ENV=development DB_ENV=production nodemon src/index.js",
     "test": "cross-env NODE_ENV=test jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "db:status": "node scripts/check-db-status.js",
+    "db:sync": "node scripts/sync-test-db.js",
+    "db:sync:dry": "node scripts/sync-test-db.js --dry-run",
+    "db:init": "node init-db.js"
   },
   "dependencies": {
     "axios": "^1.13.5",

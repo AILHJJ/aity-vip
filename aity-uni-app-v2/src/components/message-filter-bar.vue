@@ -163,8 +163,8 @@ const props = defineProps({
 
 const emit = defineEmits(['filter-change'])
 
-// 展开/收起状态
-const isExpanded = ref(false)
+// 展开/收起状态（管理员默认展开）
+const isExpanded = ref(true)
 
 // 筛选条件
 const filters = ref({
@@ -190,19 +190,14 @@ const timeRangeOptions = computed(() => [
 	{ label: '自定义', value: 'custom' }
 ])
 
-// 消息类型选项（与constants.js保持一致）
+// 消息类型选项（精简为5个）
 const messageTypeOptions = computed(() => [
 	{ label: '全部', value: 'all' },
-	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.PRE_MARKET_COMMENT], value: MESSAGE_TYPES.PRE_MARKET_COMMENT },
-	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.MORNING_COMMENT], value: MESSAGE_TYPES.MORNING_COMMENT },
-	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.MORNING_FOCUS], value: MESSAGE_TYPES.MORNING_FOCUS },
-	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.AFTERNOON_COMMENT], value: MESSAGE_TYPES.AFTERNOON_COMMENT },
-	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.AFTERNOON_FOCUS], value: MESSAGE_TYPES.AFTERNOON_FOCUS },
-	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.CLOSE_COMMENT], value: MESSAGE_TYPES.CLOSE_COMMENT },
-	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.RISK_WARNING], value: MESSAGE_TYPES.RISK_WARNING },
-	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.SYSTEM], value: MESSAGE_TYPES.SYSTEM },
-	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.IMPORTANT], value: MESSAGE_TYPES.IMPORTANT },
-	{ label: MESSAGE_TYPE_LABELS[MESSAGE_TYPES.DAILY], value: MESSAGE_TYPES.DAILY }
+	{ label: '盘中关注', value: MESSAGE_TYPES.MORNING_FOCUS },
+	{ label: '持仓处理', value: MESSAGE_TYPES.POSITION_HANDLE },
+	{ label: '风险提示', value: MESSAGE_TYPES.RISK_WARNING },
+	{ label: '盘面点评', value: MESSAGE_TYPES.MORNING_COMMENT },
+	{ label: '系统信息', value: MESSAGE_TYPES.SYSTEM }
 ])
 
 // 快捷筛选（完全独立的筛选逻辑）
@@ -221,27 +216,27 @@ const quickFilters = computed(() => [
 	},
 	{
 		id: 'morning_focus',
-		label: '早盘关注',
+		label: '盘中关注',
 		icon: '🌅',
 		quickType: 'morning_focus'
 	},
 	{
-		id: 'afternoon_focus',
-		label: '尾盘关注',
-		icon: '⭐',
-		quickType: 'afternoon_focus'
+		id: 'position_handle',
+		label: '持仓处理',
+		icon: '💼',
+		quickType: 'position_handle'
 	},
 	{
-		id: 'morning_comment',
-		label: '早盘点评',
+		id: 'risk_warning',
+		label: '风险提示',
+		icon: '⚠️',
+		quickType: 'risk_warning'
+	},
+	{
+		id: 'market_comment',
+		label: '盘面点评',
 		icon: '📝',
 		quickType: 'morning_comment'
-	},
-	{
-		id: 'afternoon_comment',
-		label: '尾盘点评',
-		icon: '💬',
-		quickType: 'afternoon_comment'
 	}
 ])
 
@@ -509,9 +504,9 @@ defineExpose({
 .filter-header {
 	display: flex;
 	align-items: center;
-	padding: 20rpx 24rpx;
-	background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-	border-bottom: 1rpx solid rgba(102, 126, 234, 0.1);
+	padding: 16rpx 24rpx;
+	background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+	border-bottom: 1rpx solid rgba(102, 126, 234, 0.15);
 }
 
 .header-icon {
@@ -575,9 +570,9 @@ defineExpose({
 	color: #667eea;
 }
 
-// 快捷筛选区域
+// 快捷筛选区域（管理员模式更紧凑）
 .quick-filters {
-	padding: 16rpx 0;
+	padding: 12rpx 0;
 	background: #ffffff;
 	border-bottom: 1rpx solid #f0f0f0;
 	position: relative;

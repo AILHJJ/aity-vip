@@ -31,8 +31,8 @@
 
 		<!-- 消息详情 -->
 		<view v-else-if="message" class="detail-content">
-			<!-- 消息头部 -->
-			<view class="message-header">
+			<!-- 消息头部：类型标签和时间在一行 -->
+			<view class="message-header-row">
 				<view class="message-type-badge" :class="'type-' + message.type">
 					{{ getMessageTypeLabel(message.type) }}
 				</view>
@@ -130,6 +130,7 @@
 
 			<!-- 消息图片 -->
 			<view v-if="message.images && message.images.length > 0" class="message-images">
+				<view class="image-tip">💡 双指捏合可缩放图片</view>
 				<view
 					v-for="(img, index) in message.images"
 					:key="index"
@@ -672,13 +673,16 @@ const loadDiscussions = async () => {
 
 		// 兼容两种响应格式
 		if (res.code === 200 || res.success) {
-			discussions.value = res.data.discussions || []
-			console.log('=== 讨论列表加载成功，共', discussions.value.length, '条 ===')
+			const newDiscussions = res.data.discussions || []
+			// 使用 $nextTick 确保数据更新在渲染周期内
+			discussions.value = newDiscussions
+			console.log('=== 讨论列表加载成功，共', newDiscussions.length, '条 ===')
 		} else {
 			console.warn('加载讨论失败:', res.message)
 		}
 	} catch (error) {
 		console.error('加载讨论失败:', error)
+		// 出错时保持现有数据，避免空状态闪烁
 	}
 }
 
@@ -1227,19 +1231,20 @@ button::after {
 	}
 }
 
-.message-header {
+.message-header-row {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: 30rpx;
+	margin-bottom: 20rpx;
 }
 
 .message-type-badge {
-	padding: 10rpx 24rpx;
+	padding: 8rpx 20rpx;
 	font-size: 24rpx;
 	color: #ffffff;
 	border-radius: 20rpx;
-	background: #667eea;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
 }
 
 .message-time {
@@ -1270,22 +1275,24 @@ button::after {
 	border-radius: 16rpx;
 }
 
-// 风险提示 - 专业金融风格
+// 风险提示 - 专业金融风格（紧凑单行）
 .risk-disclaimer {
 	display: flex;
-	align-items: flex-start;
-	gap: 16rpx;
-	padding: 20rpx 24rpx;
+	align-items: center;
+	gap: 12rpx;
+	padding: 16rpx 20rpx;
 	margin-bottom: 30rpx;
 	background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
 	border: 2rpx solid #f59e0b;
 	border-radius: 12rpx;
+	white-space: nowrap;
+	overflow: hidden;
 }
 
 .disclaimer-left {
 	flex-shrink: 0;
-	width: 48rpx;
-	height: 48rpx;
+	width: 40rpx;
+	height: 40rpx;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1294,7 +1301,7 @@ button::after {
 }
 
 .disclaimer-icon {
-	font-size: 28rpx;
+	font-size: 24rpx;
 	color: #ffffff;
 	font-weight: bold;
 }
@@ -1302,20 +1309,23 @@ button::after {
 .disclaimer-content {
 	flex: 1;
 	display: flex;
-	flex-direction: column;
-	gap: 4rpx;
+	align-items: center;
+	gap: 8rpx;
+	overflow: hidden;
 }
 
 .disclaimer-title {
-	font-size: 26rpx;
+	font-size: 24rpx;
 	font-weight: 600;
 	color: #92400e;
+	flex-shrink: 0;
 }
 
 .disclaimer-text {
 	font-size: 22rpx;
 	color: #a16207;
-	line-height: 1.5;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .theme-selector-wrapper {
@@ -1530,6 +1540,13 @@ button::after {
 	margin: 0;
 	display: block;
 	padding: 20rpx 0;
+}
+
+.image-tip {
+	font-size: 24rpx;
+	color: #909399;
+	padding: 10rpx 0;
+	text-align: center;
 }
 
 .image-wrapper {

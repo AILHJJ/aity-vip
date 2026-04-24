@@ -4,41 +4,47 @@ import { useUserStore } from './store/user'
 
 export default {
   onLaunch: function () {
-    console.log('App Launch')
+    console.log('App Launch - 开始启动')
+
     // 初始化主题
     const themeStore = useThemeStore()
     themeStore.init()
+    console.log('App Launch - 主题初始化完成')
 
-    // 初始化未读消息角标（已登录时从服务端同步）
+    // 极简启动逻辑：完全不调用任何API
     const userStore = useUserStore()
-    if (userStore.isLoggedIn) {
-      // token 存在，验证有效性后同步数据
-      userStore.validateAndRefresh().then(valid => {
-        if (!valid) {
-          // token 无效/过期，跳登录
-          uni.reLaunch({ url: '/pages/login/login' })
-        } else {
-          userStore.fetchUnreadCount()
-        }
-      })
-    } else {
-      // 无 token，跳登录页
-      uni.reLaunch({ url: '/pages/login/login' })
-    }
+    const hasToken = !!userStore.token
+
+    console.log('App Launch - Token状态:', hasToken ? '存在' : '不存在')
+
+    // 延迟跳转，确保框架完全初始化
+    setTimeout(() => {
+      if (hasToken) {
+        console.log('App Launch - 跳转到消息页面')
+        uni.switchTab({
+          url: '/pages/messages/messages',
+          success: () => {
+            console.log('App Launch - 跳转成功')
+          },
+          fail: (err) => {
+            console.log('App Launch - 跳转失败，使用reLaunch:', err)
+            uni.reLaunch({ url: '/pages/messages/messages' })
+          }
+        })
+      } else {
+        console.log('App Launch - 跳转到登录页面')
+        uni.reLaunch({ url: '/pages/login/login' })
+      }
+    }, 150)
   },
   onShow: function () {
     console.log('App Show')
-    // App 从后台恢复时刷新未读数
-    const userStore = useUserStore()
-    if (userStore.isLoggedIn) {
-      userStore.fetchUnreadCount()
-    }
+    // 完全移除API调用
   },
   onHide: function () {
     console.log('App Hide')
   },
   computed: {
-    // 获取当前主题类名
     themeClass() {
       const themeStore = useThemeStore()
       return themeStore.isDark ? 'dark-mode' : 'light-mode'

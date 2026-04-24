@@ -3,10 +3,10 @@
 		<!-- 用户信息卡片 -->
 		<view class="user-card">
 			<view class="user-avatar">
-				<text class="avatar-text">{{ userInitial }}</text>
+				<text class="avatar-text">{{ userInitial || 'U' }}</text>
 			</view>
 			<view class="user-info">
-				<text class="user-name">{{ userStore.userName }}</text>
+				<text class="user-name">{{ userStore.userName || '用户' }}</text>
 				<text class="user-role">{{ getRoleLabel(userStore.userRole) }}</text>
 			</view>
 			<view class="card-decoration"></view>
@@ -159,10 +159,14 @@ const themeOptions = [
 const favoriteCount = ref(0)
 const discussionCount = ref(0)
 
-// 用户名首字母
+// 用户名首字母（优化：确保总是有值）
 const userInitial = computed(() => {
 	const name = userStore.userName
-	return name ? name.charAt(0).toUpperCase() : 'U'
+	if (!name || name.trim() === '') {
+		return 'U' // 默认显示U
+	}
+	// 处理中文名，取第一个字符
+	return name.charAt(0).toUpperCase()
 })
 
 // 获取角色标签
@@ -330,7 +334,7 @@ button::after {
 
 /* 用户卡片 - 深色模式使用科技渐变 */
 .user-card {
-	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+	background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
 	padding: 60rpx 40rpx;
 	display: flex;
 	align-items: center;
