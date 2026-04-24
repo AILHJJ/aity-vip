@@ -108,6 +108,12 @@ async function login(req, res) {
         return res.status(403).json(forbidden('账号已被禁用，请联系管理员'));
       }
 
+      // 保存上次登录时间（在更新当前登录时间之前）
+      const lastLoginAt = user.lastLoginAt;
+
+      // 更新登录时间
+      await user.update({ lastLoginAt: new Date() });
+
       // 生成真实的JWT Token
       const token = generateToken({ id: user.id, email: user.email, role: user.role });
       console.log('Token生成完成，耗时:', Date.now() - startTime, 'ms');
@@ -121,9 +127,11 @@ async function login(req, res) {
           name: user.name,
           email: user.email,
           role: user.role,
-          groupId: user.group_id,
+          groupId: user.groupId,
           avatar: user.avatar,
-          status: user.status
+          status: user.status,
+          isInitialPassword: user.isInitialPassword,
+          lastLoginAt: lastLoginAt
         }
       }, '登录成功'));
 
@@ -157,7 +165,7 @@ async function getCurrentUser(req, res) {
       name: user.name,
       email: user.email,
       role: user.role,
-      groupId: user.group_id,
+      groupId: user.groupId,
       avatar: user.avatar,
       status: user.status
     }));
@@ -212,10 +220,66 @@ async function logout(req, res) {
   }
 }
 
+// 修改密码
+async function changePassword(req, res) {
+  try {
+    const userId = req.user.userId;
+    const { currentPassword, newPassword } = req.body;
+
+    // 验证必填字段
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json(badRequest('请输入当前密码和新密码'));
+    }
+
+    // 验证新密码长度
+    if (newPassword.length < 6) {
+      return res.status(400).json(badRequest('新密码长度至少6位'));
+    }
+
+    // 查找用户
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json(notFound('用户不存在'));
+    }
+
+    // 验证当前密码
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json(unauthorized('当前密码错误'));
+    }
+
+    // 新密码不能与当前密码相同
+    if (currentPassword === newPassword) {
+      return res.status(400).json(badRequest('新密码不能与当前密码相同'));
+    }
+
+    // 加密新密码
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // 更新密码
+    await user.update({
+      password: hashedPassword,
+      isInitialPassword: false,
+      passwordChangedAt: new Date()
+    });
+
+    console.log(`[修改密码] 用户: ${user.name} 密码修改成功`);
+
+    return res.json(success({
+      message: '密码修改成功',
+      passwordChangedAt: user.passwordChangedAt
+    }, '密码修改成功'));
+  } catch (err) {
+    console.error('修改密码错误:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
 module.exports = {
   login,
   logout,
   getCurrentUser,
   getUsers,
-  updateUser
+  updateUser,
+  changePassword
 };

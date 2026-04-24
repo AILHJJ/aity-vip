@@ -1,5 +1,6 @@
 // 用户管理控制器
 const bcrypt = require('bcryptjs');
+const { Op } = require('sequelize');
 
 // 导入用户模型
 const User = require('../models/User');
@@ -20,20 +21,6 @@ function error(message, code = 500) {
   };
 }
 
-function unauthorized(message = 'Unauthorized') {
-  return {
-    code: 401,
-    message
-  };
-}
-
-function forbidden(message = 'Forbidden') {
-  return {
-    code: 403,
-    message
-  };
-}
-
 function notFound(message = 'Not found') {
   return {
     code: 404,
@@ -48,104 +35,149 @@ function badRequest(message = 'Bad request') {
   };
 }
 
+function serverError(message = 'Internal server error') {
+  return {
+    code: 500,
+    message
+  };
+}
+
 // 获取所有用户
 async function getAllUsers(req, res) {
   try {
-    const { page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    let { page = 1, limit = 10, role, status, search } = req.query;
+    const offset = (page - 1) * limit;
 
-    // 获取总数和分页数据
+    // 构建查询条件
+    const whereClause = {};
+
+    // 支持数组形式的 role 参数
+    if (role) {
+      // 如果是字符串形式的数组（如 "[vip_mid,vip_short]"），需要解析
+      if (typeof role === 'string' && role.startsWith('[')) {
+        try {
+          role = JSON.parse(role);
+        } catch (e) {
+          // 解析失败，保持原值
+        }
+      }
+      // 如果是逗号分隔的字符串（如 "vip_mid,vip_short"），拆分为数组
+      if (typeof role === 'string' && role.includes(',')) {
+        role = role.split(',').map(r => r.trim());
+      }
+      // 如果是数组，使用 Op.in
+      if (Array.isArray(role)) {
+        whereClause.role = { [Op.in]: role };
+      } else {
+        whereClause.role = role;
+      }
+    }
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    if (search) {
+      whereClause[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
     const { count, rows } = await User.findAndCountAll({
+      where: whereClause,
+      attributes: { exclude: ['password'] },
+      order: [['id', 'DESC']],
       limit: parseInt(limit),
-      offset: offset,
-      order: [['created_at', 'DESC']]
+      offset: offset
     });
 
-    res.json(success({
-      list: rows,
+    return res.json(success({
+      users: rows,
       pagination: {
+        total: count,
         page: parseInt(page),
         limit: parseInt(limit),
-        total: count,
-        totalPages: Math.ceil(count / parseInt(limit))
+        totalPages: Math.ceil(count / limit)
       }
     }));
   } catch (err) {
-    console.error(err);
-    res.status(500).json(error('Server error'));
+    console.error('Get all users error:', err);
+    return res.status(500).json(serverError('获取用户列表失败'));
   }
 }
 
-// 根据ID获取用户
+// 获取单个用户
 async function getUserById(req, res) {
   try {
-    const user = await User.findByPk(parseInt(req.params.id));
-    
+    const { id } = req.params;
+
+    const user = await User.findByPk(id, {
+      attributes: { exclude: ['password'] }
+    });
+
     if (!user) {
-      return res.status(404).json(notFound('User not found'));
+      return res.status(404).json(notFound('用户不存在'));
     }
-    
-    res.json(success(user));
+
+    return res.json(success(user));
   } catch (err) {
-    console.error(err);
-    res.status(500).json(error('Server error'));
+    console.error('Get user by id error:', err);
+    return res.status(500).json(serverError('获取用户信息失败'));
   }
 }
 
 // 创建用户
 async function createUser(req, res) {
   try {
-    const { name, email, password, role, groupId, avatar, status, expireDate } = req.body;
-
-    // 验证必填字段
-    if (!name || !password) {
-      return res.status(400).json(badRequest('用户名和密码不能为空'));
-    }
-
-    // 如果未提供邮箱，根据用户名生成默认邮箱
-    let userEmail = email;
-    if (!userEmail) {
-      // 生成格式：用户名@aity.local
-      // 将中文用户名转换为拼音首字母或使用时间戳
-      const sanitizedName = name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'user';
-      const timestamp = Date.now().toString().slice(-6);
-      userEmail = `${sanitizedName}_${timestamp}@aity.local`;
-    }
+    const { name, email, password, role, groupId, status, expireDate, bio } = req.body;
 
     // 检查用户名是否已存在
-    const existingName = await User.findOne({ where: { name } });
-    if (existingName) {
+    const existingUser = await User.findOne({ where: { name } });
+    if (existingUser) {
       return res.status(400).json(badRequest('用户名已存在'));
+    }
+
+    // 生成默认邮箱（如果未提供邮箱）
+    let userEmail = email;
+    if (!userEmail || userEmail.trim() === '') {
+      // 生成格式：用户名@users.aity.vip
+      userEmail = `${name.toLowerCase().replace(/\s+/g, '_')}@users.aity.vip`;
     }
 
     // 检查邮箱是否已存在
     const existingEmail = await User.findOne({ where: { email: userEmail } });
     if (existingEmail) {
-      return res.status(400).json(badRequest('邮箱已被使用'));
+      // 如果默认邮箱冲突，添加时间戳
+      if (!email || email.trim() === '') {
+        userEmail = `${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}@users.aity.vip`;
+      } else {
+        return res.status(400).json(badRequest('邮箱已被使用'));
+      }
     }
 
     // 加密密码
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log(`[创建用户] 用户名: ${name}, 邮箱: ${userEmail}, 密码已加密`);
 
-    // 创建用户
     const user = await User.create({
       name,
       email: userEmail,
       password: hashedPassword,
       role: role || 'trial',
-      group_id: groupId,
-      avatar,
+      groupId: groupId || null,
       status: status || 'active',
-      expire_date: expireDate
+      expireDate: expireDate || null,
+      bio: bio || null
     });
 
-    console.log(`[创建用户成功] ID: ${user.id}, 用户名: ${user.name}`);
+    // 返回用户信息（不包含密码）
+    const userResponse = user.toJSON();
+    delete userResponse.password;
 
-    res.status(201).json(success(user, 'User created successfully'));
+    return res.status(201).json(success(userResponse, '用户创建成功'));
   } catch (err) {
-    console.error('创建用户失败:', err);
-    res.status(500).json(error('Server error'));
+    console.error('Create user error:', err);
+    return res.status(500).json(serverError('创建用户失败'));
   }
 }
 
@@ -153,37 +185,58 @@ async function createUser(req, res) {
 async function updateUser(req, res) {
   try {
     const { id } = req.params;
-    const { name, email, password, role, groupId, avatar, status, expireDate } = req.body;
-    
-    // 查找用户
-    const user = await User.findByPk(parseInt(id));
+    const { name, email, role, groupId, status, expireDate, password, bio } = req.body;
+
+    const user = await User.findByPk(id);
     if (!user) {
-      return res.status(404).json(notFound('User not found'));
+      return res.status(404).json(notFound('用户不存在'));
     }
-    
-    // 准备更新数据
+
+    // 检查用户名是否被其他用户使用
+    if (name && name !== user.name) {
+      const existingUser = await User.findOne({ where: { name } });
+      if (existingUser) {
+        return res.status(400).json(badRequest('用户名已存在'));
+      }
+    }
+
+    // 检查邮箱是否被其他用户使用
+    if (email !== undefined && email !== user.email) {
+      // 如果邮箱不为空，检查是否已被使用
+      if (email) {
+        const existingEmail = await User.findOne({ where: { email } });
+        if (existingEmail) {
+          return res.status(400).json(badRequest('邮箱已被使用'));
+        }
+      }
+    }
+
+    // 构建更新对象
     const updateData = {
-      name,
-      email,
-      role,
-      group_id: groupId,
-      avatar,
-      status,
-      expire_date: expireDate
+      name: name || user.name,
+      email: email !== undefined ? email : user.email,
+      role: role || user.role,
+      groupId: groupId !== undefined ? groupId : user.groupId,
+      status: status || user.status,
+      expireDate: expireDate !== undefined ? expireDate : user.expireDate,
+      bio: bio !== undefined ? bio : user.bio
     };
-    
-    // 如果更新了密码，需要重新加密
+
+    // 如果提供了新密码，则更新密码
     if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
     }
-    
-    // 更新用户信息
+
     await user.update(updateData);
-    
-    res.json(success(user, 'User updated successfully'));
+
+    const userResponse = user.toJSON();
+    delete userResponse.password;
+
+    return res.json(success(userResponse, '用户更新成功'));
   } catch (err) {
-    console.error(err);
-    res.status(500).json(error('Server error'));
+    console.error('Update user error:', err);
+    return res.status(500).json(serverError('更新用户失败'));
   }
 }
 
@@ -192,19 +245,123 @@ async function deleteUser(req, res) {
   try {
     const { id } = req.params;
 
-    // 查找用户
-    const user = await User.findByPk(parseInt(id));
+    const user = await User.findByPk(id);
     if (!user) {
-      return res.status(404).json(notFound('User not found'));
+      return res.status(404).json(notFound('用户不存在'));
     }
 
-    // 删除用户
+    // 不允许删除超级管理员
+    if (user.role === 'super_admin') {
+      return res.status(403).json(error('不能删除超级管理员', 403));
+    }
+
+    // 使用 sequelize 的 query 接口执行原始 SQL，避免模型导入的循环依赖
+    const sequelize = require('../config/db');
+
+    // 删除用户前先清理关联数据（按依赖顺序）
+    // 1. 删除用户的讨论回复
+    await sequelize.query('DELETE FROM discussion_replies WHERE user_id = ?', {
+      replacements: [id],
+      type: sequelize.QueryTypes.DELETE
+    });
+
+    // 2. 先删除用户创建的讨论的回复（因为讨论回复依赖讨论）
+    const discussions = await sequelize.query('SELECT id FROM discussions WHERE user_id = ?', {
+      replacements: [id],
+      type: sequelize.QueryTypes.SELECT
+    });
+    for (const discussion of discussions) {
+      await sequelize.query('DELETE FROM discussion_replies WHERE discussion_id = ?', {
+        replacements: [discussion.id],
+        type: sequelize.QueryTypes.DELETE
+      });
+    }
+
+    // 3. 删除用户创建的讨论
+    await sequelize.query('DELETE FROM discussions WHERE user_id = ?', {
+      replacements: [id],
+      type: sequelize.QueryTypes.DELETE
+    });
+
+    // 4. 删除用户的消息阅读记录
+    await sequelize.query('DELETE FROM user_message_reads WHERE user_id = ?', {
+      replacements: [id],
+      type: sequelize.QueryTypes.DELETE
+    });
+
+    // 5. 删除用户的收藏记录（如果表存在的话）
+    try {
+      await sequelize.query('DELETE FROM user_favorites WHERE user_id = ?', {
+        replacements: [id],
+        type: sequelize.QueryTypes.DELETE
+      });
+    } catch (favError) {
+      // 如果 user_favorites 表不存在，忽略错误
+      console.log('Note: user_favorites table may not exist:', favError.message);
+    }
+
+    // 6. 将用户发送的消息的sender_id设为NULL（保留消息，但移除关联）
+    await sequelize.query('UPDATE messages SET sender_id = NULL WHERE sender_id = ?', {
+      replacements: [id],
+      type: sequelize.QueryTypes.UPDATE
+    });
+
+    // 7. 删除用户
     await user.destroy();
 
-    res.json(success(null, 'User deleted successfully'));
+    return res.json(success(null, '用户删除成功'));
   } catch (err) {
-    console.error(err);
-    res.status(500).json(error('Server error'));
+    console.error('Delete user error:', err);
+    return res.status(500).json(serverError('删除用户失败'));
+  }
+}
+
+// 停用用户（逻辑删除）
+async function deactivateUser(req, res) {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json(notFound('用户不存在'));
+    }
+
+    // 不能停用超级管理员
+    if (user.role === 'super_admin') {
+      return res.status(403).json(error('不能停用超级管理员', 403));
+    }
+
+    await user.update({ status: 'inactive' });
+
+    const userResponse = user.toJSON();
+    delete userResponse.password;
+
+    return res.json(success(userResponse, '用户已停用'));
+  } catch (err) {
+    console.error('Deactivate user error:', err);
+    return res.status(500).json(serverError('停用用户失败'));
+  }
+}
+
+// 启用用户
+async function activateUser(req, res) {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json(notFound('用户不存在'));
+    }
+
+    await user.update({ status: 'active' });
+
+    const userResponse = user.toJSON();
+    delete userResponse.password;
+
+    return res.json(success(userResponse, '用户已启用'));
+  } catch (err) {
+    console.error('Activate user error:', err);
+    return res.status(500).json(serverError('启用用户失败'));
   }
 }
 
@@ -212,45 +369,21 @@ async function deleteUser(req, res) {
 async function resetUserPassword(req, res) {
   try {
     const { id } = req.params;
-    const { newPassword, adminPassword } = req.body;
-    const adminUser = req.user;
+    const { newPassword } = req.body;
 
-    // 查找目标用户
-    const targetUser = await User.findByPk(parseInt(id));
-    if (!targetUser) {
-      return res.status(404).json(notFound('User not found'));
-    }
-
-    // 验证管理员密码（可选，增加安全性）
-    if (adminPassword) {
-      // 获取管理员用户信息来验证密码
-      const admin = await User.findByPk(adminUser.userId);
-      if (!admin) {
-        return res.status(403).json(forbidden('Admin user not found'));
-      }
-
-      // 验证管理员密码
-      const bcrypt = require('bcryptjs');
-      const isPasswordValid = await bcrypt.compare(adminPassword, admin.password);
-      if (!isPasswordValid) {
-        return res.status(403).json(forbidden('Invalid admin password'));
-      }
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json(notFound('用户不存在'));
     }
 
     // 加密新密码
-    const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await user.update({ password: hashedPassword });
 
-    // 更新密码
-    await targetUser.update({ password: hashedPassword });
-
-    // 记录操作日志
-    console.log(`[Password Reset] Admin ${adminUser.email} reset password for user ${targetUser.email} (ID: ${targetUser.id})`);
-
-    res.json(success(null, 'Password reset successfully'));
+    return res.json(success(null, '密码重置成功'));
   } catch (err) {
-    console.error('[Password Reset Error]', err);
-    res.status(500).json(error('Server error'));
+    console.error('Reset user password error:', err);
+    return res.status(500).json(serverError('重置密码失败'));
   }
 }
 
@@ -260,5 +393,7 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
+  deactivateUser,
+  activateUser,
   resetUserPassword
 };

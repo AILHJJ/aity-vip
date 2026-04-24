@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>连板天梯 - 专业版</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary-color: #409eff;
+      --success-color: #67c23a;
+      --warning-color: #e6a23c;
+      --danger-color: #f56c6c;
+      --info-color: #909399;
+      --light-bg: #f5f7fa;
+      --white: #ffffff;
+      --gray-1: #f9fafc;
+      --gray-2: #f0f2f5;
+      --gray-3: #e4e7ed;
+      --gray-4: #c0c4cc;
+      --gray-5: #909399;
+      --gray-6: #606266;
+      --gray-7: #303133;
+      --border-radius: 8px;
+      --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: var(--light-bg);
+      max-width: 414px;
+      margin: 0 auto;
+      min-height: 100vh;
+      color: var(--gray-7);
+    }
+
+    /* 顶部导航 */
+    .top-nav {
+      background: var(--white);
+      padding: 16px;
+      box-shadow: var(--box-shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .top-nav-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 16px;
+      font-size: 20px;
+    }
+
+    /* 市场概览 */
+    .market-overview {
+      background: var(--white);
+      margin: 12px;
+      padding: 16px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+    }
+
+    .market-overview h2 {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 16px;
+      color: var(--gray-7);
+    }
+
+    .market-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .market-stat-item {
+      text-align: center;
+      padding: 12px;
+      background: var(--gray-1);
+      border-radius: var(--border-radius);
+    }
+
+    .market-stat-label {
+      font-size: 12px;
+      color: var(--gray-5);
+      margin-bottom: 4px;
+    }
+
+    .market-stat-value {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--gray-7);
+    }
+
+    .market-stat-change {
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .change-up {
+      color: var(--danger-color);
+    }
+
+    .change-down {
+      color: var(--success-color);
+    }
+
+    /* 连板概览 */
+    .board-overview {
+      background: var(--white);
+      margin: 0 12px 12px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      overflow: hidden;
+    }
+
+    .board-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--gray-2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .board-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--gray-7);
+    }
+
+    .board-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .board-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .board-tab {
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 13px;
+      background: var(--gray-1);
+      color: var(--gray-6);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .board-tab:hover {
+      background: var(--gray-2);
+    }
+
+    .board-tab.active {
+      background: var(--primary-color);
+      color: var(--white);
+    }
+
+    .expand-all-btn {
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 13px;
+      background: var(--primary-color);
+      color: var(--white);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .expand-all-btn:hover {
+      background: #66b1ff;
+    }
+
+    /* 日期选择器 */
+    .date-selector {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .date-nav {
+      font-size: 16px;
+      cursor: pointer;
+      color: var(--gray-5);
+    }
+
+    .current-date {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray-7);
+    }
+
+    /* 连板分组 */
+    .board-groups {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .board-group {
+      margin-bottom: 16px;
+    }
+
+    .board-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .board-group-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 12px 16px 8px;
+      border-bottom: 1px solid var(--gray-2);
+    }
+
+    .board-group-title {
+      font-size: 15px;
+      font-weight: bold;
+      color: var(--gray-7);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .board-count {
+      background: var(--danger-color);
+      color: var(--white);
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+
+    .expand-icon {
+      transition: all 0.3s;
+    }
+
+    .stock-item:hover .expand-icon {
+      transform: rotate(180deg);
+    }
+
+    /* 股票列表 */
+    .stock-list {
+      padding: 0 16px 12px;
+    }
+
+    .stock-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--gray-2);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .stock-item:hover {
+      background: var(--gray-1);
+      margin: 0 -16px;
+      padding: 12px 16px;
+    }
+
+    .stock-item:last-child {
+      border-bottom: none;
+    }
+
+    .stock-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .stock-name-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .stock-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray-7);
+      margin-right: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stock-code {
+      font-size: 12px;
+      color: var(--gray-5);
+      margin-right: 8px;
+    }
+
+    .stock-tags {
+      display: flex;
+      gap: 4px;
+    }
+
+    .stock-tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 2px;
+    }
+
+    .tag-leader {
+      background: var(--danger-color);
+      color: var(--white);
+    }
+
+    .tag-mid {}
+
+    .tag-follow {
+      background: var(--success-color);
+      color: var(--white);
+    }
+
+    .tag-demon {
+      background: var(--warning-color);
+      color: var(--white);
+    }
+
+    .tag-new {
+      background: var(--info-color);
+      color: var(--white);
+    }
+
+    .stock-detail-row {
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .stock-price {
+      color: var(--danger-color);
+      font-weight: 500;
+      margin-right: 12px;
+    }
+
+    .stock-change {
+      color: var(--danger-color);
+      font-weight: 500;
+      margin-right: 12px;
+    }
+
+    .stock-board {
+      color: var(--gray-6);
+      margin-right: 12px;
+    }
+
+    .stock-fund {
+      color: var(--primary-color);
+      font-weight: 500;
+    }
+
+    .stock-fund.negative {
+      color: var(--success-color);
+    }
+
+    /* 展开详情 */
+    .stock-detail {
+      background: var(--gray-1);
+      padding: 12px;
+      border-radius: var(--border-radius);
+      margin-top: 8px;
+      margin-bottom: 12px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .detail-label {
+      color: var(--gray-6);
+    }
+
+    .detail-value {
+      color: var(--gray-7);
+      font-weight: 500;
+    }
+
+    .detail-value.up {
+      color: var(--danger-color);
+    }
+
+    .detail-value.down {
+      color: var(--success-color);
+    }
+
+    /* 数据分析区域 */
+    .analysis-section {
+      background: var(--white);
+      margin: 0 12px 12px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 16px;
+    }
+
+    .analysis-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .analysis-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--gray-7);
+    }
+
+    .analysis-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .analysis-tab {
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 13px;
+      background: var(--gray-1);
+      color: var(--gray-6);
+      cursor: pointer;
+    }
+
+    .analysis-tab.active {
+      background: var(--primary-color);
+      color: var(--white);
+    }
+
+    /* 图表区域 */
+    .chart-container {
+      height: 200px;
+      background: var(--gray-1);
+      border-radius: var(--border-radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      height: 160px;
+      width: 100%;
+      padding: 0 16px;
+    }
+
+    .bar-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 30px;
+    }
+
+    .bar {
+      width: 24px;
+      background: var(--primary-color);
+      border-radius: 4px 4px 0 0;
+      margin-bottom: 8px;
+    }
+
+    .bar-label {
+      font-size: 10px;
+      color: var(--gray-6);
+    }
+
+    .bar-value {
+      font-size: 10px;
+      color: var(--gray-7);
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    /* 热门题材 */
+    .hot-sectors {
+      background: var(--white);
+      margin: 0 12px 12px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 16px;
+    }
+
+    .hot-sectors h3 {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--gray-7);
+      margin-bottom: 12px;
+    }
+
+    .sector-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .sector-tag {
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 13px;
+      background: var(--gray-1);
+      color: var(--gray-6);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .sector-tag:hover {
+      background: var(--primary-color);
+      color: var(--white);
+    }
+
+    /* 底部导航 */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--white);
+      border-top: 1px solid var(--gray-3);
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 0;
+      max-width: 414px;
+      margin: 0 auto;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 11px;
+      color: var(--gray-5);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .nav-item.active {
+      color: var(--primary-color);
+    }
+
+    .nav-icon {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    /* 空状态 */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray-4);
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .empty-text {
+      font-size: 14px;
+    }
+
+    /* 加载动画 */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--gray-2);
+      border-top: 2px solid var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 375px) {
+      .market-stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* 暗色模式 */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --light-bg: #1a1a1a;
+        --white: #2c2c2c;
+        --gray-1: #3a3a3a;
+        --gray-2: #4a4a4a;
+        --gray-3: #5a5a5a;
+        --gray-4: #6a6a6a;
+        --gray-5: #8a8a8a;
+        --gray-6: #aaa;
+        --gray-7: #eee;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <div class="top-nav">
+    <div class="top-nav-content">
+      <div class="logo">连板天梯</div>
+      <div class="nav-actions">
+        <span>🔄</span>
+        <span>🔍</span>
+        <span>⚙️</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 市场概览 -->
+  <div class="market-overview">
+    <h2>📊 市场概览</h2>
+    <div class="market-stats">
+      <div class="market-stat-item">
+        <div class="market-stat-label">连板总数</div>
+        <div class="market-stat-value">156</div>
+        <div class="market-stat-change change-up">+12</div>
+      </div>
+      <div class="market-stat-item">
+        <div class="market-stat-label">涨停家数</div>
+        <div class="market-stat-value">89</div>
+        <div class="market-stat-change change-up">+5</div>
+      </div>
+      <div class="market-stat-item">
+        <div class="market-stat-label">最高板</div>
+        <div class="market-stat-value">7板</div>
+        <div class="market-stat-change">+1</div>
+      </div>
+      <div class="market-stat-item">
+        <div class="market-stat-label">市场情绪</div>
+        <div class="market-stat-value">85</div>
+        <div class="market-stat-change change-up">+10</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 连板概览 -->
+  <div class="board-overview">
+    <div class="board-header">
+      <div class="board-title">📈 连板天梯</div>
+      <div class="board-actions">
+        <div class="board-tabs">
+          <div class="board-tab active">实时</div>
+          <div class="board-tab">历史</div>
+          <div class="board-tab">趋势</div>
+        </div>
+        <div class="expand-all-btn" id="expandAllBtn">全部展开</div>
+      </div>
+    </div>
+    
+    <!-- 日期选择器 -->
+    <div class="date-selector">
+      <div class="date-nav">⬅️</div>
+      <div class="current-date">2026-03-02 周二</div>
+      <div class="date-nav">➡️</div>
+    </div>
+    
+    <div class="board-groups">
+      <!-- 7板+ -->
+      <div class="board-group">
+        <div class="board-group-header">
+          <div class="board-group-title">
+            <span>7板+</span>
+            <span class="board-count">2</span>
+          </div>
+        </div>
+        <div class="stock-list">
+          <div class="stock-item" data-detail="true">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">泰嘉股份</span>
+                <span class="stock-code">002843</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-leader">龙头</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">15.67</span>
+                <span class="stock-change">+10.01%</span>
+                <span class="stock-board">3天3板</span>
+                <span class="stock-fund">+5000万</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">中国天楹</span>
+                <span class="stock-code">000035</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-mid">中军</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">4.57</span>
+                <span class="stock-change">+4.57%</span>
+                <span class="stock-board">2天2板</span>
+                <span class="stock-fund">+3200万</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 展开详情 -->
+        <div class="stock-detail" style="display: none;">
+          <div class="detail-row">
+            <span class="detail-label">涨停原因：</span>
+            <span class="detail-value">热点概念</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">封单额：</span>
+            <span class="detail-value">1000万</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">封成比：</span>
+            <span class="detail-value">85%</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">资金净流入：</span>
+            <span class="detail-value up">5000万</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">主力净流入：</span>
+            <span class="detail-value up">3000万</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">换手率：</span>
+            <span class="detail-value">12.5%</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">量比：</span>
+            <span class="detail-value">2.3</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">总金额：</span>
+            <span class="detail-value">10亿</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6板 -->
+      <div class="board-group">
+        <div class="board-group-header">
+          <div class="board-group-title">
+            <span>6板</span>
+            <span class="board-count">3</span>
+          </div>
+        </div>
+        <div class="stock-list">
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">新金路</span>
+                <span class="stock-code">000510</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-demon">妖股</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">6.78</span>
+                <span class="stock-change">+5.37%</span>
+                <span class="stock-board">2天2板</span>
+                <span class="stock-fund">+2800万</span>
+              </div>
+            </div>
+          </div>
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">赫美集团</span>
+                <span class="stock-code">002356</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-follow">跟风</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">12.34</span>
+                <span class="stock-change">+9.98%</span>
+                <span class="stock-board">2天2板</span>
+                <span class="stock-fund">+1500万</span>
+              </div>
+            </div>
+          </div>
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">翔鹭钨业</span>
+                <span class="stock-code">002842</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-follow">跟风</span>
+                  <span class="stock-tag tag-new">次新</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">8.92</span>
+                <span class="stock-change">+10.00%</span>
+                <span class="stock-board">2天2板</span>
+                <span class="stock-fund">+2100万</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5板 -->
+      <div class="board-group">
+        <div class="board-group-header">
+          <div class="board-group-title">
+            <span>5板</span>
+            <span class="board-count">5</span>
+          </div>
+        </div>
+        <div class="stock-list">
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">华盛昌</span>
+                <span class="stock-code">002980</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-mid">中军</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">18.76</span>
+                <span class="stock-change">+10.00%</span>
+                <span class="stock-board">2天2板</span>
+                <span class="stock-fund">+3500万</span>
+              </div>
+            </div>
+          </div>
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">亚盛集团</span>
+                <span class="stock-code">600108</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-follow">跟风</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">3.45</span>
+                <span class="stock-change">+10.00%</span>
+                <span class="stock-board">2天2板</span>
+                <span class="stock-fund">+1800万</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4板 -->
+      <div class="board-group">
+        <div class="board-group-header">
+          <div class="board-group-title">
+            <span>4板</span>
+            <span class="board-count">8</span>
+          </div>
+        </div>
+        <div class="stock-list">
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">华锡有色</span>
+                <span class="stock-code">600301</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-follow">跟风</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">12.45</span>
+                <span class="stock-change">+10.00%</span>
+                <span class="stock-board">1天1板</span>
+                <span class="stock-fund">+2200万</span>
+              </div>
+            </div>
+          </div>
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">涪陵电力</span>
+                <span class="stock-code">600452</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-follow">跟风</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">15.67</span>
+                <span class="stock-change">+10.00%</span>
+                <span class="stock-board">1天1板</span>
+                <span class="stock-fund">+2800万</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3板 -->
+      <div class="board-group">
+        <div class="board-group-header">
+          <div class="board-group-title">
+            <span>3板</span>
+            <span class="board-count">12</span>
+          </div>
+        </div>
+        <div class="stock-list">
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">烽火通信</span>
+                <span class="stock-code">600498</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-follow">跟风</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">22.34</span>
+                <span class="stock-change">+10.00%</span>
+                <span class="stock-board">1天1板</span>
+                <span class="stock-fund">+3100万</span>
+              </div>
+            </div>
+          </div>
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">中国瑞林</span>
+                <span class="stock-code">600510</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-follow">跟风</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">18.92</span>
+                <span class="stock-change">+10.00%</span>
+                <span class="stock-board">1天1板</span>
+                <span class="stock-fund">+2500万</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2板 -->
+      <div class="board-group">
+        <div class="board-group-header">
+          <div class="board-group-title">
+            <span>2板</span>
+            <span class="board-count">25</span>
+          </div>
+        </div>
+        <div class="stock-list">
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">水发燃气</span>
+                <span class="stock-code">600981</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-follow">跟风</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">8.92</span>
+                <span class="stock-change">+10.00%</span>
+                <span class="stock-board">1天1板</span>
+                <span class="stock-fund">+1900万</span>
+              </div>
+            </div>
+          </div>
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">和顺石油</span>
+                <span class="stock-code">603353</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-follow">跟风</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">26.54</span>
+                <span class="stock-change">+10.00%</span>
+                <span class="stock-board">1天1板</span>
+                <span class="stock-fund">+3200万</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1板 -->
+      <div class="board-group">
+        <div class="board-group-header">
+          <div class="board-group-title">
+            <span>1板</span>
+            <span class="board-count">52</span>
+          </div>
+        </div>
+        <div class="stock-list">
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">潜能恒信</span>
+                <span class="stock-code">300191</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-follow">跟风</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">12.34</span>
+                <span class="stock-change">+10.00%</span>
+                <span class="stock-board">1天1板</span>
+                <span class="stock-fund">+1800万</span>
+              </div>
+            </div>
+          </div>
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name-row">
+                <span class="stock-name">新天然气</span>
+                <span class="stock-code">603393</span>
+                <div class="stock-tags">
+                  <span class="stock-tag tag-follow">跟风</span>
+                </div>
+              </div>
+              <div class="stock-detail-row">
+                <span class="stock-price">18.76</span>
+                <span class="stock-change">+10.00%</span>
+                <span class="stock-board">1天1板</span>
+                <span class="stock-fund">+2400万</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据分析 -->
+  <div class="analysis-section">
+    <div class="analysis-header">
+      <div class="analysis-title">📊 数据分析</div>
+      <div class="analysis-tabs">
+        <div class="analysis-tab active">连板分布</div>
+        <div class="analysis-tab">资金流向</div>
+        <div class="analysis-tab">板型分析</div>
+      </div>
+    </div>
+    
+    <div class="chart-container">
+      <div class="bar-chart">
+        <div class="bar-item">
+          <div class="bar-value">2</div>
+          <div class="bar" style="height: 100px;"></div>
+          <div class="bar-label">7板+</div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-value">3</div>
+          <div class="bar" style="height: 80px;"></div>
+          <div class="bar-label">6板</div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-value">5</div>
+          <div class="bar" style="height: 120px;"></div>
+          <div class="bar-label">5板</div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-value">8</div>
+          <div class="bar" style="height: 150px;"></div>
+          <div class="bar-label">4板</div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-value">12</div>
+          <div class="bar" style="height: 160px;"></div>
+          <div class="bar-label">3板</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 热门题材 -->
+  <div class="hot-sectors">
+    <h3>🔥 热门题材</h3>
+    <div class="sector-list">
+      <div class="sector-tag">AI概念</div>
+      <div class="sector-tag">半导体</div>
+      <div class="sector-tag">新能源</div>
+      <div class="sector-tag">医药</div>
+      <div class="sector-tag">军工</div>
+      <div class="sector-tag">消费</div>
+      <div class="sector-tag">金融</div>
+      <div class="sector-tag">地产</div>
+    </div>
+  </div>
+
+  <div style="height: 80px;"></div>
+
+  <!-- 底部导航 -->
+  <div class="bottom-nav">
+    <div class="nav-item">
+      <div class="nav-icon">🏠</div>
+      <div>首页</div>
+    </div>
+    <div class="nav-item active">
+      <div class="nav-icon">📈</div>
+      <div>连板</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">💡</div>
+      <div>AI分析</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">📚</div>
+      <div>知识库</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">👤</div>
+      <div>我的</div>
+    </div>
+  </div>
+
+  <script>
+    // 切换板块标签
+    document.querySelectorAll('.board-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 切换分析标签
+    document.querySelectorAll('.analysis-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.analysis-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 股票项点击展开详情
+    document.querySelectorAll('.stock-item').forEach(item => {
+      item.style.cursor = 'pointer';
+      item.style.position = 'relative';
+      
+      // 添加展开图标
+      const expandIcon = document.createElement('span');
+      expandIcon.className = 'expand-icon';
+      expandIcon.style.position = 'absolute';
+      expandIcon.style.right = '16px';
+      expandIcon.style.color = 'var(--primary-color)';
+      expandIcon.style.fontSize = '16px';
+      expandIcon.textContent = '⌄';
+      item.appendChild(expandIcon);
+      
+      item.addEventListener('click', function() {
+        const boardGroup = this.closest('.board-group');
+        const stockDetail = boardGroup.querySelector('.stock-detail');
+        
+        if (stockDetail) {
+          if (stockDetail.style.display === 'none') {
+            stockDetail.style.display = 'block';
+            expandIcon.textContent = '⌃';
+            this.style.backgroundColor = 'var(--gray-1)';
+            this.style.margin = '0 -16px';
+            this.style.padding = '12px 16px';
+          } else {
+            stockDetail.style.display = 'none';
+            expandIcon.textContent = '⌄';
+            this.style.backgroundColor = 'transparent';
+            this.style.margin = '0';
+            this.style.padding = '12px 0';
+          }
+        }
+      });
+    });
+
+    // 一键全部展开/收起详情
+    const expandAllBtn = document.getElementById('expandAllBtn');
+    let isAllExpanded = false;
+    
+    expandAllBtn.addEventListener('click', function() {
+      const stockItems = document.querySelectorAll('.stock-item');
+      
+      if (isAllExpanded) {
+        // 收起所有详情
+        stockItems.forEach(item => {
+          const boardGroup = item.closest('.board-group');
+          const stockDetail = boardGroup.querySelector('.stock-detail');
+          const expandIcon = item.querySelector('.expand-icon');
+          
+          if (stockDetail) {
+            stockDetail.style.display = 'none';
+          }
+          if (expandIcon) {
+            expandIcon.textContent = '⌄';
+          }
+          item.style.backgroundColor = 'transparent';
+          item.style.margin = '0';
+          item.style.padding = '12px 0';
+        });
+        expandAllBtn.textContent = '全部展开详情';
+      } else {
+        // 展开所有详情
+        stockItems.forEach(item => {
+          const boardGroup = item.closest('.board-group');
+          const stockDetail = boardGroup.querySelector('.stock-detail');
+          const expandIcon = item.querySelector('.expand-icon');
+          
+          if (stockDetail) {
+            stockDetail.style.display = 'block';
+          }
+          if (expandIcon) {
+            expandIcon.textContent = '⌃';
+          }
+          item.style.backgroundColor = 'var(--gray-1)';
+          item.style.margin = '0 -16px';
+          item.style.padding = '12px 16px';
+        });
+        expandAllBtn.textContent = '全部收起详情';
+      }
+      
+      isAllExpanded = !isAllExpanded;
+    });
+
+    // 热门题材点击
+    document.querySelectorAll('.sector-tag').forEach(tag => {
+      tag.addEventListener('click', function() {
+        const sectorName = this.textContent;
+        alert(`查看 ${sectorName} 题材的相关股票`);
+      });
+    });
+
+    // 底部导航点击
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', function() {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 日期导航
+    document.querySelectorAll('.date-nav').forEach(nav => {
+      nav.addEventListener('click', function() {
+        alert('切换日期功能');
+      });
+    });
+
+    // 模拟数据加载
+    setTimeout(() => {
+      console.log('数据加载完成');
+    }, 1000);
+  </script>
+</body>
+</html>

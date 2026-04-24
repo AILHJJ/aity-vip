@@ -19,7 +19,7 @@ echo_yellow "开始构建AITY VIP项目..."
 
 # 1. 构建前端
 echo_yellow "\n1. 构建前端项目..."
-cd "$(dirname "$0")/../frontend"
+cd "$(dirname "$0")/../aity-uni-app-v2"
 if npm install; then
     echo_green "前端依赖安装成功!"
 else
@@ -45,5 +45,5 @@ else
 fi
 
 echo_green "\n🎉 AITY VIP项目构建完成!"
-echo_green "前端构建输出: $(dirname "$0")/../frontend/dist"
+echo_green "前端构建输出: $(dirname "$0")/../aity-uni-app-v2/dist"
 echo_green "后端构建输出: $(dirname "$0")/../backend"

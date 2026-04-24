@@ -1,18 +1,20 @@
 /**
  * AI投顾API配置
  * 通过后端代理服务访问通达信问小达API
+ *
+ * 环境区分：
+ * - 开发环境：连接本地后端代理
+ * - 生产环境：连接生产服务器代理
  */
 
-// 导入用户store（用于生成用户专属的存储key）
-import { useUserStore } from '@/store/user'
+import { API_BASE_URL, IS_PRODUCTION } from './config'
 
 // API配置 - 使用后端代理
 export const AI_ADVISOR_CONFIG = {
-  // 后端代理API地址
-  API_URL: '/api/ai-advisor',  // 使用相对路径，由前端代理转发到后端
-
-  // 生产环境地址（如果需要直接访问后端）
-  PROD_API_URL: 'https://aity88.online:8443/api/ai-advisor',
+  // 后端代理API地址（自动根据环境选择）
+  get API_URL() {
+    return `${API_BASE_URL}/ai-advisor`
+  },
 
   // Agent类型
   AGENT_TYPE: 'wenda', // 问小达
@@ -28,15 +30,25 @@ export const AI_ADVISOR_CONFIG = {
  * 获取API基础URL
  */
 export function getApiBaseUrl() {
-  // #ifdef H5
-  // H5环境使用相对路径
   return AI_ADVISOR_CONFIG.API_URL
-  // #endif
+}
 
-  // #ifndef H5
-  // 小程序等其他环境使用完整URL
-  return AI_ADVISOR_CONFIG.PROD_API_URL
-  // #endif
+// 延迟导入用户store（避免循环依赖）
+// 注意：小程序运行时不支持 require('@/xxx') 路径别名，必须在函数内部动态导入
+let _userStore = null
+function getUserStore() {
+  if (!_userStore) {
+    try {
+      // 方式1：尝试 uni-app 的全局 store（通过 getApp 获取）
+      const app = typeof getApp === 'function' ? getApp() : null
+      if (app && app.$store && app.$store.state && app.$store.state.user) {
+        _userStore = app.$store.state.user
+      }
+    } catch (e) {
+      // 忽略
+    }
+  }
+  return _userStore
 }
 
 /**
@@ -46,9 +58,28 @@ export function getApiBaseUrl() {
  */
 export function getUserStorageKey(key) {
   try {
-    // 获取用户store
-    const userStore = useUserStore()
-    const userId = userStore.userId || 'anonymous'
+    // 尝试从 uni storage 获取用户信息（最可靠的方式）
+    const userInfo = uni.getStorageSync('userInfo') || uni.getStorageSync('user')
+    let userId = 'anonymous'
+    
+    if (userInfo) {
+      const parsed = typeof userInfo === 'string' ? JSON.parse(userInfo) : userInfo
+      userId = parsed.userId || parsed.id || parsed.uid || 'anonymous'
+    }
+    
+    // 如果 uni storage 没有，尝试 pinia store
+    if (userId === 'anonymous') {
+      try {
+        // 动态导入 pinia store（小程序安全方式）
+        const stores = require('../store/user.js')
+        if (stores && stores.useUserStore) {
+          const userStore = stores.useUserStore()
+          userId = userStore.userId || 'anonymous'
+        }
+      } catch (e) {
+        // 小程序中 require 不支持路径别名，使用降级方案
+      }
+    }
 
     // 返回用户专属的key
     return `ai_advisor_${userId}_${key}`

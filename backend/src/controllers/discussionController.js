@@ -2,6 +2,7 @@
 const { Op } = require('sequelize');
 const Discussion = require('../models/Discussion');
 const DiscussionReply = require('../models/DiscussionReply');
+const DiscussionFavorite = require('../models/DiscussionFavorite');
 const Message = require('../models/Message');
 const User = require('../models/User');
 
@@ -82,7 +83,7 @@ async function getDiscussions(req, res) {
     
     const discussions = await Discussion.findAll({
       where,
-      order: [['createdAt', 'DESC']] // 按创建时间倒序排序
+      order: [['created_at', 'DESC']] // 按创建时间倒序排序（使用实际列名）
     });
 
     // 获取每个讨论的回复
@@ -90,7 +91,7 @@ async function getDiscussions(req, res) {
       discussions.map(async (discussion) => {
         const replies = await DiscussionReply.findAll({
           where: { discussionId: discussion.id },
-          order: [['createdAt', 'ASC']]
+          order: [['created_at', 'ASC']]
         });
 
         // 获取发送者信息
@@ -134,15 +135,15 @@ async function getDiscussionById(req, res) {
     const { id } = req.params;
     const currentUserId = req.user.userId;
     const currentUserRole = req.user.role;
-    
+
     const discussion = await Discussion.findByPk(id);
     if (!discussion) {
       return res.status(404).json(notFound('Discussion not found'));
     }
-    
+
     // 检查用户是否有权限查看该讨论
     let hasPermission = false;
-    
+
     if (currentUserRole === 'super_admin' || currentUserRole === 'admin') {
       // 管理员可以查看所有讨论
       hasPermission = true;
@@ -153,26 +154,42 @@ async function getDiscussionById(req, res) {
       // 私密讨论只有发起者和管理员可见
       hasPermission = true;
     }
-    
+
     if (!hasPermission) {
       return res.status(403).json(forbidden('No permission to view this discussion'));
     }
-    
+
     // 获取回复
     const replies = await DiscussionReply.findAll({
       where: { discussionId: id },
-      order: [['createdAt', 'ASC']]
+      order: [['created_at', 'ASC']]
     });
-    
+
     // 获取发送者信息
     const sender = await User.findByPk(discussion.userId, {
       attributes: ['name', 'avatar']
     });
-    
+
+    // 获取关联的消息信息
+    let linkedMessage = null;
+    if (discussion.messageId) {
+      const message = await Message.findByPk(discussion.messageId, {
+        attributes: ['id', 'title', 'type', 'createdAt']
+      });
+      if (message) {
+        linkedMessage = {
+          id: message.id,
+          title: message.title,
+          type: message.type,
+          createdAt: message.createdAt
+        };
+      }
+    }
+
     // 获取回复发送者信息
     const repliesWithSender = await Promise.all(
       replies.map(async (reply) => {
-        const replySender = await User.findByPk(reply.senderId, {
+        const replySender = await User.findByPk(reply.userId, {
           attributes: ['name', 'avatar']
         });
         return {
@@ -186,6 +203,7 @@ async function getDiscussionById(req, res) {
     const discussionData = {
       id: discussion.id,
       messageId: discussion.messageId,
+      linkedMessage: linkedMessage, // 关联的消息信息
       userId: discussion.userId,
       creatorId: discussion.userId,
       creatorName: sender?.name || '匿名用户',
@@ -201,7 +219,7 @@ async function getDiscussionById(req, res) {
       updatedAt: discussion.updatedAt,
       replies: repliesWithSender
     };
-    
+
     res.json(success(discussionData));
   } catch (err) {
     console.error(err);
@@ -322,8 +340,8 @@ async function addDiscussionReply(req, res) {
   try {
     const { id } = req.params;
     const { content, visibility } = req.body;
-    const senderId = req.user.userId;
-    const senderRole = req.user.role;
+    const userId = req.user.userId;
+    const userRole = req.user.role;
     
     // 获取讨论
     const discussion = await Discussion.findByPk(id);
@@ -334,13 +352,13 @@ async function addDiscussionReply(req, res) {
     // 检查用户是否有权限回复该讨论
     let canReply = false;
     
-    if (senderRole === 'super_admin' || senderRole === 'admin') {
+    if (userRole === 'super_admin' || userRole === 'admin') {
       // 管理员可以回复所有讨论
       canReply = true;
     } else if (discussion.visibility === 'public') {
       // 公开讨论所有人可以回复
       canReply = true;
-    } else if (discussion.userId === senderId) {
+    } else if (discussion.userId === userId) {
       // 发起者可以回复自己的讨论
       canReply = true;
     }
@@ -350,7 +368,7 @@ async function addDiscussionReply(req, res) {
     }
     
     // 获取用户信息
-    const user = await User.findByPk(senderId);
+    const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json(notFound('User not found'));
     }
@@ -358,15 +376,15 @@ async function addDiscussionReply(req, res) {
     // 创建回复
     const reply = await DiscussionReply.create({
       discussionId: id,
-      senderId,
-      senderName: user.name,
+      userId,
+      userName: user.name,
       content
     });
     
     // 更新讨论状态和可见性
     const updateData = { status: 'replied' }; // 回复后自动变为已回复状态
     
-    if ((senderRole === 'super_admin' || senderRole === 'admin') && visibility) {
+    if ((userRole === 'super_admin' || userRole === 'admin') && visibility) {
       // 只有管理员可以修改可见性
       updateData.visibility = visibility;
     }
@@ -376,6 +394,9 @@ async function addDiscussionReply(req, res) {
     // 获取更新后的讨论
     const updatedDiscussion = await Discussion.findByPk(id);
     
+    // 查询实际回复数
+    const actualReplyCount = await DiscussionReply.count({ where: { discussionId: id } });
+    
     const replyData = {
       reply: {
         ...reply.toJSON(),
@@ -384,7 +405,7 @@ async function addDiscussionReply(req, res) {
       },
       discussion: {
         ...updatedDiscussion.toJSON(),
-        replies_count: (updatedDiscussion.replies_count || 0) + 1
+        replies_count: actualReplyCount
       }
     };
     
@@ -412,13 +433,13 @@ async function getDiscussionReplies(req, res) {
     // 获取回复
     const replies = await DiscussionReply.findAll({
       where: { discussionId: id },
-      order: [['createdAt', 'ASC']]
+      order: [['created_at', 'ASC']]
     });
 
     // 获取每个回复的发送者信息
     const repliesWithSender = await Promise.all(
       replies.map(async (reply) => {
-        const sender = await User.findByPk(reply.senderId, {
+        const sender = await User.findByPk(reply.userId, {
           attributes: ['name', 'avatar']
         });
         return {
@@ -475,11 +496,212 @@ async function updateDiscussionVisibility(req, res) {
   }
 }
 
+// 获取我的讨论（当前用户发起的讨论）
+async function getMyDiscussions(req, res) {
+  try {
+    const currentUserId = req.user.userId;
+
+    // 获取当前用户发起的讨论
+    const discussions = await Discussion.findAll({
+      where: { userId: currentUserId },
+      order: [['created_at', 'DESC']]
+    });
+
+    // 获取每个讨论的回复
+    const discussionsWithReplies = await Promise.all(
+      discussions.map(async (discussion) => {
+        const replies = await DiscussionReply.findAll({
+          where: { discussionId: discussion.id },
+          order: [['created_at', 'ASC']]
+        });
+
+        // 获取关联的消息信息
+        let linkedMessage = null;
+        if (discussion.messageId) {
+          const message = await Message.findByPk(discussion.messageId, {
+            attributes: ['id', 'title', 'type', 'createdAt']
+          });
+          if (message) {
+            linkedMessage = {
+              id: message.id,
+              title: message.title,
+              type: message.type,
+              createdAt: message.createdAt
+            };
+          }
+        }
+
+        return {
+          id: discussion.id,
+          title: discussion.title,
+          content: discussion.content,
+          status: discussion.status,
+          visibility: discussion.visibility,
+          messageId: discussion.messageId,
+          linkedMessage: linkedMessage,
+          replyCount: replies.length,
+          createdAt: discussion.createdAt,
+          updatedAt: discussion.updatedAt,
+          replies
+        };
+      })
+    );
+
+    res.json(success({
+      discussions: discussionsWithReplies
+    }));
+  } catch (err) {
+    console.error('[获取我的讨论] 错误:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 获取收藏的讨论列表
+async function getFavoriteDiscussions(req, res) {
+  try {
+    console.log('=== 获取收藏讨论列表请求开始 ===');
+    const startTime = Date.now();
+
+    const { page = 1, limit = 10 } = req.query;
+    const userId = req.user.userId;
+    const offset = (page - 1) * limit;
+
+    // 获取收藏的记录总数
+    const { count } = await DiscussionFavorite.findAndCountAll({
+      where: { userId }
+    });
+
+    // 获取收藏的讨论
+    const favorites = await DiscussionFavorite.findAll({
+      where: { userId },
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['created_at', 'DESC']],
+      include: [{
+        model: Discussion,
+        as: 'discussion',
+        required: false, // 使用LEFT JOIN，允许讨论为null（已被删除）
+        include: [{
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'avatar'],
+          required: false
+        }]
+      }]
+    });
+
+    // 提取讨论数据
+    const discussions = favorites
+      .map(fav => {
+        const discussion = fav.discussion;
+        if (!discussion) return null;
+
+        const discussionData = discussion.toJSON();
+
+        return {
+          id: discussionData.id,
+          title: discussionData.title,
+          content: discussionData.content,
+          status: discussionData.status,
+          visibility: discussionData.visibility,
+          messageId: discussionData.messageId,
+          replyCount: discussionData.replies?.length || 0,
+          createdAt: discussionData.createdAt,
+          updatedAt: discussionData.updatedAt,
+          creatorId: discussionData.userId,
+          creatorName: discussionData.userName,
+          userName: discussionData.userName,
+          userAvatar: discussionData.user?.avatar
+        };
+      })
+      .filter(disc => disc !== null); // 过滤掉已被删除的讨论
+
+    console.log('获取收藏讨论列表请求处理完成，总耗时:', Date.now() - startTime, 'ms');
+
+    // 统一响应格式: { code, message, data: { list, pagination } }
+    res.json(success({
+      list: discussions,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(count / limit)
+      }
+    }));
+  } catch (err) {
+    console.error('获取收藏讨论列表错误:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 收藏讨论
+async function favoriteDiscussion(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // 检查讨论是否存在
+    const discussion = await Discussion.findByPk(id);
+    if (!discussion) {
+      return res.status(404).json(notFound('Discussion not found'));
+    }
+
+    // 检查是否已收藏
+    const existingFavorite = await DiscussionFavorite.findOne({
+      where: { userId, discussionId: id }
+    });
+
+    if (existingFavorite) {
+      return res.json(success(existingFavorite, 'Already favorited'));
+    }
+
+    // 创建收藏记录
+    const favorite = await DiscussionFavorite.create({
+      userId,
+      discussionId: id
+    });
+
+    res.status(201).json(success(favorite, 'Discussion favorited successfully'));
+  } catch (err) {
+    console.error('收藏讨论失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 取消收藏讨论
+async function unfavoriteDiscussion(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // 查找收藏记录
+    const favorite = await DiscussionFavorite.findOne({
+      where: { discussionId: id, userId }
+    });
+
+    if (!favorite) {
+      return res.status(404).json(notFound('Favorite not found'));
+    }
+
+    // 删除收藏记录
+    await favorite.destroy();
+
+    res.json(success(null, 'Discussion unfavorited successfully'));
+  } catch (err) {
+    console.error('取消收藏讨论失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
 module.exports = {
   getDiscussions,
   getDiscussionById,
   createDiscussion,
   addDiscussionReply,
   getDiscussionReplies,
-  updateDiscussionVisibility
+  updateDiscussionVisibility,
+  getMyDiscussions,
+  getFavoriteDiscussions,
+  favoriteDiscussion,
+  unfavoriteDiscussion
 };

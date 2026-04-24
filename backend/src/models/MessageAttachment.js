@@ -16,19 +16,36 @@ const MessageAttachment = sequelize.define('MessageAttachment', {
   },
   type: {
     type: DataTypes.STRING(50),
-    allowNull: false
+    field: 'type',
+    allowNull: false,
+    defaultValue: 'image'
   },
   url: {
-    type: DataTypes.STRING(255),
+    type: DataTypes.STRING(500),
+    field: 'file_url',
     allowNull: false
   },
   name: {
     type: DataTypes.STRING(255),
-    allowNull: false
+    field: 'file_name',
+    allowNull: false,
+    defaultValue: ''
+  },
+  fileType: {
+    type: DataTypes.STRING(50),
+    field: 'file_type',
+    allowNull: true
+  },
+  fileSize: {
+    type: DataTypes.INTEGER,
+    field: 'file_size',
+    allowNull: true
   }
 }, {
   tableName: 'message_attachments',
-  timestamps: false
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: false
 });
 
 // 关联关系

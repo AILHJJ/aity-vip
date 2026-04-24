@@ -112,7 +112,7 @@ const loadDiscussions = async (isRefresh = false) => {
 
 		const res = await getMyDiscussionsApi(params)
 
-		if (res.success) {
+		if (res.success || res.code === 200) {
 			const newData = res.data.discussions || res.data.list || []
 
 			if (isRefresh) {
@@ -162,18 +162,32 @@ const handleDelete = async (id) => {
 			content: '确定要删除这个讨论吗？删除后无法恢复。',
 			success: async (res) => {
 				if (res.confirm) {
-					const result = await deleteDiscussionApi(id)
+					// 显示 loading
+					uni.showLoading({
+						title: '删除中...',
+						mask: true
+					})
 
-					if (result.success) {
+					try {
+						const result = await deleteDiscussionApi(id)
+
+						if (result.success || result.code === 200) {
+							uni.hideLoading()
+							uni.showToast({
+								title: '删除成功',
+								icon: 'success'
+							})
+
+							// 刷新列表以确保数据一致性
+							await loadDiscussions(true)
+						} else {
+							throw new Error(result.message || '删除失败')
+						}
+					} catch (error) {
+						uni.hideLoading()
+						console.error('删除讨论失败:', error)
 						uni.showToast({
-							title: '删除成功',
-							icon: 'success'
-						})
-						// 从列表中移除
-						discussions.value = discussions.value.filter(item => item.id !== id)
-					} else {
-						uni.showToast({
-							title: result.message || '删除失败',
+							title: error.message || '删除失败',
 							icon: 'none'
 						})
 					}

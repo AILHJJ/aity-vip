@@ -1,14 +1,19 @@
 {
-  "name": "private-sharing-app-backend",
+  "name": "aity-backend",
   "version": "1.0.0",
   "description": "Private Sharing App Backend with MySQL",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
-    "test": "jest",
+    "start": "cross-env NODE_ENV=production node src/index.js",
+    "dev": "cross-env NODE_ENV=development nodemon src/index.js",
+    "dev:prod": "cross-env NODE_ENV=development DB_ENV=production nodemon src/index.js",
+    "test": "cross-env NODE_ENV=test jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "db:status": "node scripts/check-db-status.js",
+    "db:sync": "node scripts/sync-test-db.js",
+    "db:sync:dry": "node scripts/sync-test-db.js --dry-run",
+    "db:init": "node init-db.js"
   },
   "dependencies": {
     "axios": "^1.13.5",
@@ -27,6 +32,7 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "jest": "^29.7.0",
     "nodemon": "^3.0.2",
     "supertest": "^6.3.3"

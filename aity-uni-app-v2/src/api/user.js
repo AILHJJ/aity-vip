@@ -54,6 +54,24 @@ export function deleteUserApi(id) {
 }
 
 /**
+ * 停用用户（逻辑删除）
+ * @param {Number} id 用户ID
+ * @returns {Promise}
+ */
+export function deactivateUserApi(id) {
+  return put(`/users/${id}/deactivate`)
+}
+
+/**
+ * 启用用户
+ * @param {Number} id 用户ID
+ * @returns {Promise}
+ */
+export function activateUserApi(id) {
+  return put(`/users/${id}/activate`)
+}
+
+/**
  * 获取分组列表
  * @returns {Promise}
  */
@@ -107,6 +125,8 @@ export default {
   createUserApi,
   updateUserApi,
   deleteUserApi,
+  deactivateUserApi,
+  activateUserApi,
   getGroupsApi,
   createGroupApi,
   updateGroupApi,

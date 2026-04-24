@@ -72,7 +72,7 @@ async function getGroupById(req, res) {
     }
     
     // 获取该分组的用户数
-    const userCount = await User.count({ where: { group_id: id } });
+    const userCount = await User.count({ where: { groupId: id } });
     
     const groupData = {
       ...group.toJSON(),
@@ -148,7 +148,7 @@ async function deleteGroup(req, res) {
     }
     
     // 检查分组是否有用户
-    const userCount = await User.count({ where: { group_id: id } });
+    const userCount = await User.count({ where: { groupId: id } });
     if (userCount > 0) {
       return res.status(400).json(badRequest('Cannot delete group with users. Please move users first.'));
     }

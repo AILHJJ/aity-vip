@@ -1,25 +1,8 @@
 <template>
 	<view class="ai-advisor-container">
-		<!-- 极简顶部栏 -->
-		<view class="header">
-			<view class="header-left">
-				<text class="header-title">图灵</text>
-			</view>
-		</view>
-
-		<!-- 实时行情指数条 -->
-		<view class="market-ticker" v-if="marketData.length > 0">
-			<scroll-view scroll-x class="ticker-scroll" :show-scrollbar="false">
-				<view class="ticker-item" v-for="(item, index) in marketData" :key="index">
-					<text class="ticker-name">{{ item.name }}</text>
-					<text class="ticker-value" :class="getChangeClass(item.EXT_ZF)">
-						{{ item.now }}
-					</text>
-					<text class="ticker-change" :class="getChangeClass(item.EXT_ZF)">
-						{{ formatChange(item.EXT_ZF) }}%
-					</text>
-				</view>
-			</scroll-view>
+		<!-- 顶部标题栏 -->
+		<view class="header-bar">
+			<text class="header-title">AI图灵</text>
 		</view>
 
 		<!-- 对话消息区域 -->
@@ -68,23 +51,7 @@
 								<text class="reasoning-text">{{ message.reasoning }}</text>
 							</view>
 
-							<!-- 工具调用提示 -->
-							<view v-if="message.toolCalls && message.toolCalls.length > 0" class="tool-calls-info">
-								<text class="tool-icon">🔧</text>
-								<text class="tool-text">正在调用工具：{{ message.toolCalls[0].function?.name || '未知工具' }}</text>
-							</view>
-
-							<!-- 工具响应结果表格（优先显示） -->
-							<view v-if="message.toolResult" class="tool-result-content">
-								<view class="tool-result-header">
-									<text class="tool-result-title">📊 工具返回结果</text>
-								</view>
-								<view class="financial-table-wrapper">
-									<view v-html="renderToolResultTable(message.toolResult)" class="financial-table"></view>
-								</view>
-							</view>
-
-							<!-- Markdown内容渲染 -->
+							<!-- Markdown内容渲染（优先显示文本内容） -->
 							<view v-if="message.content" class="content-area">
 								<!-- 如果是金融选股工具，尝试解析JSON表格 -->
 								<view v-if="message.isTable && !message.toolResult" class="financial-content">
@@ -94,6 +61,16 @@
 								<!-- 否则使用普通Markdown渲染 -->
 								<view v-else class="markdown-content">
 									<rich-text :nodes="renderMarkdown(message.content)"></rich-text>
+								</view>
+							</view>
+
+							<!-- 工具响应结果表格（最后显示，方便用户先看到文字内容） -->
+							<view v-if="message.toolResult" class="tool-result-content">
+								<view class="tool-result-header">
+									<text class="tool-result-title">📊 查询结果（部分展示）</text>
+								</view>
+								<view class="financial-table-wrapper">
+									<view v-html="renderToolResultTable(message.toolResult)" class="financial-table"></view>
 								</view>
 							</view>
 
@@ -191,6 +168,7 @@ import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { sendAIMessage } from '@/api/ai-advisor'
 import { getChatHistory, saveChatHistory, saveThreadId, clearChatHistory, getThreadId } from '@/utils/ai-advisor-config'
 import { MarkdownRenderer, FinancialTableParser } from '@/utils/markdown-renderer'
+import { API_BASE_URL } from '@/utils/config'
 
 // 数据
 const messages = ref([])
@@ -233,7 +211,7 @@ function handleNewSession() {
 async function loadMarketData() {
 	try {
 		const res = await uni.request({
-			url: 'https://aity88.online:8443/api/market/ticker',
+			url: API_BASE_URL + '/market/ticker',
 			method: 'GET'
 		})
 		if (res.data.code === 200) {
@@ -460,12 +438,11 @@ function handleScrollAreaTouch() {
 // 渲染工具结果表格
 function renderToolResultTable(toolResult) {
 	try {
-		// toolResult是JSON字符串："[["证券代码","证券名称",...],["000001","平安银行",...]]"
-		// ⭐ 完整数据结构（参考项目）：
-		// 第0行：元数据 [0, "", 0, "", "0"]
-		// 第1行：字段定义 ["POS", "market", "sec_code", "sec_name", "now_price", "chg0#", "所属行业", "timestamps"]
-		// 第2行：格式化标识 ["", "", "", "2|0|0", "2|0|0", "0|0|0", ""]
-		// 第3行起：实际数据 ["000001", "沪市", "平安银行", "12.45", "2.35", "银行业", "2024-01-15 10:30:00"]
+		// toolResult是JSON字符串："[["市场","证券代码","证券名称",...],["","","",...],["1","600010","包钢股份",...]]"
+		// ⭐ 实际数据结构：
+		// 第0行：表头 ["市场","证券代码","证券名称","现价<br>2026.02.25","涨跌幅<br>2026.02.25",...]
+		// 第1行：格式化标识 ["0|0|0","0|0|0","2|0|0","2|0|0","0|0|0",...]
+		// 第2行起：实际数据 ["1","600010","包钢股份","2.93","10.15",...]
 
 		const data = JSON.parse(toolResult)
 
@@ -474,60 +451,57 @@ function renderToolResultTable(toolResult) {
 		}
 
 		// 提取各行数据
-		const row0 = data[0] || []  // 元数据行
-		const row1 = data[1] || []  // 字段定义行
-		const row2 = data[2] || []  // 格式化标识行
-		const rows = data.slice(3)    // 实际数据行（第3行起）
+		const headers = data[0] || []      // 表头行
+		const formatFlags = data[1] || []  // 格式化标识行
+		const rows = data.slice(2)         // 实际数据行（第2行起）
 
-		// 提取字段映射
-		const fieldMapping = {}
-		row1.forEach((field, index) => {
-			fieldMapping[row0[index]] = field
-		})
+		// 过滤掉最后一条"总记录数"行
+		const dataRows = rows.filter(row =>
+			row[0] !== '总记录数' && row[0] !== ''
+		)
 
-		// 提取格式化标识
-		const formatFlags = {}
-		row2.forEach((flag, index) => {
-			formatFlags[row0[index]] = flag
-		})
+		// 找到"市场"列的索引并隐藏
+		const marketColIndex = headers.findIndex(h => h === '市场')
+		const hideColIndices = marketColIndex >= 0 ? [marketColIndex] : []
 
-		// 生成HTML表格
-		let tableHtml = '<table class="tool-result-table">'
+		// 生成HTML表格 - 添加横向滚动容器
+		let tableHtml = '<div style="overflow-x: auto; -webkit-overflow-scrolling: touch;"><table class="tool-result-table" style="min-width: 100%;">'
 		tableHtml += '<thead><tr>'
 
-		// 渲染表头（使用字段定义）
-		const headers = Object.values(fieldMapping)
-		headers.forEach(header => {
-			// 处理表头中的<br>标签和日期（如"现价<br>2024.01.15"）
-			const cleanHeader = header.replace(/<br>.*$/, '')
-			tableHtml += `<th>${cleanHeader}</th>`
+		// 渲染表头（跳过隐藏列）
+		headers.forEach((header, index) => {
+			if (hideColIndices.includes(index)) return
+			// 处理表头中的<br>标签（如"现价<br>2026.02.25"）
+			const cleanHeader = header ? header.replace(/<br>/g, '<br/>') : ''
+			tableHtml += `<th style="white-space: nowrap; padding: 8px 12px;">${cleanHeader}</th>`
 		})
 		tableHtml += '</tr></thead><tbody>'
 
-		// 渲染数据行
-		rows.forEach((row, rowIndex) => {
+		// 渲染数据行（跳过隐藏列）
+		dataRows.forEach((row, rowIndex) => {
 			tableHtml += '<tr>'
 
 			row.forEach((cell, cellIndex) => {
-				const fieldName = Object.keys(fieldMapping)[cellIndex]
-				const formatFlag = formatFlags[fieldName]
+				if (hideColIndices.includes(cellIndex)) return
+
+				const formatFlag = formatFlags[cellIndex] || ''
 
 				// 应用格式化函数
-				const formattedCell = formatCellValue(cell, formatFlag, fieldName, row)
+				const formattedCell = formatCellValue(cell, formatFlag, headers[cellIndex], row)
 
-				tableHtml += `<td>${formattedCell}</td>`
+				tableHtml += `<td style="white-space: nowrap; padding: 8px 12px;">${formattedCell}</td>`
 			})
 
 			tableHtml += '</tr>'
 		})
 
-		tableHtml += '</tbody></table>'
+		tableHtml += '</tbody></table></div>'
 
 		return tableHtml
 	} catch (error) {
 		console.error('解析工具结果失败:', error)
 		// 降级：返回原始文本
-		return `<pre style="white-space: pre-wrap; word-break: break-all;">${toolResult}</pre>`
+		return `<pre style="white-space: pre-wrap; word-break: break-all; font-size: 12px;">${toolResult}</pre>`
 	}
 }
 
@@ -716,6 +690,19 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件默认样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+button::after {
+	border: none;
+}
+
 .ai-advisor-container {
 	display: flex;
 	flex-direction: column;
@@ -723,42 +710,33 @@ onUnmounted(() => {
 	background: #fafafa;
 }
 
-/* 极简顶部栏 */
-.header {
-	background: #ffffff;
-	padding: 24rpx 32rpx;
+/* 顶部标题栏 */
+.header-bar {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	padding: 28rpx 32rpx;
+	padding-top: calc(28rpx + env(safe-area-inset-top));
 	display: flex;
-	justify-content: space-between;
+	flex-direction: column;
 	align-items: center;
-	border-bottom: 1rpx solid #f0f0f0;
-	position: relative;
-	z-index: 100;
-}
-
-.header-left {
-	display: flex;
-	align-items: center;
-	gap: 12rpx;
+	justify-content: center;
+	flex-shrink: 0;
+	min-height: 88rpx;
 }
 
 .header-title {
-	font-size: 40rpx;
-	font-weight: bold;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
-	background-clip: text;
+	font-size: 32rpx;
+	font-weight: 600;
+	color: #ffffff;
+	letter-spacing: 2rpx;
+	text-align: center;
 }
 
-/* 行情指数条 */
-.market-ticker {
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	padding: 16rpx 20rpx;
-	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.2);
-}
-
-.ticker-scroll {
-	white-space: nowrap;
+/* 对话区域 */
+.chat-container {
+	flex: 1;
+	padding: 20rpx;
+	overflow-y: auto;
+	padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
 }
 
 .ticker-item {
@@ -811,6 +789,7 @@ onUnmounted(() => {
 	flex: 1;
 	padding: 20rpx;
 	overflow-y: auto;
+	padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
 }
 
 /* 欢迎区域 - 极简设计 */
@@ -1489,8 +1468,21 @@ onUnmounted(() => {
 	display: flex;
 	align-items: flex-end;
 	gap: 12rpx;
-	padding: 0 24rpx;
-	padding-bottom: calc(8rpx + env(safe-area-inset-bottom));
+	padding: 12rpx 24rpx;
+	padding-bottom: calc(12rpx + env(safe-area-inset-bottom));
+	position: relative;
+}
+
+.input-wrapper::after {
+	content: 'AI生成内容仅供参考，不构成投资建议';
+	position: absolute;
+	bottom: calc(env(safe-area-inset-bottom) + 4rpx);
+	left: 0;
+	right: 0;
+	text-align: center;
+	font-size: 20rpx;
+	color: #cccccc;
+	pointer-events: none;
 }
 
 /* 输入框左侧操作按钮 */

@@ -12,6 +12,17 @@ const sequelize = require('../config/db');
 const User = require('./User');
 const Group = require('./Group');
 
+// 延迟加载关联模型以避免循环依赖
+let MessageAttachment, UserFavorite, Discussion;
+
+try {
+  MessageAttachment = require('./MessageAttachment');
+  UserFavorite = require('./UserFavorite');
+  Discussion = require('./Discussion');
+} catch (e) {
+  // 忽略模块未加载错误，稍后设置关联
+}
+
 const Message = sequelize.define('Message', {
   id: {
     type: DataTypes.INTEGER,
@@ -28,6 +39,7 @@ const Message = sequelize.define('Message', {
   },
   type: {
     type: DataTypes.ENUM(
+      'position_handle',       // 持仓处理（放在第一位）
       'pre_market_comment',    // 盘前点评
       'morning_comment',       // 早盘点评
       'morning_focus',         // 早盘关注
@@ -78,6 +90,18 @@ const Message = sequelize.define('Message', {
     defaultValue: 'default',
     comment: 'Markdown主题样式：default, github, emerald, ocean, warm, dark'
   },
+  originalContent: {
+    type: DataTypes.TEXT,
+    field: 'original_content',
+    allowNull: true,
+    comment: '原始内容（AI优化前的内容）'
+  },
+  aiOptimizedContent: {
+    type: DataTypes.TEXT,
+    field: 'ai_optimized_content',
+    allowNull: true,
+    comment: 'AI优化后的内容'
+  },
   publishTime: {
     type: DataTypes.DATE,
     field: 'publish_time',
@@ -90,6 +114,20 @@ const Message = sequelize.define('Message', {
     allowNull: false,
     defaultValue: 'published',
     comment: 'draft:草稿, scheduled:定时发布, published:已发布'
+  },
+  isPinned: {
+    type: DataTypes.BOOLEAN,
+    field: 'is_pinned',
+    allowNull: false,
+    defaultValue: false,
+    comment: '是否置顶'
+  },
+  discussionCount: {
+    type: DataTypes.INTEGER,
+    field: 'discussion_count',
+    allowNull: false,
+    defaultValue: 0,
+    comment: '讨论数量'
   },
   createdAt: {
     type: DataTypes.DATE,
@@ -108,5 +146,18 @@ const Message = sequelize.define('Message', {
 Message.belongsTo(User, { foreignKey: 'senderId', as: 'senderUser' });
 // 注意：groupId 不设置外键约束，因为它可以是特殊值 'all' 或实际的 group_id
 // Message.belongsTo(Group, { foreignKey: 'groupId', as: 'messageGroup' });
+
+// 设置其他关联（如果模型已加载）
+if (MessageAttachment) {
+  Message.hasMany(MessageAttachment, { foreignKey: 'messageId', as: 'attachments' });
+}
+
+if (UserFavorite) {
+  Message.hasMany(UserFavorite, { foreignKey: 'messageId', as: 'favorites' });
+}
+
+if (Discussion) {
+  Message.hasMany(Discussion, { foreignKey: 'messageId', as: 'discussions' });
+}
 
 module.exports = Message;

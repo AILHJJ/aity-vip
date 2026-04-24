@@ -5,10 +5,10 @@
 			<text class="empty-title">{{ computedTitle }}</text>
 			<text v-if="computedDescription" class="empty-description">{{ computedDescription }}</text>
 			<button
-				v-if="showAction && computedActionText"
-				:class="['empty-action', 'action-' + actionType]"
-				@click="handleAction"
-			>
+			class="empty-btn-reset"
+			:class="['empty-action', 'action-' + actionType]"
+			@click="handleAction"
+		>
 				{{ computedActionText }}
 			</button>
 		</view>
@@ -19,10 +19,10 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-	type: {
+		type: {
 		type: String,
 		default: 'default',
-		validator: (value) => ['default', 'message', 'discussion', 'favorite', 'network-error', 'no-result', 'image', 'discussions', 'profile'].includes(value)
+		validator: (value) => ['default', 'message', 'discussion', 'favorite', 'network-error', 'no-result', 'image', 'discussions', 'profile', 'market'].includes(value)
 	},
 	title: {
 		type: String,
@@ -97,6 +97,11 @@ const typeConfig = {
 		title: '暂无图片',
 		description: '该消息没有图片附件'
 	},
+	'market': {
+		icon: '📊',
+		title: '暂无行情数据',
+		description: '当前暂无行情数据，请稍后再试'
+	},
 	'profile': {
 		icon: '👤',
 		title: '暂无个人资料',
@@ -130,6 +135,19 @@ const handleAction = () => {
 </script>
 
 <style lang="scss" scoped>
+/* 按钮样式 - 微信小程序组件不支持标签选择器，使用类选择器 */
+.empty-btn-reset {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+.empty-btn-reset::after {
+	border: none;
+}
+
 .empty-state-container {
 	display: flex;
 	align-items: center;
@@ -164,13 +182,13 @@ const handleAction = () => {
 .empty-title {
 	font-size: 32rpx;
 	font-weight: 600;
-	color: #333333;
+	color: var(--text-primary);
 	margin-bottom: 20rpx;
 }
 
 .empty-description {
 	font-size: 28rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 	line-height: 1.6;
 	max-width: 500rpx;
 	margin-bottom: 40rpx;
@@ -181,7 +199,7 @@ const handleAction = () => {
 	font-size: 28rpx;
 	border: none;
 	border-radius: 50rpx;
-	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+	box-shadow: var(--shadow-card);
 	transition: all 0.3s;
 	font-weight: 500;
 
@@ -195,30 +213,30 @@ const handleAction = () => {
 }
 
 .action-primary {
-	color: #ffffff;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.3);
+	color: var(--btn-primary-text);
+	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+	box-shadow: var(--shadow-primary);
 
 	&:active {
-		box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+		box-shadow: var(--shadow-sm);
 	}
 }
 
 .action-secondary {
-	color: #333333;
-	background: #f5f5f5;
+	color: var(--btn-secondary-text);
+	background: var(--btn-secondary-bg);
 
 	&:active {
-		background: #e0e0e0;
+		background: var(--bg-hover);
 	}
 }
 
 .action-text {
-	color: #667eea;
+	color: var(--text-link);
 	background: transparent;
 
 	&:active {
-		background: #f0f2ff;
+		background: var(--bg-hover);
 	}
 }
 </style>

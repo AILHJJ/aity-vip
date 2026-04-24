@@ -4,6 +4,7 @@ const sequelize = require('../config/db');
 const Message = require('../models/Message');
 const MessageAttachment = require('../models/MessageAttachment');
 const UserMessageRead = require('../models/UserMessageRead');
+const UserFavorite = require('../models/UserFavorite');
 const User = require('../models/User');
 const Group = require('../models/Group');
 const Discussion = require('../models/Discussion');
@@ -126,11 +127,12 @@ async function getMessages(req, res) {
       where[Op.and] = andConditions;
     }
 
+    // 排序：置顶消息优先，然后按创建时间倒序
     const { count, rows } = await Message.findAndCountAll({
       where,
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['createdAt', 'DESC']],
+      order: [['is_pinned', 'DESC'], ['created_at', 'DESC']],
       include: [{
         model: User,
         as: 'senderUser',
@@ -176,6 +178,7 @@ async function getMessageById(req, res) {
     
     // 检查用户是否有权限查看该消息
     let hasPermission = true;
+    const messageTags = message.tags || []; // 防止 tags 为 null 时 .includes() 崩溃
     
     switch (currentUser.role) {
       case 'super_admin':
@@ -185,11 +188,11 @@ async function getMessageById(req, res) {
         break;
       case 'vip_mid':
         // 只能查看中线策略或全部用户的消息
-        hasPermission = message.tags.includes('mid_term') || message.tags.includes('all_users');
+        hasPermission = messageTags.includes('mid_term') || messageTags.includes('all_users');
         break;
       case 'vip_short':
         // 只能查看短线策略或全部用户的消息
-        hasPermission = message.tags.includes('short_term') || message.tags.includes('all_users');
+        hasPermission = messageTags.includes('short_term') || messageTags.includes('all_users');
         break;
       default:
         hasPermission = false;
@@ -214,7 +217,7 @@ async function getMessageById(req, res) {
     });
     
     // 获取发送者信息
-    const sender = await User.findByPk(message.sender_id, {
+    const sender = await User.findByPk(message.senderId, {
       attributes: ['name', 'avatar']
     });
     
@@ -311,7 +314,7 @@ async function createMessage(req, res) {
 async function updateMessage(req, res) {
   try {
     const { id } = req.params;
-    const { title, content, type, attachments, tags, theme, publishTime } = req.body;
+    const { title, content, type, attachments, tags, theme, publishTime, aiOptimizedContent, originalContent } = req.body;
 
     // 获取消息
     const message = await Message.findByPk(id);
@@ -330,6 +333,18 @@ async function updateMessage(req, res) {
     // 处理theme
     if (theme !== undefined) {
       updateData.theme = theme;
+    }
+
+    // 处理AI优化内容
+    // 如果传入了aiOptimizedContent，说明进行了AI优化
+    if (aiOptimizedContent !== undefined) {
+      // 保存原始内容（如果还没有保存过）
+      if (!message.originalContent && originalContent) {
+        updateData.originalContent = originalContent;
+      }
+      updateData.aiOptimizedContent = aiOptimizedContent;
+      // 更新content为优化后的内容（用于默认显示）
+      updateData.content = aiOptimizedContent;
     }
 
     // 处理publishTime和status
@@ -473,6 +488,167 @@ async function markMessageAsRead(req, res) {
   }
 }
 
+// 获取消息阅读详情（管理员专用）
+async function getMessageReadDetails(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // 验证管理员权限
+    const currentUser = await User.findByPk(userId);
+    if (!currentUser || (currentUser.role !== 'super_admin' && currentUser.role !== 'admin')) {
+      return res.status(403).json(forbidden('Admin access is required'));
+    }
+
+    // 获取消息
+    const message = await Message.findByPk(id);
+    if (!message) {
+      return res.status(404).json(notFound('Message not found'));
+    }
+
+    // 根据消息的 groupId + tags 确定目标用户范围
+    const userWhere = { status: 'active' };
+    const messageTags = message.tags || [];
+
+    // groupId 过滤
+    if (message.groupId && message.groupId !== 'all') {
+      userWhere.groupId = message.groupId;
+    }
+
+    // tags 权限过滤：只统计有权限看这条消息的用户
+    if (messageTags.length > 0 && !messageTags.includes('all_users')) {
+      const allowedRoles = ['super_admin', 'admin', 'trial'];
+      if (messageTags.includes('mid_term')) allowedRoles.push('vip_mid');
+      if (messageTags.includes('short_term')) allowedRoles.push('vip_short');
+      userWhere.role = { [Op.in]: allowedRoles };
+    }
+
+    // 查询所有目标用户
+    const targetUsers = await User.findAll({
+      where: userWhere,
+      attributes: ['id', 'name', 'avatar', 'role', 'groupId']
+    });
+
+    // 查询已读记录
+    const readRecords = await UserMessageRead.findAll({
+      where: { messageId: id },
+      attributes: ['userId', 'readAt']
+    });
+
+    // 构建已读用户ID集合
+    const readUserMap = new Map();
+    readRecords.forEach(record => {
+      readUserMap.set(record.userId, record.readAt);
+    });
+
+    // 分类：已读 / 未读
+    const readUsers = [];
+    const unreadUsers = [];
+
+    targetUsers.forEach(user => {
+      const readAt = readUserMap.get(user.id);
+      if (readAt) {
+        readUsers.push({
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          role: user.role,
+          groupId: user.groupId,
+          readAt
+        });
+      } else {
+        unreadUsers.push({
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          role: user.role,
+          groupId: user.groupId
+        });
+      }
+    });
+
+    res.json(success({
+      readUsers,
+      unreadUsers,
+      readCount: readUsers.length,
+      unreadCount: unreadUsers.length,
+      totalCount: targetUsers.length
+    }));
+  } catch (err) {
+    console.error('获取阅读详情失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 获取当前用户未读消息数
+async function getUnreadCount(req, res) {
+  try {
+    const userId = req.user.userId;
+
+    // 获取当前用户信息
+    const currentUser = await User.findByPk(userId);
+    if (!currentUser) {
+      return res.status(404).json(notFound('User not found'));
+    }
+
+    // 构建用户可见消息的查询条件
+    const messageWhere = {
+      [Op.or]: [
+        { status: 'published' },
+        { status: { [Op.is]: null } },
+        {
+          status: 'scheduled',
+          publishTime: { [Op.lte]: new Date() }
+        }
+      ]
+    };
+
+    // tags 权限过滤
+    if (currentUser.role !== 'trial' && currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+      const allowedTags = currentUser.role === 'vip_mid'
+        ? ['mid_term', 'all_users']
+        : ['short_term', 'all_users'];
+
+      messageWhere[Op.and] = [
+        messageWhere[Op.or] ? { [Op.or]: messageWhere[Op.or] } : {},
+        {
+          [Op.or]: [
+            { tags: null },
+            sequelize.where(
+              sequelize.fn('JSON_CONTAINS', sequelize.col('tags'), JSON.stringify(allowedTags[0])),
+              1
+            ),
+            sequelize.where(
+              sequelize.fn('JSON_CONTAINS', sequelize.col('tags'), JSON.stringify(allowedTags[1])),
+              1
+            )
+          ]
+        }
+      ];
+      delete messageWhere[Op.or];
+    }
+
+    // 获取用户已读消息ID列表
+    const readRecords = await UserMessageRead.findAll({
+      where: { userId },
+      attributes: ['messageId']
+    });
+    const readMessageIds = readRecords.map(r => r.messageId);
+
+    // 排除已读消息
+    if (readMessageIds.length > 0) {
+      messageWhere.id = { [Op.notIn]: readMessageIds };
+    }
+
+    const unreadCount = await Message.count({ where: messageWhere });
+
+    res.json(success({ unreadCount }));
+  } catch (err) {
+    console.error('获取未读消息数失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
 // 收藏消息
 async function favoriteMessage(req, res) {
   try {
@@ -485,11 +661,22 @@ async function favoriteMessage(req, res) {
       return res.status(404).json(notFound('Message not found'));
     }
 
-    // 这里需要创建一个收藏表或者使用现有的方式
-    // 暂时返回成功，实际项目中应该有 favorites 表
-    // TODO: 实现 favorites 功能
+    // 检查是否已收藏
+    const existingFavorite = await UserFavorite.findOne({
+      where: { userId, messageId: id }
+    });
 
-    res.json(success({ favorited: true }, 'Message favorited'));
+    if (existingFavorite) {
+      return res.json(success(existingFavorite, 'Already favorited'));
+    }
+
+    // 创建收藏记录
+    const favorite = await UserFavorite.create({
+      userId,
+      messageId: id
+    });
+
+    res.json(success(favorite, 'Message favorited'));
   } catch (err) {
     console.error('收藏消息失败:', err);
     res.status(500).json(error('Server error'));
@@ -508,7 +695,17 @@ async function unfavoriteMessage(req, res) {
       return res.status(404).json(notFound('Message not found'));
     }
 
-    // TODO: 实现 unfavorite 功能
+    // 查找收藏记录
+    const favorite = await UserFavorite.findOne({
+      where: { userId, messageId: id }
+    });
+
+    if (!favorite) {
+      return res.status(404).json(notFound('Favorite not found'));
+    }
+
+    // 删除收藏记录
+    await favorite.destroy();
 
     res.json(success({ favorited: false }, 'Message unfavorited'));
   } catch (err) {
@@ -566,6 +763,8 @@ module.exports = {
   updateMessage,
   deleteMessage,
   markMessageAsRead,
+  getMessageReadDetails,
+  getUnreadCount,
   favoriteMessage,
   unfavoriteMessage,
   pinMessage,

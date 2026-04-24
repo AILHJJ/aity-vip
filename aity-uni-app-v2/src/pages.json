@@ -8,13 +8,6 @@
 			}
 		},
 		{
-			"path": "pages/ai-advisor/ai-advisor",
-			"style": {
-				"navigationBarTitleText": "图灵",
-				"navigationStyle": "custom"
-			}
-		},
-		{
 			"path": "pages/messages/messages",
 			"style": {
 				"navigationBarTitleText": "消息中心",
@@ -84,6 +77,46 @@
 			"style": {
 				"navigationBarTitleText": "数据统计"
 			}
+		},
+		{
+			"path": "pages/admin/ai-config",
+			"style": {
+				"navigationBarTitleText": "AI管理"
+			}
+		},
+		{
+			"path": "pages/market/market",
+			"style": {
+				"navigationBarTitleText": "行情中心",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/market/market-ladder",
+			"style": {
+				"navigationBarTitleText": "连板天梯",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/change-password/change-password",
+			"style": {
+				"navigationBarTitleText": "修改密码"
+			}
+		},
+		{
+			"path": "pages/webview/webview",
+			"style": {
+				"navigationBarTitleText": "行情图",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/ai-advisor/ai-advisor",
+			"style": {
+				"navigationBarTitleText": "图灵",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"tabBar": {
@@ -101,8 +134,8 @@
 				"text": "讨论"
 			},
 			{
-				"pagePath": "pages/ai-advisor/ai-advisor",
-				"text": "图灵"
+				"pagePath": "pages/market/market",
+				"text": "行情"
 			},
 			{
 				"pagePath": "pages/profile/profile",

@@ -15,7 +15,10 @@ const Group = sequelize.define('Group', {
     type: DataTypes.TEXT
   }
 }, {
-  tableName: 'groups_table'
+  tableName: 'groups_table',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
 });
 
 module.exports = Group;

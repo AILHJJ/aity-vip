@@ -1,8 +1,10 @@
 /**
- * Markdown渲染器 - 增强版
- * 参考问小达3.0版本实现优化
+ * Markdown渲染器 - markdown-it 版本
+ * 使用 markdown-it 库提供更强大的 Markdown 解析能力
  * 支持主题内联样式，解决rich-text组件样式隔离问题
  */
+
+import MarkdownIt from 'markdown-it'
 
 /**
  * 主题样式配置 - 内联样式版本
@@ -164,7 +166,252 @@ export const ThemeStyles = {
 		textUp: 'color: #ff6b6b; font-weight: 500;',
 		textDown: 'color: #51cf66; font-weight: 500;',
 		textNeutral: 'color: #8b949e;'
+	},
+	violet: {
+		container: 'font-size: 30rpx; line-height: 1.8; color: #2d3748; word-wrap: break-word;',
+		h1: 'font-size: 40rpx; font-weight: 700; color: #5b21b6; margin: 40rpx 0 20rpx; padding-bottom: 12rpx; border-bottom: 3rpx solid #a78bfa;',
+		h2: 'font-size: 36rpx; font-weight: 600; color: #6d28d9; margin: 32rpx 0 16rpx; padding-bottom: 10rpx; border-bottom: 1rpx solid #ddd6fe;',
+		h3: 'font-size: 32rpx; font-weight: 600; color: #7c3aed; margin: 28rpx 0 14rpx;',
+		h4: 'font-size: 30rpx; font-weight: 600; color: #8b5cf6; margin: 24rpx 0 12rpx;',
+		h5: 'font-size: 28rpx; font-weight: 500; color: #a78bfa; margin: 20rpx 0 10rpx;',
+		h6: 'font-size: 28rpx; font-weight: 500; color: #a78bfa; margin: 16rpx 0 8rpx;',
+		strong: 'font-weight: 600; color: #5b21b6;',
+		em: 'font-style: italic; color: #6d28d9;',
+		del: 'text-decoration: line-through; color: #9ca3af;',
+		inlineCode: 'background: #f5f3ff; color: #7c3aed; padding: 4rpx 8rpx; border-radius: 4rpx; font-family: Consolas, Monaco, monospace; font-size: 26rpx; border: 1rpx solid #ddd6fe;',
+		codeBlock: 'background: #5b21b6; color: #f5f3ff; padding: 20rpx; border-radius: 8rpx; overflow-x: auto; margin: 20rpx 0; font-family: Consolas, Monaco, monospace; font-size: 26rpx; line-height: 1.6; white-space: pre-wrap;',
+		blockquote: 'margin: 16rpx 0; padding: 16rpx 20rpx; background: #f5f3ff; border-left: 4rpx solid #a78bfa; color: #6d28d9; border-radius: 0 8rpx 8rpx 0;',
+		link: 'color: #7c3aed; text-decoration: none; border-bottom: 1rpx dashed #a78bfa;',
+		listItem: 'margin: 8rpx 0; line-height: 1.8; padding-left: 20rpx;',
+		orderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		unorderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		divider: 'border: none; border-top: 2rpx solid #ddd6fe; margin: 32rpx 0;',
+		table: 'width: 100%; border-collapse: collapse; border: 1rpx solid #ddd6fe; border-radius: 8rpx; overflow: hidden; margin: 24rpx 0; font-size: 28rpx;',
+		th: 'font-weight: 600; padding: 12rpx 16rpx; text-align: left; color: #5b21b6; border-bottom: 2rpx solid #a78bfa; background: #f5f3ff;',
+		td: 'padding: 12rpx 16rpx; border-bottom: 1rpx solid #ede9fe;',
+		textUp: 'color: #ef4444; font-weight: 500;',
+		textDown: 'color: #10b981; font-weight: 500;',
+		textNeutral: 'color: #9ca3af;'
+	},
+	rose: {
+		container: 'font-size: 30rpx; line-height: 1.8; color: #2d3748; word-wrap: break-word;',
+		h1: 'font-size: 40rpx; font-weight: 700; color: #be123c; margin: 40rpx 0 20rpx; padding-bottom: 12rpx; border-bottom: 3rpx solid #fb7185;',
+		h2: 'font-size: 36rpx; font-weight: 600; color: #e11d48; margin: 32rpx 0 16rpx; padding-bottom: 10rpx; border-bottom: 1rpx solid #fecdd3;',
+		h3: 'font-size: 32rpx; font-weight: 600; color: #f43f5e; margin: 28rpx 0 14rpx;',
+		h4: 'font-size: 30rpx; font-weight: 600; color: #fb7185; margin: 24rpx 0 12rpx;',
+		h5: 'font-size: 28rpx; font-weight: 500; color: #fda4af; margin: 20rpx 0 10rpx;',
+		h6: 'font-size: 28rpx; font-weight: 500; color: #fda4af; margin: 16rpx 0 8rpx;',
+		strong: 'font-weight: 600; color: #be123c;',
+		em: 'font-style: italic; color: #e11d48;',
+		del: 'text-decoration: line-through; color: #9ca3af;',
+		inlineCode: 'background: #fff1f2; color: #f43f5e; padding: 4rpx 8rpx; border-radius: 4rpx; font-family: Consolas, Monaco, monospace; font-size: 26rpx; border: 1rpx solid #fecdd3;',
+		codeBlock: 'background: #be123c; color: #fff1f2; padding: 20rpx; border-radius: 8rpx; overflow-x: auto; margin: 20rpx 0; font-family: Consolas, Monaco, monospace; font-size: 26rpx; line-height: 1.6; white-space: pre-wrap;',
+		blockquote: 'margin: 16rpx 0; padding: 16rpx 20rpx; background: #fff1f2; border-left: 4rpx solid #fb7185; color: #e11d48; border-radius: 0 8rpx 8rpx 0;',
+		link: 'color: #f43f5e; text-decoration: none; border-bottom: 1rpx dashed #fb7185;',
+		listItem: 'margin: 8rpx 0; line-height: 1.8; padding-left: 20rpx;',
+		orderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		unorderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		divider: 'border: none; border-top: 2rpx solid #fecdd3; margin: 32rpx 0;',
+		table: 'width: 100%; border-collapse: collapse; border: 1rpx solid #fecdd3; border-radius: 8rpx; overflow: hidden; margin: 24rpx 0; font-size: 28rpx;',
+		th: 'font-weight: 600; padding: 12rpx 16rpx; text-align: left; color: #be123c; border-bottom: 2rpx solid #fb7185; background: #fff1f2;',
+		td: 'padding: 12rpx 16rpx; border-bottom: 1rpx solid #ffe4e6;',
+		textUp: 'color: #ef4444; font-weight: 500;',
+		textDown: 'color: #10b981; font-weight: 500;',
+		textNeutral: 'color: #9ca3af;'
+	},
+	lime: {
+		container: 'font-size: 30rpx; line-height: 1.8; color: #1f2937; word-wrap: break-word;',
+		h1: 'font-size: 40rpx; font-weight: 700; color: #365314; margin: 40rpx 0 20rpx; padding-bottom: 12rpx; border-bottom: 3rpx solid #84cc16;',
+		h2: 'font-size: 36rpx; font-weight: 600; color: #3f6212; margin: 32rpx 0 16rpx; padding-bottom: 10rpx; border-bottom: 1rpx solid #d9f99d;',
+		h3: 'font-size: 32rpx; font-weight: 600; color: #4d7c0f; margin: 28rpx 0 14rpx;',
+		h4: 'font-size: 30rpx; font-weight: 600; color: #65a30d; margin: 24rpx 0 12rpx;',
+		h5: 'font-size: 28rpx; font-weight: 500; color: #84cc16; margin: 20rpx 0 10rpx;',
+		h6: 'font-size: 28rpx; font-weight: 500; color: #84cc16; margin: 16rpx 0 8rpx;',
+		strong: 'font-weight: 600; color: #365314;',
+		em: 'font-style: italic; color: #3f6212;',
+		del: 'text-decoration: line-through; color: #6b7280;',
+		inlineCode: 'background: #f7fee7; color: #4d7c0f; padding: 4rpx 8rpx; border-radius: 4rpx; font-family: Consolas, Monaco, monospace; font-size: 26rpx; border: 1rpx solid #d9f99d;',
+		codeBlock: 'background: #365314; color: #f7fee7; padding: 20rpx; border-radius: 8rpx; overflow-x: auto; margin: 20rpx 0; font-family: Consolas, Monaco, monospace; font-size: 26rpx; line-height: 1.6; white-space: pre-wrap;',
+		blockquote: 'margin: 16rpx 0; padding: 16rpx 20rpx; background: #f7fee7; border-left: 4rpx solid #84cc16; color: #3f6212; border-radius: 0 8rpx 8rpx 0;',
+		link: 'color: #4d7c0f; text-decoration: none; border-bottom: 1rpx dashed #84cc16;',
+		listItem: 'margin: 8rpx 0; line-height: 1.8; padding-left: 20rpx;',
+		orderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		unorderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		divider: 'border: none; border-top: 2rpx solid #d9f99d; margin: 32rpx 0;',
+		table: 'width: 100%; border-collapse: collapse; border: 1rpx solid #d9f99d; border-radius: 8rpx; overflow: hidden; margin: 24rpx 0; font-size: 28rpx;',
+		th: 'font-weight: 600; padding: 12rpx 16rpx; text-align: left; color: #365314; border-bottom: 2rpx solid #84cc16; background: #f7fee7;',
+		td: 'padding: 12rpx 16rpx; border-bottom: 1rpx solid #ecfccb;',
+		textUp: 'color: #ef4444; font-weight: 500;',
+		textDown: 'color: #16a34a; font-weight: 500;',
+		textNeutral: 'color: #6b7280;'
+	},
+	tech: {
+		container: 'font-size: 30rpx; line-height: 1.8; color: #1e293b; word-wrap: break-word;',
+		h1: 'font-size: 40rpx; font-weight: 700; color: #1e3a8a; margin: 40rpx 0 20rpx; padding-bottom: 12rpx; border-bottom: 3rpx solid #60a5fa;',
+		h2: 'font-size: 36rpx; font-weight: 600; color: #1e40af; margin: 32rpx 0 16rpx; padding-bottom: 10rpx; border-bottom: 1rpx solid #bfdbfe;',
+		h3: 'font-size: 32rpx; font-weight: 600; color: #2563eb; margin: 28rpx 0 14rpx;',
+		h4: 'font-size: 30rpx; font-weight: 600; color: #3b82f6; margin: 24rpx 0 12rpx;',
+		h5: 'font-size: 28rpx; font-weight: 500; color: #60a5fa; margin: 20rpx 0 10rpx;',
+		h6: 'font-size: 28rpx; font-weight: 500; color: #60a5fa; margin: 16rpx 0 8rpx;',
+		strong: 'font-weight: 600; color: #1e3a8a;',
+		em: 'font-style: italic; color: #1e40af;',
+		del: 'text-decoration: line-through; color: #64748b;',
+		inlineCode: 'background: #eff6ff; color: #2563eb; padding: 4rpx 8rpx; border-radius: 4rpx; font-family: Consolas, Monaco, monospace; font-size: 26rpx; border: 1rpx solid #bfdbfe;',
+		codeBlock: 'background: #1e3a8a; color: #eff6ff; padding: 20rpx; border-radius: 8rpx; overflow-x: auto; margin: 20rpx 0; font-family: Consolas, Monaco, monospace; font-size: 26rpx; line-height: 1.6; white-space: pre-wrap;',
+		blockquote: 'margin: 16rpx 0; padding: 16rpx 20rpx; background: #eff6ff; border-left: 4rpx solid #60a5fa; color: #1e40af; border-radius: 0 8rpx 8rpx 0;',
+		link: 'color: #2563eb; text-decoration: none; border-bottom: 1rpx dashed #60a5fa;',
+		listItem: 'margin: 8rpx 0; line-height: 1.8; padding-left: 20rpx;',
+		orderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		unorderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		divider: 'border: none; border-top: 2rpx solid #bfdbfe; margin: 32rpx 0;',
+		table: 'width: 100%; border-collapse: collapse; border: 1rpx solid #bfdbfe; border-radius: 8rpx; overflow: hidden; margin: 24rpx 0; font-size: 28rpx;',
+		th: 'font-weight: 600; padding: 12rpx 16rpx; text-align: left; color: #1e3a8a; border-bottom: 2rpx solid #60a5fa; background: #eff6ff;',
+		td: 'padding: 12rpx 16rpx; border-bottom: 1rpx solid #dbeafe;',
+		textUp: 'color: #ef4444; font-weight: 500;',
+		textDown: 'color: #22c55e; font-weight: 500;',
+		textNeutral: 'color: #64748b;'
+	},
+	slate: {
+		container: 'font-size: 30rpx; line-height: 1.8; color: #1e293b; word-wrap: break-word;',
+		h1: 'font-size: 40rpx; font-weight: 700; color: #334155; margin: 40rpx 0 20rpx; padding-bottom: 12rpx; border-bottom: 3rpx solid #94a3b8;',
+		h2: 'font-size: 36rpx; font-weight: 600; color: #475569; margin: 32rpx 0 16rpx; padding-bottom: 10rpx; border-bottom: 1rpx solid #cbd5e1;',
+		h3: 'font-size: 32rpx; font-weight: 600; color: #64748b; margin: 28rpx 0 14rpx;',
+		h4: 'font-size: 30rpx; font-weight: 600; color: #64748b; margin: 24rpx 0 12rpx;',
+		h5: 'font-size: 28rpx; font-weight: 500; color: #94a3b8; margin: 20rpx 0 10rpx;',
+		h6: 'font-size: 28rpx; font-weight: 500; color: #94a3b8; margin: 16rpx 0 8rpx;',
+		strong: 'font-weight: 600; color: #334155;',
+		em: 'font-style: italic; color: #475569;',
+		del: 'text-decoration: line-through; color: #94a3b8;',
+		inlineCode: 'background: #f1f5f9; color: #475569; padding: 4rpx 8rpx; border-radius: 4rpx; font-family: Consolas, Monaco, monospace; font-size: 26rpx; border: 1rpx solid #cbd5e1;',
+		codeBlock: 'background: #334155; color: #f1f5f9; padding: 20rpx; border-radius: 8rpx; overflow-x: auto; margin: 20rpx 0; font-family: Consolas, Monaco, monospace; font-size: 26rpx; line-height: 1.6; white-space: pre-wrap;',
+		blockquote: 'margin: 16rpx 0; padding: 16rpx 20rpx; background: #f1f5f9; border-left: 4rpx solid #94a3b8; color: #475569; border-radius: 0 8rpx 8rpx 0;',
+		link: 'color: #475569; text-decoration: none; border-bottom: 1rpx dashed #94a3b8;',
+		listItem: 'margin: 8rpx 0; line-height: 1.8; padding-left: 20rpx;',
+		orderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		unorderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		divider: 'border: none; border-top: 2rpx solid #cbd5e1; margin: 32rpx 0;',
+		table: 'width: 100%; border-collapse: collapse; border: 1rpx solid #cbd5e1; border-radius: 8rpx; overflow: hidden; margin: 24rpx 0; font-size: 28rpx;',
+		th: 'font-weight: 600; padding: 12rpx 16rpx; text-align: left; color: #334155; border-bottom: 2rpx solid #94a3b8; background: #f1f5f9;',
+		td: 'padding: 12rpx 16rpx; border-bottom: 1rpx solid #e2e8f0;',
+		textUp: 'color: #ef4444; font-weight: 500;',
+		textDown: 'color: #22c55e; font-weight: 500;',
+		textNeutral: 'color: #94a3b8;'
+	},
+	sunset: {
+		container: 'font-size: 30rpx; line-height: 1.8; color: #292524; word-wrap: break-word;',
+		h1: 'font-size: 40rpx; font-weight: 700; color: #92400e; margin: 40rpx 0 20rpx; padding-bottom: 12rpx; border-bottom: 3rpx solid #fbbf24;',
+		h2: 'font-size: 36rpx; font-weight: 600; color: #a16207; margin: 32rpx 0 16rpx; padding-bottom: 10rpx; border-bottom: 1rpx solid #fde68a;',
+		h3: 'font-size: 32rpx; font-weight: 600; color: #ca8a04; margin: 28rpx 0 14rpx;',
+		h4: 'font-size: 30rpx; font-weight: 600; color: #eab308; margin: 24rpx 0 12rpx;',
+		h5: 'font-size: 28rpx; font-weight: 500; color: #fbbf24; margin: 20rpx 0 10rpx;',
+		h6: 'font-size: 28rpx; font-weight: 500; color: #fbbf24; margin: 16rpx 0 8rpx;',
+		strong: 'font-weight: 600; color: #92400e;',
+		em: 'font-style: italic; color: #a16207;',
+		del: 'text-decoration: line-through; color: #a8a29e;',
+		inlineCode: 'background: #fefce8; color: #a16207; padding: 4rpx 8rpx; border-radius: 4rpx; font-family: Consolas, Monaco, monospace; font-size: 26rpx; border: 1rpx solid #fde68a;',
+		codeBlock: 'background: #92400e; color: #fefce8; padding: 20rpx; border-radius: 8rpx; overflow-x: auto; margin: 20rpx 0; font-family: Consolas, Monaco, monospace; font-size: 26rpx; line-height: 1.6; white-space: pre-wrap;',
+		blockquote: 'margin: 16rpx 0; padding: 16rpx 20rpx; background: #fefce8; border-left: 4rpx solid #fbbf24; color: #a16207; border-radius: 0 8rpx 8rpx 0;',
+		link: 'color: #a16207; text-decoration: none; border-bottom: 1rpx dashed #fbbf24;',
+		listItem: 'margin: 8rpx 0; line-height: 1.8; padding-left: 20rpx;',
+		orderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		unorderedList: 'padding-left: 40rpx; margin: 16rpx 0;',
+		divider: 'border: none; border-top: 2rpx solid #fde68a; margin: 32rpx 0;',
+		table: 'width: 100%; border-collapse: collapse; border: 1rpx solid #fde68a; border-radius: 8rpx; overflow: hidden; margin: 24rpx 0; font-size: 28rpx;',
+		th: 'font-weight: 600; padding: 12rpx 16rpx; text-align: left; color: #92400e; border-bottom: 2rpx solid #fbbf24; background: #fefce8;',
+		td: 'padding: 12rpx 16rpx; border-bottom: 1rpx solid #fef9c3;',
+		textUp: 'color: #ef4444; font-weight: 500;',
+		textDown: 'color: #16a34a; font-weight: 500;',
+		textNeutral: 'color: #a8a29e;'
 	}
+}
+
+/**
+ * 创建带主题样式的 markdown-it 实例
+ * @param {string} theme 主题名称
+ * @returns {MarkdownIt} 配置好的 markdown-it 实例
+ */
+function createThemedMarkdownIt(theme = 'default') {
+	const styles = ThemeStyles[theme] || ThemeStyles.default
+
+	const md = new MarkdownIt({
+		html: true,
+		breaks: true,
+		linkify: true,
+		typographer: true
+	})
+
+	// 自定义标题渲染规则
+	md.renderer.rules.heading_open = (tokens, idx) => {
+		const level = tokens[idx].tag
+		const style = styles[`h${level}`] || styles.h1
+		return `<${level} style="${style}">`
+	}
+
+	// 自定义粗体渲染规则
+	md.renderer.rules.strong_open = () => `<strong style="${styles.strong}">`
+
+	// 自定义斜体渲染规则
+	md.renderer.rules.em_open = () => `<em style="${styles.em}">`
+
+	// 自定义删除线渲染规则
+	md.renderer.rules.s_open = () => `<del style="${styles.del}">`
+
+	// 自定义行内代码渲染规则
+	md.renderer.rules.code_inline = (tokens, idx) => {
+		return `<code style="${styles.inlineCode}">${md.utils.escapeHtml(tokens[idx].content)}</code>`
+	}
+
+	// 自定义代码块渲染规则
+	md.renderer.rules.fence = (tokens, idx) => {
+		const code = tokens[idx].content.trim()
+		return `<pre style="${styles.codeBlock}"><code>${md.utils.escapeHtml(code)}</code></pre>\n`
+	}
+
+	md.renderer.rules.code_block = (tokens, idx) => {
+		const code = tokens[idx].content.trim()
+		return `<pre style="${styles.codeBlock}"><code>${md.utils.escapeHtml(code)}</code></pre>\n`
+	}
+
+	// 自定义引用渲染规则
+	md.renderer.rules.blockquote_open = () => `<blockquote style="${styles.blockquote}">`
+
+	// 自定义链接渲染规则
+	md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+		const href = tokens[idx].attrGet('href')
+		return `<a href="${md.utils.escapeHtml(href)}" style="${styles.link}" target="_blank">`
+	}
+
+	// 自定义图片渲染规则
+	md.renderer.rules.image = (tokens, idx) => {
+		let src = tokens[idx].attrGet('src')
+		const alt = tokens[idx].content || ''
+		// 补全相对路径图片URL（微信小程序 rich-text 不会自动补全域名）
+		if (src && src.startsWith('/uploads/')) {
+			// __APP_API_BASE_URL__ 由 Vite define 在编译时替换为实际 API 地址
+			// 从 API 地址推导出基础域名（去掉 /api 部分）
+			const apiBaseUrl = typeof __APP_API_BASE_URL__ !== 'undefined' ? __APP_API_BASE_URL__ : 'https://aity88.online/api'
+			const baseUrl = apiBaseUrl.replace(/\/api$/, '')
+			src = baseUrl + src
+		}
+		return `<img src="${md.utils.escapeHtml(src)}" alt="${md.utils.escapeHtml(alt)}" style="max-width: 100%; height: auto; border-radius: 8rpx; margin: 16rpx 0;">`
+	}
+
+	// 自定义列表渲染规则
+	md.renderer.rules.bullet_list_open = () => `<ul style="${styles.unorderedList}">`
+	md.renderer.rules.ordered_list_open = () => `<ol style="${styles.orderedList}">`
+	md.renderer.rules.list_item_open = () => `<li style="${styles.listItem}">`
+
+	// 自定义表格渲染规则
+	md.renderer.rules.table_open = () => `<table style="${styles.table}">`
+	md.renderer.rules.th_open = (tokens, idx) => {
+		return `<th style="${styles.th}">`
+	}
+	md.renderer.rules.td_open = () => `<td style="${styles.td}">`
+
+	// 自定义水平分割线渲染规则
+	md.renderer.rules.hr = () => `<hr style="${styles.divider}">`
+
+	return md
 }
 
 /**
@@ -265,42 +512,52 @@ export const DataFormatter = {
 }
 
 /**
- * Markdown渲染器类
+ * Markdown渲染器类 - 使用 markdown-it 实现
  */
 export class MarkdownRenderer {
 	/**
 	 * 渲染Markdown为HTML（带主题内联样式，用于rich-text组件）
 	 * @param {string} content Markdown内容
-	 * @param {string} theme 主题名称 (default, github, emerald, ocean, warm, dark)
+	 * @param {string} theme 主题名称 (default, github, emerald, ocean, warm, dark, violet, rose, lime, tech, slate, sunset)
 	 * @returns {string} HTML内容（带内联样式）
 	 */
 	static renderWithTheme(content, theme = 'default') {
 		if (!content) return ''
 
-		const styles = ThemeStyles[theme] || ThemeStyles.default
-
 		// 过滤替换串
 		content = content.replace(/@@.+?@@/g, '')
 
-		// 转义HTML（但保留我们需要的标签）
-		let html = this._escapeHtml(content)
+		// 【方案C】渲染股票代码标签为高亮样式
+		// 将 $个股(代码)$ 格式转换为高亮的span标签
+		content = content.replace(/\$个股\(([0-9]{6})\)\$/g, (match, code) => {
+			// 根据股票代码开头添加市场标识
+			let market = ''
+			let marketColor = '#3b82f6'
+			const firstChar = code.charAt(0)
+			if (firstChar === '6') {
+				market = '沪'
+				marketColor = '#ef4444'
+			} else if (firstChar === '0' || firstChar === '3') {
+				market = '深'
+				marketColor = '#22c55e'
+			} else if (firstChar === '8' || code.startsWith('92')) {
+				market = '京'
+				marketColor = '#f59e0b'
+			}
 
-		// 按顺序处理各种Markdown语法（带内联样式）
-		html = this._processCodeBlocksWithTheme(html, styles)
-		html = this._processInlineCodeWithTheme(html, styles)
-		html = this._processHeadingsWithTheme(html, styles)
-		html = this._processBoldAndItalicWithTheme(html, styles)
-		html = this._processStrikethroughWithTheme(html, styles)
-		html = this._processTablesWithTheme(html, styles)
-		html = this._processListsWithTheme(html, styles)
-		html = this._processBlockquotesWithTheme(html, styles)
-		html = this._processLinksWithTheme(html, styles)
-		html = this._processImagesWithTheme(html, styles)
-		html = this._processHorizontalRulesWithTheme(html, styles)
-		html = this._processLineBreaks(html)
+			// 返回高亮样式的股票代码标签
+			return `<span style="display: inline-flex; align-items: center; gap: 4rpx; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 2rpx solid #3b82f6; border-radius: 8rpx; padding: 4rpx 12rpx; margin: 0 4rpx; font-family: 'SF Mono', 'Monaco', 'Consolas', monospace; font-size: 28rpx; font-weight: 600; color: #1e40af;"><span style="background: ${marketColor}; color: #fff; padding: 2rpx 8rpx; border-radius: 4rpx; font-size: 20rpx;">${market}</span>${code}</span>`
+		})
 
-		// 修复特定标签内的换行
-		html = this._fixBreaksInSpecialTags(html)
+		// 创建带主题的 markdown-it 实例
+		const md = createThemedMarkdownIt(theme)
+		const styles = ThemeStyles[theme] || ThemeStyles.default
+
+		// 渲染 Markdown
+		let html = md.render(content)
+
+		// 包装在容器中，应用背景样式
+		html = `<div style="${styles.container}">${html}</div>`
 
 		return html
 	}
@@ -316,27 +573,15 @@ export class MarkdownRenderer {
 		// 过滤替换串
 		content = content.replace(/@@.+?@@/g, '')
 
-		// 转义HTML（但保留我们需要的标签）
-		let html = this._escapeHtml(content)
+		// 使用基础 markdown-it 配置
+		const md = new MarkdownIt({
+			html: true,
+			breaks: true,
+			linkify: true,
+			typographer: true
+		})
 
-		// 按顺序处理各种Markdown语法
-		html = this._processCodeBlocks(html)
-		html = this._processInlineCode(html)
-		html = this._processHeadings(html)
-		html = this._processBoldAndItalic(html)
-		html = this._processStrikethrough(html)
-		html = this._processTables(html)
-		html = this._processLists(html)
-		html = this._processBlockquotes(html)
-		html = this._processLinks(html)
-		html = this._processImages(html)
-		html = this._processHorizontalRules(html)
-		html = this._processLineBreaks(html)
-
-		// 修复特定标签内的换行
-		html = this._fixBreaksInSpecialTags(html)
-
-		return html
+		return md.render(content)
 	}
 
 	/**
@@ -352,7 +597,10 @@ export class MarkdownRenderer {
 		let preview = content.length > maxLength ? content.substring(0, maxLength) + '...' : content
 
 		// 转义HTML
-		preview = this._escapeHtml(preview)
+		preview = preview
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
 
 		// 简单的Markdown渲染（只处理粗体和斜体，用于列表预览）
 		preview = preview
@@ -363,412 +611,6 @@ export class MarkdownRenderer {
 			.replace(/\n/g, ' ')
 
 		return preview
-	}
-
-	// ==================== 带主题样式的方法 ====================
-
-	/**
-	 * 处理代码块（带主题样式）
-	 * @private
-	 */
-	static _processCodeBlocksWithTheme(html, styles) {
-		return html.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
-			const language = lang || ''
-			const trimmedCode = code.trim()
-			return `<pre style="${styles.codeBlock}"><code>${trimmedCode}</code></pre>\n`
-		})
-	}
-
-	/**
-	 * 处理行内代码（带主题样式）
-	 * @private
-	 */
-	static _processInlineCodeWithTheme(html, styles) {
-		return html.replace(/`([^`\n]+)`/g, `<code style="${styles.inlineCode}">$1</code>`)
-	}
-
-	/**
-	 * 处理标题（带主题样式）
-	 * @private
-	 */
-	static _processHeadingsWithTheme(html, styles) {
-		html = html.replace(/^######\s+(.+)$/gm, `<h6 style="${styles.h6}">$1</h6>`)
-		html = html.replace(/^#####\s+(.+)$/gm, `<h5 style="${styles.h5}">$1</h5>`)
-		html = html.replace(/^####\s+(.+)$/gm, `<h4 style="${styles.h4}">$1</h4>`)
-		html = html.replace(/^###\s+(.+)$/gm, `<h3 style="${styles.h3}">$1</h3>`)
-		html = html.replace(/^##\s+(.+)$/gm, `<h2 style="${styles.h2}">$1</h2>`)
-		html = html.replace(/^#\s+(.+)$/gm, `<h1 style="${styles.h1}">$1</h1>`)
-		return html
-	}
-
-	/**
-	 * 处理粗体和斜体（带主题样式）
-	 * @private
-	 */
-	static _processBoldAndItalicWithTheme(html, styles) {
-		html = html.replace(/\*\*([^*\n]+)\*\*/g, `<strong style="${styles.strong}">$1</strong>`)
-		html = html.replace(/__([^_\n]+)__/g, `<strong style="${styles.strong}">$1</strong>`)
-		html = html.replace(/\*([^*\n]+)\*/g, `<em style="${styles.em}">$1</em>`)
-		html = html.replace(/_([^_\n]+)_/g, `<em style="${styles.em}">$1</em>`)
-		return html
-	}
-
-	/**
-	 * 处理删除线（带主题样式）
-	 * @private
-	 */
-	static _processStrikethroughWithTheme(html, styles) {
-		return html.replace(/~~([^~\n]+)~~/g, `<del style="${styles.del}">$1</del>`)
-	}
-
-	/**
-	 * 处理表格（带主题样式）
-	 * @private
-	 */
-	static _processTablesWithTheme(html, styles) {
-		const lines = html.split('\n')
-		let inTable = false
-		let tableRows = []
-		let headerProcessed = false
-		const processedLines = []
-
-		for (let i = 0; i < lines.length; i++) {
-			const line = lines[i].trim()
-
-			if (line.startsWith('|') && line.endsWith('|')) {
-				const cells = line.substring(1, line.length - 1)
-					.split('|')
-					.map(cell => cell.trim())
-
-				const isSeparator = cells.some(cell =>
-					/^-+:?$|^:-+:?$|^:-+$/.test(cell)
-				)
-
-				if (!isSeparator) {
-					if (!inTable) {
-						inTable = true
-						tableRows = []
-						headerProcessed = false
-					}
-
-					const isHeader = !headerProcessed
-					if (isHeader) {
-						headerProcessed = true
-					}
-
-					const cellStyle = isHeader ? styles.th : styles.td
-					const tag = isHeader ? 'th' : 'td'
-					const rowHtml = cells.map(cell => `<${tag} style="${cellStyle}">${cell}</${tag}>`).join('')
-					tableRows.push(`<tr>${rowHtml}</tr>`)
-				}
-				continue
-			}
-
-			if (inTable) {
-				if (tableRows.length > 0) {
-					const tableHtml = `<table style="${styles.table}">${tableRows.join('')}</table>`
-					processedLines.push(tableHtml)
-				}
-				inTable = false
-				tableRows = []
-				headerProcessed = false
-			}
-
-			processedLines.push(line)
-		}
-
-		if (inTable && tableRows.length > 0) {
-			const tableHtml = `<table style="${styles.table}">${tableRows.join('')}</table>`
-			processedLines.push(tableHtml)
-		}
-
-		return processedLines.join('\n')
-	}
-
-	/**
-	 * 处理列表（带主题样式）
-	 * @private
-	 */
-	static _processListsWithTheme(html, styles) {
-		// 无序列表
-		html = html.replace(/^[\s]*[-*]\s+(.+)$/gm, `<li style="${styles.listItem}">• $1</li>`)
-
-		// 合并连续的li为ul
-		html = html.replace(/(<li style="[^"]*">.*<\/li>\n?)+/g, (match) => {
-			return `<ul style="${styles.unorderedList}">${match}</ul>`
-		})
-
-		// 有序列表
-		html = html.replace(/^[\s]*(\d+)\.\s+(.+)$/gm, `<li style="${styles.listItem}" value="$1">$2</li>`)
-
-		// 合并连续的有序列表
-		html = html.replace(/(<li style="[^"]*"[^>]*>.*<\/li>\n?)+/g, (match) => {
-			// 如果已经包裹在ul中，跳过
-			if (match.includes('<ul')) return match
-			return `<ol style="${styles.orderedList}">${match}</ol>`
-		})
-
-		return html
-	}
-
-	/**
-	 * 处理引用（带主题样式）
-	 * @private
-	 */
-	static _processBlockquotesWithTheme(html, styles) {
-		return html.replace(/^>\s+(.+)$/gm, `<blockquote style="${styles.blockquote}">$1</blockquote>`)
-	}
-
-	/**
-	 * 处理链接（带主题样式）
-	 * @private
-	 */
-	static _processLinksWithTheme(html, styles) {
-		return html.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
-			`<a href="$2" style="${styles.link}" target="_blank">$1</a>`)
-	}
-
-	/**
-	 * 处理图片（带主题样式）
-	 * @private
-	 */
-	static _processImagesWithTheme(html, styles) {
-		return html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,
-			'<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 8rpx; margin: 16rpx 0;">')
-	}
-
-	/**
-	 * 处理水平分割线（带主题样式）
-	 * @private
-	 */
-	static _processHorizontalRulesWithTheme(html, styles) {
-		return html.replace(/^[-*]{3,}$/gm, `<hr style="${styles.divider}">`)
-	}
-
-	/**
-	 * 转义HTML特殊字符（但保留基本结构）
-	 * @private
-	 */
-	static _escapeHtml(content) {
-		return content
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-	}
-
-	/**
-	 * 处理代码块
-	 * @private
-	 */
-	static _processCodeBlocks(html) {
-		// 支持语言标识 ```language
-		return html.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
-			const language = lang || ''
-			const trimmedCode = code.trim()
-			return `<pre class="code-block" data-language="${language}"><code class="language-${language}">${trimmedCode}</code></pre>\n`
-		})
-	}
-
-	/**
-	 * 处理行内代码
-	 * @private
-	 */
-	static _processInlineCode(html) {
-		return html.replace(/`([^`\n]+)`/g, '<code class="inline-code">$1</code>')
-	}
-
-	/**
-	 * 处理标题
-	 * @private
-	 */
-	static _processHeadings(html) {
-		html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>')
-		html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>')
-		html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>')
-		html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
-		html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>')
-		html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>')
-		return html
-	}
-
-	/**
-	 * 处理粗体和斜体
-	 * @private
-	 */
-	static _processBoldAndItalic(html) {
-		// 粗体 **text** 或 __text__
-		html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
-		html = html.replace(/__([^_\n]+)__/g, '<strong>$1</strong>')
-
-		// 斜体 *text* 或 _text_
-		html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
-		html = html.replace(/_([^_\n]+)_/g, '<em>$1</em>')
-
-		return html
-	}
-
-	/**
-	 * 处理删除线
-	 * @private
-	 */
-	static _processStrikethrough(html) {
-		return html.replace(/~~([^~\n]+)~~/g, '<del>$1</del>')
-	}
-
-	/**
-	 * 处理表格
-	 * @private
-	 */
-	static _processTables(html) {
-		const lines = html.split('\n')
-		let inTable = false
-		let tableRows = []
-		let headerProcessed = false
-		const processedLines = []
-
-		for (let i = 0; i < lines.length; i++) {
-			const line = lines[i].trim()
-
-			// 检测表格行
-			if (line.startsWith('|') && line.endsWith('|')) {
-				const cells = line.substring(1, line.length - 1)
-					.split('|')
-					.map(cell => cell.trim())
-
-				// 检查是否是分隔行
-				const isSeparator = cells.some(cell =>
-					/^-+:?$|^:-+:?$|^:-+$/.test(cell)
-				)
-
-				if (!isSeparator) {
-					if (!inTable) {
-						inTable = true
-						tableRows = []
-						headerProcessed = false
-					}
-
-					const isHeader = !headerProcessed
-					if (isHeader) {
-						headerProcessed = true
-					}
-
-					const tag = isHeader ? 'th' : 'td'
-					const rowHtml = cells.map(cell => `<${tag}>${cell}</${tag}>`).join('')
-					tableRows.push(`<tr>${rowHtml}</tr>`)
-				}
-				continue
-			}
-
-			// 输出表格
-			if (inTable) {
-				if (tableRows.length > 0) {
-					const tableHtml = `<table class="markdown-table">${tableRows.join('')}</table>`
-					processedLines.push(tableHtml)
-				}
-				inTable = false
-				tableRows = []
-				headerProcessed = false
-			}
-
-			processedLines.push(line)
-		}
-
-		// 处理最后的表格
-		if (inTable && tableRows.length > 0) {
-			const tableHtml = `<table class="markdown-table">${tableRows.join('')}</table>`
-			processedLines.push(tableHtml)
-		}
-
-		return processedLines.join('\n')
-	}
-
-	/**
-	 * 处理列表
-	 * @private
-	 */
-	static _processLists(html) {
-		// 无序列表
-		html = html.replace(/^[\s]*[-*]\s+(.+)$/gm, '<li class="list-item">$1</li>')
-
-		// 合并连续的li为ul
-		html = html.replace(/(<li class="list-item">.*<\/li>\n?)+/g, (match) => {
-			return `<ul class="list-unstyled">${match}</ul>`
-		})
-
-		// 有序列表
-		html = html.replace(/^[\s]*(\d+)\.\s+(.+)$/gm, '<li class="list-item-ordered" value="$1">$2</li>')
-
-		// 合并连续的有序列表
-		html = html.replace(/(<li class="list-item-ordered".*<\/li>\n?)+/g, (match) => {
-			return `<ol class="list-ordered">${match}</ol>`
-		})
-
-		return html
-	}
-
-	/**
-	 * 处理引用
-	 * @private
-	 */
-	static _processBlockquotes(html) {
-		return html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>')
-	}
-
-	/**
-	 * 处理链接
-	 * @private
-	 */
-	static _processLinks(html) {
-		return html.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
-			'<a href="$2" class="link" target="_blank">$1</a>')
-	}
-
-	/**
-	 * 处理图片
-	 * @private
-	 */
-	static _processImages(html) {
-		return html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,
-			'<img src="$2" alt="$1" class="markdown-image">')
-	}
-
-	/**
-	 * 处理水平分割线
-	 * @private
-	 */
-	static _processHorizontalRules(html) {
-		return html.replace(/^[-*]{3,}$/gm, '<hr class="divider">')
-	}
-
-	/**
-	 * 处理换行
-	 * @private
-	 */
-	static _processLineBreaks(html) {
-		return html.replace(/\n/g, '<br>')
-	}
-
-	/**
-	 * 修复特定标签内的换行符
-	 * @private
-	 */
-	static _fixBreaksInSpecialTags(html) {
-		// 修复pre标签
-		html = html.replace(/<pre(?:\s[^>]*)?>(.*?)<\/pre>/gis, (match, content) => {
-			return `<pre>${content.replace(/<br>/g, '\n')}</pre>`
-		})
-
-		// 修复table标签
-		html = html.replace(/<table(?:\s[^>]*)?>(.*?)<\/table>/gis, (match, content) => {
-			return `<table>${content.replace(/<br>/g, '')}</table>`
-		})
-
-		// 修复ul和ol标签
-		html = html.replace(/<(ul|ol)([^>]*)>(.*?)<\/\1>/gis, (match, tag, attrs, content) => {
-			return `<${tag}${attrs}>${content.replace(/<\/li><br>/g, '</li>')}</${tag}>`
-		})
-
-		return html
 	}
 }
 

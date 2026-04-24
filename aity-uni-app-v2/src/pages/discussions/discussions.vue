@@ -105,6 +105,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import { getDiscussionsApi } from '../../api/discussion'
 import { formatFriendlyTime } from '../../utils/time'
@@ -185,11 +186,11 @@ const loadDiscussions = async (isRefresh = false) => {
 
 		const res = await getDiscussionsApi(params)
 
-		if (res.success) {
+		if (res.success || res.code === 200) {
 			if (isRefresh) {
-				discussions.value = res.data.discussions || []
+				discussions.value = res.data.discussions || res.data.list || []
 			} else {
-				discussions.value = [...discussions.value, ...(res.data.discussions || [])]
+				discussions.value = [...discussions.value, ...(res.data.discussions || res.data.list || [])]
 			}
 
 			// 判断是否还有更多
@@ -248,6 +249,9 @@ const goToDetail = (id) => {
 	})
 }
 
+// 标记是否已初始化（用于区分首次加载和返回刷新）
+const isInitialized = ref(false)
+
 // 页面加载
 onMounted(async () => {
 	// 检查登录状态
@@ -281,10 +285,35 @@ onMounted(async () => {
 	}
 
 	loadDiscussions(true)
+	isInitialized.value = true
+})
+
+// 页面显示时刷新（从详情页返回时）
+onShow(() => {
+	// 只有初始化完成后才刷新（避免首次加载重复刷新）
+	if (isInitialized.value && userInfoLoaded.value) {
+		console.log('[讨论列表] 页面返回，刷新列表')
+		loadDiscussions(true)
+	}
+	// 刷新 tabBar 未读角标
+	userStore.updateTabBarBadge()
 })
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件默认样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+button::after {
+	border: none;
+}
+
 .discussions-container {
 	height: 100vh;
 	display: flex;

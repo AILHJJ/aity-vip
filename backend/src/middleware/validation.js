@@ -14,7 +14,7 @@ function handleValidationErrors(req, res, next) {
 
 function validateLogin() {
   return [
-    body('email').optional().isEmail().withMessage('Invalid email format'),
+    body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
     body('username').optional().isLength({ min: 3, max: 50 }).withMessage('Username must be between 3 and 50 characters'),
     body('password').notEmpty().withMessage('Password is required').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
     handleValidationErrors
@@ -23,31 +23,31 @@ function validateLogin() {
 
 function validateCreateUser() {
   return [
-    body('name').notEmpty().withMessage('Name is required').isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
-    body('email').notEmpty().withMessage('Email is required').isEmail().withMessage('Invalid email format'),
-    body('password').notEmpty().withMessage('Password is required').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-    body('role').optional().isIn(['super_admin', 'admin', 'vip_mid', 'vip_short', 'trial']).withMessage('Invalid role'),
-    body('groupId').optional().isLength({ max: 50 }).withMessage('Group ID must be at most 50 characters'),
-    body('status').optional().isIn(['active', 'inactive']).withMessage('Invalid status'),
+    body('name').notEmpty().withMessage('姓名不能为空').isLength({ min: 1, max: 100 }).withMessage('姓名长度须在1-100个字符之间'),
+    body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
+    body('password').notEmpty().withMessage('密码不能为空').isLength({ min: 6 }).withMessage('密码长度不能少于6位'),
+    body('role').optional().isIn(['super_admin', 'admin', 'vip_mid', 'vip_short', 'trial']).withMessage('角色值不合法'),
+    body('groupId').optional().isLength({ max: 50 }).withMessage('分组ID过长'),
+    body('status').optional().isIn(['active', 'inactive']).withMessage('状态值不合法'),
     handleValidationErrors
   ];
 }
 
 function validateUpdateUser() {
   return [
-    param('id').isInt().withMessage('Invalid user ID'),
-    body('name').optional().isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
-    body('email').optional().isEmail().withMessage('Invalid email format'),
-    body('role').optional().isIn(['super_admin', 'admin', 'vip_mid', 'vip_short', 'trial']).withMessage('Invalid role'),
-    body('groupId').optional().isLength({ max: 50 }).withMessage('Group ID must be at most 50 characters'),
-    body('status').optional().isIn(['active', 'inactive']).withMessage('Invalid status'),
+    param('id').isInt().withMessage('无效的用户ID'),
+    body('name').optional().isLength({ min: 1, max: 100 }).withMessage('姓名长度须在1-100个字符之间'),
+    body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
+    body('role').optional().isIn(['super_admin', 'admin', 'vip_mid', 'vip_short', 'trial']).withMessage('角色值不合法'),
+    body('groupId').optional().isLength({ max: 50 }).withMessage('分组ID过长'),
+    body('status').optional().isIn(['active', 'inactive']).withMessage('状态值不合法'),
     handleValidationErrors
   ];
 }
 
 function validateCreateMessage() {
   const validTypes = [
-    'pre_market_comment', 'morning_comment', 'morning_focus',
+    'position_handle', 'pre_market_comment', 'morning_comment', 'morning_focus',
     'afternoon_comment', 'afternoon_focus', 'close_comment',
     'risk_warning', 'system', 'important', 'daily'
   ];
@@ -66,7 +66,7 @@ function validateCreateMessage() {
 
 function validateUpdateMessage() {
   const validTypes = [
-    'pre_market_comment', 'morning_comment', 'morning_focus',
+    'position_handle', 'pre_market_comment', 'morning_comment', 'morning_focus',
     'afternoon_comment', 'afternoon_focus', 'close_comment',
     'risk_warning', 'system', 'important', 'daily'
   ];
@@ -85,24 +85,24 @@ function validateUpdateMessage() {
 
 function validateCreateGroup() {
   return [
-    body('name').notEmpty().withMessage('Name is required').isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
-    body('description').optional().isLength({ max: 500 }).withMessage('Description must be at most 500 characters'),
+    body('name').notEmpty().withMessage('分组名不能为空').isLength({ min: 1, max: 100 }).withMessage('分组名长度须在1-100个字符之间'),
+    body('description').optional().isLength({ max: 500 }).withMessage('描述不能超过500个字符'),
     handleValidationErrors
   ];
 }
 
 function validateUpdateGroup() {
   return [
-    param('id').isInt().withMessage('Invalid group ID'),
-    body('name').optional().isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
-    body('description').optional().isLength({ max: 500 }).withMessage('Description must be at most 500 characters'),
+    param('id').isInt().withMessage('无效的分组ID'),
+    body('name').optional().isLength({ min: 1, max: 100 }).withMessage('分组名长度须在1-100个字符之间'),
+    body('description').optional().isLength({ max: 500 }).withMessage('描述不能超过500个字符'),
     handleValidationErrors
   ];
 }
 
 function validateCreateDiscussion() {
   return [
-    body('title').notEmpty().withMessage('Title is required').isLength({ min: 1, max: 255 }).withMessage('Title must be between 1 and 255 characters'),
+    body('title').optional().isLength({ min: 1, max: 255 }).withMessage('Title must be between 1 and 255 characters'),
     body('content').notEmpty().withMessage('Content is required'),
     body('messageId').notEmpty().withMessage('Message ID is required').isInt({ min: 1 }).withMessage('Message ID must be a positive integer'),
     body('groupId').optional().isLength({ max: 50 }).withMessage('Group ID must be at most 50 characters'),
@@ -127,7 +127,7 @@ function validateIdParam() {
 
 function validateQueryParams() {
   const validTypes = [
-    'pre_market_comment', 'morning_comment', 'morning_focus',
+    'position_handle', 'pre_market_comment', 'morning_comment', 'morning_focus',
     'afternoon_comment', 'afternoon_focus', 'close_comment',
     'risk_warning', 'system', 'important', 'daily'
   ];

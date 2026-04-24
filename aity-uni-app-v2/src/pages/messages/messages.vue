@@ -1,14 +1,8 @@
 <template>
 	<view class="messages-container">
-		<!-- 管理员操作栏 -->
-		<view v-if="userStore.isAdmin && userInfoLoaded" class="admin-bar">
-			<button class="create-btn" @click="goToCreate">
-				<text class="create-icon">✏️</text>
-				<text class="create-text">发布消息</text>
-			</button>
-		</view>
+		<!-- 管理员操作栏 - 已移除，仅保留右下角悬浮按钮 -->
 
-		<!-- 搜索栏 -->
+		<!-- 搜索栏 - 优化版 -->
 		<view class="search-bar">
 			<view class="search-input-wrapper">
 				<text class="search-icon">🔍</text>
@@ -18,12 +12,12 @@
 					type="text"
 					placeholder="搜索消息标题或内容"
 					placeholder-style="color: #999999"
+					@input="handleSearchInput"
 					@confirm="handleSearch"
 					@focus="showSearchHistory = true"
 				/>
 				<text v-if="searchKeyword" class="clear-icon" @click="clearSearch">×</text>
 			</view>
-			<button class="search-btn" @click="handleSearch">搜索</button>
 		</view>
 
 		<!-- 搜索历史弹窗 -->
@@ -98,20 +92,21 @@
 					:class="{ unread: isMessageUnread(message.id) }"
 					@click="goToDetail(message.id)"
 				>
-					<view class="message-header">
+				<view class="message-header">
 						<view class="message-type-badge" :class="'type-' + message.type">
 							{{ getMessageTypeLabel(message.type) }}
 						</view>
-						<view class="header-right">
-							<view v-if="isMessageUnread(message.id)" class="unread-dot"></view>
-							<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
-						</view>
+					</view>
+					<view class="message-meta">
+						<view v-if="isMessageUnread(message.id)" class="unread-dot"></view>
+						<view v-else class="read-tag"><text class="read-tag-text">已读</text></view>
+						<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
 					</view>
 
 					<view class="message-title">{{ message.title }}</view>
 
 					<view class="message-content">
-						<rich-text :nodes="renderPreviewContent(message.content)"></rich-text>
+						<rich-text :nodes="renderContent(message)"></rich-text>
 					</view>
 
 					<view class="message-footer">
@@ -154,12 +149,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import { getMessagesApi } from '../../api/message'
 import { MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatFriendlyTime } from '../../utils/time'
 import { getSearchHistory, addSearchHistory, clearSearchHistory, removeSearchHistory } from '../../utils/search-history'
 import { isMessageRead, markAsRead, getUnreadCount } from '../../utils/read-status'
+import { markMessageAsReadApi } from '../../api/message'
 import dayjs from 'dayjs'
 import MessageSkeleton from '@/components/message-skeleton.vue'
 import EmptyState from '@/components/empty-state.vue'
@@ -228,32 +225,32 @@ const filteredMessages = computed(() => {
 		const todayStart = now.startOf('day')
 
 		if (basicFilters.value.quickType === 'today_opportunity') {
-			// 今日机会：今天的早盘关注 + 尾盘关注
+			// 今日机会：今天的盘中关注
 			filtered = filtered.filter(msg => {
 				const msgDate = dayjs(msg.createdAt)
 				const isToday = msgDate.isAfter(todayStart)
-				const isOpportunity = msg.type === 'morning_focus' || msg.type === 'afternoon_focus'
+				const isOpportunity = msg.type === 'morning_focus'
 				return isToday && isOpportunity
 			})
 		} else if (basicFilters.value.quickType === 'morning_focus') {
-			// 早盘关注
+			// 盘中关注
 			filtered = filtered.filter(msg => {
 				return msg.type === 'morning_focus'
 			})
-		} else if (basicFilters.value.quickType === 'afternoon_focus') {
-			// 尾盘关注
+		} else if (basicFilters.value.quickType === 'position_handle') {
+			// 持仓处理
 			filtered = filtered.filter(msg => {
-				return msg.type === 'afternoon_focus'
+				return msg.type === 'position_handle'
+			})
+		} else if (basicFilters.value.quickType === 'risk_warning') {
+			// 风险提示
+			filtered = filtered.filter(msg => {
+				return msg.type === 'risk_warning'
 			})
 		} else if (basicFilters.value.quickType === 'morning_comment') {
-			// 早盘点评
+			// 盘面点评
 			filtered = filtered.filter(msg => {
 				return msg.type === 'morning_comment'
-			})
-		} else if (basicFilters.value.quickType === 'afternoon_comment') {
-			// 尾盘点评
-			filtered = filtered.filter(msg => {
-				return msg.type === 'afternoon_comment'
 			})
 		}
 	}
@@ -314,14 +311,31 @@ const filteredMessages = computed(() => {
 	return filtered
 })
 
-// 获取消息类型标签
+// 获取消息类型标签（精简版本）
 const getMessageTypeLabel = (type) => {
-	return MESSAGE_TYPE_LABELS[type] || type
+	const labels = {
+		'position_handle': '持仓处理',
+		'pre_market_comment': '盘前点评',
+		'morning_comment': '盘面点评',
+		'morning_focus': '盘中关注',
+		'afternoon_comment': '尾盘点评',
+		'afternoon_focus': '尾盘关注',
+		'close_comment': '收盘点评',
+		'risk_warning': '风险提示',
+		'system': '系统信息',
+		'important': '重要消息',
+		'daily': '日常消息'
+	}
+	return labels[type] || type
 }
 
-// 渲染消息预览内容（使用统一的Markdown渲染器）
-const renderPreviewContent = (content) => {
-	return MarkdownRenderer.renderPreview(content, 100)
+// 渲染消息内容（使用完整的Markdown渲染，带主题内联样式）
+const renderContent = (message) => {
+	if (!message || !message.content) return ''
+
+	// 使用消息自带的主题进行渲染，如果没有则使用默认主题
+	const theme = message.theme || 'default'
+	return MarkdownRenderer.renderWithTheme(message.content, theme)
 }
 
 // 获取显示的标签列表（根据用户权限和业务规则）
@@ -504,19 +518,25 @@ const loadMore = () => {
 	loadMessages()
 }
 
-// 搜索
+// 搜索输入时实时搜索
+const handleSearchInput = () => {
+	// 实时搜索，不需要额外处理，computed属性会自动过滤
+}
+
+// 搜索（点击按钮或回车）
 const handleSearch = () => {
 	if (searchKeyword.value.trim()) {
 		addSearchHistory(searchKeyword.value.trim())
 		searchHistory.value = getSearchHistory()
 	}
 	showSearchHistory.value = false
-	// 搜索在客户端进行过滤，不需要重新加载
 }
 
 // 清除搜索
 const clearSearch = () => {
 	searchKeyword.value = ''
+	// 触发重新渲染
+	filteredMessages.value // 引用一下确保响应式
 }
 
 // 选择搜索历史
@@ -558,9 +578,14 @@ const handleMessageFilterChange = (newFilters) => {
 
 // 跳转到详情
 const goToDetail = (id) => {
-	// 标记为已读
+	// 本地标记已读
 	markAsRead(id)
 	updateUnreadCount()
+
+	// 同步到服务端（不阻塞UI）
+	markMessageAsReadApi(id).catch(e => {
+		console.error('服务端标记已读失败:', e)
+	})
 
 	uni.navigateTo({
 		url: `/pages/message-detail/message-detail?id=${id}`
@@ -573,6 +598,9 @@ const goToCreate = () => {
 		url: '/pages/create-message/create-message'
 	})
 }
+
+// 标记是否已初始化（用于区分首次加载和返回刷新）
+const isInitialized = ref(false)
 
 // 页面加载
 onMounted(async () => {
@@ -614,35 +642,49 @@ onMounted(async () => {
 	}
 
 	loadMessages(true)
+	isInitialized.value = true
+})
+
+// 页面显示时刷新（从详情页返回时）
+onShow(() => {
+	// 只有初始化完成后才刷新（避免首次加载重复刷新）
+	if (isInitialized.value && userInfoLoaded.value) {
+		console.log('[消息列表] 页面返回，刷新列表')
+		loadMessages(true)
+	}
+	// 同步未读消息角标
+	userStore.fetchUnreadCount()
 })
 </script>
 
-<script>
-export default {
-	onShow() {
-		// 页面显示时刷新（用于从详情页或其他页面返回时自动刷新）
-		// 通过页面实例访问setup中的数据和方法
-		const pages = getCurrentPages()
-		const currentPage = pages[pages.length - 1]
-		if (currentPage.$vm.userInfoLoaded) {
-			currentPage.$vm.loadMessages(true)
-		}
-	}
-}
-</script>
-
 <style lang="scss" scoped>
+/* 微信小程序 button 组件样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+
+button::after {
+	border: none;
+}
+
+/* 消息列表页面 - 金融科技风格 */
 .messages-container {
 	height: 100vh;
 	display: flex;
 	flex-direction: column;
-	background: #f5f5f5;
+	background: var(--bg-primary);
 }
 
+/* 管理员操作栏 */
 .admin-bar {
 	padding: 20rpx;
-	background: #ffffff;
-	border-bottom: 1rpx solid #e0e0e0;
+	background: var(--bg-card);
+	border-bottom: 1rpx solid var(--border-primary);
 }
 
 .create-btn {
@@ -659,6 +701,12 @@ export default {
 	font-size: 30rpx;
 	font-weight: 500;
 	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+	transition: all 0.3s ease;
+}
+
+.create-btn:active {
+	transform: scale(0.98);
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.2);
 }
 
 .create-icon {
@@ -669,13 +717,14 @@ export default {
 	font-size: 30rpx;
 }
 
+/* 搜索栏 - 玻璃拟态风格 */
 .search-bar {
 	display: flex;
 	align-items: center;
 	gap: 20rpx;
 	padding: 20rpx;
-	background: #ffffff;
-	border-bottom: 1rpx solid #e0e0e0;
+	background: var(--bg-card);
+	border-bottom: 1rpx solid var(--border-primary);
 }
 
 .search-input-wrapper {
@@ -684,27 +733,44 @@ export default {
 	align-items: center;
 	height: 70rpx;
 	padding: 0 20rpx;
-	background: #f5f5f5;
+	background: var(--bg-tertiary);
 	border-radius: 35rpx;
+	border: 1rpx solid var(--border-secondary);
+	transition: all 0.3s ease;
+}
+
+.search-input-wrapper:focus-within {
+	border-color: var(--color-primary);
+	box-shadow: 0 0 0 2rpx rgba(56, 189, 248, 0.1);
 }
 
 .search-icon {
 	font-size: 32rpx;
 	margin-right: 10rpx;
+	opacity: 0.6;
 }
 
 .search-input {
 	flex: 1;
 	font-size: 28rpx;
-	color: #333333;
+	color: var(--text-primary);
 	background: transparent;
+}
+
+.search-input::placeholder {
+	color: var(--text-placeholder);
 }
 
 .clear-icon {
 	font-size: 40rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 	margin-left: 10rpx;
 	line-height: 1;
+	transition: all 0.2s ease;
+}
+
+.clear-icon:active {
+	opacity: 0.6;
 }
 
 .search-btn {
@@ -712,18 +778,25 @@ export default {
 	height: 70rpx;
 	line-height: 70rpx;
 	padding: 0;
+	margin: 0;
 	font-size: 28rpx;
 	color: #ffffff;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	border: none;
 	border-radius: 35rpx;
 	text-align: center;
+	transition: all 0.3s ease;
 }
 
+.search-btn:active {
+	transform: scale(0.95);
+}
+
+/* 筛选栏 */
 .filter-bar {
-	background: #ffffff;
+	background: var(--bg-card);
 	padding: 20rpx 0;
-	border-bottom: 1rpx solid #e0e0e0;
+	border-bottom: 1rpx solid var(--border-primary);
 }
 
 .filter-scroll {
@@ -740,36 +813,40 @@ export default {
 	padding: 12rpx 30rpx;
 	margin-right: 20rpx;
 	font-size: 28rpx;
-	color: #666666;
-	background: #f5f5f5;
+	color: var(--text-secondary);
+	background: var(--bg-tertiary);
 	border-radius: 30rpx;
 	transition: all 0.3s;
+	border: 1rpx solid transparent;
 }
 
 .filter-item.active {
 	color: #ffffff;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
 }
 
+/* 消息滚动区域 */
 .messages-scroll {
 	flex: 1;
 	overflow-y: auto;
 }
 
+/* 刷新提示 */
 .refresh-tip {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
 	padding: 40rpx 0;
-	background: #f5f5f5;
+	background: var(--bg-primary);
 }
 
 .refresh-loading {
 	width: 40rpx;
 	height: 40rpx;
-	border: 3rpx solid #e0e0e0;
-	border-top-color: #667eea;
+	border: 3rpx solid var(--border-primary);
+	border-top-color: var(--color-primary);
 	border-radius: 50%;
 	animation: spin 0.8s linear infinite;
 }
@@ -777,9 +854,10 @@ export default {
 .refresh-text {
 	margin-top: 15rpx;
 	font-size: 24rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 }
 
+/* 加载状态 */
 .loading-container {
 	display: flex;
 	flex-direction: column;
@@ -791,8 +869,8 @@ export default {
 .loading-spinner {
 	width: 60rpx;
 	height: 60rpx;
-	border: 4rpx solid #e0e0e0;
-	border-top-color: #667eea;
+	border: 4rpx solid var(--border-primary);
+	border-top-color: var(--color-primary);
 	border-radius: 50%;
 	animation: spin 1s linear infinite;
 }
@@ -804,7 +882,7 @@ export default {
 .loading-text {
 	margin-top: 20rpx;
 	font-size: 28rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 	animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -813,6 +891,7 @@ export default {
 	50% { opacity: 1; }
 }
 
+/* 空状态 */
 .empty-state {
 	display: flex;
 	flex-direction: column;
@@ -824,38 +903,65 @@ export default {
 .empty-icon {
 	font-size: 120rpx;
 	margin-bottom: 30rpx;
+	opacity: 0.5;
 }
 
 .empty-text {
 	font-size: 28rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 }
 
+/* 消息列表 */
 .messages-list {
 	padding: 20rpx;
 }
 
+/* 消息卡片 - 数据卡片风格 */
 .message-item {
-	background: #ffffff;
+	background: var(--bg-card);
 	border-radius: 16rpx;
 	padding: 30rpx;
 	margin-bottom: 20rpx;
-	box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+	box-shadow: var(--shadow-card);
+	border: 1rpx solid var(--border-primary);
 	border-left: 4rpx solid transparent;
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-	// 性能优化：提示浏览器哪些属性会变化
 	will-change: transform, box-shadow, border-left-color;
+	position: relative;
+	overflow: hidden;
+
+	// 深色模式发光效果
+	&::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: linear-gradient(135deg, rgba(56, 189, 248, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+		opacity: 0;
+		transition: opacity 0.3s ease;
+		pointer-events: none;
+	}
 
 	&:active {
 		transform: scale(0.98);
-		border-left-color: #667eea;
-		box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+		border-left-color: var(--color-primary);
+		box-shadow: var(--shadow-md);
+
+		&::before {
+			opacity: 1;
+		}
 	}
 
-	// 未读状态
+	// 未读状态 - 金融科技风格高亮
 	&.unread {
-		background: linear-gradient(to right, #f8f9ff, #ffffff);
-		border-left-color: #667eea;
+		background: linear-gradient(135deg, var(--bg-card) 0%, rgba(56, 189, 248, 0.08) 100%);
+		border-left-color: var(--color-primary);
+
+		&::before {
+			opacity: 0.5;
+		}
 	}
 }
 
@@ -863,21 +969,38 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: 20rpx;
+	margin-bottom: 16rpx;
+	position: relative;
+	z-index: 1;
 }
 
-.header-right {
+.message-meta {
 	display: flex;
 	align-items: center;
-	gap: 12rpx;
+	gap: 16rpx;
+	margin-bottom: 16rpx;
 }
 
+/* 未读红点 - 脉冲动画 */
 .unread-dot {
 	width: 16rpx;
 	height: 16rpx;
-	background: #ff5252;
+	background: var(--color-up);
 	border-radius: 50%;
 	animation: unread-pulse 2s ease-in-out infinite;
+	box-shadow: 0 0 8rpx rgba(239, 68, 68, 0.5);
+}
+
+/* 已读标签 */
+.read-tag {
+	padding: 4rpx 12rpx;
+	background: var(--bg-tertiary);
+	border-radius: 8rpx;
+}
+
+.read-tag-text {
+	font-size: 20rpx;
+	color: var(--text-tertiary);
 }
 
 @keyframes unread-pulse {
@@ -887,10 +1010,11 @@ export default {
 	}
 	50% {
 		opacity: 0.6;
-		transform: scale(1.1);
+		transform: scale(1.2);
 	}
 }
 
+/* 消息类型标签 - 渐变风格（精简版本） */
 .message-type-badge {
 	padding: 8rpx 20rpx;
 	font-size: 24rpx;
@@ -900,35 +1024,14 @@ export default {
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
 
-	// 为不同类型设置不同的渐变色
-	&.type-pre_market_comment {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
-	}
-
-	&.type-morning_comment {
-		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-		box-shadow: 0 2rpx 8rpx rgba(79, 172, 254, 0.3);
-	}
-
 	&.type-morning_focus {
 		background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
 		box-shadow: 0 2rpx 8rpx rgba(67, 233, 123, 0.3);
 	}
 
-	&.type-afternoon_comment {
-		background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-		box-shadow: 0 2rpx 8rpx rgba(250, 112, 154, 0.3);
-	}
-
-	&.type-afternoon_focus {
-		background: linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%);
-		box-shadow: 0 2rpx 8rpx rgba(255, 154, 86, 0.3);
-	}
-
-	&.type-close_comment {
-		background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
-		box-shadow: 0 2rpx 8rpx rgba(161, 140, 209, 0.3);
+	&.type-position_handle {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
 	}
 
 	&.type-risk_warning {
@@ -936,47 +1039,107 @@ export default {
 		box-shadow: 0 2rpx 8rpx rgba(240, 147, 251, 0.3);
 	}
 
+	&.type-morning_comment {
+		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+		box-shadow: 0 2rpx 8rpx rgba(79, 172, 254, 0.3);
+	}
+
 	&.type-system {
 		background: linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%);
 		box-shadow: 0 2rpx 8rpx rgba(149, 165, 166, 0.3);
-	}
-
-	&.type-important {
-		background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
-		box-shadow: 0 2rpx 8rpx rgba(253, 160, 133, 0.3);
-	}
-
-	&.type-daily {
-		background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
-		box-shadow: 0 2rpx 8rpx rgba(102, 166, 255, 0.3);
 	}
 }
 
 .message-time {
 	font-size: 24rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 }
 
 .message-title {
 	font-size: 32rpx;
 	font-weight: bold;
-	color: #333333;
+	color: var(--text-primary);
 	margin-bottom: 15rpx;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	position: relative;
+	z-index: 1;
 }
 
 .message-content {
 	font-size: 28rpx;
-	color: #666666;
+	color: var(--text-secondary);
 	line-height: 1.6;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	display: -webkit-box;
-	-webkit-line-clamp: 2;
+	-webkit-line-clamp: 4;
 	-webkit-box-orient: vertical;
 	margin-bottom: 20rpx;
+	word-wrap: break-word;
+	word-break: break-word;
+	position: relative;
+	z-index: 1;
+
+	// 优化Markdown元素在列表中的显示
+	::v-deep h1,
+	::v-deep h2,
+	::v-deep h3,
+	::v-deep h4,
+	::v-deep h5,
+	::v-deep h6 {
+		font-size: 28rpx !important;
+		font-weight: 600 !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		border: none !important;
+		display: inline;
+	}
+
+	::v-deep ul,
+	::v-deep ol {
+		margin: 0 !important;
+		padding: 0 !important;
+		display: inline;
+	}
+
+	::v-deep li {
+		display: inline;
+		margin: 0 !important;
+		padding: 0 !important;
+	}
+
+	::v-deep p {
+		margin: 0 !important;
+		padding: 0 !important;
+		display: inline;
+	}
+
+	::v-deep br {
+		content: '';
+		display: inline-block;
+		width: 0.5em;
+	}
+
+	::v-deep pre {
+		white-space: pre-wrap;
+		font-size: 26rpx !important;
+		padding: 8rpx !important;
+		margin: 0 !important;
+		display: inline;
+	}
+
+	::v-deep code {
+		font-size: 26rpx !important;
+		padding: 2rpx 6rpx !important;
+	}
+
+	::v-deep blockquote {
+		margin: 0 !important;
+		padding: 0 !important;
+		display: inline;
+	}
 }
 
 .message-footer {
@@ -1115,7 +1278,7 @@ export default {
 	top: 100%;
 	left: 0;
 	right: 0;
-	background: #ffffff;
+	background: var(--bg-card);
 	border-radius: 0 0 16rpx 16rpx;
 	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
 	z-index: 100;
@@ -1130,13 +1293,13 @@ export default {
 	justify-content: space-between;
 	margin-bottom: 20rpx;
 	padding-bottom: 15rpx;
-	border-bottom: 1rpx solid #e0e0e0;
+	border-bottom: 1rpx solid var(--border-secondary);
 }
 
 .history-title {
 	font-size: 28rpx;
 	font-weight: bold;
-	color: #333333;
+	color: var(--text-primary);
 }
 
 .history-clear {
@@ -1156,19 +1319,19 @@ export default {
 	align-items: center;
 	justify-content: space-between;
 	padding: 16rpx 20rpx;
-	background: #f5f5f5;
+	background: var(--bg-tertiary);
 	border-radius: 8rpx;
 	transition: all 0.3s;
 
 	&:active {
-		background: #e0e0e0;
+		background: var(--bg-hover);
 	}
 }
 
 .history-text {
 	flex: 1;
 	font-size: 28rpx;
-	color: #333333;
+	color: var(--text-primary);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -1176,7 +1339,7 @@ export default {
 
 .history-remove {
 	font-size: 36rpx;
-	color: #999999;
+	color: var(--text-tertiary);
 	padding: 0 10rpx;
 	line-height: 1;
 }

@@ -1,0 +1,88 @@
+{
+  "users": {
+    "super_admin": {
+      "email": "admin@example.com",
+      "password": "123456",
+      "name": "超级管理员",
+      "role": "super_admin",
+      "expectedPermission": ["publish_message", "manage_users", "manage_discussions"]
+    },
+    "admin": {
+      "email": "subadmin@example.com",
+      "password": "123456",
+      "name": "管理员",
+      "role": "admin",
+      "expectedPermission": ["publish_message", "manage_discussions"]
+    },
+    "vip_mid": {
+      "email": "vip_mid@example.com",
+      "password": "123456",
+      "name": "VIP中线用户",
+      "role": "vip_mid",
+      "expectedPermission": ["view_message", "create_discussion"]
+    },
+    "vip_short": {
+      "email": "vip_short@example.com",
+      "password": "123456",
+      "name": "VIP短线用户",
+      "role": "vip_short",
+      "expectedPermission": ["view_message"]
+    },
+    "trial": {
+      "email": "trial@example.com",
+      "password": "123456",
+      "name": "体验用户",
+      "role": "trial",
+      "expectedPermission": ["view_message"]
+    }
+  },
+  "messages": {
+    "text_message": {
+      "type": "text",
+      "title": "[E2E测试] 文本消息标题",
+      "content": "这是一条E2E自动化测试发布的文本消息内容",
+      "groupId": 1
+    },
+    "markdown_message": {
+      "type": "text",
+      "title": "[E2E测试] Markdown消息",
+      "content": "# 标题\n\n**粗体**\n\n*斜体*\n\n- 列表项1\n- 列表项2",
+      "groupId": 1
+    },
+    "long_message": {
+      "type": "text",
+      "title": "[E2E测试] 长文本消息测试",
+      "content": "这是一个很长的消息内容，用于测试长文本显示和滚动功能。" +
+                "这里会包含更多的文字内容..." +
+                "重复的内容：测试内容1，测试内容2，测试内容3。",
+      "groupId": 1
+    }
+  },
+  "discussions": {
+    "public_discussion": {
+      "title": "[E2E测试] 公开讨论",
+      "content": "这是一个公开讨论的内容",
+      "isPublic": true
+    },
+    "private_discussion": {
+      "title": "[E2E测试] 私密讨论",
+      "content": "这是一个私密讨论的内容",
+      "isPublic": false
+    }
+  },
+  "test_data": {
+    "unique_prefix": "[E2E_AUTO_TEST]",
+    "timestamp": true,
+    "cleanup_after_test": true
+  },
+  "api": {
+    "base_url": "http://localhost:3001",
+    "endpoints": {
+      "login": "/api/auth/login",
+      "messages": "/api/messages",
+      "discussions": "/api/discussions",
+      "users": "/api/users"
+    },
+    "timeout": 5000
+  }
+}

@@ -59,14 +59,15 @@
 					v-for="user in users"
 					:key="user.id"
 					class="user-card"
+					:class="{ 'user-inactive': user.status === 'inactive' }"
 				>
 					<!-- 卡片头部 -->
 					<view class="card-header">
 						<view class="user-avatar">
-							<text class="avatar-text">{{ user.username ? user.username.charAt(0).toUpperCase() : 'U' }}</text>
+							<text class="avatar-text">{{ user.name ? user.name.charAt(0).toUpperCase() : 'U' }}</text>
 						</view>
 						<view class="user-basic-info">
-							<text class="card-username">{{ user.username }}</text>
+							<text class="card-username">{{ user.name }}</text>
 							<text class="card-email">{{ user.email }}</text>
 						</view>
 						<view class="role-badge" :class="'role-' + user.role">
@@ -84,13 +85,24 @@
 						</view>
 						<view class="info-row">
 							<text class="info-label">到期时间</text>
-							<text class="info-value" :class="{ expiring: isExpiringSoon(user.expiresAt) }">
-								{{ user.expiresAt ? formatDate(user.expiresAt) : '永久有效' }}
+							<text class="info-value" :class="{ expiring: isExpiringSoon(getUserExpireDate(user)), 'expiring-critical': isExpiringCritically(getUserExpireDate(user)) }">
+								{{ getUserExpireDate(user) ? formatDate(getUserExpireDate(user)) : '永久有效' }}
 							</text>
 						</view>
-						<view v-if="isExpiringSoon(user.expiresAt)" class="expiry-warning">
+						<view v-if="getUserExpireDate(user)" class="info-row">
+							<text class="info-label">剩余天数</text>
+							<text class="info-value" :class="{ expiring: isExpiringSoon(getUserExpireDate(user)), 'expiring-critical': isExpiringCritically(getUserExpireDate(user)) }">
+								{{ getDaysRemaining(getUserExpireDate(user)) }}天 ({{ getTradingDaysRemaining(getUserExpireDate(user)) }}交易日)
+							</text>
+						</view>
+						<view v-if="isExpiringSoon(getUserExpireDate(user))" class="expiry-warning">
 							<text class="warning-icon">⚠️</text>
-							<text class="warning-text">VIP即将到期 ({{ getDaysRemaining(user.expiresAt) }}天)</text>
+							<text class="warning-text">VIP即将到期 ({{ getDaysRemaining(getUserExpireDate(user)) }}天)</text>
+						</view>
+						<!-- 用户简介 -->
+						<view v-if="user.bio" class="info-row bio-row">
+							<text class="info-label">简介</text>
+							<text class="info-value bio-text">{{ user.bio }}</text>
 						</view>
 					</view>
 
@@ -100,7 +112,21 @@
 							<text>编辑</text>
 						</button>
 						<button class="action-btn reset-btn" @click="handleResetPassword(user)">
-							<text>重置密码</text>
+							<text>重置</text>
+						</button>
+						<button
+							v-if="user.status === 'active'"
+							class="action-btn deactivate-btn"
+							@click="handleDeactivate(user)"
+						>
+							<text>停用</text>
+						</button>
+						<button
+							v-else
+							class="action-btn activate-btn"
+							@click="handleActivate(user)"
+						>
+							<text>启用</text>
 						</button>
 						<button class="action-btn delete-btn" @click="handleDelete(user.id)">
 							<text>删除</text>
@@ -150,7 +176,6 @@
 							v-model="userForm.email"
 							type="email"
 							placeholder="留空则自动生成默认邮箱"
-							:disabled="showEditDrawer"
 						/>
 						<text class="form-hint">如需邮箱功能（如密码重置），请填写真实邮箱</text>
 					</view>
@@ -197,21 +222,57 @@
 								<text class="picker-arrow">▼</text>
 							</view>
 						</picker>
+						<text class="form-hint" v-if="!isAdminRole(userForm.role)">
+							{{ userForm.role === 'trial' ? '体验用户默认7天' : 'VIP用户默认1个月' }}
+						</text>
+						<text class="form-hint" v-else>管理员无需设置到期时间</text>
+					</view>
+
+					<!-- 用户简介 -->
+					<view class="form-item">
+						<text class="form-label">用户简介（选填）</text>
+						<textarea
+							class="form-textarea"
+							v-model="userForm.bio"
+							placeholder="记录用户的资产规模、投资偏好、分享偏好等信息，方便运营管理"
+							placeholder-style="color: #999999"
+							:maxlength="500"
+						/>
+						<text class="form-hint">支持记录资产规模、分享偏好等运营信息</text>
 					</view>
 
 					<!-- VIP快速延期（仅编辑时显示） -->
-					<view v-if="showEditDrawer && isVipRole(userForm.role)" class="form-item">
+					<view v-if="showEditDrawer && !isAdminRole(userForm.role)" class="form-item">
 						<text class="form-label">快速延期</text>
 						<view class="quick-extend-buttons">
 							<button
-								v-for="days in quickExtendOptions"
-								:key="days"
+								v-for="option in quickExtendOptions"
+								:key="option.value"
 								class="extend-btn"
-								@click="quickExtend(days)"
+								@click="quickExtend(option.value)"
 							>
-								+{{ days }}天
+								{{ option.label }}
 							</button>
 						</view>
+						<!-- 自定义延期天数 -->
+						<view class="custom-extend">
+							<input
+								class="form-input"
+								v-model.number="customExtendDays"
+								type="number"
+								placeholder="自定义天数"
+								style="flex: 1; margin-right: 16rpx;"
+							/>
+							<button class="extend-btn" @click="quickExtend(customExtendDays)">
+								自定义延期
+							</button>
+						</view>
+						<text class="form-hint">
+							当前到期: {{ userForm.expireDate || '永久有效' }}
+							<text v-if="userForm.expireDate && tempExpireDate">
+								→ 延期后: {{ tempExpireDate }}
+							</text>
+						</text>
 					</view>
 				</scroll-view>
 
@@ -289,7 +350,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
-import { getUsersApi, createUserApi, updateUserApi, deleteUserApi, resetUserPasswordApi } from '../../api/user'
+import { getUsersApi, createUserApi, updateUserApi, deleteUserApi, deactivateUserApi, activateUserApi, resetUserPasswordApi } from '../../api/user'
 import { USER_ROLES, USER_ROLE_LABELS } from '../../utils/constants'
 import { formatDate } from '../../utils/time'
 
@@ -304,15 +365,50 @@ const page = ref(1)
 const limit = ref(20)
 const hasMore = ref(true)
 const currentRoleTab = ref('all')
+const totalUsers = ref(0) // 总用户数
 
-// 角色标签页
+// Tab数量缓存（独立存储每个Tab的数量）
+const tabCounts = ref({
+	all: 0,
+	vip_short: 0,
+	vip_medium: 0,
+	trial: 0,
+	admin: 0
+})
+
+// 角色标签页（使用独立的tabCounts）
 const roleTabs = computed(() => [
-	{ label: '全部用户', value: 'all', count: users.value.length },
-	{ label: 'VIP短线', value: 'vip_short', count: users.value.filter(u => u.role === 'vip_short').length },
-	{ label: 'VIP中线', value: 'vip_medium', count: users.value.filter(u => u.role === 'vip_mid').length },
-	{ label: '试用', value: 'trial', count: users.value.filter(u => u.role === 'trial').length },
-	{ label: '管理员', value: 'admin', count: users.value.filter(u => u.role === 'super_admin' || u.role === 'admin').length }
+	{ label: '全部用户', value: 'all', count: tabCounts.value.all },
+	{ label: 'VIP短线', value: 'vip_short', count: tabCounts.value.vip_short },
+	{ label: 'VIP中线', value: 'vip_medium', count: tabCounts.value.vip_medium },
+	{ label: '试用', value: 'trial', count: tabCounts.value.trial },
+	{ label: '管理员', value: 'admin', count: tabCounts.value.admin }
 ])
+
+// 加载各Tab的数量（独立请求）
+const loadTabCounts = async () => {
+	try {
+		const countPromises = [
+			// 全部用户
+			getUsersApi({ page: 1, limit: 1 }).then(res => ({ tab: 'all', count: res.data?.pagination?.total || 0 })),
+			// VIP短线
+			getUsersApi({ page: 1, limit: 1, role: 'vip_short' }).then(res => ({ tab: 'vip_short', count: res.data?.pagination?.total || 0 })),
+			// VIP中线
+			getUsersApi({ page: 1, limit: 1, role: 'vip_mid' }).then(res => ({ tab: 'vip_medium', count: res.data?.pagination?.total || 0 })),
+			// 试用
+			getUsersApi({ page: 1, limit: 1, role: 'trial' }).then(res => ({ tab: 'trial', count: res.data?.pagination?.total || 0 })),
+			// 管理员
+			getUsersApi({ page: 1, limit: 1, role: 'super_admin,admin' }).then(res => ({ tab: 'admin', count: res.data?.pagination?.total || 0 }))
+		]
+
+		const results = await Promise.all(countPromises)
+		results.forEach(result => {
+			tabCounts.value[result.tab] = result.count
+		})
+	} catch (error) {
+		console.error('加载Tab数量失败:', error)
+	}
+}
 
 // 创建相关
 const showCreateDrawer = ref(false)
@@ -337,12 +433,20 @@ const userForm = ref({
 	name: '',
 	email: '',
 	password: '',
-	role: 'trial',
-	expireDate: ''
+	role: 'vip_short', // 默认短线VIP
+	expireDate: '',
+	bio: '' // 用户简介
 })
 
-// 快速延期选项
-const quickExtendOptions = [7, 30, 90, 365]
+// 快速延期选项（统一为4个常用选项：1个月、3个月/季度、6个月/半年、1年）
+const quickExtendOptions = [
+	{ value: 30, label: '1个月' },
+	{ value: 90, label: '3个月' },
+	{ value: 180, label: '6个月' },
+	{ value: 365, label: '1年' }
+]
+const customExtendDays = ref('') // 自定义延期天数
+const tempExpireDate = ref('') // 临时显示延期后的日期
 
 // 角色选项
 const roleOptions = computed(() => {
@@ -367,7 +471,46 @@ const isVipRole = (role) => {
 	return ['vip_short', 'vip_long', 'vip_mid'].includes(role)
 }
 
-// 判断是否即将到期（30天内）
+// 判断是否是管理员角色
+const isAdminRole = (role) => {
+	return ['super_admin', 'admin'].includes(role)
+}
+
+// 获取用户到期日期（兼容不同字段名）
+const getUserExpireDate = (user) => {
+	return user.expireDate || user.expire_date || user.expiresAt || null
+}
+
+// 计算剩余交易日（简单估算：排除周末）
+const getTradingDaysRemaining = (dateStr) => {
+	if (!dateStr) return 0
+
+	const expireDate = new Date(dateStr)
+	const today = new Date()
+	const diffTime = expireDate - today
+	const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+	if (totalDays <= 0) return 0
+
+	// 简单计算：大约2/3是交易日（排除周末）
+	// 更精确的计算需要考虑节假日，这里使用简化算法
+	let tradingDays = 0
+	let currentDate = new Date(today)
+	currentDate.setHours(0, 0, 0, 0)
+
+	for (let i = 0; i < totalDays; i++) {
+		const dayOfWeek = currentDate.getDay()
+		// 0=周日, 6=周六，只计算周一到周五
+		if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+			tradingDays++
+		}
+		currentDate.setDate(currentDate.getDate() + 1)
+	}
+
+	return tradingDays
+}
+
+// 判断是否即将到期（10天内显示警告）
 const isExpiringSoon = (dateStr) => {
 	if (!dateStr) return false
 
@@ -376,8 +519,11 @@ const isExpiringSoon = (dateStr) => {
 	const diffTime = expireDate - today
 	const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-	return diffDays <= 30 && diffDays >= 0
+	return diffDays <= 10 && diffDays >= 0
 }
+
+// 兼容旧代码，保持同一个函数
+const isExpiringCritically = isExpiringSoon
 
 // 获取剩余天数
 const getDaysRemaining = (dateStr) => {
@@ -409,23 +555,26 @@ const loadUsers = async (isRefresh = false) => {
 		}
 
 		if (searchKeyword.value) {
-			params.keyword = searchKeyword.value
+			params.search = searchKeyword.value
 		}
 
 		// 根据当前标签页添加筛选
+		// 注意：对于管理员标签，需要传递多个角色，使用逗号分隔的字符串
 		if (currentRoleTab.value === 'vip_short') {
-			params.role = ['vip_short']
+			params.role = 'vip_short'
 		} else if (currentRoleTab.value === 'vip_medium') {
-			params.role = ['vip_mid']
+			params.role = 'vip_mid'
 		} else if (currentRoleTab.value === 'trial') {
-			params.role = ['trial']
+			params.role = 'trial'
 		} else if (currentRoleTab.value === 'admin') {
-			params.role = ['super_admin', 'admin']
+			// 管理员标签需要同时筛选 super_admin 和 admin
+			// 后端需要支持 role 参数为逗号分隔的字符串或数组
+			params.role = 'super_admin,admin'
 		}
 
 		const res = await getUsersApi(params)
 
-		if (res.success) {
+		if (res.success || res.code === 200) {
 			const newData = res.data.users || res.data.list || []
 
 			if (isRefresh) {
@@ -480,13 +629,20 @@ const loadMore = () => {
 
 // 创建用户
 const handleCreateUser = () => {
+	// 默认角色是 vip_short，设置对应的默认到期时间（1个月）
+	const defaultRole = 'vip_short'
+	const today = new Date()
+	today.setMonth(today.getMonth() + 1) // 默认1个月
+
 	userForm.value = {
 		id: null,
 		name: '',
 		email: '',
 		password: '',
-		role: 'trial',
-		expireDate: ''
+		role: defaultRole,
+		groupId: userStore.userInfo?.groupId || '', // 自动继承当前管理员的分组
+		expireDate: today.toISOString().split('T')[0],
+		bio: ''
 	}
 	showCreateDrawer.value = true
 }
@@ -495,11 +651,16 @@ const handleCreateUser = () => {
 const handleEdit = (user) => {
 	userForm.value = {
 		id: user.id,
-		name: user.username,
-		email: user.email,
+		name: user.name,
+		email: user.email || '',
 		role: user.role,
-		expireDate: user.expiresAt ? formatDate(user.expiresAt) : ''
+		groupId: user.groupId || user.group_id || '',
+		expireDate: getUserExpireDate(user) ? formatDate(getUserExpireDate(user)) : '',
+		bio: user.bio || ''
 	}
+	// 重置临时日期
+	tempExpireDate.value = ''
+	customExtendDays.value = ''
 	showEditDrawer.value = true
 }
 
@@ -517,15 +678,42 @@ const resetUserForm = () => {
 		name: '',
 		email: '',
 		password: '',
-		role: 'trial',
-		expireDate: ''
+		role: 'vip_short',
+		groupId: '',
+		expireDate: '',
+		bio: ''
 	}
+	tempExpireDate.value = ''
+	customExtendDays.value = ''
 }
 
 // 处理角色选择
 const handleRoleChange = (e) => {
 	const index = e.detail.value
 	userForm.value.role = roleOptions.value[index].value
+
+	// 根据角色自动设置默认到期时间
+	if (!userForm.value.expireDate) {
+		setDefaultExpireDate(userForm.value.role)
+	}
+}
+
+// 根据角色设置默认到期时间
+const setDefaultExpireDate = (role) => {
+	const today = new Date()
+
+	if (role === 'trial') {
+		// 体验用户：默认7天
+		today.setDate(today.getDate() + 7)
+		userForm.value.expireDate = today.toISOString().split('T')[0]
+	} else if (role === 'vip_short' || role === 'vip_mid') {
+		// VIP用户：默认1个月（30天）
+		today.setDate(today.getDate() + 30)
+		userForm.value.expireDate = today.toISOString().split('T')[0]
+	} else {
+		// 管理员：永久有效（空）
+		userForm.value.expireDate = ''
+	}
 }
 
 // 处理日期选择
@@ -535,14 +723,30 @@ const handleDateChange = (e) => {
 
 // 快速延期
 const quickExtend = (days) => {
+	if (!days || days <= 0) {
+		uni.showToast({
+			title: '请输入有效的天数',
+			icon: 'none'
+		})
+		return
+	}
+
 	if (!userForm.value.expireDate) {
 		const today = new Date()
 		userForm.value.expireDate = today.toISOString().split('T')[0]
 	}
 
 	const currentDate = new Date(userForm.value.expireDate)
-	currentDate.setDate(currentDate.getDate() + days)
-	userForm.value.expireDate = currentDate.toISOString().split('T')[0]
+	currentDate.setDate(currentDate.getDate() + parseInt(days))
+	const newDate = currentDate.toISOString().split('T')[0]
+	userForm.value.expireDate = newDate
+	tempExpireDate.value = newDate
+
+	uni.showToast({
+		title: `已延期${days}天，新的到期时间：${newDate}`,
+		icon: 'success',
+		duration: 2000
+	})
 }
 
 // 保存（创建或编辑）
@@ -593,9 +797,14 @@ const handleSave = async () => {
 			role: userForm.value.role
 		}
 
-		// 只有当邮箱不为空时才发送
-		if (userForm.value.email) {
-			data.email = userForm.value.email
+		// 邮箱（有值才发送，空值不发，让后端自动生成默认邮箱）
+		if (userForm.value.email && userForm.value.email.trim()) {
+			data.email = userForm.value.email.trim()
+		}
+
+		// 分组ID（创建时自动继承，编辑时保留）
+		if (userForm.value.groupId) {
+			data.groupId = userForm.value.groupId
 		}
 
 		// 创建时需要密码
@@ -603,10 +812,11 @@ const handleSave = async () => {
 			data.password = userForm.value.password
 		}
 
-		// 如果选择了到期时间
-		if (userForm.value.expireDate) {
-			data.expireDate = userForm.value.expireDate
-		}
+		// 到期时间（空字符串转为 null 表示永久有效）
+		data.expireDate = userForm.value.expireDate || null
+
+		// 用户简介
+		data.bio = userForm.value.bio || null
 
 		let res
 		if (userForm.value.id) {
@@ -625,8 +835,11 @@ const handleSave = async () => {
 
 			closeAllDrawers()
 
-			// 刷新列表
-			await loadUsers(true)
+			// 刷新列表和Tab计数
+			await Promise.all([
+				loadUsers(true),
+				loadTabCounts()
+			])
 
 			// 如果创建的用户不符合当前筛选，切换到"全部"标签
 			if (!userForm.value.id && currentRoleTab.value !== 'all') {
@@ -663,6 +876,74 @@ const handleSave = async () => {
 	}
 }
 
+// 停用用户
+const handleDeactivate = async (user) => {
+	try {
+		uni.showModal({
+			title: '停用用户',
+			content: `确定要停用用户 "${user.name}" 吗？停用后该用户将无法登录。`,
+			success: async (res) => {
+				if (res.confirm) {
+					const result = await deactivateUserApi(user.id)
+
+					if (result.code === 200 || result.success) {
+						uni.showToast({
+							title: '已停用',
+							icon: 'success'
+						})
+						// 刷新列表和Tab计数
+						await Promise.all([
+							loadUsers(true),
+							loadTabCounts()
+						])
+					} else {
+						uni.showToast({
+							title: result.message || '停用失败',
+							icon: 'none'
+						})
+					}
+				}
+			}
+		})
+	} catch (error) {
+		console.error('停用用户失败:', error)
+		uni.showToast({
+			title: '停用失败',
+			icon: 'none'
+		})
+	}
+}
+
+// 启用用户
+const handleActivate = async (user) => {
+	try {
+		const result = await activateUserApi(user.id)
+
+		if (result.code === 200 || result.success) {
+			uni.showToast({
+				title: '已启用',
+				icon: 'success'
+			})
+			// 刷新列表和Tab计数
+			await Promise.all([
+				loadUsers(true),
+				loadTabCounts()
+			])
+		} else {
+			uni.showToast({
+				title: result.message || '启用失败',
+				icon: 'none'
+			})
+		}
+	} catch (error) {
+		console.error('启用用户失败:', error)
+		uni.showToast({
+			title: '启用失败',
+			icon: 'none'
+		})
+	}
+}
+
 // 删除用户
 const handleDelete = async (id) => {
 	try {
@@ -673,13 +954,16 @@ const handleDelete = async (id) => {
 				if (res.confirm) {
 					const result = await deleteUserApi(id)
 
-					if (result.success) {
+					if (result.code === 200 || result.success) {
 						uni.showToast({
 							title: '删除成功',
 							icon: 'success'
 						})
-						// 从列表中移除并刷新
-						await loadUsers(true)
+						// 刷新列表和Tab计数
+						await Promise.all([
+							loadUsers(true),
+							loadTabCounts()
+						])
 					} else {
 						uni.showToast({
 							title: result.message || '删除失败',
@@ -702,7 +986,7 @@ const handleDelete = async (id) => {
 const handleResetPassword = (user) => {
 	passwordResetForm.value = {
 		userId: user.id,
-		username: user.username,
+		username: user.name,
 		email: user.email,
 		newPassword: '',
 		confirmPassword: '',
@@ -800,11 +1084,28 @@ onMounted(() => {
 		return
 	}
 
+	// 加载各Tab的数量
+	loadTabCounts()
+
+	// 加载用户列表
 	loadUsers(true)
 })
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件默认样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+button::after {
+	border: none;
+}
+
 .user-management-container {
 	height: 100vh;
 	display: flex;
@@ -919,6 +1220,15 @@ onMounted(() => {
 .user-card:active {
 	transform: scale(0.98);
 	box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.user-card.user-inactive {
+	background: #f5f5f5;
+	opacity: 0.7;
+}
+
+.user-card.user-inactive .avatar-text {
+	color: #999;
 }
 
 /* 卡片头部 */
@@ -1042,15 +1352,51 @@ onMounted(() => {
 	color: #faad14;
 }
 
+.info-value.expiring-critical {
+	color: #ff4d4f;
+	font-weight: bold;
+}
+
+/* 用户简介样式 */
+.bio-row {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8rpx;
+}
+
+.bio-text {
+	font-size: 26rpx;
+	color: #666;
+	line-height: 1.5;
+	word-break: break-all;
+	white-space: pre-wrap;
+}
+
 .expiry-warning {
 	display: flex;
 	align-items: center;
 	gap: 8rpx;
 	padding: 16rpx;
-	background: #fffbe6;
 	border-radius: 12rpx;
-	border: 1rpx solid #ffe58f;
 	margin-top: 16rpx;
+}
+
+.expiry-warning.critical {
+	background: #fff2f0;
+	border: 1rpx solid #ffccc7;
+}
+
+.expiry-warning.critical .warning-text {
+	color: #ff4d4f;
+}
+
+.expiry-warning.normal {
+	background: #e6f7ff;
+	border: 1rpx solid #91d5ff;
+}
+
+.expiry-warning.normal .warning-text {
+	color: #1890ff;
 }
 
 .warning-icon {
@@ -1090,6 +1436,16 @@ onMounted(() => {
 .reset-btn {
 	background: #fff7e6;
 	color: #fa8c16;
+}
+
+.deactivate-btn {
+	background: #f6f0ff;
+	color: #722ed1;
+}
+
+.activate-btn {
+	background: #f6ffed;
+	color: #52c41a;
 }
 
 .delete-btn {
@@ -1239,11 +1595,47 @@ onMounted(() => {
 	box-sizing: border-box;
 }
 
+.form-textarea {
+	width: 100%;
+	min-height: 160rpx;
+	padding: 24rpx;
+	background: #f5f7fa;
+	border-radius: 16rpx;
+	font-size: 28rpx;
+	color: #1a1a1a;
+	box-sizing: border-box;
+	line-height: 1.5;
+}
+
 .form-hint {
 	display: block;
 	font-size: 24rpx;
 	color: #8b95a5;
 	margin-top: 12rpx;
+}
+
+/* 密码修改区域 */
+.password-change-section {
+	margin-top: 16rpx;
+}
+
+.password-toggle {
+	display: flex;
+	align-items: center;
+	gap: 16rpx;
+	margin-bottom: 16rpx;
+}
+
+.toggle-label {
+	font-size: 28rpx;
+	color: #1a1a1a;
+}
+
+/* 自定义延期 */
+.custom-extend {
+	display: flex;
+	align-items: center;
+	margin-top: 16rpx;
 }
 
 .picker-view {
@@ -1270,15 +1662,20 @@ onMounted(() => {
 	display: flex;
 	gap: 16rpx;
 	flex-wrap: wrap;
+	margin-bottom: 16rpx;
 }
 
 .extend-btn {
-	padding: 16rpx 24rpx;
+	flex: 1;
+	min-width: 150rpx;
+	padding: 20rpx 16rpx;
 	background: #e6f7ff;
 	color: #1890ff;
 	border: 1rpx solid #91d5ff;
 	border-radius: 12rpx;
 	font-size: 26rpx;
+	font-weight: 500;
+	text-align: center;
 }
 
 .drawer-footer {

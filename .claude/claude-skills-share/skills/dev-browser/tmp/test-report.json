@@ -1,0 +1,72 @@
+{
+  "timestamp": "2026-02-28T02:40:27.448Z",
+  "baseUrl": "http://localhost:5173",
+  "duration": "56.87s",
+  "summary": {
+    "total": 12,
+    "passed": 11,
+    "failed": 1
+  },
+  "tests": [
+    {
+      "name": "登录页面加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "管理员登录",
+      "passed": false,
+      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"登录\")')\u001b[22m\n"
+    },
+    {
+      "name": "首页加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "消息列表加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "消息详情加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "讨论列表加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "收藏页面加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "个人中心加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "用户管理加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "AI投顾加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "行情中心加载",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "完整用户流程",
+      "passed": true,
+      "error": null
+    }
+  ]
+}

@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>行情中心 - UI原型</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+      background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3e 50%, #0d0d2b 100%);
+      min-height: 100vh;
+      color: #ffffff;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 390px;
+      margin: 0 auto;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
+      padding: 50px 20px 20px;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 50%);
+      animation: pulse 4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-icon {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, #00d4ff, #a855f7);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      background: linear-gradient(90deg, #00d4ff, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .update-time {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .refresh-icon {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0, 212, 255, 0.6);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 2s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Section */
+    .section {
+      padding: 16px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .section-icon {
+      font-size: 18px;
+    }
+
+    .section-action {
+      font-size: 12px;
+      color: #00d4ff;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    /* Card */
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(0, 212, 255, 0.15);
+      border-radius: 16px;
+      padding: 16px;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.5), transparent);
+    }
+
+    /* Market Thermometer */
+    .thermometer-gauge {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .gauge-ring {
+      width: 80px;
+      height: 80px;
+      position: relative;
+    }
+
+    .gauge-ring svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .gauge-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.1);
+      stroke-width: 8;
+    }
+
+    .gauge-fill {
+      fill: none;
+      stroke: url(#gaugeGradient);
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 188.5;
+      stroke-dashoffset: 52.8;
+      filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.5));
+    }
+
+    .gauge-value {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .gauge-number {
+      font-size: 24px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00d4ff, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .gauge-label {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .gauge-info {
+      flex: 1;
+    }
+
+    .gauge-status {
+      font-size: 14px;
+      color: #ff6b6b;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .gauge-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+
+    .stat-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+
+    .stat-icon.up { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
+    .stat-icon.down { background: rgba(46, 213, 115, 0.2); color: #2ed573; }
+    .stat-icon.limit-up { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; }
+    .stat-icon.limit-down { background: rgba(116, 185, 255, 0.2); color: #74b9ff; }
+
+    .stat-value {
+      font-weight: 600;
+    }
+
+    /* Distribution Bar */
+    .distribution-bar {
+      margin-top: 16px;
+    }
+
+    .bar-label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 8px;
+    }
+
+    .bar-container {
+      display: flex;
+      height: 24px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .bar-segment {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .bar-segment.limit-down { background: linear-gradient(135deg, #74b9ff, #0984e3); }
+    .bar-segment.down { background: linear-gradient(135deg, #2ed573, #26de81); }
+    .bar-segment.flat { background: linear-gradient(135deg, #636e72, #b2bec3); }
+    .bar-segment.up { background: linear-gradient(135deg, #ff6b6b, #ee5a5a); }
+    .bar-segment.limit-up { background: linear-gradient(135deg, #ff4757, #c0392b); }
+
+    .expand-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 12px;
+      padding: 8px;
+      background: rgba(0, 212, 255, 0.1);
+      border-radius: 8px;
+      font-size: 12px;
+      color: #00d4ff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .expand-btn:hover {
+      background: rgba(0, 212, 255, 0.2);
+    }
+
+    /* Index Cards */
+    .index-scroll {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 4px 0;
+      scrollbar-width: none;
+    }
+
+    .index-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .index-card {
+      min-width: 140px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(0, 212, 255, 0.1);
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .index-card.up {
+      border-color: rgba(255, 71, 87, 0.3);
+      background: linear-gradient(135deg, rgba(255, 71, 87, 0.1) 0%, rgba(255, 71, 87, 0.02) 100%);
+    }
+
+    .index-card.down {
+      border-color: rgba(46, 213, 115, 0.3);
+      background: linear-gradient(135deg, rgba(46, 213, 115, 0.1) 0%, rgba(46, 213, 115, 0.02) 100%);
+    }
+
+    .index-name {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 8px;
+    }
+
+    .index-price {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .index-card.up .index-price { color: #ff4757; }
+    .index-card.down .index-price { color: #2ed573; }
+
+    .index-change {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .index-card.up .index-change { color: #ff6b6b; }
+    .index-card.down .index-change { color: #26de81; }
+
+    /* Ladder Section */
+    .ladder-summary {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .ladder-high {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .crown-icon {
+      font-size: 20px;
+    }
+
+    .ladder-high-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ladder-high-days {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #ff6b6b, #ff4757);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .ladder-high-label {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .ladder-total {
+      padding: 8px 16px;
+      background: rgba(168, 85, 247, 0.2);
+      border-radius: 20px;
+      font-size: 14px;
+      color: #a855f7;
+    }
+
+    .ladder-levels {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .level-tag {
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .level-tag.high {
+      background: linear-gradient(135deg, rgba(255, 71, 87, 0.3), rgba(255, 107, 107, 0.2));
+      color: #ff6b6b;
+      border: 1px solid rgba(255, 71, 87, 0.3);
+    }
+
+    .level-tag.mid {
+      background: linear-gradient(135deg, rgba(253, 203, 110, 0.3), rgba(255, 159, 67, 0.2));
+      color: #fdcb6e;
+      border: 1px solid rgba(253, 203, 110, 0.3);
+    }
+
+    .level-tag.low {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(168, 85, 247, 0.2));
+      color: #00d4ff;
+      border: 1px solid rgba(0, 212, 255, 0.3);
+    }
+
+    /* Fund Flow */
+    .flow-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .flow-tab {
+      padding: 6px 16px;
+      border-radius: 16px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .flow-tab.active {
+      background: linear-gradient(135deg, rgba(255, 71, 87, 0.3), rgba(255, 107, 107, 0.2));
+      color: #ff6b6b;
+    }
+
+    .flow-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .flow-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .flow-rank {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .flow-rank.gold { background: linear-gradient(135deg, #f39c12, #e67e22); }
+    .flow-rank.silver { background: linear-gradient(135deg, #bdc3c7, #95a5a6); }
+    .flow-rank.bronze { background: linear-gradient(135deg, #e17055, #d35400); }
+    .flow-rank.normal { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.5); }
+
+    .flow-info {
+      flex: 1;
+    }
+
+    .flow-name {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .flow-stats {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .flow-amount {
+      text-align: right;
+    }
+
+    .flow-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ff4757;
+    }
+
+    .flow-pct {
+      font-size: 10px;
+      color: rgba(255, 71, 87, 0.7);
+    }
+
+    /* Glow Effects */
+    .glow-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00d4ff;
+      box-shadow: 0 0 10px #00d4ff, 0 0 20px rgba(0, 212, 255, 0.5);
+      animation: glowPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* Decorative Elements */
+    .decoration {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .decoration-1 {
+      top: 20%;
+      right: -50px;
+      width: 100px;
+      height: 100px;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .decoration-2 {
+      bottom: 30%;
+      left: -30px;
+      width: 80px;
+      height: 80px;
+      background: radial-gradient(circle, rgba(0, 212, 255, 0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Decorative Elements -->
+    <div class="decoration decoration-1"></div>
+    <div class="decoration decoration-2"></div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-content">
+        <div class="header-title">
+          <div class="header-icon">📊</div>
+          <h1>行情中心</h1>
+        </div>
+        <div class="update-time">
+          <div class="glow-dot"></div>
+          <span>15:30:05</span>
+          <div class="refresh-icon"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Market Thermometer -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="section-icon">🌡️</span>
+          <span>市场温度计</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="thermometer-gauge">
+          <div class="gauge-ring">
+            <svg viewBox="0 0 70 70">
+              <defs>
+                <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#00d4ff"/>
+                  <stop offset="50%" style="stop-color:#a855f7"/>
+                  <stop offset="100%" style="stop-color:#ff4757"/>
+                </linearGradient>
+              </defs>
+              <circle class="gauge-bg" cx="35" cy="35" r="30"/>
+              <circle class="gauge-fill" cx="35" cy="35" r="30"/>
+            </svg>
+            <div class="gauge-value">
+              <div class="gauge-number">72</div>
+              <div class="gauge-label">情绪分</div>
+            </div>
+          </div>
+          <div class="gauge-info">
+            <div class="gauge-status">
+              <span>🔥</span>
+              <span>市场偏热</span>
+            </div>
+            <div class="gauge-stats">
+              <div class="stat-item">
+                <div class="stat-icon up">📈</div>
+                <span class="stat-value" style="color: #ff4757;">2856</span>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon down">📉</div>
+                <span class="stat-value" style="color: #2ed573;">1892</span>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon limit-up">🔥</div>
+                <span class="stat-value" style="color: #ff6b6b;">98</span>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon limit-down">❄️</div>
+                <span class="stat-value" style="color: #74b9ff;">12</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="distribution-bar">
+          <div class="bar-label">涨跌分布</div>
+          <div class="bar-container">
+            <div class="bar-segment limit-down" style="width: 3%;">12</div>
+            <div class="bar-segment down" style="width: 22%;">-5~0</div>
+            <div class="bar-segment flat" style="width: 15%;">0~3</div>
+            <div class="bar-segment up" style="width: 45%;">3~10</div>
+            <div class="bar-segment limit-up" style="width: 15%;">98</div>
+          </div>
+        </div>
+        <div class="expand-btn">
+          <span>查看详细分布</span>
+          <span>▼</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Index Quotes -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="section-icon">📰</span>
+          <span>指数行情</span>
+        </div>
+      </div>
+      <div class="index-scroll">
+        <div class="index-card up">
+          <div class="index-name">上证指数</div>
+          <div class="index-price">3,245.67</div>
+          <div class="index-change">+1.23%</div>
+        </div>
+        <div class="index-card up">
+          <div class="index-name">深证成指</div>
+          <div class="index-price">10,856.32</div>
+          <div class="index-change">+0.86%</div>
+        </div>
+        <div class="index-card up">
+          <div class="index-name">沪深300</div>
+          <div class="index-price">3,892.45</div>
+          <div class="index-change">+0.52%</div>
+        </div>
+        <div class="index-card down">
+          <div class="index-name">科创50</div>
+          <div class="index-price">986.23</div>
+          <div class="index-change">-0.35%</div>
+        </div>
+        <div class="index-card up">
+          <div class="index-name">创业板指</div>
+          <div class="index-price">2,156.78</div>
+          <div class="index-change">+0.68%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ladder -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="section-icon">🪜</span>
+          <span>连板天梯</span>
+        </div>
+        <div class="section-action">
+          <span>查看全部</span>
+          <span>→</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ladder-summary">
+          <div class="ladder-high">
+            <span class="crown-icon">👑</span>
+            <div class="ladder-high-info">
+              <div class="ladder-high-days">8连板</div>
+              <div class="ladder-high-label">最高连板</div>
+            </div>
+          </div>
+          <div class="ladder-total">共 156 只涨停</div>
+        </div>
+        <div class="ladder-levels">
+          <div class="level-tag high">
+            <span>8板</span>
+            <span>×1</span>
+          </div>
+          <div class="level-tag high">
+            <span>6板</span>
+            <span>×3</span>
+          </div>
+          <div class="level-tag mid">
+            <span>5板</span>
+            <span>×8</span>
+          </div>
+          <div class="level-tag mid">
+            <span>4板</span>
+            <span>×23</span>
+          </div>
+          <div class="level-tag low">
+            <span>3板</span>
+            <span>×45</span>
+          </div>
+          <div class="level-tag low">
+            <span>2板</span>
+            <span>×76</span>
+          </div>
+        </div>
+        <div class="expand-btn">
+          <span>查看完整天梯</span>
+          <span>▼</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fund Flow -->
+    <div class="section" style="padding-bottom: 100px;">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="section-icon">💰</span>
+          <span>资金流向</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="flow-tabs">
+          <div class="flow-tab active">🔥 流入</div>
+          <div class="flow-tab">❄️ 流出</div>
+        </div>
+        <div class="flow-list">
+          <div class="flow-item">
+            <div class="flow-rank gold">1</div>
+            <div class="flow-info">
+              <div class="flow-name">半导体</div>
+              <div class="flow-stats">涨38 跌7 涨停5</div>
+            </div>
+            <div class="flow-amount">
+              <div class="flow-value">+12.35亿</div>
+              <div class="flow-pct">+8.52%</div>
+            </div>
+          </div>
+          <div class="flow-item">
+            <div class="flow-rank silver">2</div>
+            <div class="flow-info">
+              <div class="flow-name">人工智能</div>
+              <div class="flow-stats">涨32 跌11 涨停3</div>
+            </div>
+            <div class="flow-amount">
+              <div class="flow-value">+8.67亿</div>
+              <div class="flow-pct">+6.23%</div>
+            </div>
+          </div>
+          <div class="flow-item">
+            <div class="flow-rank bronze">3</div>
+            <div class="flow-info">
+              <div class="flow-name">新能源汽车</div>
+              <div class="flow-stats">涨28 跌15 涨停2</div>
+            </div>
+            <div class="flow-amount">
+              <div class="flow-value">+5.42亿</div>
+              <div class="flow-pct">+3.87%</div>
+            </div>
+          </div>
+        </div>
+        <div class="expand-btn">
+          <span>查看更多行业</span>
+          <span>▼</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

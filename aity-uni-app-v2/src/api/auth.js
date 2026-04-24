@@ -32,8 +32,20 @@ export function getCurrentUserApi() {
   return get('/auth/me')
 }
 
+/**
+ * 修改密码
+ * @param {Object} data 密码数据
+ * @param {String} data.currentPassword 当前密码
+ * @param {String} data.newPassword 新密码
+ * @returns {Promise}
+ */
+export function changePasswordApi(data) {
+  return post('/auth/change-password', data)
+}
+
 export default {
   loginApi,
   logoutApi,
-  getCurrentUserApi
+  getCurrentUserApi,
+  changePasswordApi
 }

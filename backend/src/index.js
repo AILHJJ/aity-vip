@@ -8,7 +8,29 @@ const swaggerUi = require('swagger-ui-express');
 const logger = require('./utils/logger');
 const swaggerSpec = require('./config/swagger');
 const { trackRequest, trackError, getMetrics } = require('./middleware/monitoring');
-require('dotenv').config();
+
+// ============================================
+// 环境变量自动加载
+// 根据 NODE_ENV 自动选择对应的 .env 文件
+// ============================================
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const envFileMap = {
+  production: '.env.production',
+  test: '.env.test',
+  development: '.env.development'
+};
+const envFile = envFileMap[NODE_ENV] || '.env.development';
+const envPath = path.resolve(__dirname, `../${envFile}`);
+
+// 加载对应环境的配置文件
+const dotenvResult = require('dotenv').config({ path: envPath });
+
+if (dotenvResult.error) {
+  console.warn(`⚠️  未找到环境配置文件: ${envFile}，使用默认 .env`);
+  require('dotenv').config();
+} else {
+  console.log(`✅ 已加载环境配置: ${envFile}`);
+}
 
 // 导入路由
 const authRoutes = require('./routes/authRoutes');
@@ -23,12 +45,14 @@ const monitorRoutes = require('./routes/monitorRoutes');
 const uploadRoutes = require('./routes/upload');
 const marketRoutes = require('./routes/marketRoutes');
 const aiAdvisorRoutes = require('./routes/aiAdvisorRoutes');
+const favoritesRoutes = require('./routes/favoritesRoutes');
+const aiRoutes = require('./routes/ai');
+const messageTypeRoutes = require('./routes/messageTypeRoutes');
 
 // 创建Express应用
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
-const NODE_ENV = process.env.NODE_ENV || 'development';
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : [
@@ -171,6 +195,9 @@ app.use('/api/monitor', monitorRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/market', marketRoutes);
 app.use('/api/ai-advisor', aiAdvisorRoutes);
+app.use('/api/favorites', favoritesRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/message-types', messageTypeRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

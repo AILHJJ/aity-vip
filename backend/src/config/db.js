@@ -1,5 +1,6 @@
 // 数据库配置
-require('dotenv').config();
+// 注意：dotenv 由 src/index.js 根据 NODE_ENV 加载对应 .env 文件
+// 这里不再重复 require('dotenv').config()，避免覆盖已加载的环境变量
 const { Sequelize } = require('sequelize');
 
 // ============================================

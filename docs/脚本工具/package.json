@@ -1,0 +1,21 @@
+{
+  "name": "docs-management-tools",
+  "version": "1.0.0",
+  "description": "文档管理自动化工具集",
+  "main": "index.js",
+  "scripts": {
+    "generate-index": "node generate-index.js",
+    "validate": "node validate-docs.js",
+    "archive": "node archive-iteration.js"
+  },
+  "keywords": [
+    "documentation",
+    "tools",
+    "automation"
+  ],
+  "author": "开发团队",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

@@ -89,6 +89,9 @@ export function request(options) {
     // 获取 token
     const token = uni.getStorageSync('token')
 
+    // 判断是否是登录请求（登录请求不应该自动处理401）
+    const isLoginRequest = options.url === '/auth/login'
+
     // 构建请求配置
     const config = {
       url: API_BASE_URL + options.url,
@@ -127,21 +130,28 @@ export function request(options) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data)
         } else if (res.statusCode === 401) {
-          // token 过期，清除登录信息
-          uni.removeStorageSync('token')
-          uni.removeStorageSync('userInfo')
-          uni.showToast({
-            title: ERROR_MESSAGES['401'],
-            icon: 'none',
-            duration: 2000
-          })
-          // 跳转到登录页
-          setTimeout(() => {
-            uni.reLaunch({
-              url: '/pages/login/login'
+          // 判断是否是登录请求
+          if (isLoginRequest) {
+            // 登录请求的401错误（用户名或密码错误），不自动处理，让业务层处理
+            const errorMsg = res.data?.message || '用户名或密码错误'
+            reject(new Error(errorMsg))
+          } else {
+            // 其他请求的401错误，token过期，清除登录信息并跳转登录页
+            uni.removeStorageSync('token')
+            uni.removeStorageSync('userInfo')
+            uni.showToast({
+              title: ERROR_MESSAGES['401'],
+              icon: 'none',
+              duration: 2000
             })
-          }, 1500)
-          reject(new Error(ERROR_MESSAGES['401']))
+            // 跳转到登录页
+            setTimeout(() => {
+              uni.reLaunch({
+                url: '/pages/login/login'
+              })
+            }, 1500)
+            reject(new Error(ERROR_MESSAGES['401']))
+          }
         } else {
           // 其他错误
           const errorMsg = res.data?.message || ERROR_MESSAGES[res.statusCode] || '请求失败'

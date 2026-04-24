@@ -7,7 +7,7 @@ echo "  AITY VIP 后端部署脚本"
 echo "=========================================="
 
 # 1. 进入项目目录
-cd /path/to/your/project  # ⚠️ 修改为实际路径
+cd /root/aity-vip/backend
 
 # 2. 拉取最新代码
 echo "📥 拉取最新代码..."
@@ -19,13 +19,11 @@ npm install
 
 # 4. 重启服务
 echo "🔄 重启后端服务..."
-pm2 restart aity-vip-backend
-# 或者如果使用其他进程管理器
-# systemctl restart aity-vip-backend
+pm2 restart aity-backend
 
 # 5. 查看日志
 echo "📋 查看最新日志..."
-pm2 logs aity-vip-backend --lines 50
+pm2 logs aity-backend --lines 50
 
 echo "✅ 部署完成！"
 echo "=========================================="

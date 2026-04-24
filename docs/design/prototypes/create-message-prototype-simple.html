@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>发布消息 - 简洁高效型</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            max-width: 414px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #fff;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e5e5;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .back-btn {
+            font-size: 24px;
+            color: #333;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .header-title {
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .publish-btn {
+            background: #07c160;
+            color: #fff;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .publish-btn:disabled {
+            background: #ccc;
+        }
+
+        .container {
+            padding: 16px;
+        }
+
+        .form-item {
+            background: #fff;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+        }
+
+        .form-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            color: #333;
+            background: transparent;
+        }
+
+        .form-textarea {
+            width: 100%;
+            min-height: 200px;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            line-height: 1.6;
+            resize: none;
+            background: transparent;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .quick-btn {
+            flex: 1;
+            background: #f5f5f5;
+            border: 1px solid #e5e5e5;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .quick-btn:active {
+            background: #e5e5e5;
+        }
+
+        .emoji {
+            font-size: 16px;
+        }
+
+        .attachment-section {
+            margin-top: 16px;
+        }
+
+        .attachment-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .attachment-item {
+            aspect-ratio: 1;
+            background: #f5f5f5;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .attachment-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .add-attachment {
+            border: 1px dashed #ccc;
+            cursor: pointer;
+        }
+
+        .add-attachment::before {
+            content: '+';
+            font-size: 24px;
+            color: #ccc;
+        }
+
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 414px;
+            background: #fff;
+            border-top: 1px solid #e5e5e5;
+            padding: 12px 16px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .bottom-btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #e5e5e5;
+            background: #fff;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .bottom-btn.primary {
+            background: #07c160;
+            color: #fff;
+            border-color: #07c160;
+        }
+
+        .picker {
+            position: relative;
+        }
+
+        .picker-value {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .picker-arrow {
+            font-size: 12px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="back-btn">←</div>
+        <div class="header-title">发布消息</div>
+        <button class="publish-btn">发布</button>
+    </div>
+
+    <div class="container">
+        <!-- 标题 -->
+        <div class="form-item">
+            <input type="text" class="form-input" placeholder="标题（选填）">
+        </div>
+
+        <!-- 消息类型 -->
+        <div class="form-item">
+            <div class="picker">
+                <div class="picker-value">
+                    <span>早盘关注</span>
+                    <span class="picker-arrow">▼</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 内容编辑 -->
+        <div class="form-item">
+            <textarea class="form-textarea" placeholder="分享你的想法..."></textarea>
+        </div>
+
+        <!-- 快捷操作 -->
+        <div class="quick-actions">
+            <button class="quick-btn">
+                <span class="emoji">🎨</span>
+                <span>主题</span>
+            </button>
+            <button class="quick-btn">
+                <span class="emoji">🤖</span>
+                <span>AI优化</span>
+            </button>
+            <button class="quick-btn">
+                <span class="emoji">📈</span>
+                <span>添加股票</span>
+            </button>
+        </div>
+
+        <!-- 附件区域 -->
+        <div class="attachment-section">
+            <div class="attachment-grid">
+                <div class="attachment-item add-attachment"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <button class="bottom-btn">存草稿</button>
+        <button class="bottom-btn primary">立即发布</button>
+    </div>
+</body>
+</html>

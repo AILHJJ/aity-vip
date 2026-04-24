@@ -1,85 +1,82 @@
 # VIP测试账号快速参考
 
+> 最后更新：2026-02-28
+
+---
+
 ## 快速登录信息
 
-### VIP测试账号 (新创建)
+### 管理员账号（推荐测试使用）
 ```
+用户名: admin
+邮箱: admin@example.com
+密码: 123456
+角色: super_admin
+```
+
+### VIP测试账号
+```
+用户名: 等风来
+邮箱: 625668823@qq.com
+密码: 112044
+角色: vip_short
+```
+
+### VIP中线测试账号
+```
+用户名: vip_test
 邮箱: vip_test@example.com
 密码: 123456
-角色: VIP中线用户 (vip_mid)
+角色: vip_mid
 ```
-
-### 所有可用测试账号
-
-| 账号类型 | 邮箱 | 密码 | 角色 |
-|---------|------|------|------|
-| 超级管理员 | admin@example.com | 123456 | super_admin |
-| 管理员 | subadmin@example.com | 123456 | admin |
-| **VIP中线用户** | **vip_mid@example.com** | 123456 | vip_mid |
-| **VIP短线用户** | **vip_short@example.com** | 123456 | vip_short |
-| **VIP测试账号** | **vip_test@example.com** | 123456 | **vip_mid** |
-| 体验用户 | trial@example.com | 123456 | trial (7天) |
 
 ---
 
-## 常用命令
+## 所有测试账号一览
 
-### 创建VIP测试账号
+| 用户名 | 邮箱 | 密码 | 角色 | 环境 |
+|--------|------|------|------|------|
+| Admin | admin@example.com | 123456 | super_admin | 生产+测试 |
+| SubAdmin | subadmin@example.com | 123456 | admin | 生产+测试 |
+| 体验用户 | trial@example.com | 123456 | trial | 生产 |
+| vip_test | vip_test@example.com | 123456 | vip_mid | 生产 |
+| 等风来 | 625668823@qq.com | 112044 | vip_short | 生产+测试 |
+| VIP中线用户 | vip_mid@example.com | 123456 | vip_mid | 测试 |
+| 妮儿 | 123456@qq.com | 123456 | vip_short | 测试 |
+
+---
+
+## 数据库环境
+
+| 环境 | 数据库名 | 说明 |
+|------|----------|------|
+| 生产 | 投研图灵室 | 真实用户数据 |
+| 测试 | 投研图灵室_test | 开发测试数据 |
+
+---
+
+## 登录API示例
+
 ```bash
-cd D:\your-mcp-proxy\AITY_VIP\backend
-node scripts/create-vip-test-user.js
-```
+# 管理员登录
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"123456"}'
 
-### 验证VIP账号
-```bash
-cd D:\your-mcp-proxy\AITY_VIP\backend
-node scripts/verify-vip-account.js
-```
-
-### 查看所有用户
-```bash
-cd D:\your-mcp-proxy\AITY_VIP\backend
-node -e "require('dotenv').config(); const sequelize = require('./src/config/db'); const User = require('./src/models/User'); (async () => { const users = await User.findAll({ attributes: ['id', 'name', 'email', 'role', 'status'] }); users.forEach(u => console.log(u.id, u.name, u.email, u.role, u.status)); await sequelize.close(); process.exit(0); })();"
+# VIP用户登录
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"等风来","password":"112044"}'
 ```
 
 ---
 
-## 验证VIP身份
+## 注意事项
 
-### 1. 登录后检查响应
-登录成功后，响应中的 `data.user.role` 应该显示为 `vip_mid` 或 `vip_short`
-
-### 2. 查看个人资料
-在前端应用的个人资料页面，应该能看到VIP用户标识
-
-### 3. 访问VIP内容
-VIP用户应该能够看到带有对应标签的专属消息内容
+1. **体验用户** trial 账户可能已过期，需延期后使用
+2. **生产环境** 请勿执行破坏性测试
+3. **Token有效期** 24小时
 
 ---
 
-## 文件位置
-
-- 用户模型: `D:\your-mcp-proxy\AITY_VIP\backend\src\models\User.js`
-- 认证控制器: `D:\your-mcp-proxy\AITY_VIP\backend\src\controllers\authController.js`
-- 创建脚本: `D:\your-mcp-proxy\AITY_VIP\backend\scripts\create-vip-test-user.js`
-- 验证脚本: `D:\your-mcp-proxy\AITY_VIP\backend\scripts\verify-vip-account.js`
-- 完整报告: `D:\your-mcp-proxy\AITY_VIP\backend\docs\VIP测试账号完整报告.md`
-
----
-
-## 测试检查清单
-
-- [ ] 使用vip_test账号登录
-- [ ] 验证返回的角色为vip_mid
-- [ ] 查看消息列表
-- [ ] 查看消息详情
-- [ ] 测试收藏功能
-- [ ] 测试发起讨论
-- [ ] 验证权限控制
-
----
-
-**重要提示:**
-- 所有测试账号的密码都是: 123456
-- VIP测试账号是vip_mid类型（VIP中线用户）
-- 账号状态都是active（激活状态）
+**完整文档**: `docs/testing/测试账户参考.md`

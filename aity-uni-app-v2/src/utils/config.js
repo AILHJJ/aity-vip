@@ -2,31 +2,54 @@
  * 全局配置文件
  * 统一管理 API 地址和基础配置
  *
- * 环境说明：
- * - 开发环境：前端本地运行，后端连接远程服务器（保持环境一致）
- * - 生产环境：前后端都在远程服务器
+ * 环境区分策略：
+ * ┌─────────────────────────────────────────────────────────────┐
+ * │ 开发环境 (npm run dev:*)                                    │
+ * │   → 连接本地后端 (localhost 或局域网IP)                      │
+ * │   → 后端连接测试数据库 (投研图灵室_test)                     │
+ * ├─────────────────────────────────────────────────────────────┤
+ * │ 生产构建 - 本地版 (npm run build:*:local)                    │
+ * │   → 连接本地后端 (localhost:3001)                            │
+ * │   → 后端连接测试数据库 (投研图灵室_test)                     │
+ * ├─────────────────────────────────────────────────────────────┤
+ * │ 生产构建 - 云端版 (npm run build:*:cloud)                    │
+ * │   → 连接生产服务器 (https://aity88.online)                   │
+ * │   → 后端连接生产数据库 (投研图灵室)                          │
+ * └─────────────────────────────────────────────────────────────┘
+ *
+ * 重要：不能使用 import.meta.env！
+ * Vite 编译小程序时会为 import.meta 生成 polyfill，
+ * 其中包含 require("url")，而微信小程序不支持 Node.js 模块，
+ * 会导致运行时报错：module 'utils/url.js' is not defined
+ *
+ * 解决方案：通过 Vite 的 define 配置，在编译时将
+ * __APP_API_BASE_URL__ 替换为字符串常量
  */
 
 // ============================================
-// 远程服务器配置（开发 + 生产统一使用）
+// API 地址（编译时由 Vite define 注入）
 // ============================================
-const REMOTE_CONFIG = {
-  // API 基础地址（包含 /api 路径）
-  // H5和小程序都使用8443端口（微信小程序支持带端口的request域名）
-  API_BASE_URL: 'https://aity88.online:8443/api',
+// __APP_API_BASE_URL__ 在编译时会被替换为实际值
+// 在 dev 环境下不会被替换，此时为 undefined（使用下面的默认值）
 
-  // 服务器基础地址（不包含 /api 路径，用于图片等静态资源）
-  BASE_URL: 'https://aity88.online:8443'
+const envApiBaseUrl = typeof __APP_API_BASE_URL__ !== 'undefined' ? __APP_API_BASE_URL__ : undefined
+
+// ============================================
+// 生产环境配置（云端）
+// ============================================
+const PRODUCTION_CONFIG = {
+  API_BASE_URL: envApiBaseUrl || 'https://aity88.online/api',
+  BASE_URL: envApiBaseUrl ? envApiBaseUrl.replace(/\/api$/, '') : 'https://aity88.online',
+  ENV: 'production'
 }
 
 // ============================================
-// 本地开发配置（仅用于特殊调试场景）
+// 开发环境配置（本地）
 // ============================================
-const LOCAL_CONFIG = {
-  // 本地开发时连接本地后端
-  // 小程序必须使用局域网IP，不能使用localhost
-  API_BASE_URL: 'http://192.168.2.140:3001/api',
-  BASE_URL: 'http://192.168.2.140:3001'
+const DEVELOPMENT_CONFIG = {
+  API_BASE_URL: envApiBaseUrl || 'http://localhost:3001/api',
+  BASE_URL: envApiBaseUrl ? envApiBaseUrl.replace(/\/api$/, '') : 'http://localhost:3001',
+  ENV: 'development'
 }
 
 // ============================================
@@ -34,7 +57,7 @@ const LOCAL_CONFIG = {
 // ============================================
 
 // 检测运行环境
-const isDevelopment = process.env.NODE_ENV === 'development'
+const isProduction = process.env.NODE_ENV === 'production'
 
 // 检测是否是小程序环境
 // #ifdef MP-WEIXIN
@@ -48,25 +71,18 @@ const isMpWeixin = false
 // ============================================
 // 配置选择策略
 // ============================================
-//
-// 专业实践：
-// 1. 所有环境统一连接远程服务器，保持数据一致性
-// 2. 避免本地和远程数据不一致导致的问题
-// 3. 方便多人协作开发和测试
-//
-// 特殊场景（需要连接本地后端时）：
-// - 修改 useLocalBackend 为 true
-// - 适用于：后端本地调试、无需联网的开发场景
-//
 
-const useLocalBackend = false // ⚠️ 改为 true 可切换到本地后端
+// 如果 .env 提供了 API 地址，直接使用（支持 build:local/cloud 切换）
+// 否则根据 NODE_ENV 自动选择
+export const CONFIG = envApiBaseUrl
+  ? (isProduction ? PRODUCTION_CONFIG : DEVELOPMENT_CONFIG)
+  : (isProduction ? PRODUCTION_CONFIG : DEVELOPMENT_CONFIG)
 
-// 导出配置
-export const CONFIG = useLocalBackend
-  ? LOCAL_CONFIG                        // 本地后端（特殊调试用）
-  : REMOTE_CONFIG                        // 远程后端（推荐，保持一致性）
+// 环境标识（方便其他模块判断）
+export const IS_PRODUCTION = isProduction
+export const IS_DEVELOPMENT = !isProduction
 
 // 导出常用的配置项，方便使用
-export const { API_BASE_URL, BASE_URL } = CONFIG
+export const { API_BASE_URL, BASE_URL, ENV } = CONFIG
 
 export default CONFIG

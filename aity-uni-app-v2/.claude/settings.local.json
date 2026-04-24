@@ -1,26 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "Read(//d/your-mcp-proxy/AITY_VIP/backend/**)",
-      "Bash(mkdir:*)",
+      "Read(//d/your-mcp-proxy/AITY_VIP/scripts/**)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(for:*)",
-      "Bash(do sed:*)",
-      "Bash(done:*)",
-      "Bash(tree:*)",
-      "Bash(npm run build:*)",
       "Bash(git push:*)",
-      "Bash(git fetch:*)",
-      "Bash(git pull:*)",
-      "Bash(git stash:*)",
-      "Bash(npm run build:mp-weixin:*)",
-      "Bash(npm run dev:*)",
-      "Bash(dir:*)",
-      "Bash(findstr:*)",
-      "Bash(curl:*)",
-      "Bash(powershell:*)",
-      "WebSearch"
+      "Bash(bash:*)",
+      "Bash(ssh:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Read(//c/Users/DELL/.ssh/**)",
+      "Read(//d/your-mcp-proxy/AITY_VIP/**)",
+      "Bash(rsync:*)",
+      "Bash(scp:*)",
+      "Bash(npm run build:h5:*)",
+      "Bash(npm run build:mp-weixin:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>行情</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --red: #ff4545;
+      --green: #00a854;
+      --white: #ffffff;
+      --gray-bg: #f5f7fa;
+      --gray-light: #e8eaed;
+      --gray: #969799;
+      --dark: #303133;
+      --blue: #1890ff;
+      --orange: #fa8c16;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: var(--gray-bg);
+      max-width: 414px;
+      margin: 0 auto;
+      min-height: 100vh;
+      color: var(--dark);
+    }
+
+    /* 顶部导航 */
+    .top-nav {
+      background: linear-gradient(180deg, #ff4545 0%, #ff6b6b 100%);
+      padding: 12px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 24px;
+    }
+
+    .nav-tab {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.7);
+      padding: 4px 0;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .nav-tab.active {
+      color: var(--white);
+      font-weight: 600;
+    }
+
+    .nav-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 3px;
+      background: var(--white);
+      border-radius: 2px;
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 20px;
+    }
+
+    .nav-action {
+      color: var(--white);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    /* 行情标签 */
+    .market-tabs {
+      background: var(--white);
+      display: flex;
+      padding: 12px 0;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--gray-light);
+    }
+
+    .market-tab {
+      padding: 8px 16px;
+      font-size: 14px;
+      color: var(--dark);
+      white-space: nowrap;
+      cursor: pointer;
+      border-radius: 16px;
+      margin: 0 4px;
+    }
+
+    .market-tab:first-child {
+      margin-left: 12px;
+      background: var(--gray-bg);
+    }
+
+    /* 指数卡片 */
+    .index-cards {
+      background: var(--white);
+      padding: 16px;
+      display: flex;
+      gap: 12px;
+      border-bottom: 8px solid var(--gray-bg);
+    }
+
+    .index-card {
+      flex: 1;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .index-card.red {
+      background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+    }
+
+    .index-card.green {
+      background: linear-gradient(135deg, #f0fff4 0%, #d6f5e3 100%);
+    }
+
+    .index-name {
+      font-size: 13px;
+      color: var(--dark);
+      margin-bottom: 6px;
+    }
+
+    .index-price {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .index-card.red .index-price {
+      color: var(--red);
+    }
+
+    .index-card.green .index-price {
+      color: var(--green);
+    }
+
+    .index-change {
+      font-size: 12px;
+    }
+
+    .index-card.red .index-change {
+      color: var(--red);
+    }
+
+    .index-card.green .index-change {
+      color: var(--green);
+    }
+
+    /* 快速入口 */
+    .quick-actions {
+      background: var(--white);
+      padding: 16px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      border-bottom: 8px solid var(--gray-bg);
+    }
+
+    .quick-action {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .quick-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 6px;
+    }
+
+    .quick-label {
+      font-size: 12px;
+      color: var(--dark);
+    }
+
+    /* 模块标题 */
+    .section-title {
+      background: var(--white);
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-title-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    .section-title-arrow {
+      color: var(--gray);
+      font-size: 14px;
+    }
+
+    /* 市场概况 */
+    .market-overview {
+      background: var(--white);
+      padding: 0 16px 16px;
+      border-bottom: 8px solid var(--gray-bg);
+    }
+
+    .overview-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .overview-label {
+      font-size: 14px;
+      color: var(--dark);
+      margin-right: 12px;
+    }
+
+    .overview-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    .overview-change {
+      font-size: 14px;
+      color: var(--red);
+      margin-left: 8px;
+    }
+
+    .limit-stats {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 12px;
+    }
+
+    .limit-stat {
+      text-align: center;
+    }
+
+    .limit-stat-value {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .limit-stat-label {
+      font-size: 12px;
+      color: var(--gray);
+      margin-top: 4px;
+    }
+
+    .limit-stat-value.red {
+      color: var(--red);
+    }
+
+    .limit-stat-value.green {
+      color: var(--green);
+    }
+
+    .limit-bar {
+      height: 8px;
+      background: var(--gray-light);
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .limit-bar-red {
+      background: var(--red);
+    }
+
+    .limit-bar-green {
+      background: var(--green);
+    }
+
+    .limit-bar-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    .limit-bar-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .limit-bar-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .limit-bar-dot.red {
+      background: var(--red);
+    }
+
+    .limit-bar-dot.green {
+      background: var(--green);
+    }
+
+    /* 涨跌分布 */
+    .rise-fall-dist {
+      background: var(--white);
+      padding: 0 16px 16px;
+      border-bottom: 8px solid var(--gray-bg);
+    }
+
+    .dist-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .dist-item {
+      text-align: center;
+      padding: 12px 8px;
+      border-radius: 8px;
+      background: var(--gray-bg);
+    }
+
+    .dist-value {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .dist-label {
+      font-size: 12px;
+      color: var(--gray);
+    }
+
+    .dist-item.red .dist-value {
+      color: var(--red);
+    }
+
+    .dist-item.green .dist-value {
+      color: var(--green);
+    }
+
+    .dist-progress {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .dist-progress-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dist-progress-label {
+      width: 60px;
+      font-size: 12px;
+      color: var(--gray);
+    }
+
+    .dist-progress-bar {
+      flex: 1;
+      height: 6px;
+      background: var(--gray-light);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .dist-progress-fill {
+      height: 100%;
+      border-radius: 3px;
+    }
+
+    .dist-progress-fill.red {
+      background: var(--red);
+    }
+
+    .dist-progress-fill.green {
+      background: var(--green);
+    }
+
+    .dist-progress-value {
+      width: 50px;
+      text-align: right;
+      font-size: 12px;
+      color: var(--dark);
+    }
+
+    /* 资金流向 */
+    .fund-flow {
+      background: var(--white);
+      padding: 0 16px 16px;
+      border-bottom: 8px solid var(--gray-bg);
+    }
+
+    .fund-tabs {
+      display: flex;
+      background: var(--gray-bg);
+      border-radius: 8px;
+      padding: 4px;
+      margin-bottom: 16px;
+    }
+
+    .fund-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 0;
+      font-size: 14px;
+      color: var(--dark);
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .fund-tab.active {
+      background: var(--white);
+      font-weight: 500;
+    }
+
+    .fund-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .fund-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+
+    .fund-rank {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%);
+      color: var(--white);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 12px;
+    }
+
+    .fund-rank.silver {
+      background: linear-gradient(135deg, #c0c0c0 0%, #a0a0a0 100%);
+    }
+
+    .fund-rank.bronze {
+      background: linear-gradient(135deg, #cd7f32 0%, #b87333 100%);
+    }
+
+    .fund-rank.normal {
+      background: var(--gray-light);
+      color: var(--dark);
+    }
+
+    .fund-info {
+      flex: 1;
+    }
+
+    .fund-name {
+      font-size: 14px;
+      color: var(--dark);
+      margin-bottom: 4px;
+    }
+
+    .fund-stock {
+      font-size: 12px;
+      color: var(--gray);
+    }
+
+    .fund-amount {
+      text-align: right;
+    }
+
+    .fund-value {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .fund-value.red {
+      color: var(--red);
+    }
+
+    .fund-value.green {
+      color: var(--green);
+    }
+
+    .fund-change {
+      font-size: 12px;
+      color: var(--gray);
+    }
+
+    /* 连板天梯 */
+    .board-ladder {
+      background: var(--white);
+      padding: 0 16px 16px;
+      border-bottom: 8px solid var(--gray-bg);
+    }
+
+    .board-sub-tabs {
+      display: flex;
+      background: var(--gray-bg);
+      border-radius: 8px;
+      padding: 4px;
+      margin-bottom: 16px;
+    }
+
+    .board-sub-tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px 0;
+      font-size: 14px;
+      color: var(--dark);
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .board-sub-tab.active {
+      background: var(--white);
+      font-weight: 500;
+      color: var(--red);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .board-market-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      overflow-x: auto;
+    }
+
+    .board-market-tab {
+      padding: 6px 16px;
+      font-size: 13px;
+      color: var(--dark);
+      background: var(--gray-bg);
+      border-radius: 16px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .board-market-tab.active {
+      background: var(--red);
+      color: var(--white);
+    }
+
+    .board-sections {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .board-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .board-section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .board-section-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    .board-section-count {
+      background: var(--red);
+      color: var(--white);
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .board-stock-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .board-stock-item {
+      background: var(--gray-bg);
+      padding: 10px 8px;
+      border-radius: 6px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .board-stock-name {
+      font-size: 14px;
+      color: var(--dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 底部导航 */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--white);
+      border-top: 1px solid var(--gray-light);
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+      max-width: 414px;
+      margin: 0 auto;
+    }
+
+    .bottom-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      color: var(--gray);
+    }
+
+    .bottom-nav-item.active {
+      color: var(--red);
+    }
+
+    .bottom-nav-icon {
+      font-size: 22px;
+      margin-bottom: 2px;
+    }
+
+    .bottom-nav-label {
+      font-size: 10px;
+    }
+
+    /* 空状态 */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--gray);
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .empty-text {
+      font-size: 14px;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 375px) {
+      .index-cards {
+        gap: 8px;
+      }
+      
+      .index-card {
+        padding: 8px;
+      }
+      
+      .quick-actions {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <div class="top-nav">
+    <div class="nav-content">
+      <div class="nav-tabs">
+        <div class="nav-tab">市场</div>
+        <div class="nav-tab active">行情</div>
+        <div class="nav-tab">选股</div>
+        <div class="nav-tab">打板</div>
+      </div>
+      <div class="nav-actions">
+        <span class="nav-action">🌙</span>
+        <span class="nav-action">🔍</span>
+        <span class="nav-action">⚙️</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 行情标签 -->
+  <div class="market-tabs">
+    <div class="market-tab">沪深京</div>
+    <div class="market-tab">板块</div>
+    <div class="market-tab">北交所</div>
+    <div class="market-tab">创业板</div>
+    <div class="market-tab">科创板</div>
+  </div>
+
+  <!-- 指数卡片 -->
+  <div class="index-cards">
+    <div class="index-card red">
+      <div class="index-name">上证指数</div>
+      <div class="index-price">4182.35</div>
+      <div class="index-change">+19.47 +0.47%</div>
+    </div>
+    <div class="index-card green">
+      <div class="index-name">深证成指</div>
+      <div class="index-price">14464.53</div>
+      <div class="index-change">-30.56 -0.21%</div>
+    </div>
+    <div class="index-card green">
+      <div class="index-name">北证50</div>
+      <div class="index-price">1475.70</div>
+      <div class="index-change">-61.43 -4.00%</div>
+    </div>
+  </div>
+
+  <!-- 快速入口 -->
+  <div class="quick-actions">
+    <div class="quick-action">
+      <div class="quick-icon" style="background: linear-gradient(135deg, #ff6b6b 0%, #ff4545 100%);">🎯</div>
+      <div class="quick-label">智能选股</div>
+    </div>
+    <div class="quick-action">
+      <div class="quick-icon" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);">📊</div>
+      <div class="quick-label">可转债</div>
+    </div>
+    <div class="quick-action">
+      <div class="quick-icon" style="background: linear-gradient(135deg, #ff4545 0%, #dc2626 100%);">📈</div>
+      <div class="quick-label">涨停专题</div>
+    </div>
+    <div class="quick-action">
+      <div class="quick-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">📋</div>
+      <div class="quick-label">新股日历</div>
+    </div>
+    <div class="quick-action">
+      <div class="quick-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">💡</div>
+      <div class="quick-label">AH</div>
+    </div>
+  </div>
+
+  <!-- 市场概况 -->
+  <div class="section-title">
+    <div class="section-title-text">市场概况</div>
+    <div class="section-title-arrow">总成交额 27416亿 较昨日此时 +5352.8亿 ➤</div>
+  </div>
+  <div class="market-overview">
+    <div class="overview-header">
+      <div class="overview-label">主力净额</div>
+      <div class="overview-value">-753.48亿</div>
+    </div>
+    
+    <div class="limit-stats">
+      <div class="limit-stat">
+        <div class="limit-stat-value red">1136</div>
+        <div class="limit-stat-label">涨跌家数</div>
+      </div>
+      <div class="limit-stat">
+        <div class="limit-stat-value green">4287</div>
+        <div class="limit-stat-label">跌21%家</div>
+      </div>
+    </div>
+    
+    <div class="limit-bar">
+      <div class="limit-bar-red" style="width: 21%;"></div>
+      <div class="limit-bar-green" style="width: 79%;"></div>
+    </div>
+    
+    <div class="limit-bar-labels">
+      <div class="limit-bar-label">
+        <span class="limit-bar-dot red"></span>
+        <span>涨 1136</span>
+      </div>
+      <div class="limit-bar-label">
+        <span class="limit-bar-dot green"></span>
+        <span>跌 4287</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 涨跌分布 -->
+  <div class="section-title">
+    <div class="section-title-text">涨跌分布</div>
+    <div class="section-title-arrow">➤</div>
+  </div>
+  <div class="rise-fall-dist">
+    <div class="dist-grid">
+      <div class="dist-item red">
+        <div class="dist-value">86</div>
+        <div class="dist-label">涨停</div>
+      </div>
+      <div class="dist-item red">
+        <div class="dist-value">184</div>
+        <div class="dist-label">&gt;7%</div>
+      </div>
+      <div class="dist-item red">
+        <div class="dist-value">86</div>
+        <div class="dist-label">5-7</div>
+      </div>
+      <div class="dist-item red">
+        <div class="dist-value">182</div>
+        <div class="dist-label">3-5</div>
+      </div>
+      <div class="dist-item">
+        <div class="dist-value">0-3</div>
+        <div class="dist-label">平</div>
+      </div>
+      <div class="dist-item green">
+        <div class="dist-value">47</div>
+        <div class="dist-label">0-3</div>
+      </div>
+      <div class="dist-item green">
+        <div class="dist-value">399</div>
+        <div class="dist-label">3-5</div>
+      </div>
+      <div class="dist-item green">
+        <div class="dist-value">74</div>
+        <div class="dist-label">5-7</div>
+      </div>
+      <div class="dist-item green">
+        <div class="dist-value">21</div>
+        <div class="dist-label">&gt;7%</div>
+      </div>
+      <div class="dist-item green">
+        <div class="dist-value">跌停</div>
+        <div class="dist-label"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 强势板块 -->
+  <div class="section-title">
+    <div class="section-title-text">强势板块</div>
+    <div class="section-title-arrow">涨120 跌435 ➤</div>
+  </div>
+  
+  <!-- 行业主力净流入 -->
+  <div class="section-title">
+    <div class="section-title-text">行业主力净流入(亿)</div>
+    <div class="section-title-arrow">➤</div>
+  </div>
+  <div class="fund-flow">
+    <div class="fund-tabs">
+      <div class="fund-tab active">强度</div>
+      <div class="fund-tab">3日强</div>
+      <div class="fund-tab">20日强</div>
+      <div class="fund-tab">涨停数</div>
+      <div class="fund-tab">连涨天</div>
+    </div>
+    
+    <div class="fund-list">
+      <div class="fund-item">
+        <div class="fund-rank">1</div>
+        <div class="fund-info">
+          <div class="fund-name">通信设备</div>
+          <div class="fund-stock">科力股份 30.00%</div>
+        </div>
+        <div class="fund-amount">
+          <div class="fund-value red">+47.45</div>
+          <div class="fund-change"></div>
+        </div>
+      </div>
+      
+      <div class="fund-item">
+        <div class="fund-rank silver">2</div>
+        <div class="fund-info">
+          <div class="fund-name">乘用车</div>
+          <div class="fund-stock">新锦动力 20.03%</div>
+        </div>
+        <div class="fund-amount">
+          <div class="fund-value red">+27.46</div>
+          <div class="fund-change"></div>
+        </div>
+      </div>
+      
+      <div class="fund-item">
+        <div class="fund-rank bronze">3</div>
+        <div class="fund-info">
+          <div class="fund-name">军工电子</div>
+          <div class="fund-stock">新锦动力 20.01%</div>
+        </div>
+        <div class="fund-amount">
+          <div class="fund-value red">+13.60</div>
+          <div class="fund-change"></div>
+        </div>
+      </div>
+      
+      <div class="fund-item">
+        <div class="fund-rank normal">4</div>
+        <div class="fund-info">
+          <div class="fund-name">云服务</div>
+          <div class="fund-stock"></div>
+        </div>
+        <div class="fund-amount">
+          <div class="fund-value green">-47.62</div>
+          <div class="fund-change"></div>
+        </div>
+      </div>
+      
+      <div class="fund-item">
+        <div class="fund-rank normal">5</div>
+        <div class="fund-info">
+          <div class="fund-name">软件服务</div>
+          <div class="fund-stock"></div>
+        </div>
+        <div class="fund-amount">
+          <div class="fund-value green">-62.14</div>
+          <div class="fund-change"></div>
+        </div>
+      </div>
+      
+      <div class="fund-item">
+        <div class="fund-rank normal">6</div>
+        <div class="fund-info">
+          <div class="fund-name">半导体</div>
+          <div class="fund-stock"></div>
+        </div>
+        <div class="fund-amount">
+          <div class="fund-value green">-99.20</div>
+          <div class="fund-change"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 连板天梯 -->
+  <div class="section-title">
+    <div class="section-title-text">连板天梯</div>
+    <div class="section-title-arrow">➤</div>
+  </div>
+  <div class="board-ladder">
+    <div class="board-sub-tabs">
+      <div class="board-sub-tab active">连板天梯</div>
+      <div class="board-sub-tab">强势晋级</div>
+    </div>
+    
+    <div class="board-market-tabs">
+      <div class="board-market-tab active">全部</div>
+      <div class="board-market-tab">主板</div>
+      <div class="board-market-tab">创业</div>
+      <div class="board-market-tab">科创</div>
+      <div class="board-market-tab">北证</div>
+      <div class="board-market-tab">筛选</div>
+    </div>
+    
+    <div class="board-sections">
+      <!-- 3板+ -->
+      <div class="board-section">
+        <div class="board-section-header">
+          <span class="board-section-label">3板</span>
+          <span class="board-section-count">+</span>
+        </div>
+        <div class="board-stock-grid">
+          <div class="board-stock-item">
+            <div class="board-stock-name">泰嘉股份</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">长源东谷</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 2板 -->
+      <div class="board-section">
+        <div class="board-section-header">
+          <span class="board-section-label">2板</span>
+          <span class="board-section-count">+</span>
+        </div>
+        <div class="board-stock-grid">
+          <div class="board-stock-item">
+            <div class="board-stock-name">中国天楹</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">新金路</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">湖南黄金</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">赫美集团</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">翔鹭钨业</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">华盛昌</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">亚盛集团</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">华锡有色</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">涪陵电力</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">烽火通信</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">中国瑞林</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">水发燃气</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">和顺石油</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">利通电子</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">泰晶科技</div>
+          </div>
+          <div class="board-stock-item">
+            <div class="board-stock-name">长城科技</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 80px;"></div>
+
+  <!-- 底部导航 -->
+  <div class="bottom-nav">
+    <div class="bottom-nav-item">
+      <div class="bottom-nav-icon">🏠</div>
+      <div class="bottom-nav-label">消息面</div>
+    </div>
+    <div class="bottom-nav-item active">
+      <div class="bottom-nav-icon">📈</div>
+      <div class="bottom-nav-label">题材轮动</div>
+    </div>
+    <div class="bottom-nav-item">
+      <div class="bottom-nav-icon">📊</div>
+      <div class="bottom-nav-label">大数据</div>
+    </div>
+    <div class="bottom-nav-item">
+      <div class="bottom-nav-icon">🏆</div>
+      <div class="bottom-nav-label">连板梯队</div>
+    </div>
+    <div class="bottom-nav-item">
+      <div class="bottom-nav-icon">👤</div>
+      <div class="bottom-nav-label">我</div>
+    </div>
+  </div>
+
+  <script>
+    // 顶部导航切换
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 资金流向标签切换
+    document.querySelectorAll('.fund-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.fund-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 连板子标签切换
+    document.querySelectorAll('.board-sub-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.board-sub-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 连板市场标签切换
+    document.querySelectorAll('.board-market-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.board-market-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 底部导航切换
+    document.querySelectorAll('.bottom-nav-item').forEach(item => {
+      item.addEventListener('click', function() {
+        document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 模拟数据加载
+    setTimeout(() => {
+      console.log('数据加载完成');
+    }, 1000);
+  </script>
+</body>
+</html>

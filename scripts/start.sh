@@ -134,7 +134,7 @@ sleep 3
 
 # 2. 启动前端服务
 echo_yellow "\n[2/2] Starting frontend service..."
-cd "$(dirname "$0")/../frontend"
+cd "$(dirname "$0")/../aity-uni-app-v2"
 if npm install; then
     echo_green "  Frontend dependencies installed successfully!"
 else

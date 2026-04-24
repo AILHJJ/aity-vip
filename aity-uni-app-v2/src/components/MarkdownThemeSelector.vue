@@ -17,7 +17,10 @@
 					<text v-if="currentTheme === theme.value" class="theme-check">✓</text>
 				</view>
 				<view class="theme-info">
-					<text class="theme-name">{{ theme.name }}</text>
+					<view class="theme-name-row">
+						<text class="theme-name">{{ theme.name }}</text>
+						<text class="theme-category">{{ theme.category }}</text>
+					</view>
 					<text class="theme-desc">{{ theme.description }}</text>
 				</view>
 			</view>
@@ -43,37 +46,71 @@ const themes = ref([
 		value: 'default',
 		name: '简约白',
 		description: '简洁清爽，适合日常阅读',
-		previewColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+		previewColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+		category: '基础'
 	},
 	{
 		value: 'github',
 		name: 'GitHub',
 		description: '开发者熟悉的风格',
-		previewColor: 'linear-gradient(135deg, #24292e 0%, #58a6ff 100%)'
+		previewColor: 'linear-gradient(135deg, #24292e 0%, #58a6ff 100%)',
+		category: '基础'
+	},
+	{
+		value: 'finance',
+		name: '金融专业',
+		description: '深蓝金色，高端金融风格',
+		previewColor: 'linear-gradient(135deg, #0f1419 0%, #d4af37 100%)',
+		category: '高端'
+	},
+	{
+		value: 'dark',
+		name: '暗夜模式',
+		description: '柔和护眼，夜间阅读优化',
+		previewColor: 'linear-gradient(135deg, #0f0f11 0%, #6366f1 100%)',
+		category: '护眼'
+	},
+	{
+		value: 'elegant',
+		name: '简约优雅',
+		description: '极简设计，优雅阅读',
+		previewColor: 'linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%)',
+		category: '优雅'
+	},
+	{
+		value: 'contrast',
+		name: '高对比度',
+		description: '清晰醒目，视觉辅助',
+		previewColor: 'linear-gradient(135deg, #ffffff 0%, #000000 100%)',
+		category: '辅助'
+	},
+	{
+		value: 'eyecare',
+		name: '护眼绿',
+		description: '舒缓绿色，保护视力',
+		previewColor: 'linear-gradient(135deg, #f0f9f0 0%, #66bb6a 100%)',
+		category: '护眼'
 	},
 	{
 		value: 'emerald',
 		name: '翡翠绿',
 		description: '清新护眼，绿色主题',
-		previewColor: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)'
+		previewColor: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)',
+		category: '基础'
 	},
 	{
 		value: 'ocean',
 		name: '蓝色海洋',
 		description: '深邃海洋，专业风格',
-		previewColor: 'linear-gradient(135deg, #0c4a6e 0%, #0ea5e9 100%)'
+		previewColor: 'linear-gradient(135deg, #0c4a6e 0%, #0ea5e9 100%)',
+		category: '基础'
 	},
 	{
 		value: 'warm',
 		name: '暖阳橙',
 		description: '温暖活力，橙色主题',
-		previewColor: 'linear-gradient(135deg, #7c2d12 0%, #f97316 100%)'
-	},
-	{
-		value: 'dark',
-		name: '暗夜模式',
-		description: '护眼暗色，夜间阅读',
-		previewColor: 'linear-gradient(135deg, #18191a 0%, #3a3b3c 100%)'
+		previewColor: 'linear-gradient(135deg, #7c2d12 0%, #f97316 100%)',
+		category: '基础'
 	}
 ])
 
@@ -224,15 +261,32 @@ onMounted(() => {
 	justify-content: center;
 }
 
+.theme-name-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 6rpx;
+}
+
 .theme-name {
 	font-size: 30rpx;
 	font-weight: 500;
 	color: #333333;
-	margin-bottom: 6rpx;
+}
+
+.theme-category {
+	font-size: 20rpx;
+	color: #ffffff;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	padding: 2rpx 10rpx;
+	border-radius: 8rpx;
+	margin-left: 12rpx;
+	flex-shrink: 0;
 }
 
 .theme-desc {
 	font-size: 24rpx;
 	color: #999999;
+	line-height: 1.4;
 }
 </style>

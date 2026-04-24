@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const aiAdvisorController = require('../controllers/aiAdvisorController');
-const { authenticate, isAdmin } = require('../middleware/auth');
+const { authenticateToken, checkAdmin } = require('../utils/jwtUtils');
 
 /**
  * 图灵AI代理路由
@@ -15,7 +15,7 @@ router.get('/token-status', aiAdvisorController.getTokenStatus);
 router.post('/refresh-token', aiAdvisorController.refreshToken);
 
 // 手动设置token（管理员接口）
-router.post('/set-token', authenticate, isAdmin, aiAdvisorController.setToken);
+router.post('/set-token', authenticateToken, checkAdmin, aiAdvisorController.setToken);
 
 // 代理图灵聊天请求
 router.post('/chat', aiAdvisorController.proxyChat);

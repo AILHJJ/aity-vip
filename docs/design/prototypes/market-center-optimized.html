@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行情中心 - 优化版原型</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+            background: #0f1419;
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 430px;
+            margin: 0 auto;
+            background: linear-gradient(180deg, #1a1f2e 0%, #0f1419 100%);
+            min-height: 100vh;
+            padding-bottom: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%);
+            padding: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header-time {
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        .refresh-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* Index Cards - Simplified */
+        .index-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 4px 0;
+        }
+
+        .index-item {
+            flex: 1;
+            min-width: 80px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 8px 10px;
+            text-align: center;
+        }
+
+        .index-name {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        .index-value {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 2px 0;
+        }
+
+        .index-change {
+            font-size: 11px;
+        }
+
+        .up { color: #ff4757; }
+        .down { color: #2ed573; }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding: 12px 16px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 12px 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        /* Sentiment Bar */
+        .sentiment-section {
+            padding: 0 16px 12px;
+        }
+
+        .sentiment-card {
+            background: linear-gradient(135deg, #2a3447 0%, #1e2636 100%);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .sentiment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .sentiment-title {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .sentiment-score {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .sentiment-bar {
+            height: 6px;
+            background: #1a2030;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .sentiment-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #2ed573 0%, #ffa502 50%, #ff4757 100%);
+        }
+
+        .sentiment-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            opacity: 0.5;
+            margin-top: 6px;
+        }
+
+        /* Section */
+        .section {
+            padding: 12px 16px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .section-more {
+            font-size: 12px;
+            color: #5d9cec;
+        }
+
+        /* Ladder Level */
+        .ladder-level {
+            background: linear-gradient(135deg, #2a3447 0%, #1e2636 100%);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .level-header {
+            display: flex;
+            align-items: center;
+            padding: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .level-header:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .level-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            margin-right: 12px;
+        }
+
+        .badge-3 { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%); }
+        .badge-2 { background: linear-gradient(135deg, #ffa502 0%, #ff7f00 100%); }
+        .badge-1 { background: linear-gradient(135deg, #2ed573 0%, #26a65b 100%); }
+
+        .level-info {
+            flex: 1;
+        }
+
+        .level-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .level-subtitle {
+            font-size: 12px;
+            opacity: 0.6;
+            margin-top: 2px;
+        }
+
+        .level-arrow {
+            font-size: 12px;
+            opacity: 0.5;
+            transition: transform 0.3s;
+        }
+
+        .ladder-level.expanded .level-arrow {
+            transform: rotate(180deg);
+        }
+
+        /* Stock List */
+        .stock-list {
+            display: none;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .ladder-level.expanded .stock-list {
+            display: block;
+        }
+
+        .stock-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .stock-item:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .stock-item:last-child {
+            border-bottom: none;
+        }
+
+        .stock-rank {
+            width: 20px;
+            font-size: 12px;
+            opacity: 0.5;
+        }
+
+        .stock-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .stock-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .stock-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 3px;
+        }
+
+        .stock-code {
+            font-size: 11px;
+            opacity: 0.5;
+        }
+
+        .stock-tag {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .tag-t { background: rgba(255, 165, 2, 0.2); color: #ffa502; }
+        .tag-yizi { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
+        .tag-huanshou { background: rgba(46, 213, 115, 0.2); color: #2ed573; }
+        .tag-new { background: rgba(93, 156, 236, 0.2); color: #5d9cec; }
+
+        .stock-price {
+            text-align: right;
+        }
+
+        .stock-value {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .stock-change {
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: flex-end;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(180deg, #1e2636 0%, #151a24 100%);
+            border-radius: 20px 20px 0 0;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-stock-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-stock-code {
+            font-size: 13px;
+            opacity: 0.6;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 16px;
+        }
+
+        /* Detail Cards */
+        .detail-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .detail-card-title {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-size: 13px;
+            opacity: 0.6;
+        }
+
+        .detail-value {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Reason Card */
+        .reason-card {
+            background: linear-gradient(135deg, #2a4a6d 0%, #1e3a5f 100%);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .reason-title {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 8px;
+        }
+
+        .reason-content {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .reason-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .reason-tag {
+            background: rgba(255,255,255,0.15);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        /* Fund Grid */
+        .fund-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .fund-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .fund-label {
+            font-size: 11px;
+            opacity: 0.5;
+        }
+
+        .fund-value {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            overflow-x: auto;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .filter-chip {
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 16px;
+            font-size: 12px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .filter-chip.active {
+            background: #5d9cec;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2);
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            font-size: 14px;
+            cursor: pointer;
+            position: relative;
+            opacity: 0.6;
+        }
+
+        .tab.active {
+            opacity: 1;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 3px;
+            background: #5d9cec;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-row">
+                <div>
+                    <div class="header-title">行情中心</div>
+                    <div class="header-time">2026-03-03 12:32 更新</div>
+                </div>
+                <button class="refresh-btn">刷新</button>
+            </div>
+
+            <!-- Index Bar -->
+            <div class="index-bar">
+                <div class="index-item">
+                    <div class="index-name">上证</div>
+                    <div class="index-value up">3,327</div>
+                    <div class="index-change up">+1.24%</div>
+                </div>
+                <div class="index-item">
+                    <div class="index-name">深证</div>
+                    <div class="index-value up">10,687</div>
+                    <div class="index-change up">+1.58%</div>
+                </div>
+                <div class="index-item">
+                    <div class="index-name">创业板</div>
+                    <div class="index-value up">2,178</div>
+                    <div class="index-change up">+2.13%</div>
+                </div>
+                <div class="index-item">
+                    <div class="index-name">科创50</div>
+                    <div class="index-value down">986</div>
+                    <div class="index-change down">-0.32%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value up">2,847</div>
+                <div class="stat-label">上涨</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value down">1,256</div>
+                <div class="stat-label">下跌</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value up">53</div>
+                <div class="stat-label">涨停</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value down">12</div>
+                <div class="stat-label">跌停</div>
+            </div>
+        </div>
+
+        <!-- Sentiment -->
+        <div class="sentiment-section">
+            <div class="sentiment-card">
+                <div class="sentiment-header">
+                    <span class="sentiment-title">市场情绪</span>
+                    <span class="sentiment-score up">78</span>
+                </div>
+                <div class="sentiment-bar">
+                    <div class="sentiment-fill" style="width: 78%"></div>
+                </div>
+                <div class="sentiment-labels">
+                    <span>恐慌</span>
+                    <span>中性</span>
+                    <span>贪婪</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active">连板天梯</div>
+            <div class="tab">资金流向</div>
+            <div class="tab">涨跌分布</div>
+        </div>
+
+        <!-- Filter -->
+        <div class="filter-bar">
+            <div class="filter-chip active">全部</div>
+            <div class="filter-chip">主板</div>
+            <div class="filter-chip">创业板</div>
+            <div class="filter-chip">科创板</div>
+            <div class="filter-chip">北证</div>
+        </div>
+
+        <!-- Ladder Section -->
+        <div class="section">
+            <!-- 3连板 -->
+            <div class="ladder-level expanded" onclick="toggleLevel(this)">
+                <div class="level-header">
+                    <div class="level-badge badge-3">3</div>
+                    <div class="level-info">
+                        <div class="level-title">3连板</div>
+                        <div class="level-subtitle">4只股票 · 成交额 38.1亿</div>
+                    </div>
+                    <span class="level-arrow">▼</span>
+                </div>
+                <div class="stock-list">
+                    <div class="stock-item" onclick="showDetail(event)">
+                        <span class="stock-rank">1</span>
+                        <div class="stock-info">
+                            <div class="stock-name">亚盛集团</div>
+                            <div class="stock-meta">
+                                <span class="stock-code">600108</span>
+                                <span class="stock-tag tag-t">T字板</span>
+                            </div>
+                        </div>
+                        <div class="stock-price">
+                            <div class="stock-value up">4.81</div>
+                            <div class="stock-change up">+10.07%</div>
+                        </div>
+                    </div>
+                    <div class="stock-item" onclick="showDetail(event)">
+                        <span class="stock-rank">2</span>
+                        <div class="stock-info">
+                            <div class="stock-name">华盛昌</div>
+                            <div class="stock-meta">
+                                <span class="stock-code">002980</span>
+                                <span class="stock-tag tag-t">T字板</span>
+                                <span class="stock-tag tag-new">次新</span>
+                            </div>
+                        </div>
+                        <div class="stock-price">
+                            <div class="stock-value up">35.06</div>
+                            <div class="stock-change up">+10.01%</div>
+                        </div>
+                    </div>
+                    <div class="stock-item" onclick="showDetail(event)">
+                        <span class="stock-rank">3</span>
+                        <div class="stock-info">
+                            <div class="stock-name">和顺石油</div>
+                            <div class="stock-meta">
+                                <span class="stock-code">603353</span>
+                                <span class="stock-tag tag-huanshou">换手板</span>
+                            </div>
+                        </div>
+                        <div class="stock-price">
+                            <div class="stock-value up">50.97</div>
+                            <div class="stock-change up">+9.99%</div>
+                        </div>
+                    </div>
+                    <div class="stock-item" onclick="showDetail(event)">
+                        <span class="stock-rank">4</span>
+                        <div class="stock-info">
+                            <div class="stock-name">水发燃气</div>
+                            <div class="stock-meta">
+                                <span class="stock-code">603318</span>
+                                <span class="stock-tag tag-yizi">一字板</span>
+                            </div>
+                        </div>
+                        <div class="stock-price">
+                            <div class="stock-value up">9.70</div>
+                            <div class="stock-change up">+9.98%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2连板 -->
+            <div class="ladder-level" onclick="toggleLevel(this)">
+                <div class="level-header">
+                    <div class="level-badge badge-2">2</div>
+                    <div class="level-info">
+                        <div class="level-title">2连板</div>
+                        <div class="level-subtitle">27只股票 · 成交额 156.8亿</div>
+                    </div>
+                    <span class="level-arrow">▼</span>
+                </div>
+                <div class="stock-list">
+                    <div class="stock-item" onclick="showDetail(event)">
+                        <span class="stock-rank">1</span>
+                        <div class="stock-info">
+                            <div class="stock-name">科力股份</div>
+                            <div class="stock-meta">
+                                <span class="stock-code">920088</span>
+                                <span class="stock-tag tag-huanshou">换手板</span>
+                            </div>
+                        </div>
+                        <div class="stock-price">
+                            <div class="stock-value up">18.50</div>
+                            <div class="stock-change up">+30.00%</div>
+                        </div>
+                    </div>
+                    <div class="stock-item" onclick="showDetail(event)">
+                        <span class="stock-rank">2</span>
+                        <div class="stock-info">
+                            <div class="stock-name">通源石油</div>
+                            <div class="stock-meta">
+                                <span class="stock-code">300164</span>
+                                <span class="stock-tag tag-huanshou">换手板</span>
+                            </div>
+                        </div>
+                        <div class="stock-price">
+                            <div class="stock-value up">6.82</div>
+                            <div class="stock-change up">+20.00%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 首板 -->
+            <div class="ladder-level" onclick="toggleLevel(this)">
+                <div class="level-header">
+                    <div class="level-badge badge-1">1</div>
+                    <div class="level-info">
+                        <div class="level-title">首板</div>
+                        <div class="level-subtitle">22只股票 · 成交额 89.3亿</div>
+                    </div>
+                    <span class="level-arrow">▼</span>
+                </div>
+                <div class="stock-list">
+                    <div class="stock-item" onclick="showDetail(event)">
+                        <span class="stock-rank">1</span>
+                        <div class="stock-info">
+                            <div class="stock-name">凯添燃气</div>
+                            <div class="stock-meta">
+                                <span class="stock-code">920010</span>
+                                <span class="stock-tag tag-huanshou">换手板</span>
+                            </div>
+                        </div>
+                        <div class="stock-price">
+                            <div class="stock-value up">8.56</div>
+                            <div class="stock-change up">+29.90%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-stock-name">亚盛集团</div>
+                    <div class="modal-stock-code">600108 · 沪市主板</div>
+                </div>
+                <div class="modal-close" onclick="closeModal()">✕</div>
+            </div>
+            <div class="modal-body">
+                <!-- Price Info -->
+                <div class="detail-card">
+                    <div class="detail-row">
+                        <span class="detail-label">最新价</span>
+                        <span class="detail-value up">4.81 (+10.07%)</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">连板情况</span>
+                        <span class="detail-value">3天3板</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">涨停类型</span>
+                        <span class="detail-value" style="color: #ffa502;">T字板</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">首次涨停</span>
+                        <span class="detail-value">09:25:01</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">开板次数</span>
+                        <span class="detail-value">10次</span>
+                    </div>
+                </div>
+
+                <!-- Reason -->
+                <div class="reason-card">
+                    <div class="reason-title">涨停原因 / 题材</div>
+                    <div class="reason-content">种植业龙头，受益于农业政策支持</div>
+                    <div class="reason-tags">
+                        <span class="reason-tag">种植业</span>
+                        <span class="reason-tag">国企改革</span>
+                        <span class="reason-tag">电商概念</span>
+                    </div>
+                </div>
+
+                <!-- Fund Data -->
+                <div class="detail-card">
+                    <div class="detail-card-title">资金数据</div>
+                    <div class="fund-grid">
+                        <div class="fund-item">
+                            <div class="fund-label">封单额</div>
+                            <div class="fund-value">1.15亿</div>
+                        </div>
+                        <div class="fund-item">
+                            <div class="fund-label">封成比</div>
+                            <div class="fund-value">7.12%</div>
+                        </div>
+                        <div class="fund-item">
+                            <div class="fund-label">换手率</div>
+                            <div class="fund-value">17.2%</div>
+                        </div>
+                        <div class="fund-item">
+                            <div class="fund-label">量比</div>
+                            <div class="fund-value">7.37</div>
+                        </div>
+                        <div class="fund-item">
+                            <div class="fund-label">净流入</div>
+                            <div class="fund-value down">-6.63亿</div>
+                        </div>
+                        <div class="fund-item">
+                            <div class="fund-label">主力流入</div>
+                            <div class="fund-value up">7357万</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleLevel(el) {
+            el.classList.toggle('expanded');
+        }
+
+        function showDetail(e) {
+            e.stopPropagation();
+            document.getElementById('modal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('show');
+        }
+
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Filter chips
+        document.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.addEventListener('click', function() {
+                document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

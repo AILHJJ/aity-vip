@@ -32,16 +32,6 @@
 					/>
 				</view>
 
-				<!-- 记住我和忘记密码 -->
-				<view class="form-actions">
-					<checkbox-group @change="handleRememberChange">
-						<label class="checkbox-label">
-							<checkbox :checked="formData.rememberMe" color="#667eea" />
-							<text class="checkbox-text">记住我</text>
-						</label>
-					</checkbox-group>
-				</view>
-
 				<!-- 登录按钮 -->
 				<button
 					class="login-btn"
@@ -67,16 +57,10 @@ const userStore = useUserStore()
 
 const formData = ref({
 	account: '',
-	password: '',
-	rememberMe: false
+	password: ''
 })
 
 const loading = ref(false)
-
-// 处理记住我选择
-const handleRememberChange = (e) => {
-	formData.value.rememberMe = e.detail.value.length > 0
-}
 
 // 处理登录
 const handleLogin = async () => {
@@ -102,7 +86,7 @@ const handleLogin = async () => {
 	const loginData = {
 		[isEmail ? 'email' : 'username']: formData.value.account,
 		password: formData.value.password,
-		rememberMe: formData.value.rememberMe
+		rememberMe: true  // 默认记住用户
 	}
 
 	loading.value = true
@@ -116,11 +100,52 @@ const handleLogin = async () => {
 				icon: 'success'
 			})
 
-			// 跳转到消息页面
+			// 检测是否使用初始密码
+			const isInitialPassword = result.data.user?.isInitialPassword
+			const lastLoginAt = result.data.user?.lastLoginAt
+
+			// 跳转到消息页面（reLaunch 确保干净的页面栈）
 			setTimeout(() => {
-				uni.switchTab({
-					url: '/pages/messages/messages'
-				})
+				// 如果是初始密码，提示用户修改
+				if (isInitialPassword) {
+					uni.showModal({
+						title: '安全提示',
+						content: '检测到您正在使用初始密码，为了账户安全，建议您尽快修改密码。是否现在修改？',
+						confirmText: '去修改',
+						cancelText: '稍后再说',
+						success: (res) => {
+							if (res.confirm) {
+								uni.navigateTo({
+									url: '/pages/change-password/change-password'
+								})
+							} else {
+								uni.switchTab({
+									url: '/pages/messages/messages'
+								})
+							}
+						}
+					})
+				} else {
+					// 显示上次登录时间
+					if (lastLoginAt) {
+						const loginTime = new Date(lastLoginAt)
+						const timeStr = loginTime.toLocaleString('zh-CN', {
+							month: '2-digit',
+							day: '2-digit',
+							hour: '2-digit',
+							minute: '2-digit'
+						})
+						uni.showToast({
+							title: `上次登录: ${timeStr}`,
+							icon: 'none',
+							duration: 2000
+						})
+					}
+
+					uni.switchTab({
+						url: '/pages/messages/messages'
+					})
+				}
 			}, 1000)
 		} else {
 			uni.showToast({
@@ -141,6 +166,19 @@ const handleLogin = async () => {
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件默认样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+button::after {
+	border: none;
+}
+
 .login-container {
 	min-height: 100vh;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -158,6 +196,24 @@ const handleLogin = async () => {
 	padding: 60rpx 40rpx;
 	box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.1);
 }
+
+/* H5端桌面优化 - 使用媒体查询 */
+/* #ifdef H5 */
+@media screen and (min-width: 768px) {
+	.login-box {
+		max-width: 480px;
+		padding: 45px 40px;
+		border-radius: 16px;
+	}
+}
+
+@media screen and (min-width: 1200px) {
+	.login-box {
+		max-width: 520px;
+		padding: 55px 50px;
+	}
+}
+/* #endif */
 
 .logo-section {
 	text-align: center;
@@ -212,25 +268,18 @@ const handleLogin = async () => {
 	}
 }
 
-.form-actions {
-	display: flex;
-	justify-content: flex-start;
-	align-items: center;
-	margin-bottom: 20rpx;
-	min-height: 40rpx;
+/* H5端输入框优化 */
+/* #ifdef H5 */
+@media screen and (min-width: 768px) {
+	.form-input {
+		height: 48px;
+		padding: 0 16px;
+		font-size: 15px;
+		border: 1px solid #e0e0e0;
+		border-radius: 6px;
+	}
 }
-
-.checkbox-label {
-	display: flex;
-	align-items: center;
-	cursor: pointer;
-}
-
-.checkbox-text {
-	margin-left: 10rpx;
-	font-size: 26rpx;
-	color: #666666;
-}
+/* #endif */
 
 .login-btn {
 	width: 100%;
@@ -249,6 +298,30 @@ const handleLogin = async () => {
 .login-btn[disabled] {
 	opacity: 0.6;
 }
+
+/* H5端按钮优化 */
+/* #ifdef H5 */
+@media screen and (min-width: 768px) {
+	.login-btn {
+		height: 50px;
+		line-height: 50px;
+		font-size: 17px;
+		border-radius: 6px;
+		margin-top: 15px;
+		cursor: pointer;
+		transition: transform 0.2s, box-shadow 0.2s;
+	}
+
+	.login-btn:hover:not([disabled]) {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+	}
+
+	.login-btn:active:not([disabled]) {
+		transform: translateY(0);
+	}
+}
+/* #endif */
 
 .footer-section {
 	text-align: center;

@@ -119,8 +119,8 @@ const handleMessageChange = (e) => {
 const loadMessages = async () => {
 	try {
 		const res = await getMessagesApi({ page: 1, limit: 100 })
-		if (res.success) {
-			messages.value = res.data.messages || []
+		if (res.success || res.code === 200) {
+			messages.value = res.data.messages || res.data.list || []
 		}
 	} catch (error) {
 		console.error('加载消息列表失败:', error)
@@ -329,6 +329,20 @@ const loadLinkedMessage = async (id) => {
 </script>
 
 <style lang="scss" scoped>
+/* 微信小程序 button 组件样式重置 */
+button {
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	border: none;
+	line-height: normal;
+	font-size: inherit;
+}
+
+button::after {
+	border: none;
+}
+
 .create-discussion-container {
 	height: 100vh;
 	background: #f5f5f5;

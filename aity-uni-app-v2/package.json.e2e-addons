@@ -1,0 +1,21 @@
+{
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test --project=smoke",
+    "test:e2e:critical": "playwright test --project=critical-path",
+    "test:e2e:regression": "playwright test --project=regression",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report tests/e2e/reports/html",
+    "test:e2e:install": "playwright install --with-deps",
+    "test:e2e:install-chromium": "playwright install chromium",
+    "test:e2e:install-firefox": "playwright install firefox",
+    "test:e2e:install-webkit": "playwright install webkit",
+    "test:e2e:codegen": "playwright codegen http://localhost:5173",
+    "test:e2e:show-trace": "playwright show-trace tests/e2e/test-results/*/trace.zip"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}
