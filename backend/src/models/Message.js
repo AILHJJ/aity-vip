@@ -38,19 +38,7 @@ const Message = sequelize.define('Message', {
     allowNull: false
   },
   type: {
-    type: DataTypes.ENUM(
-      'position_handle',       // 持仓处理（放在第一位）
-      'pre_market_comment',    // 盘前点评
-      'morning_comment',       // 早盘点评
-      'morning_focus',         // 早盘关注
-      'afternoon_comment',     // 尾盘点评
-      'afternoon_focus',       // 尾盘关注
-      'close_comment',         // 收盘点评
-      'risk_warning',          // 风险提示
-      'system',                // 系统消息
-      'important',             // 重要消息
-      'daily'                  // 日常消息
-    ),
+    type: DataTypes.STRING(50),
     allowNull: false,
     defaultValue: 'daily'
   },

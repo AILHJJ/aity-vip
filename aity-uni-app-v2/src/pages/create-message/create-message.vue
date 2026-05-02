@@ -429,16 +429,16 @@ const loadMessageTypes = async () => {
 		const res = await getMessageTypesApi()
 		if (res.code === 200 || res.success) {
 			const types = res.data || []
-			// 全部类型（用于管理弹窗）
+			// 全部类型
 			allMessageTypes.value = types.map(t => ({
 				label: MESSAGE_TYPE_LABELS[t.type] || t.label,
 				value: t.type,
-				id: t.id,  // 数据库主键，用于删除操作
+				id: t.id,
 				color: t.color || '#667eea',
 				isDefault: DEFAULT_TYPE_VALUES.includes(t.type)
 			}))
-			// 表单中只显示5个主类型
-			messageTypeOptions.value = allMessageTypes.value.filter(t => t.isDefault)
+			// 发布页面显示所有类型（含自定义新增的）
+			messageTypeOptions.value = allMessageTypes.value
 		}
 	} catch (e) {
 		console.error('加载消息类型失败:', e)

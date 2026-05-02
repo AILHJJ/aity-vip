@@ -46,16 +46,10 @@ function validateUpdateUser() {
 }
 
 function validateCreateMessage() {
-  const validTypes = [
-    'position_handle', 'pre_market_comment', 'morning_comment', 'morning_focus',
-    'afternoon_comment', 'afternoon_focus', 'close_comment',
-    'risk_warning', 'system', 'important', 'daily'
-  ];
-
   return [
     body('title').notEmpty().withMessage('Title is required').isLength({ min: 1, max: 255 }).withMessage('Title must be between 1 and 255 characters'),
     body('content').notEmpty().withMessage('Content is required'),
-    body('type').notEmpty().withMessage('Type is required').isIn(validTypes).withMessage('Invalid type'),
+    body('type').notEmpty().withMessage('Type is required'),
     body('groupId').optional().isLength({ max: 50 }).withMessage('Group ID must be at most 50 characters'),
     body('attachments').optional().isArray().withMessage('Attachments must be an array'),
     body('tags').optional().isArray().withMessage('Tags must be an array'),
@@ -65,17 +59,11 @@ function validateCreateMessage() {
 }
 
 function validateUpdateMessage() {
-  const validTypes = [
-    'position_handle', 'pre_market_comment', 'morning_comment', 'morning_focus',
-    'afternoon_comment', 'afternoon_focus', 'close_comment',
-    'risk_warning', 'system', 'important', 'daily'
-  ];
-
   return [
     param('id').isInt().withMessage('Invalid message ID'),
     body('title').optional().isLength({ min: 1, max: 255 }).withMessage('Title must be between 1 and 255 characters'),
     body('content').optional(),
-    body('type').optional().isIn(validTypes).withMessage('Invalid type'),
+    body('type').optional(),
     body('attachments').optional().isArray().withMessage('Attachments must be an array'),
     body('tags').optional().isArray().withMessage('Tags must be an array'),
     body('publishTime').optional().isISO8601().withMessage('Publish time must be a valid date'),
