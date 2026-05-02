@@ -126,6 +126,7 @@ const userInfoLoaded = ref(false) // 用户信息加载状态
 
 // 筛选选项
 const filters = ref([
+	{ label: '互动交流', value: 'feedback' },
 	{ label: '全部', value: '' },
 	{ label: '待回复', value: 'pending' },
 	{ label: '已回复', value: 'replied' }
