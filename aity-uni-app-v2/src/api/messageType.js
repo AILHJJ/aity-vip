@@ -45,8 +45,8 @@ export function updateMessageTypeApi(id, data) {
  * @param {Number} id 类型ID
  * @returns {Promise}
  */
-export function deleteMessageTypeApi(id) {
-  return del(`/message-types/${id}`)
+export function deleteMessageTypeApi(id, data = {}) {
+  return del(`/message-types/${id}`, data)
 }
 
 /**

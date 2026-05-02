@@ -277,9 +277,9 @@ async function createMessage(req, res) {
       title,
       content,
       type,
-      sender: user.name,
+      sender: user.name || user.username || 'admin',
       senderId: userId,
-      groupId: targetGroupId,
+      groupId: targetGroupId || 'all',
       totalCount,
       tags: tags || null,
       theme: theme || 'default',
@@ -289,13 +289,19 @@ async function createMessage(req, res) {
 
     // 处理附件
     if (attachments && attachments.length > 0) {
-      const attachmentData = attachments.map(attach => ({
-        messageId: message.id,
-        type: attach.type,
-        url: attach.url,
-        name: attach.name
-      }));
-      await MessageAttachment.bulkCreate(attachmentData);
+      // 过滤掉缺少必要字段的附件
+      const validAttachments = attachments.filter(attach =>
+        attach && attach.url && attach.type
+      );
+      if (validAttachments.length > 0) {
+        const attachmentData = validAttachments.map(attach => ({
+          messageId: message.id,
+          type: attach.type,
+          url: attach.url,
+          name: attach.name || 'attachment'
+        }));
+        await MessageAttachment.bulkCreate(attachmentData);
+      }
     }
 
     const messageData = {
@@ -305,8 +311,15 @@ async function createMessage(req, res) {
 
     res.status(201).json(success(messageData, 'Message created successfully'));
   } catch (err) {
-    console.error(err);
-    res.status(500).json(error('Server error'));
+    console.error('[创建消息失败]', err.message);
+    if (err.name === 'SequelizeValidationError') {
+      console.error('验证错误:', JSON.stringify(err.errors));
+    } else if (err.name === 'SequelizeDatabaseError') {
+      console.error('数据库错误:', err.parent ? err.parent.sqlMessage : err.message);
+    } else {
+      console.error(err.stack);
+    }
+    res.status(500).json(error('Server error: ' + err.message));
   }
 }
 

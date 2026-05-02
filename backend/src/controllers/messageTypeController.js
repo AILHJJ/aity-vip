@@ -154,27 +154,37 @@ async function updateMessageType(req, res) {
 /**
  * 删除消息类型（仅管理员）
  * DELETE /api/message-types/:id
+ * Body: { replacementType: "new_type" } 可选，迁移已有消息到新类型
  */
 async function deleteMessageType(req, res) {
   try {
     const { id } = req.params;
-    
+    const { replacementType } = req.body;
+
     const messageType = await MessageType.findByPk(id);
     if (!messageType) {
       return res.status(404).json(notFound('Message type not found'));
     }
-    
+
     // 检查是否有消息使用此类型
     const messageCount = await Message.count({ where: { type: messageType.type } });
     if (messageCount > 0) {
-      return res.status(400).json(
-        badRequest(`Cannot delete: ${messageCount} messages are using this type. Please reassign them first.`)
-      );
+      if (replacementType) {
+        // 迁移消息到新类型
+        await Message.update(
+          { type: replacementType },
+          { where: { type: messageType.type } }
+        );
+      } else {
+        return res.status(400).json(
+          badRequest(`Cannot delete: ${messageCount} messages are using this type. Please provide a replacementType to migrate them.`)
+        );
+      }
     }
-    
+
     await messageType.destroy();
-    
-    res.json(success(null, 'Message type deleted successfully'));
+
+    res.json(success({ migratedCount: messageCount }, 'Message type deleted successfully'));
   } catch (err) {
     console.error('删除消息类型失败:', err);
     res.status(500).json(error('Server error'));

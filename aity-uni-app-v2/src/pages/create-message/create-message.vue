@@ -276,8 +276,8 @@
 		</view>
 
 		<!-- 消息类型管理弹窗 -->
-		<view v-if="showTypeManager" class="optimize-preview-modal" @click="showTypeManager = false">
-			<view class="optimize-preview-content type-manager-content" catchtap="">
+		<view v-if="showTypeManager" class="optimize-preview-modal" @click.stop="showTypeManager = false">
+			<view class="optimize-preview-content type-manager-content" @click.stop>
 				<view class="preview-header">
 					<text class="preview-title">消息类型管理</text>
 					<text class="preview-close" @click="showTypeManager = false">×</text>
@@ -289,18 +289,11 @@
 						<view class="type-add-title">新增消息类型</view>
 						<view class="type-form-row">
 							<input
-								v-model="newType.type"
-								class="type-input"
-								placeholder="类型标识(如: custom_type)"
-								placeholder-class="type-placeholder"
-							/>
-						</view>
-						<view class="type-form-row">
-							<input
 								v-model="newType.label"
 								class="type-input"
-								placeholder="显示名称(如: 自定义类型)"
+								placeholder="标签名称(如: 自定义类型)"
 								placeholder-class="type-placeholder"
+								@click.stop
 							/>
 						</view>
 						<view class="type-form-row type-color-row">
@@ -312,33 +305,29 @@
 									class="type-color-dot"
 									:style="{ background: c }"
 									:class="{ selected: newType.color === c }"
-									@click="newType.color = c"
+									@click.stop="newType.color = c"
 								></view>
 							</view>
 						</view>
-						<view class="type-form-row">
-							<input
-								v-model="newType.icon"
-								class="type-input"
-								placeholder="图标(可选，如: 🎯)"
-								placeholder-class="type-placeholder"
-							/>
-						</view>
-						<button class="type-add-btn" :disabled="isAddingType" @click="handleAddType">
+						<button class="type-add-btn" :disabled="isAddingType" @click.stop="handleAddType">
 							{{ isAddingType ? '添加中...' : '添加类型' }}
 						</button>
 					</view>
 
-					<!-- 现有类型列表 -->
+					<!-- 现有类型列表（显示全部类型，含自定义） -->
 					<view class="type-list-section">
-						<view class="type-list-title">现有类型</view>
+						<view class="type-list-title">现有类型（共 {{ allMessageTypes.length }} 个）</view>
 						<view class="type-list">
-							<view v-for="t in messageTypeOptions" :key="t.value" class="type-list-item">
+							<view v-for="t in allMessageTypes" :key="t.value" class="type-list-item">
 								<view class="type-item-left">
 									<view class="type-color-indicator" :style="{ background: t.color || '#667eea' }"></view>
 									<text class="type-item-label">{{ t.label }}</text>
+									<text v-if="t.isDefault" class="type-item-badge">默认</text>
 								</view>
-								<text class="type-item-value">{{ t.value }}</text>
+								<view class="type-item-right">
+									<text class="type-item-value">{{ t.value }}</text>
+									<text v-if="!t.isDefault" class="type-item-delete" :class="{ loading: isDeletingType }" @click.stop="handleDeleteType(t)">删除</text>
+								</view>
 							</view>
 						</view>
 					</view>
@@ -354,7 +343,7 @@ import { useUserStore } from '../../store/user'
 import { createMessageApi, updateMessageApi, getMessageDetailApi } from '../../api/message'
 import { uploadImageApi } from '../../api/upload'
 import { optimizeContentApi } from '../../api/ai'
-import { getMessageTypesApi, createMessageTypeApi } from '../../api/messageType'
+import { getMessageTypesApi, createMessageTypeApi, deleteMessageTypeApi } from '../../api/messageType'
 import { MESSAGE_TYPES, MESSAGE_TAGS, MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS, USER_ROLES } from '../../utils/constants'
 import { BASE_URL } from '../../utils/config'
 
@@ -400,41 +389,32 @@ const strategyOptions = [
 	{ label: '中线推送', value: MESSAGE_TAGS.MID_TERM, pushTarget: MESSAGE_TAGS.ALL_USERS }
 ]
 
-// 消息类型选项（从后端动态加载）
-const messageTypeOptions = ref([])
-const defaultMessageTypes = [
-	{ label: '盘中关注', value: MESSAGE_TYPES.MORNING_FOCUS },
-	{ label: '持仓处理', value: MESSAGE_TYPES.POSITION_HANDLE },
-	{ label: '风险提示', value: MESSAGE_TYPES.RISK_WARNING },
-	{ label: '盘面点评', value: MESSAGE_TYPES.MORNING_COMMENT },
-	{ label: '系统信息', value: MESSAGE_TYPES.SYSTEM }
-]
-
-// 加载消息类型列表
-const loadMessageTypes = async () => {
-	try {
-		const res = await getMessageTypesApi(true)
-		if ((res.success || res.code === 200) && res.data && res.data.length > 0) {
-			messageTypeOptions.value = res.data.map(t => ({
-				label: t.icon ? `${t.icon} ${t.label}` : t.label,
-				value: t.type,
-				color: t.color,
-				id: t.id
-			}))
-		} else {
-			// 使用默认类型
-			messageTypeOptions.value = defaultMessageTypes
-		}
-	} catch (e) {
-		console.error('加载消息类型失败:', e)
-		messageTypeOptions.value = defaultMessageTypes
-	}
-}
+// 消息类型选项（简化版本：只显示主要类型）
+const messageTypeOptions = ref([
+	{ label: '盘中', value: MESSAGE_TYPES.MORNING_FOCUS, color: '#3498db' },
+	{ label: '持仓', value: MESSAGE_TYPES.POSITION_HANDLE, color: '#9b59b6' },
+	{ label: '风险', value: MESSAGE_TYPES.RISK_WARNING, color: '#e74c3c' },
+	{ label: '点评', value: MESSAGE_TYPES.MORNING_COMMENT, color: '#f39c12' },
+	{ label: '系统', value: MESSAGE_TYPES.SYSTEM, color: '#95a5a6' }
+])
 
 // ========== 消息类型管理 ==========
 const showTypeManager = ref(false)
-const newType = ref({ type: '', label: '', color: '#667eea', icon: '' })
+const newType = ref({ label: '', color: '#667eea' })
 const isAddingType = ref(false)
+const isDeletingType = ref(false)
+
+// 默认5个主类型（与筛选栏一致）
+const DEFAULT_TYPE_VALUES = [
+	MESSAGE_TYPES.MORNING_FOCUS,
+	MESSAGE_TYPES.POSITION_HANDLE,
+	MESSAGE_TYPES.RISK_WARNING,
+	MESSAGE_TYPES.MORNING_COMMENT,
+	MESSAGE_TYPES.SYSTEM
+]
+
+// 管理弹窗中显示的所有类型（含自定义）
+const allMessageTypes = ref([])
 
 // 颜色选项
 const typeColorOptions = [
@@ -443,40 +423,76 @@ const typeColorOptions = [
 	'#6366f1', '#eab308'
 ]
 
+// 加载消息类型列表
+const loadMessageTypes = async () => {
+	try {
+		const res = await getMessageTypesApi()
+		if (res.code === 200 || res.success) {
+			const types = res.data || []
+			// 全部类型（用于管理弹窗）
+			allMessageTypes.value = types.map(t => ({
+				label: MESSAGE_TYPE_LABELS[t.type] || t.label,
+				value: t.type,
+				id: t.id,  // 数据库主键，用于删除操作
+				color: t.color || '#667eea',
+				isDefault: DEFAULT_TYPE_VALUES.includes(t.type)
+			}))
+			// 表单中只显示5个主类型
+			messageTypeOptions.value = allMessageTypes.value.filter(t => t.isDefault)
+		}
+	} catch (e) {
+		console.error('加载消息类型失败:', e)
+		allMessageTypes.value = [
+			{ label: '盘中', value: MESSAGE_TYPES.MORNING_FOCUS, color: '#3498db', isDefault: true },
+			{ label: '持仓', value: MESSAGE_TYPES.POSITION_HANDLE, color: '#9b59b6', isDefault: true },
+			{ label: '风险', value: MESSAGE_TYPES.RISK_WARNING, color: '#e74c3c', isDefault: true },
+			{ label: '点评', value: MESSAGE_TYPES.MORNING_COMMENT, color: '#f39c12', isDefault: true },
+			{ label: '系统', value: MESSAGE_TYPES.SYSTEM, color: '#95a5a6', isDefault: true }
+		]
+		messageTypeOptions.value = allMessageTypes.value
+	}
+}
+
 // 添加新消息类型
 const handleAddType = async () => {
-	if (!newType.value.type || !newType.value.label) {
-		uni.showToast({ title: '请填写完整信息', icon: 'none' })
+	if (!newType.value.label) {
+		uni.showToast({ title: '请填写标签名称', icon: 'none' })
 		return
 	}
 
-	// 验证type格式
-	if (!/^[a-z_][a-z0-9_]*$/i.test(newType.value.type)) {
-		uni.showToast({ title: '标识只能包含英文字母、数字和下划线', icon: 'none' })
-		return
+	// 自动生成type：中文标签使用自定义前缀
+	let autoType = newType.value.label
+		.toLowerCase()
+		.replace(/\s+/g, '_')
+		.replace(/[^a-z0-9_]/g, '')
+		.replace(/^_+|_+$/g, '')
+
+	// 如果type为空或纯数字，用时间戳作为前缀（兼容中文标签如"测试2"）
+	if (!autoType || /^\d+$/.test(autoType)) {
+		autoType = 'custom_' + (autoType || Math.floor(Date.now() / 1000))
 	}
 
 	// 检查是否已存在
-	if (messageTypeOptions.value.some(t => t.value === newType.value.type)) {
-		uni.showToast({ title: '该类型标识已存在', icon: 'none' })
+	if (messageTypeOptions.value.some(t => t.value === autoType)) {
+		uni.showToast({ title: '该类型已存在', icon: 'none' })
 		return
 	}
 
 	isAddingType.value = true
 	try {
 		const res = await createMessageTypeApi({
-			type: newType.value.type,
+			type: autoType,  // 使用自动生成的type
 			label: newType.value.label,
-			color: newType.value.color,
-			icon: newType.value.icon || ''
+			color: newType.value.color || '#667eea',
+			icon: ''
 		})
 
 		if (res.success || res.code === 200) {
 			uni.showToast({ title: '添加成功', icon: 'success' })
-			// 重新加载类型列表
+			// 重新加载类型列表后关闭弹窗
 			await loadMessageTypes()
-			// 清空表单
-			newType.value = { type: '', label: '', color: '#667eea', icon: '' }
+			newType.value = { label: '', color: '#667eea' }
+			setTimeout(() => { showTypeManager.value = false }, 300)
 		} else {
 			uni.showToast({ title: res.message || '添加失败', icon: 'none' })
 		}
@@ -486,6 +502,87 @@ const handleAddType = async () => {
 	} finally {
 		isAddingType.value = false
 	}
+}
+
+// 删除消息类型（带迁移选项）
+const handleDeleteType = (type) => {
+	if (type.isDefault) {
+		uni.showToast({ title: '默认类型不可删除', icon: 'none' })
+		return
+	}
+
+	// 获取可迁移到的目标类型列表（排除当前类型）
+	const targetTypes = allMessageTypes.value.filter(t => t.value !== type.value && t.isDefault)
+	if (targetTypes.length === 0) {
+		uni.showToast({ title: '没有可迁移的目标类型', icon: 'none' })
+		return
+	}
+
+	// 先询问用户是否要迁移
+	uni.showActionSheet({
+		itemList: ['迁移到其他类型后删除', '直接删除（不推荐）'],
+		itemColor: '#333',
+		success: (res) => {
+			if (res.tapIndex === 0) {
+				// 迁移模式：选择目标类型
+				showMigrationPicker(type, targetTypes)
+			} else if (res.tapIndex === 1) {
+				// 直接删除
+				confirmDeleteType(type, null)
+			}
+		}
+	})
+}
+
+// 显示类型迁移选择器
+const showMigrationPicker = (sourceType, targetTypes) => {
+	const itemList = targetTypes.map(t => `${t.label}（${t.value}）`)
+	uni.showActionSheet({
+		itemList: itemList,
+		title: `将"${sourceType.label}"的消息迁移到：`,
+		success: (res) => {
+			const target = targetTypes[res.tapIndex]
+			confirmDeleteType(sourceType, target.value)
+		}
+	})
+}
+
+// 确认删除
+const confirmDeleteType = async (type, replacementType) => {
+	const msg = replacementType
+		? `将"${type.label}"的现有消息迁移到新类型后删除，确定吗？`
+		: `直接删除"${type.label}"，如果已有消息使用该类型将无法删除。确定吗？`
+
+	uni.showModal({
+		title: '删除类型',
+		content: msg,
+		confirmText: '确认删除',
+		confirmColor: '#e74c3c',
+		success: async (res) => {
+			if (res.confirm) {
+				isDeletingType.value = true
+				try {
+					const result = await deleteMessageTypeApi(type.id, replacementType ? { replacementType } : {})
+					if (result.code === 200 || result.success) {
+						uni.showToast({
+							title: result.data?.migratedCount
+								? `删除成功，已迁移${result.data.migratedCount}条消息`
+								: '删除成功',
+							icon: 'success'
+						})
+						await loadMessageTypes()
+					} else {
+						uni.showToast({ title: result.message || '删除失败', icon: 'none' })
+					}
+				} catch (e) {
+					console.error('删除消息类型失败:', e)
+					uni.showToast({ title: '删除失败', icon: 'none' })
+				} finally {
+					isDeletingType.value = false
+				}
+			}
+		}
+	})
 }
 
 // Markdown主题选项
@@ -1609,24 +1706,38 @@ button::after {
 // 标签按钮组
 .tag-group {
 	display: flex;
-	flex-wrap: nowrap;
-	gap: 12rpx;
+	flex-wrap: wrap;
+	gap: 16rpx;
+	justify-content: flex-start;
 }
 
 .tag-group-wrap {
 	flex-wrap: wrap;
-	gap: 12rpx;
+	gap: 16rpx;
 }
 
 .tag-btn {
-	padding: 14rpx 28rpx;
+	padding: 12rpx 32rpx;
 	background: #ffffff;
 	border: 2rpx solid #d0d7ff;
-	border-radius: 32rpx;
+	border-radius: 28rpx;
 	font-size: 26rpx;
 	color: #666666;
 	transition: all 0.2s;
 	white-space: nowrap;
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.08);
+}
+
+.tag-btn:active {
+	transform: scale(0.95);
+}
+
+.tag-btn.active {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border-color: transparent;
+	color: #ffffff;
+	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+	font-weight: 500;
 }
 
 .tag-btn:active {
@@ -3054,5 +3165,38 @@ button::after {
 .type-item-value {
 	font-size: 24rpx;
 	color: #9ca3af;
+}
+
+// 类型列表右侧
+.type-item-right {
+	display: flex;
+	align-items: center;
+	gap: 16rpx;
+}
+
+// 默认标签
+.type-item-badge {
+	font-size: 20rpx;
+	color: #10b981;
+	background: rgba(16, 185, 129, 0.1);
+	padding: 2rpx 10rpx;
+	border-radius: 6rpx;
+}
+
+// 删除按钮（仅自定义类型显示）
+.type-item-delete {
+	font-size: 24rpx;
+	color: #e74c3c;
+	padding: 8rpx 12rpx;
+	border-radius: 8rpx;
+	background: rgba(231, 76, 60, 0.08);
+
+	&:active {
+		background: rgba(231, 76, 60, 0.2);
+	}
+
+	&.loading {
+		opacity: 0.5;
+	}
 }
 </style>

@@ -138,6 +138,7 @@
 					@click="previewImage(index)"
 				>
 					<image
+						v-if="!imageErrors[index]"
 						:src="cleanImageUrl(img)"
 						class="message-image"
 						mode="widthFix"
@@ -147,8 +148,11 @@
 						:show-loading="true"
 						:show-error="true"
 					/>
-					<view class="image-mask">
-						<text class="image-hint">点击预览</text>
+					<!-- 图片加载失败占位 -->
+					<view v-else class="image-error-placeholder" @click.stop="retryLoadImage(index)">
+						<text class="image-error-icon">🖼️</text>
+						<text class="image-error-text">图片加载失败</text>
+						<text class="image-error-retry">点击重试</text>
 					</view>
 				</view>
 			</view>
@@ -759,18 +763,23 @@ const previewImage = (index) => {
 	})
 }
 
+// 图片加载失败状态
+const imageErrors = ref({})
+
 // 处理图片加载错误
 const handleImageError = (index) => {
 	console.error(`图片 ${index} 加载失败`)
-	uni.showToast({
-		title: '图片加载失败',
-		icon: 'none'
-	})
+	imageErrors.value[index] = true
 }
 
 // 处理图片加载成功
 const handleImageLoad = (index) => {
-	// 图片加载成功，不需要日志
+	imageErrors.value[index] = false
+}
+
+// 重试加载图片
+const retryLoadImage = (index) => {
+	imageErrors.value[index] = false
 }
 
 // 分享消息
@@ -1574,6 +1583,38 @@ button::after {
 	}
 }
 
+// 图片加载失败占位
+.image-error-placeholder {
+	width: 100%;
+	min-height: 200rpx;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	background: #f5f5f5;
+	border-radius: 12rpx;
+	padding: 40rpx 0;
+	gap: 12rpx;
+}
+
+.image-error-icon {
+	font-size: 60rpx;
+}
+
+.image-error-text {
+	font-size: 26rpx;
+	color: #999;
+}
+
+.image-error-retry {
+	font-size: 22rpx;
+	color: #667eea;
+	padding: 6rpx 16rpx;
+	border: 2rpx solid #667eea;
+	border-radius: 20rpx;
+}
+
+// 图片遮罩
 .image-mask {
 	position: absolute;
 	bottom: 0;

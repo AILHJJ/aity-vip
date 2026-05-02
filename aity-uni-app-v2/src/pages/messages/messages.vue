@@ -39,28 +39,21 @@
 			</view>
 		</view>
 
-		<!-- 基础筛选栏（所有用户显示） -->
+		<!-- 筛选栏 -->
 		<message-filter-bar
 			:total-count="filteredMessages.length"
 			@filter-change="handleMessageFilterChange"
 		/>
 
-		<!-- 高级筛选栏（仅管理员显示，默认收起） -->
-		<filter-bar
-			v-if="userInfoLoaded && userStore.isAdmin"
-			:total-count="filteredMessages.length"
-			@filter-change="handleFilterChange"
-		/>
-
 		<!-- 消息列表 -->
 		<scroll-view
-			class="messages-scroll"
-			scroll-y
-			@scrolltolower="loadMore"
-			:refresher-enabled="true"
-			:refresher-triggered="refreshing"
-			@refresherrefresh="onRefresh"
-			refresher-background="#f5f5f5"
+				class="messages-scroll"
+				scroll-y
+				@scrolltolower="loadMore"
+				:refresher-enabled="true"
+				:refresher-triggered="refreshing"
+				@refresherrefresh="onRefresh"
+				refresher-background="#f5f5f5"
 		>
 			<!-- 下拉刷新提示 -->
 			<view v-if="refreshing" class="refresh-tip">
@@ -83,51 +76,119 @@
 			<!-- 搜索无结果 -->
 			<empty-state v-else-if="filteredMessages.length === 0 && searchKeyword" type="no-result" />
 
-			<!-- 消息列表 -->
-			<view v-else class="messages-list">
-				<view
-					v-for="message in filteredMessages"
-					:key="message.id"
-					class="message-item"
-					:class="{ unread: isMessageUnread(message.id) }"
-					@click="goToDetail(message.id)"
-				>
-				<view class="message-header">
-						<view class="message-type-badge" :class="'type-' + message.type">
-							{{ getMessageTypeLabel(message.type) }}
-						</view>
+			<!-- 置顶消息区域 -->
+			<view v-if="pinnedMessages.length > 0" class="pinned-section">
+				<!-- 置顶消息头部 -->
+				<view class="pinned-header" @click="togglePinnedSection">
+					<view class="pinned-title">
+						<text class="pinned-icon">📌</text>
+						<text class="pinned-text">置顶消息 ({{ pinnedMessages.length }})</text>
 					</view>
-					<view class="message-meta">
-						<view v-if="isMessageUnread(message.id)" class="unread-dot"></view>
-						<view v-else class="read-tag"><text class="read-tag-text">已读</text></view>
-						<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
-					</view>
+					<text class="pinned-toggle">{{ isPinnedSectionExpanded ? '收起' : '展开' }}</text>
+				</view>
 
-					<view class="message-title">{{ message.title }}</view>
-
-					<view class="message-content">
-						<rich-text :nodes="renderContent(message)"></rich-text>
-					</view>
-
-					<view class="message-footer">
-						<view v-if="getDisplayTags(message.tags).length > 0" class="message-tags">
-							<view
-								v-for="tag in getDisplayTags(message.tags)"
-								:key="tag.key"
-								class="message-tag"
-								:class="tag.class"
-							>
-								<text class="tag-icon">{{ tag.icon }}</text>
-								<text class="tag-text">{{ tag.label }}</text>
+				<!-- 置顶消息列表（可折叠） -->
+				<view v-if="isPinnedSectionExpanded" class="pinned-list">
+					<view
+						v-for="message in pinnedMessages"
+						:key="'pinned-' + message.id"
+						class="message-item pinned"
+						:class="{ unread: isMessageUnread(message.id) }"
+						@click="goToDetail(message.id)"
+					>
+						<!-- 第一行：类型标签 + 日期 + 置顶标签 -->
+						<view class="message-header-row">
+							<view class="message-type-badge" :class="'type-' + message.type">
+								{{ getMessageTypeLabel(message.type) }}
 							</view>
+							<view class="message-time-wrapper">
+								<text class="message-time">{{ formatFriendlyTime(message.pinnedAt || message.updatedAt) }}</text>
+							</view>
+							<view class="pinned-badge">置顶</view>
 						</view>
-						<view class="message-stats">
-							<text class="stat-item">👁 {{ message.readCount || 0 }}</text>
-							<text class="stat-item">💬 {{ message.discussionCount || 0 }}</text>
+
+						<!-- 第二行：标题 -->
+						<view class="message-title">{{ message.title }}</view>
+
+						<!-- 第三行：内容 -->
+						<view class="message-content">
+							<rich-text :nodes="renderContent(message)"></rich-text>
+						</view>
+
+						<!-- 第四行：标签 + 阅读数 -->
+						<view class="message-footer-row">
+							<view class="message-tags-left">
+								<!-- 中线VIP用户标签 -->
+								<view v-if="getPushScopeLabel(message.tags)" class="push-scope-tag">
+									<text class="scope-text">{{ getPushScopeLabel(message.tags) }}</text>
+								</view>
+								<!-- 策略类型标签 -->
+								<view v-if="getStrategyTag(message.tags)" class="strategy-tag">
+									<text class="strategy-text">{{ getStrategyTag(message.tags) }}</text>
+								</view>
+							</view>
+							<view class="message-stats">
+								<text class="stat-item">👁 {{ message.readCount || 0 }}</text>
+								<text class="stat-item">💬 {{ message.discussionCount || 0 }}</text>
+							</view>
 						</view>
 					</view>
 				</view>
 			</view>
+
+			<!-- 分隔线 -->
+			<view v-if="pinnedMessages.length > 0 && normalMessages.length > 0" class="divider">
+				<view class="divider-line"></view>
+				<text class="divider-text">全部消息</text>
+				<view class="divider-line"></view>
+			</view>
+
+<!-- 普通消息列表 -->
+		<view v-if="normalMessages.length > 0" class="messages-list">
+			<view
+				v-for="message in normalMessages"
+				:key="message.id"
+				class="message-item"
+				:class="{ unread: isMessageUnread(message.id) }"
+				@click="goToDetail(message.id)"
+			>
+				<!-- 第一行：类型标签 + 日期 -->
+				<view class="message-header-row">
+					<view class="message-type-badge" :class="'type-' + message.type">
+						{{ getMessageTypeLabel(message.type) }}
+					</view>
+					<view class="message-time-wrapper">
+						<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
+					</view>
+				</view>
+
+				<!-- 第二行：标题 -->
+				<view class="message-title">{{ message.title }}</view>
+
+				<!-- 第三行：内容 -->
+				<view class="message-content">
+					<rich-text :nodes="renderContent(message)"></rich-text>
+				</view>
+
+				<!-- 第四行：标签 + 阅读数 -->
+				<view class="message-footer-row">
+					<view class="message-tags-left">
+						<!-- 中线VIP用户标签 -->
+						<view v-if="getPushScopeLabel(message.tags)" class="push-scope-tag">
+							<text class="scope-text">{{ getPushScopeLabel(message.tags) }}</text>
+						</view>
+						<!-- 策略类型标签 -->
+						<view v-if="getStrategyTag(message.tags)" class="strategy-tag">
+							<text class="strategy-text">{{ getStrategyTag(message.tags) }}</text>
+						</view>
+					</view>
+					<view class="message-stats">
+						<text class="stat-item">👁 {{ message.readCount || 0 }}</text>
+						<text class="stat-item">💬 {{ message.discussionCount || 0 }}</text>
+					</view>
+				</view>
+			</view>
+		</view>
 
 			<!-- 加载更多 -->
 			<view v-if="hasMore && !loading" class="load-more">
@@ -160,7 +221,6 @@ import { markMessageAsReadApi } from '../../api/message'
 import dayjs from 'dayjs'
 import MessageSkeleton from '@/components/message-skeleton.vue'
 import EmptyState from '@/components/empty-state.vue'
-import FilterBar from '@/components/filter-bar.vue'
 import MessageFilterBar from '@/components/message-filter-bar.vue'
 import { MarkdownRenderer } from '../../utils/markdown-renderer'
 
@@ -179,6 +239,30 @@ const userInfoLoaded = ref(false) // 用户信息加载状态
 const showSearchHistory = ref(false) // 显示搜索历史
 const searchHistory = ref([]) // 搜索历史列表
 const today = ref('') // 今天的日期
+const isPinnedSectionExpanded = ref(true) // 置顶消息区域是否展开
+
+// 切换置顶消息区域的展开/收起状态
+const togglePinnedSection = () => {
+	isPinnedSectionExpanded.value = !isPinnedSectionExpanded.value
+}
+
+// 置顶消息列表（最多显示3条，按置顶时间倒序）
+const pinnedMessages = computed(() => {
+	return filteredMessages.value
+		.filter(msg => msg.isPinned)
+		.sort((a, b) => {
+			// 按置顶时间倒序（最新置顶的在最上面）
+			const aTime = a.pinnedAt ? new Date(a.pinnedAt).getTime() : new Date(a.updatedAt).getTime()
+			const bTime = b.pinnedAt ? new Date(b.pinnedAt).getTime() : new Date(b.updatedAt).getTime()
+			return bTime - aTime
+		})
+		.slice(0, 3) // 最多显示3条
+})
+
+// 普通消息列表（不包含置顶消息）
+const normalMessages = computed(() => {
+	return filteredMessages.value.filter(msg => !msg.isPinned)
+})
 
 // 基础筛选条件（所有用户） - 从 MessageFilterBar 组件接收
 const basicFilters = ref({
@@ -189,10 +273,7 @@ const basicFilters = ref({
 	quickType: 'all' // 快捷筛选类型: all, today_opportunity, morning_focus, afternoon_focus, morning_comment, afternoon_comment
 })
 
-// 高级筛选条件（仅管理员）
-const filters = ref({
-	pushScope: 'all' // 推送范围筛选
-})
+// 高级筛选条件（已合并到 message-filter-bar）
 
 // 根据用户角色和搜索关键词过滤消息
 const filteredMessages = computed(() => {
@@ -255,14 +336,14 @@ const filteredMessages = computed(() => {
 		}
 	}
 
-	// 推送范围筛选（仅管理员）
-	if (userStore.isAdmin && filters.value.pushScope && filters.value.pushScope !== 'all') {
+	// 推送范围筛选（来自 message-filter-bar 的推送范围筛选）
+	if (basicFilters.value.pushScope) {
 		filtered = filtered.filter(msg => {
-			return msg.tags && msg.tags.includes(filters.value.pushScope)
+			return msg.tags && msg.tags.includes(basicFilters.value.pushScope)
 		})
 	}
 
-	// 基础筛选：消息类型筛选（所有用户）
+	// 基础筛选：消息类型筛选
 	if (basicFilters.value.messageType !== 'all') {
 		filtered = filtered.filter(msg => {
 			return msg.type === basicFilters.value.messageType
@@ -311,20 +392,20 @@ const filteredMessages = computed(() => {
 	return filtered
 })
 
-// 获取消息类型标签（精简版本）
+// 获取消息类型标签（2个字版本）
 const getMessageTypeLabel = (type) => {
 	const labels = {
-		'position_handle': '持仓处理',
-		'pre_market_comment': '盘前点评',
-		'morning_comment': '盘面点评',
-		'morning_focus': '盘中关注',
-		'afternoon_comment': '尾盘点评',
-		'afternoon_focus': '尾盘关注',
-		'close_comment': '收盘点评',
-		'risk_warning': '风险提示',
-		'system': '系统信息',
-		'important': '重要消息',
-		'daily': '日常消息'
+		'position_handle': '持仓',
+		'pre_market_comment': '盘前',
+		'morning_comment': '点评',
+		'morning_focus': '盘中',
+		'afternoon_comment': '尾盘',
+		'afternoon_focus': '尾盘',
+		'close_comment': '收盘',
+		'risk_warning': '风险',
+		'system': '系统',
+		'important': '重要',
+		'daily': '日常'
 	}
 	return labels[type] || type
 }
@@ -404,6 +485,32 @@ const getDisplayTags = (tags) => {
 	}
 
 	return displayTags
+}
+
+// 获取推送范围标签（显示为：短线VIP、中线VIP）
+const getPushScopeLabel = (tags) => {
+	if (!tags || tags.length === 0) return ''
+
+	const hasShortTerm = tags.includes(MESSAGE_TAGS.SHORT_TERM)
+	const hasMidTerm = tags.includes(MESSAGE_TAGS.MID_TERM)
+
+	if (hasMidTerm) return '中线VIP'
+	if (hasShortTerm) return '短线VIP'
+
+	return ''
+}
+
+// 获取策略类型标签（显示为：短线策略、中线策略）
+const getStrategyTag = (tags) => {
+	if (!tags || tags.length === 0) return ''
+
+	const hasShortTerm = tags.includes(MESSAGE_TAGS.SHORT_TERM)
+	const hasMidTerm = tags.includes(MESSAGE_TAGS.MID_TERM)
+
+	if (hasShortTerm) return '短线策略'
+	if (hasMidTerm) return '中线策略'
+
+	return ''
 }
 
 // 加载消息列表
@@ -564,11 +671,6 @@ const handleClearHistory = () => {
 const handleRemoveHistory = (keyword) => {
 	removeSearchHistory(keyword)
 	searchHistory.value = getSearchHistory()
-}
-
-// 处理三级筛选变化
-const handleFilterChange = (newFilters) => {
-	filters.value = { ...filters.value, ...newFilters }
 }
 
 // 处理消息筛选变化（从 MessageFilterBar 组件接收）
@@ -1342,5 +1444,186 @@ button::after {
 	color: var(--text-tertiary);
 	padding: 0 10rpx;
 	line-height: 1;
+}
+
+/* 置顶消息区域 */
+.pinned-section {
+	background: #fff8e1;
+	border-bottom: 2rpx solid #ffd54f;
+}
+
+.pinned-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 20rpx 30rpx;
+	background: linear-gradient(135deg, rgba(255, 213, 79, 0.1) 0%, rgba(255, 183, 77, 0.1) 100%);
+	border-bottom: 1rpx solid rgba(255, 213, 79, 0.3);
+}
+
+.pinned-title {
+	display: flex;
+	align-items: center;
+	gap: 10rpx;
+}
+
+.pinned-icon {
+	font-size: 32rpx;
+}
+
+.pinned-text {
+	font-size: 28rpx;
+	font-weight: 600;
+	color: #f57c00;
+}
+
+.pinned-toggle {
+	font-size: 24rpx;
+	color: #1976d2;
+	padding: 8rpx 20rpx;
+	background: rgba(25, 118, 210, 0.1);
+	border-radius: 20rpx;
+}
+
+.pinned-list {
+	padding: 20rpx;
+}
+
+/* 置顶消息的样式 */
+.message-item.pinned {
+	background: #ffffff;
+	border-left: 6rpx solid #ffd54f;
+	box-shadow: 0 4rpx 16rpx rgba(255, 213, 79, 0.2);
+}
+
+.pinned-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 6rpx 16rpx;
+	font-size: 22rpx;
+	color: #ffffff;
+	background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+	border-radius: 16rpx;
+	font-weight: 500;
+}
+
+/* 分隔线 */
+.divider {
+	display: flex;
+	align-items: center;
+	padding: 20rpx 30rpx;
+	background: #f5f5f5;
+}
+
+.divider-line {
+	flex: 1;
+	height: 1rpx;
+	background: #e0e0e0;
+}
+
+.divider-text {
+	padding: 0 20rpx;
+	font-size: 24rpx;
+	color: #999999;
+}
+
+/* 推送范围标签 */
+.message-tags-wrapper {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	flex-wrap: wrap;
+}
+
+.push-scope-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 6rpx;
+	padding: 8rpx 16rpx;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border-radius: 20rpx;
+	font-size: 22rpx;
+	color: #ffffff;
+	font-weight: 500;
+	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
+}
+
+.scope-icon {
+	font-size: 24rpx;
+}
+
+.scope-text {
+	font-size: 22rpx;
+}
+
+/* 策略类型标签 */
+.strategy-tag {
+	display: inline-flex;
+	align-items: center;
+	padding: 8rpx 16rpx;
+	background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+	border-radius: 20rpx;
+	font-size: 22rpx;
+	color: #ffffff;
+	font-weight: 500;
+	box-shadow: 0 2rpx 8rpx rgba(243, 156, 18, 0.3);
+}
+
+.strategy-text {
+	font-size: 22rpx;
+}
+
+/* 新布局：时间和标签在同一行 */
+.message-meta-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12rpx;
+	gap: 16rpx;
+}
+
+.message-meta-left {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	flex-shrink: 0;
+}
+
+.message-tags-inline {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	flex: 1;
+}
+
+/* 新布局样式：第一行类型+日期，第二行标签在左下角 */
+.message-header-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12rpx;
+}
+
+.message-time-wrapper {
+	flex-shrink: 0;
+}
+
+.message-footer-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 12rpx;
+	padding-top: 12rpx;
+	border-top: 1rpx solid #f0f0f0;
+}
+
+.message-tags-left {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	flex-wrap: wrap;
+	flex: 1;
 }
 </style>

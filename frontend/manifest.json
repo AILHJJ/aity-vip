@@ -1,0 +1,29 @@
+{
+  "name": "AITY VIP投研内部分享系统",
+  "appid": "wxb16a33cdd58f05d3",
+  "description": "VIP投研内部分享系统，支持消息推送、讨论和数据分析",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": true,
+  "app-plus": {
+    "usingComponents": true,
+    "nvueStyleCompiler": "uni-app",
+    "compilerVersion": 3
+  },
+  "h5": {
+    "usingComponents": true,
+    "router": {
+      "base": "/",
+      "mode": "history"
+    }
+  },
+  "mp-weixin": {
+    "appid": "wxb16a33cdd58f05d3",
+    "usingComponents": true,
+    "permission": {
+      "scope.userLocation": {
+        "desc": "用于获取您的位置信息"
+      }
+    }
+  }
+}
