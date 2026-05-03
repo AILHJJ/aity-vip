@@ -105,3 +105,6 @@ aity-uni-app-v2/playwright-report/
 # Tools
 tools/platform-tools/
 tools/*.zip
+
+# Uploaded images (runtime data, not code)
+backend/uploads/images/
