@@ -30,8 +30,8 @@ export default defineConfig(({ mode }) => {
       }
     },
     build: {
-      // 关闭压缩以排查 addListener 错误（排除压缩器导致的问题）
-      minify: false,
+      // 使用 terser 压缩（esbuild 在某些 uni-app 版本下剪掉 addListener）
+      minify: 'terser',
       target: 'es2015',
       // 小程序 build 模式下不启用手动分包，避免破坏运行时依赖
       rollupOptions: {
