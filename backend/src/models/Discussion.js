@@ -48,6 +48,12 @@ const Discussion = sequelize.define('Discussion', {
     allowNull: false,
     defaultValue: 'pending'
   },
+  category: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    defaultValue: 'interaction',
+    comment: '讨论分类: interaction=互动交流'
+  },
   visibility: {
     type: DataTypes.ENUM('private', 'public'),
     allowNull: false,

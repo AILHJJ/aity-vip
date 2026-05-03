@@ -24,7 +24,7 @@
 				:key="filter.value"
 				class="filter-item"
 				:class="{ active: activeFilter === filter.value }"
-				@click="handleFilter(filter.value)"
+				@click="handleFilter(filter)"
 			>
 				{{ filter.label }}
 			</view>
@@ -72,7 +72,7 @@
 							<text class="discussion-time">{{ formatFriendlyTime(discussion.createdAt) }}</text>
 						</view>
 						<view class="status-badge" :class="discussion.status">
-							{{ discussion.status === 'replied' ? '已回复' : '待回复' }}
+							{{ getStatusLabel(discussion.status) }}
 						</view>
 					</view>
 
@@ -121,15 +121,16 @@ const page = ref(1)
 const limit = ref(20)
 const hasMore = ref(true)
 const activeFilter = ref('')
+const activeFilterField = ref('')
 const searchKeyword = ref('')
 const userInfoLoaded = ref(false) // 用户信息加载状态
 
 // 筛选选项
 const filters = ref([
-	{ label: '互动交流', value: 'feedback' },
-	{ label: '全部', value: '' },
-	{ label: '待回复', value: 'pending' },
-	{ label: '已回复', value: 'replied' }
+	{ label: '互动交流', value: 'interaction', queryField: 'category' },
+	{ label: '全部', value: '', queryField: '' },
+	{ label: '待回复', value: 'pending', queryField: 'status' },
+	{ label: '已回复', value: 'replied', queryField: 'status' }
 ])
 
 // 根据权限和搜索关键词过滤讨论
@@ -181,8 +182,8 @@ const loadDiscussions = async (isRefresh = false) => {
 			limit: limit.value
 		}
 
-		if (activeFilter.value) {
-			params.status = activeFilter.value
+		if (activeFilter.value && activeFilterField.value) {
+			params[activeFilterField.value] = activeFilter.value
 		}
 
 		const res = await getDiscussionsApi(params)
@@ -228,9 +229,16 @@ const loadMore = () => {
 }
 
 // 筛选
-const handleFilter = (value) => {
-	activeFilter.value = value
+const handleFilter = (filter) => {
+	activeFilter.value = filter.value
+	activeFilterField.value = filter.queryField || ''
 	loadDiscussions(true)
+}
+
+const getStatusLabel = (status) => {
+	if (status === 'replied') return '已回复'
+	if (status === 'pending') return '待回复'
+	return '待处理'
 }
 
 // 搜索

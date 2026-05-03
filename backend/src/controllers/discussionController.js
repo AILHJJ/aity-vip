@@ -53,7 +53,7 @@ function badRequest(message = 'Bad request') {
 // 获取讨论列表
 async function getDiscussions(req, res) {
   try {
-    const { messageId, status } = req.query;
+    const { messageId, status, category } = req.query;
     const currentUserId = req.user.userId;
     const currentUserRole = req.user.role;
     
@@ -65,6 +65,10 @@ async function getDiscussions(req, res) {
     
     if (status) {
       where.status = status;
+    }
+
+    if (category) {
+      where.category = category;
     }
     
     // 根据用户角色和可见性过滤讨论
@@ -108,6 +112,7 @@ async function getDiscussions(req, res) {
           userName: sender?.name || '匿名用户', // 驼峰命名
           userAvatar: sender?.avatar,
           status: discussionData.status,
+          category: discussionData.category || 'interaction',
           visibility: discussionData.visibility,
           replyCount: replies.length, // 驼峰命名
           createdAt: discussionData.createdAt,
@@ -212,6 +217,7 @@ async function getDiscussionById(req, res) {
       title: discussion.title,
       content: discussion.content,
       status: discussion.status,
+      category: discussion.category || 'interaction',
       visibility: discussion.visibility,
       viewCount: 0, // 如果需要可以添加浏览统计
       replyCount: replies.length,
@@ -232,7 +238,7 @@ async function createDiscussion(req, res) {
   const startTime = Date.now(); // 记录开始时间
 
   try {
-    const { messageId, content, visibility = 'private' } = req.body;
+    const { messageId, content, visibility = 'private', category = 'interaction' } = req.body;
     const userId = req.user.userId;
 
     // 自动生成title：使用content的前50个字符
@@ -288,6 +294,7 @@ async function createDiscussion(req, res) {
           title,
           content,
           visibility,
+          category,
           status: 'pending' // 默认状态为待回复
         }),
         new Promise((_, reject) =>
@@ -536,6 +543,7 @@ async function getMyDiscussions(req, res) {
           title: discussion.title,
           content: discussion.content,
           status: discussion.status,
+          category: discussion.category || 'interaction',
           visibility: discussion.visibility,
           messageId: discussion.messageId,
           linkedMessage: linkedMessage,
@@ -603,6 +611,7 @@ async function getFavoriteDiscussions(req, res) {
           title: discussionData.title,
           content: discussionData.content,
           status: discussionData.status,
+          category: discussionData.category || 'interaction',
           visibility: discussionData.visibility,
           messageId: discussionData.messageId,
           replyCount: discussionData.replies?.length || 0,
