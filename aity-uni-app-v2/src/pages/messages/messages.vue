@@ -96,15 +96,14 @@
 						:class="{ unread: isMessageUnread(message.id) }"
 						@click="goToDetail(message.id)"
 					>
-						<!-- 第一行：类型标签 + 日期 + 置顶标签 -->
+						<!-- 第一行：类型标签 + 日期 -->
 						<view class="message-header-row">
 							<view class="message-type-badge" :class="'type-' + message.type">
 								{{ getMessageTypeLabel(message.type) }}
 							</view>
 							<view class="message-time-wrapper">
-								<text class="message-time">{{ formatFriendlyTime(message.pinnedAt || message.updatedAt) }}</text>
+								<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
 							</view>
-							<view class="pinned-badge">置顶</view>
 						</view>
 
 						<!-- 第二行：标题 -->
@@ -213,6 +212,7 @@ import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import { getMessagesApi } from '../../api/message'
+import { getMessageTypesApi } from '../../api/messageType'
 import { MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatFriendlyTime } from '../../utils/time'
 import { getSearchHistory, addSearchHistory, clearSearchHistory, removeSearchHistory } from '../../utils/search-history'
@@ -240,6 +240,7 @@ const showSearchHistory = ref(false) // 显示搜索历史
 const searchHistory = ref([]) // 搜索历史列表
 const today = ref('') // 今天的日期
 const isPinnedSectionExpanded = ref(true) // 置顶消息区域是否展开
+const messageTypeLabelMap = ref({ ...MESSAGE_TYPE_LABELS }) // 动态消息类型标签映射
 
 // 切换置顶消息区域的展开/收起状态
 const togglePinnedSection = () => {
@@ -392,22 +393,28 @@ const filteredMessages = computed(() => {
 	return filtered
 })
 
-// 获取消息类型标签（2个字版本）
-const getMessageTypeLabel = (type) => {
-	const labels = {
-		'position_handle': '持仓',
-		'pre_market_comment': '盘前',
-		'morning_comment': '点评',
-		'morning_focus': '盘中',
-		'afternoon_comment': '尾盘',
-		'afternoon_focus': '尾盘',
-		'close_comment': '收盘',
-		'risk_warning': '风险',
-		'system': '系统',
-		'important': '重要',
-		'daily': '日常'
+// 加载动态消息类型标签，默认类型仍使用本地2字标签，自定义类型使用后台名称
+const loadMessageTypeLabels = async () => {
+	try {
+		const res = await getMessageTypesApi()
+		if (res.code === 200 || res.success) {
+			const types = Array.isArray(res.data) ? res.data : (res.data?.list || [])
+			const nextMap = { ...MESSAGE_TYPE_LABELS }
+			types.forEach(typeItem => {
+				if (!typeItem || !typeItem.type) return
+				nextMap[typeItem.type] = MESSAGE_TYPE_LABELS[typeItem.type] || typeItem.label || typeItem.type
+			})
+			messageTypeLabelMap.value = nextMap
+		}
+	} catch (error) {
+		console.error('加载消息类型标签失败:', error)
+		messageTypeLabelMap.value = { ...MESSAGE_TYPE_LABELS }
 	}
-	return labels[type] || type
+}
+
+// 获取消息类型标签
+const getMessageTypeLabel = (type) => {
+	return messageTypeLabelMap.value[type] || MESSAGE_TYPE_LABELS[type] || type
 }
 
 // 渲染消息内容（使用完整的Markdown渲染，带主题内联样式）
@@ -595,7 +602,8 @@ onMounted(async () => {
 	const now = new Date()
 	today.value = now.toISOString().split('T')[0]
 
-	// 加载消息列表
+	// 加载动态消息类型标签和消息列表
+	await loadMessageTypeLabels()
 	await loadMessages()
 
 	// 恢复搜索历史
@@ -743,6 +751,7 @@ onMounted(async () => {
 		return
 	}
 
+	await loadMessageTypeLabels()
 	loadMessages(true)
 	isInitialized.value = true
 })
@@ -752,6 +761,7 @@ onShow(() => {
 	// 只有初始化完成后才刷新（避免首次加载重复刷新）
 	if (isInitialized.value && userInfoLoaded.value) {
 		console.log('[消息列表] 页面返回，刷新列表')
+		loadMessageTypeLabels()
 		loadMessages(true)
 	}
 	// 同步未读消息角标
