@@ -518,20 +518,8 @@ const handleDeleteType = (type) => {
 		return
 	}
 
-	// 先询问用户是否要迁移
-	uni.showActionSheet({
-		itemList: ['迁移到其他类型后删除', '直接删除（不推荐）'],
-		itemColor: '#333',
-		success: (res) => {
-			if (res.tapIndex === 0) {
-				// 迁移模式：选择目标类型
-				showMigrationPicker(type, targetTypes)
-			} else if (res.tapIndex === 1) {
-				// 直接删除
-				confirmDeleteType(type, null)
-			}
-		}
-	})
+	// 直接走迁移流程，消息在使用中的类型必须迁移后才能删除
+	showMigrationPicker(type, targetTypes)
 }
 
 // 显示类型迁移选择器
