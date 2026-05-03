@@ -30,16 +30,12 @@ export default defineConfig(({ mode }) => {
       }
     },
     build: {
-      // 使用esbuild替代terser（更快的压缩速度，更低的内存占用）
-      minify: 'esbuild',
+      // 使用 terser 压缩（esbuild 压缩在小程序 build 模式下可能剪掉运行时依赖）
+      minify: 'terser',
       target: 'es2015',
-      // 代码分割优化
+      // 小程序 build 模式下不启用手动分包，避免破坏运行时依赖
       rollupOptions: {
         output: {
-          // 分包策略
-          manualChunks: {
-            vendor: ['vue', 'pinia'],
-          }
         }
       }
     }
