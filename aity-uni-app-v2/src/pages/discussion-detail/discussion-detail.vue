@@ -88,12 +88,15 @@
 							v-for="reply in replies"
 							:key="reply.id"
 							class="reply-item"
+							:class="{ 'is-private': reply.isPrivate }"
 						>
 							<view class="reply-header">
 								<text class="reply-user">{{ reply.userName }}</text>
 								<text class="reply-time">{{ formatFriendlyTime(reply.createdAt) }}</text>
+								<text v-if="reply.isPrivate" class="private-badge">🔒 私密</text>
 							</view>
 							<view class="reply-content">{{ reply.content }}</view>
+							<text v-if="reply.isPrivate" class="private-hint">仅管理员和发帖人可见</text>
 						</view>
 					</view>
 				</view>
@@ -111,29 +114,29 @@
 						:show-confirm-bar="false"
 					/>
 				</view>
-				<!-- 私密讨论时显示两个按钮 -->
-				<view v-if="discussion && discussion.visibility === 'private'" class="reply-buttons">
-					<button
-						class="reply-btn secondary"
-						:disabled="!replyContent.trim() || submitting"
-						@click="handleReply(false)"
-					>
-						{{ submitting && !makePublic ? '发送中...' : '私密回复' }}
-					</button>
+				<!-- 管理员：始终显示两个按钮 -->
+				<view v-if="userStore.isAdmin" class="reply-buttons">
 					<button
 						class="reply-btn primary"
 						:disabled="!replyContent.trim() || submitting"
+						@click="handleReply(false)"
+					>
+						{{ submitting ? '发送中...' : '🔓 公开回复' }}
+					</button>
+					<button
+						class="reply-btn secondary"
+						:disabled="!replyContent.trim() || submitting"
 						@click="handleReply(true)"
 					>
-						{{ submitting && makePublic ? '发送中...' : '公开回复' }}
+						{{ submitting ? '发送中...' : '🔒 私密回复' }}
 					</button>
 				</view>
-				<!-- 公开讨论时显示单个按钮 -->
+				<!-- 非管理员：显示单个按钮 -->
 				<view v-else class="reply-buttons single">
 					<button
 						class="reply-btn primary full"
 						:disabled="!replyContent.trim() || submitting"
-						@click="handleReply(false)"
+						@click="handleUserReply"
 					>
 						{{ submitting ? '发送中...' : '发送回复' }}
 					</button>
@@ -172,7 +175,6 @@ const replyContent = ref('')
 const loading = ref(false)
 const refreshing = ref(false)
 const submitting = ref(false)
-const makePublic = ref(false) // 是否同时公开讨论
 
 // 用于跟踪是否需要刷新回复列表
 const needRefreshReplies = ref(false)
@@ -267,58 +269,49 @@ const onRefresh = async () => {
 	refreshing.value = false
 }
 
-// 切换是否公开讨论
-const toggleMakePublic = () => {
-	makePublic.value = !makePublic.value
+// 非管理员用户发送公开回复
+const handleUserReply = () => {
+	handleReply(false)
 }
 
-// 发送回复（shouldPublic: 是否同时公开讨论）
-const handleReply = async (shouldPublic) => {
+// 发送回复（isPrivate: 是否私密回复，仅管理员可设）
+const handleReply = async (isPrivate) => {
 	if (!replyContent.value.trim()) return
 
 	submitting.value = true
-	makePublic.value = shouldPublic
+	const isAdmin = userStore.isAdmin
 
 	try {
 		const id = getDiscussionId()
-
-		// 如果用户选择同时公开讨论，先更新可见性
-		if (shouldPublic && discussion.value.visibility === 'private') {
-			console.log('[发送回复] 用户选择公开讨论')
-			const visibilityRes = await updateDiscussionVisibilityApi(id, {
-				visibility: 'public'
-			})
-			if (visibilityRes.code === 200) {
-				discussion.value.visibility = 'public'
-				console.log('[发送回复] 讨论已公开')
-			}
+		const data = {
+			content: replyContent.value.trim()
 		}
 
-		const res = await replyDiscussionApi(id, {
-			content: replyContent.value.trim()
-		})
+		// 管理员可以设置私密回复
+		if (isAdmin) {
+			data.isPrivate = isPrivate ? 1 : 0
+		}
+
+		const res = await replyDiscussionApi(id, data)
 
 		console.log('[发送回复] API响应:', res)
 
 		if (res.code === 200) {
 			uni.showToast({
-				title: shouldPublic ? '回复成功，讨论已公开' : '回复成功',
+				title: isPrivate ? '私密回复已发送' : '回复成功',
 				icon: 'success',
 				duration: 1500
 			})
 
 			// 清空输入框
 			replyContent.value = ''
-			makePublic.value = false
 
 			// 重新加载回复列表
 			await loadReplies()
 
-			// 更新讨论数据（使用后端返回的准确数据）
+			// 更新讨论数据
 			if (discussion.value && res.data?.discussion) {
-				// 后端返回的是 replies_count (snake_case)，需要映射到 replyCount (camelCase)
 				discussion.value.replyCount = res.data.discussion.replies_count || res.data.discussion.replyCount || 0
-				// 同时更新状态
 				discussion.value.status = res.data.discussion.status || discussion.value.status
 			}
 
@@ -691,6 +684,28 @@ button::after {
 	padding: 24rpx;
 	background: #f8f9fa;
 	border-radius: 12rpx;
+
+	&.is-private {
+		background: #fff8e1;
+		border: 1rpx solid #ffd54f;
+	}
+}
+
+.private-badge {
+	font-size: 20rpx;
+	color: #f57c00;
+	background: #fff3e0;
+	padding: 4rpx 12rpx;
+	border-radius: 8rpx;
+	margin-left: 10rpx;
+}
+
+.private-hint {
+	font-size: 20rpx;
+	color: #f57c00;
+	margin-top: 10rpx;
+	display: block;
+	opacity: 0.7;
 }
 
 .reply-header {

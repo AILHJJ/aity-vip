@@ -8,7 +8,7 @@
 					class="search-input"
 					v-model="searchKeyword"
 					type="text"
-					placeholder="搜索讨论标题或内容"
+					placeholder="搜索持仓或讨论"
 					placeholder-style="color: #999999"
 					@confirm="handleSearch"
 				/>
@@ -17,14 +17,27 @@
 			<button class="search-btn" @click="handleSearch">搜索</button>
 		</view>
 
-		<!-- 筛选栏 -->
-		<view class="filter-bar">
+		<!-- 分类子tab -->
+		<view class="category-tabs">
 			<view
-				v-for="filter in filters"
+				v-for="cat in categoryTabs"
+				:key="cat.value"
+				class="category-tab"
+				:class="{ active: activeCategory === cat.value }"
+				@click="switchCategory(cat.value)"
+			>
+				<text>{{ cat.label }}</text>
+			</view>
+		</view>
+
+		<!-- 状态筛选栏 -->
+		<view class="status-filter-bar">
+			<view
+				v-for="filter in statusFilters"
 				:key="filter.value"
-				class="filter-item"
-				:class="{ active: activeFilter === filter.value }"
-				@click="handleFilter(filter)"
+				class="status-filter"
+				:class="{ active: activeStatus === filter.value }"
+				@click="handleStatusFilter(filter.value)"
 			>
 				{{ filter.label }}
 			</view>
@@ -40,25 +53,18 @@
 			@refresherrefresh="onRefresh"
 			refresher-background="#f5f5f5"
 		>
-			<!-- 下拉刷新提示 -->
 			<view v-if="refreshing" class="refresh-tip">
 				<view class="refresh-loading"></view>
 				<text class="refresh-text">正在刷新...</text>
 			</view>
 
-			<!-- 加载中 -->
 			<view v-if="loading && discussions.length === 0" class="loading-container">
 				<view class="loading-spinner"></view>
 				<text class="loading-text">加载中...</text>
 			</view>
 
-			<!-- 空状态 -->
 			<empty-state v-else-if="filteredDiscussions.length === 0" type="discussion" />
 
-			<!-- 搜索无结果 -->
-			<empty-state v-else-if="filteredDiscussions.length === 0 && searchKeyword" type="no-result" />
-
-			<!-- 讨论列表 -->
 			<view v-else class="discussions-list">
 				<view
 					v-for="discussion in filteredDiscussions"
@@ -77,11 +83,11 @@
 					</view>
 
 					<view class="discussion-title">{{ discussion.title }}</view>
-
 					<view class="discussion-content">{{ discussion.content }}</view>
 
 					<view class="discussion-footer">
-						<text class="message-title">关于：{{ discussion.messageTitle }}</text>
+						<text v-if="discussion.category === 'position'" class="position-label">📊 持仓帖</text>
+						<text v-else class="interaction-label">💬 讨论</text>
 						<view class="discussion-stats">
 							<text class="stat-item">💬 {{ discussion.replyCount || 0 }}</text>
 							<text v-if="discussion.visibility === 'private'" class="visibility-badge">🔒 私密</text>
@@ -90,16 +96,18 @@
 				</view>
 			</view>
 
-			<!-- 加载更多 -->
 			<view v-if="hasMore && !loading" class="load-more">
 				<text class="load-more-text">加载更多...</text>
 			</view>
 
-			<!-- 没有更多 -->
 			<view v-if="!hasMore && discussions.length > 0" class="no-more">
 				<text class="no-more-text">没有更多了</text>
 			</view>
 		</scroll-view>
+
+		<view class="fab-button" @click="goToCreate">
+			<text class="fab-icon">+</text>
+		</view>
 	</view>
 </template>
 
@@ -120,18 +128,36 @@ const refreshing = ref(false)
 const page = ref(1)
 const limit = ref(20)
 const hasMore = ref(true)
-const activeFilter = ref('')
-const activeFilterField = ref('')
+const activeStatus = ref('')
 const searchKeyword = ref('')
-const userInfoLoaded = ref(false) // 用户信息加载状态
+const userInfoLoaded = ref(false)
 
-// 筛选选项
-const filters = ref([
-	{ label: '互动交流', value: 'interaction', queryField: 'category' },
-	{ label: '全部', value: '', queryField: '' },
-	{ label: '待回复', value: 'pending', queryField: 'status' },
-	{ label: '已回复', value: 'replied', queryField: 'status' }
-])
+// 分类子tab
+const categoryTabs = [
+	{ label: '💬 讨论交流', value: 'interaction' },
+	{ label: '📊 持仓追踪', value: 'position' }
+]
+const activeCategory = ref('interaction')
+
+// 状态筛选（在每个分类下通用）
+const statusFilters = [
+	{ label: '全部', value: '' },
+	{ label: '待回复', value: 'pending' },
+	{ label: '已回复', value: 'replied' }
+]
+
+// 切换分类
+const switchCategory = (value) => {
+	activeCategory.value = value
+	activeStatus.value = ''
+	loadDiscussions(true)
+}
+
+// 切换状态筛选
+const handleStatusFilter = (value) => {
+	activeStatus.value = value
+	loadDiscussions(true)
+}
 
 // 根据权限和搜索关键词过滤讨论
 const filteredDiscussions = computed(() => {
@@ -179,11 +205,12 @@ const loadDiscussions = async (isRefresh = false) => {
 	try {
 		const params = {
 			page: page.value,
-			limit: limit.value
+			limit: limit.value,
+			category: activeCategory.value // 按分类筛选
 		}
 
-		if (activeFilter.value && activeFilterField.value) {
-			params[activeFilterField.value] = activeFilter.value
+		if (activeStatus.value) {
+			params.status = activeStatus.value
 		}
 
 		const res = await getDiscussionsApi(params)
@@ -228,13 +255,6 @@ const loadMore = () => {
 	loadDiscussions()
 }
 
-// 筛选
-const handleFilter = (filter) => {
-	activeFilter.value = filter.value
-	activeFilterField.value = filter.queryField || ''
-	loadDiscussions(true)
-}
-
 const getStatusLabel = (status) => {
 	if (status === 'replied') return '已回复'
 	if (status === 'pending') return '待回复'
@@ -255,6 +275,13 @@ const clearSearch = () => {
 const goToDetail = (id) => {
 	uni.navigateTo({
 		url: `/pages/discussion-detail/discussion-detail?id=${id}`
+	})
+}
+
+// 跳转到创建页面
+const goToCreate = () => {
+	uni.navigateTo({
+		url: '/pages/create-discussion/create-discussion'
 	})
 }
 
@@ -381,21 +408,68 @@ button::after {
 	text-align: center;
 }
 
-.filter-bar {
+// 分类子tab
+.category-tabs {
 	display: flex;
+	padding: 16rpx 20rpx 0;
+	gap: 16rpx;
 	background: #ffffff;
-	padding: 20rpx;
-	border-bottom: 1rpx solid #e0e0e0;
+	border-bottom: 1rpx solid #e8e8e8;
 }
 
-.filter-item {
+.category-tab {
 	flex: 1;
 	text-align: center;
-	padding: 16rpx 0;
+	padding: 20rpx 10rpx 18rpx;
 	font-size: 28rpx;
-	color: #666666;
-	border-radius: 8rpx;
+	color: #888888;
+	font-weight: 500;
+	border-bottom: 4rpx solid transparent;
 	transition: all 0.3s;
+
+	&.active {
+		color: #667eea;
+		font-weight: 600;
+		border-bottom-color: #667eea;
+	}
+
+	&:active {
+		opacity: 0.7;
+	}
+}
+
+// 状态筛选栏
+.status-filter-bar {
+	display: flex;
+	padding: 12rpx 20rpx;
+	background: #ffffff;
+	gap: 16rpx;
+	border-bottom: 1rpx solid #f0f0f0;
+}
+
+.status-filter {
+	padding: 8rpx 24rpx;
+	font-size: 24rpx;
+	color: #888888;
+	background: #f5f5f5;
+	border-radius: 20rpx;
+	transition: all 0.2s;
+
+	&.active {
+		color: #ffffff;
+		background: #667eea;
+		font-weight: 500;
+	}
+
+	&:active {
+		opacity: 0.8;
+	}
+}
+
+// 列表项类型标识
+.interaction-label {
+	font-size: 24rpx;
+	color: #888888;
 }
 
 .filter-item.active {
@@ -589,6 +663,34 @@ button::after {
 .visibility-badge {
 	font-size: 22rpx;
 	color: #ff9800;
+}
+
+.position-label {
+	font-size: 24rpx;
+	color: #667eea;
+	font-weight: 500;
+}
+
+.fab-button {
+	position: fixed;
+	right: 40rpx;
+	bottom: 120rpx;
+	width: 100rpx;
+	height: 100rpx;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.4);
+	z-index: 999;
+}
+
+.fab-icon {
+	font-size: 60rpx;
+	color: #ffffff;
+	font-weight: 300;
+	pointer-events: none;
 }
 
 .load-more,

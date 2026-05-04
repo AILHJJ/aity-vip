@@ -200,8 +200,15 @@
 			</view>
 		</scroll-view>
 
-		<!-- 管理员发布按钮 -->
-		<view v-if="userStore.isAdmin && userInfoLoaded" class="fab-button" @click="goToCreate">
+		<!-- 管理员发布按钮 - 可拖动 -->
+		<view
+			v-if="userStore.isAdmin && userInfoLoaded"
+			class="fab-button"
+			:style="{ transform: 'translate(' + fabX + 'px, ' + fabY + 'px)' }"
+			@touchstart="onFabTouchStart"
+			@touchmove="onFabTouchMove"
+			@touchend="onFabTouchEnd"
+		>
 			<text class="fab-icon">+</text>
 		</view>
 	</view>
@@ -241,6 +248,35 @@ const searchHistory = ref([]) // 搜索历史列表
 const today = ref('') // 今天的日期
 const isPinnedSectionExpanded = ref(true) // 置顶消息区域是否展开
 const messageTypeLabelMap = ref({ ...MESSAGE_TYPE_LABELS }) // 动态消息类型标签映射
+
+// 可拖动FAB按钮状态
+const fabX = ref(0)
+const fabY = ref(0)
+let fabDragStartX = 0
+let fabDragStartY = 0
+let fabIsDragging = false
+
+const onFabTouchStart = (e) => {
+	fabIsDragging = false
+	fabDragStartX = e.touches[0].clientX
+	fabDragStartY = e.touches[0].clientY
+}
+
+const onFabTouchMove = (e) => {
+	fabIsDragging = true
+	const dx = e.touches[0].clientX - fabDragStartX
+	const dy = e.touches[0].clientY - fabDragStartY
+	fabX.value += dx
+	fabY.value += dy
+	fabDragStartX = e.touches[0].clientX
+	fabDragStartY = e.touches[0].clientY
+}
+
+const onFabTouchEnd = () => {
+	if (!fabIsDragging) {
+		goToCreate()
+	}
+}
 
 // 切换置顶消息区域的展开/收起状态
 const togglePinnedSection = () => {
@@ -1376,12 +1412,15 @@ button::after {
 	justify-content: center;
 	box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.4);
 	z-index: 999;
+	touch-action: none;
+	user-select: none;
 }
 
 .fab-icon {
 	font-size: 60rpx;
 	color: #ffffff;
 	font-weight: 300;
+	pointer-events: none;
 }
 
 // 搜索历史面板

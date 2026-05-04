@@ -28,6 +28,13 @@ const DiscussionReply = sequelize.define('DiscussionReply', {
   content: {
     type: DataTypes.TEXT,
     allowNull: false
+  },
+  isPrivate: {
+    type: DataTypes.TINYINT(1),
+    field: 'is_private',
+    allowNull: false,
+    defaultValue: 0,
+    comment: '1=私密回复(仅管理员和发帖人可见), 0=公开(所有人可见)'
   }
 }, {
   tableName: 'discussion_replies',

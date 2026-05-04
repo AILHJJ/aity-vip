@@ -1,5 +1,5 @@
 /**
- * AITY VIP 一键部署脚本
+ * AITY VIP 一键部署脚本 v2.0（统一目录 + 版本化备份）
  * 
  * 使用方式：node deploy.js
  * 
@@ -7,8 +7,14 @@
  * 1. 本地打包 backend 代码（排除 node_modules/logs）
  * 2. SSH 上传到服务器
  * 3. 远程解压、安装依赖、配置 .env
- * 4. PM2 零停机重启（先启动新实例再停旧实例）
- * 5. 健康检查验证
+ * 4. 自动迁移旧目录（如果存在 /root/aity-vip-new/）
+ * 5. 备份旧代码到 /root/aity-vip-backups/
+ * 6. PM2 零停机重启
+ * 7. 修复 uploads 软链接
+ * 8. 健康检查验证
+ * 
+ * 部署目录：始终统一到 /root/aity-vip/backend/
+ * 不再使用 /root/aity-vip-new/ 等分散目录
  * 
  * 前置条件：
  * - 本地安装 node-ssh: npm install node-ssh
@@ -59,7 +65,7 @@ function logStep(step, total, msg) { console.log(`\n${'='.repeat(50)}\n📦 [${s
 
 async function main() {
   const startTime = Date.now();
-  const totalSteps = 7;
+  const totalSteps = 9;
 
   try {
     // ========== Step 1: 连接服务器 ==========
@@ -69,8 +75,45 @@ async function main() {
     await ssh.connect({ host: CONFIG.server.host, username: CONFIG.server.username, privateKey, readyTimeout: 15000 });
     log('✅', 'SSH 连接成功');
 
-    // ========== Step 2: 本地打包 ==========
-    logStep(2, totalSteps, '打包本地代码');
+    // ========== Step 2: 迁移旧目录（统一到 /root/aity-vip/） ==========
+    logStep(2, totalSteps, '统一代码目录');
+    
+    // 检查是否从旧 /root/aity-vip-new/ 运行（首次迁移）
+    const newDirCheck = await ssh.execCommand('test -d /root/aity-vip-new && echo "EXISTS" || echo "NOT_EXISTS"');
+    if (newDirCheck.stdout.trim() === 'EXISTS') {
+      log('🔄', '检测到旧目录 /root/aity-vip-new/，开始迁移...');
+      
+      // 如果 /root/aity-vip/backend 不存在或为空，从新目录迁移
+      const backendCheck = await ssh.execCommand('test -d /root/aity-vip/backend && echo "EXISTS" || echo "NOT_EXISTS"');
+      if (backendCheck.stdout.trim() !== 'EXISTS') {
+        log('📦', '创建 /root/aity-vip/backend 并迁移...');
+        await ssh.execCommand('mkdir -p /root/aity-vip');
+        await ssh.execCommand('cp -a /root/aity-vip-new/. /root/aity-vip/');
+      } else {
+        log('♻️', '/root/aity-vip/backend 已存在，复制 uploads 目录...');
+        // 确保旧目录的 uploads 文件被引用
+        await ssh.execCommand('test -d /root/aity-vip-new/backend/uploads && cp -rn /root/aity-vip-new/backend/uploads/. /root/aity-vip/backend/uploads/ 2>/dev/null || true');
+      }
+      
+      // 停掉旧 PM2 进程（如果存在）
+      await ssh.execCommand('pm2 list | grep aity-backend-new && pm2 delete aity-backend-new 2>/dev/null || true');
+      
+      // 备份旧目录后删除
+      const newBackupName = `backup-legacy-newdir-$(date +%Y%m%d%H%M%S)`;
+      await ssh.execCommand(`mkdir -p ${CONFIG.remote.backupDir}`);
+      await ssh.execCommand(`cp -r /root/aity-vip-new ${CONFIG.remote.backupDir}/${newBackupName}`);
+      await ssh.execCommand('rm -rf /root/aity-vip-new');
+      log('✅', `旧目录已备份并删除: ${newBackupName}`);
+    } else {
+      log('✅', '目录结构已统一，无需迁移');
+    }
+    
+    // 确保目标目录存在
+    await ssh.execCommand(`mkdir -p ${CONFIG.remote.backendDir}`);
+    await ssh.execCommand(`mkdir -p ${CONFIG.remote.logDir}`);
+
+    // ========== Step 3: 本地打包 ==========
+    logStep(3, totalSteps, '打包本地代码');
     const zipPath = path.join(__dirname, '..', 'backend-deploy.tar.gz');
     
     // 清理旧包
@@ -87,8 +130,8 @@ async function main() {
     const zipSize = (fs.statSync(zipPath).size / 1024 / 1024).toFixed(2);
     log('✅', `打包完成 (${zipSize} MB)`);
 
-    // ========== Step 3: 备份 + 上传 ==========
-    logStep(3, totalSteps, '备份旧代码并上传新代码');
+    // ========== Step 4: 备份 + 上传 ==========
+    logStep(4, totalSteps, '备份旧代码并上传新代码');
     
     // 创建备份目录
     await ssh.execCommand(`mkdir -p ${CONFIG.remote.backupDir}`);
@@ -108,8 +151,8 @@ async function main() {
     // 清理本地临时文件
     fs.unlinkSync(zipPath);
 
-    // ========== Step 4: 解压 + 安装依赖 ==========
-    logStep(4, totalSteps, '解压并安装依赖');
+    // ========== Step 5: 解压 + 安装依赖 ==========
+    logStep(5, totalSteps, '解压并安装依赖');
     
     // 先删除旧的 src 目录（保留 .env, node_modules, uploads, logs, ecosystem.config.js）
     await ssh.execCommand(`cd ${CONFIG.remote.backendDir} && rm -rf src config docs scripts tests migrations 2>/dev/null; mkdir -p src`);
@@ -127,8 +170,8 @@ async function main() {
     });
     log('✅', '依赖安装完成');
 
-    // ========== Step 5: 配置 .env + PM2 ==========
-    logStep(5, totalSteps, '配置环境');
+    // ========== Step 6: 配置 .env + PM2 ==========
+    logStep(6, totalSteps, '配置环境');
     
     // 写 .env（用 base64 避免 heredoc 问题）
     const envContent = Object.entries(CONFIG.env).map(([k, v]) => `${k}=${v}`).join('\n');
@@ -157,8 +200,8 @@ async function main() {
     await ssh.execCommand(`mkdir -p ${CONFIG.remote.logDir}`);
     log('✅', 'PM2 配置已就绪');
 
-    // ========== Step 6: 零停机重启 ==========
-    logStep(6, totalSteps, '重启服务（零停机）');
+    // ========== Step 7: 零停机重启 ==========
+    logStep(7, totalSteps, '重启服务（零停机）');
     
     // PM2 reload 实现零停机（先启动新实例再停旧实例）
     const reloadResult = await ssh.execCommand(
@@ -168,8 +211,8 @@ async function main() {
     await ssh.execCommand('pm2 save');
     log('✅', '服务已重启');
 
-    // ========== Step 7: 验证 ==========
-    logStep(7, totalSteps, '验证部署结果');
+    // ========== Step 8: 验证 ==========
+    logStep(8, totalSteps, '验证部署结果');
     
     await new Promise(r => setTimeout(r, 3000));
     
@@ -194,6 +237,24 @@ async function main() {
       log('⚠️', '最近错误日志:');
       console.log(errLog.stdout);
     }
+
+    // ========== Step 9: 修复 uploads 软链接 + 清理 ==========
+    logStep(9, totalSteps, '修复 uploads 目录 + 清理');
+    
+    // 确保 uploads 目录存在（从旧目录复制缺失的图片文件）
+    await ssh.execCommand(`mkdir -p ${CONFIG.remote.backendDir}/uploads`);
+    
+    // 如果旧目录存在 uploads，合并文件
+    await ssh.execCommand(
+      `test -d ${CONFIG.remote.backupDir} && ` +
+      `for d in $(ls -d ${CONFIG.remote.backupDir}/backup-*/backend/uploads 2>/dev/null); do ` +
+      `cp -rn "$d/." ${CONFIG.remote.backendDir}/uploads/ 2>/dev/null; done || true`
+    );
+    
+    // 验证 uploads 可达
+    const uploadCheck = await ssh.execCommand(`ls ${CONFIG.remote.backendDir}/uploads/ 2>/dev/null | head -5`);
+    const uploadCount = uploadCheck.stdout.trim() ? uploadCheck.stdout.trim().split('\n').length : 0;
+    log('📁', `uploads 目录同步完成，文件数: ${uploadCount}+`);
 
     ssh.dispose();
 

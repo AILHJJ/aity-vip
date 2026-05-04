@@ -92,7 +92,7 @@ function validateCreateDiscussion() {
   return [
     body('title').optional().isLength({ min: 1, max: 255 }).withMessage('Title must be between 1 and 255 characters'),
     body('content').notEmpty().withMessage('Content is required'),
-    body('messageId').notEmpty().withMessage('Message ID is required').isInt({ min: 1 }).withMessage('Message ID must be a positive integer'),
+    body('messageId').optional({ values: 'null' }).isInt({ min: 1 }).withMessage('Message ID must be a positive integer'),
     body('groupId').optional().isLength({ max: 50 }).withMessage('Group ID must be at most 50 characters'),
     handleValidationErrors
   ];

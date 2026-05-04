@@ -23,7 +23,7 @@ const Discussion = sequelize.define('Discussion', {
   messageId: {
     type: DataTypes.INTEGER,
     field: 'message_id',
-    allowNull: false
+    allowNull: true
   },
   userId: {
     type: DataTypes.INTEGER,

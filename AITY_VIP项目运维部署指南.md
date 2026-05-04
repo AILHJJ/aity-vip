@@ -1,6 +1,6 @@
 # AITY VIP 项目运维部署指南
 
-> 最后更新：2026-04-19 | 版本：v1.0
+> 最后更新：2026-05-04 | 版本：v2.0
 
 ---
 
@@ -54,7 +54,7 @@
 | 服务 | 详情 |
 |------|------|
 | PM2 进程 | `aity-backend`，端口 3001 |
-| 代码目录 | `/root/aity-vip/backend` |
+| 代码目录（统一目录） | `/root/aity-vip/backend`（唯一的部署目录，v2.0起废弃所有其他目录） |
 | 日志目录 | `/root/aity-vip/logs` |
 | 备份目录 | `/root/aity-vip-backups` |
 | Nginx 配置 | `/www/server/panel/vhost/nginx/aity88.online.conf` |
@@ -317,6 +317,18 @@ server {
 ## 6. 微信小程序构建
 
 ### 6.1 关键限制
+
+### 3.5 v2.0 部署改进
+
+> 📌 **部署目录统一到 `/root/aity-vip/backend/`**
+>
+> v2.0 起废弃所有其他部署目录（如之前曾使用的 `/root/aity-vip-new/`），
+> 每次部署将自动：
+> 1. 检测并迁移旧目录（自动执行一次性的 `/root/aity-vip-new/` → `/root/aity-vip/` 迁移）
+> 2. 备份旧代码到 `/root/aity-vip-backups/backup-YYYYMMDDHHMMSS/`
+> 3. 覆盖部署到统一的 `/root/aity-vip/backend/`
+> 4. 同步合并 uploads 目录文件
+> 5. 清理过期备份（保留最近3个）
 
 > ⚠️ **禁止在代码中使用 `import.meta`**
 > 

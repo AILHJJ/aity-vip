@@ -1,14 +1,29 @@
 <template>
   <view class="market-page">
-    <!-- Header - 精简版 -->
+    <!-- Header - 集成居中Tab -->
     <view class="header">
-      <view class="header-center">
-        <text class="header-title">行情中心</text>
+      <view class="header-tabs">
+        <view
+          v-for="tab in tabs"
+          :key="tab.key"
+          class="header-tab"
+          :class="{ active: activeTab === tab.key }"
+          @click="switchTab(tab.key)"
+        >
+          <text>{{ tab.name }}</text>
+        </view>
       </view>
     </view>
 
-    <!-- 悬浮刷新按钮 - 右上角 -->
-    <view class="fab-refresh" :class="{ spinning: isRefreshing }" @click="handleRefresh">
+    <!-- 可拖动悬浮刷新按钮 -->
+    <view
+      class="fab-refresh"
+      :class="{ spinning: isRefreshing }"
+      :style="{ transform: 'translate(' + fabRefreshX + 'px, ' + fabRefreshY + 'px)' }"
+      @touchstart="onRefreshTouchStart"
+      @touchmove="onRefreshTouchMove"
+      @touchend="onRefreshTouchEnd"
+    >
       <text class="fab-refresh-icon">↻</text>
     </view>
 
@@ -63,19 +78,6 @@
           <text>中性</text>
           <text>贪婪</text>
         </view>
-      </view>
-    </view>
-
-    <!-- Tabs -->
-    <view class="tabs">
-      <view
-        v-for="tab in tabs"
-        :key="tab.key"
-        class="tab"
-        :class="{ active: activeTab === tab.key }"
-        @click="switchTab(tab.key)"
-      >
-        <text>{{ tab.name }}</text>
       </view>
     </view>
 
@@ -346,6 +348,35 @@ const activeFilter = ref('all')
 const fundFlowType = ref('inflow')
 // 个股展开状态
 const expandedStocks = ref([])
+
+// 可拖动刷新按钮状态
+const fabRefreshX = ref(0)
+const fabRefreshY = ref(0)
+let refreshDragStartX = 0
+let refreshDragStartY = 0
+let refreshIsDragging = false
+
+const onRefreshTouchStart = (e) => {
+  refreshIsDragging = false
+  refreshDragStartX = e.touches[0].clientX
+  refreshDragStartY = e.touches[0].clientY
+}
+
+const onRefreshTouchMove = (e) => {
+  refreshIsDragging = true
+  const dx = e.touches[0].clientX - refreshDragStartX
+  const dy = e.touches[0].clientY - refreshDragStartY
+  fabRefreshX.value += dx
+  fabRefreshY.value += dy
+  refreshDragStartX = e.touches[0].clientX
+  refreshDragStartY = e.touches[0].clientY
+}
+
+const onRefreshTouchEnd = (e) => {
+  if (!refreshIsDragging) {
+    handleRefresh()
+  }
+}
 
 const toggleStockExpand = (code) => {
   const idx = expandedStocks.value.indexOf(code)
@@ -695,7 +726,7 @@ onShow(() => {
 }
 
 .header {
-  padding: 32rpx 32rpx 22rpx;
+  padding: 20rpx 32rpx;
   background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
   border-bottom: 1rpx solid #d8e0ec;
   box-shadow: 0 4rpx 18rpx rgba(21, 35, 64, 0.06);
@@ -712,11 +743,36 @@ onShow(() => {
     background: linear-gradient(90deg, #1d4ed8 0%, #0ea5e9 42%, #ef4444 72%, #22c55e 100%);
     border-radius: 3rpx;
   }
+}
 
-  .header-title {
-    font-size: 36rpx;
-    font-weight: 700;
-    color: #0f1b2d;
+// 头部居中Tab
+.header-tabs {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.header-tab {
+  text-align: center;
+  padding: 16rpx 32rpx;
+  color: #4b5563;
+  font-size: 27rpx;
+  font-weight: 700;
+  background: #e5ebf3;
+  border-radius: 28rpx;
+  transition: all 0.3s;
+  min-width: 120rpx;
+
+  &:active {
+    transform: scale(0.94);
+    opacity: 0.85;
+  }
+
+  &.active {
+    color: #ffffff;
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+    box-shadow: 0 4rpx 12rpx rgba(37, 99, 235, 0.3);
   }
 }
 
@@ -734,6 +790,8 @@ onShow(() => {
   border: 2rpx solid #bfdbfe;
   box-shadow: 0 12rpx 26rpx rgba(37, 99, 235, 0.18);
   z-index: 999;
+  touch-action: none;
+  user-select: none;
 
   &:active {
     transform: scale(0.96);
@@ -748,6 +806,7 @@ onShow(() => {
     font-size: 36rpx;
     color: #2563eb;
     font-weight: 700;
+    pointer-events: none;
   }
 }
 
@@ -948,47 +1007,6 @@ onShow(() => {
   }
 }
 
-.tabs {
-  display: flex;
-  padding: 10rpx 32rpx 0;
-  background: #eef2f7;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  .tab {
-    flex: 1;
-    text-align: center;
-    padding: 20rpx 10rpx 18rpx;
-    color: #4b5563;
-    font-size: 27rpx;
-    font-weight: 700;
-    background: #e5ebf3;
-    border: 1rpx solid #d0dae8;
-    border-right: none;
-    position: relative;
-
-    &:first-child {
-      border-radius: 12rpx 0 0 12rpx;
-    }
-
-    &:last-child {
-      border-right: 1rpx solid #d0dae8;
-      border-radius: 0 12rpx 12rpx 0;
-    }
-
-    &.active {
-      color: #1d4ed8;
-      background: #ffffff;
-      border-color: #b7c8e2;
-      box-shadow: inset 0 4rpx 0 #2563eb;
-    }
-
-    &:active {
-      background: #f8fbff;
-    }
-  }
-}
 
 .filter-bar {
   white-space: nowrap;

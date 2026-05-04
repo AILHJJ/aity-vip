@@ -2,47 +2,82 @@
 	<view class="create-discussion-container">
 		<scroll-view class="form-scroll" scroll-y>
 			<view class="form-container">
-				<!-- 关联消息（放在最前面） -->
-				<!-- 如果从消息详情页跳转过来，显示已关联的消息 -->
-				<view v-if="!showMessagePicker && linkedMessage" class="form-item">
-					<text class="form-label">关联消息</text>
-					<view class="linked-message-card">
-						<view class="linked-message-header">
-							<text class="linked-message-badge">已关联</text>
-							<text class="linked-message-type">{{ linkedMessage.type }}</text>
+				<!-- 发帖类型选择 -->
+				<view class="form-item">
+					<text class="form-label">发帖类型</text>
+					<view class="post-type-group">
+						<view
+							class="post-type-btn"
+							:class="{ active: postType === 'discussion' }"
+							@click="switchPostType('discussion')"
+						>
+							<text>💬 互动交流</text>
 						</view>
-						<text class="linked-message-title">{{ linkedMessage.title }}</text>
-						<text class="linked-message-content">{{ linkedMessage.content }}</text>
-						<text class="linked-message-hint">💬 基于此消息发起讨论</text>
+						<view
+							class="post-type-btn"
+							:class="{ active: postType === 'position' }"
+							@click="switchPostType('position')"
+						>
+							<text>📊 持仓帖</text>
+						</view>
 					</view>
 				</view>
 
-				<!-- 否则显示消息选择器 -->
-				<view v-else class="form-item">
-					<text class="form-label">关联消息 *</text>
-					<picker
-						mode="selector"
-						:range="messages"
-						range-key="title"
-						@change="handleMessageChange"
-					>
-						<view class="picker-view">
-							<text :class="formData.messageId ? 'picker-text' : 'picker-placeholder'">
-								{{ formData.messageId ? getMessageTitle(formData.messageId) : '请选择要关联的消息' }}
-							</text>
-							<text class="picker-arrow">▼</text>
+				<!-- 关联消息 - 仅互动交流模式 -->
+				<template v-if="postType === 'discussion'">
+					<view v-if="!showMessagePicker && linkedMessage" class="form-item">
+						<text class="form-label">关联消息</text>
+						<view class="linked-message-card">
+							<view class="linked-message-header">
+								<text class="linked-message-badge">已关联</text>
+								<text class="linked-message-type">{{ linkedMessage.type }}</text>
+							</view>
+							<text class="linked-message-title">{{ linkedMessage.title }}</text>
+							<text class="linked-message-content">{{ linkedMessage.content }}</text>
+							<text class="linked-message-hint">💬 基于此消息发起讨论</text>
 						</view>
-					</picker>
-					<text class="form-hint">💡 讨论基于消息内容，选择消息后可参考该内容发表观点</text>
-				</view>
+					</view>
+					<view v-else class="form-item">
+						<text class="form-label">关联消息 *</text>
+						<picker
+							mode="selector"
+							:range="messages"
+							range-key="title"
+							@change="handleMessageChange"
+						>
+							<view class="picker-view">
+								<text :class="formData.messageId ? 'picker-text' : 'picker-placeholder'">
+									{{ formData.messageId ? getMessageTitle(formData.messageId) : '请选择要关联的消息' }}
+								</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+						<text class="form-hint">💡 讨论基于消息内容，选择消息后可参考该内容发表观点</text>
+					</view>
+				</template>
+
+				<!-- 关联股票 - 仅持仓帖模式 -->
+				<template v-if="postType === 'position'">
+					<view class="form-item">
+						<text class="form-label">关联股票（选填）</text>
+						<input
+							class="form-input"
+							v-model="stockCodeInput"
+							type="text"
+							placeholder="输入股票代码，如 000001,600036"
+							placeholder-style="color: #999999"
+						/>
+						<text class="form-hint">📈 多个股票代码用逗号分隔</text>
+					</view>
+				</template>
 
 				<!-- 内容 -->
 				<view class="form-item">
-					<text class="form-label">讨论内容 *</text>
+					<text class="form-label">{{ postType === 'position' ? '持仓描述 / 问题 *' : '讨论内容 *' }}</text>
 					<textarea
 						class="form-textarea"
 						v-model="formData.content"
-						placeholder="请输入您的观点和分析..."
+						:placeholder="postType === 'position' ? '描述您的持仓情况或交易中遇到的问题...' : '请输入您的观点和分析...'"
 						placeholder-style="color: #999999"
 						:maxlength="2000"
 						:show-confirm-bar="false"
@@ -60,7 +95,12 @@
 							<text class="notice-title">私密讨论</text>
 						</view>
 						<view class="notice-content">
-							<text class="notice-text">为避免不同投资风格的影响，讨论默认私密。优质内容经管理员审核后公开，确保合规性与内容质量。</text>
+							<text class="notice-text">
+								{{ postType === 'position'
+									? '您的持仓记录默认私密，仅管理员可见。管理员可选择将优质内容公开，以帮助更多用户。'
+									: '为避免不同投资风格的影响，讨论默认私密。优质内容经管理员审核后公开，确保合规性与内容质量。'
+								}}
+							</text>
 						</view>
 					</view>
 				</view>
@@ -71,7 +111,7 @@
 						{{ submitting ? '提交中...' : '取消' }}
 					</button>
 					<button class="submit-btn" :disabled="submitting" @click="handleSubmit">
-						<text v-if="!submitting">创建讨论</text>
+						<text v-if="!submitting">{{ postType === 'position' ? '创建持仓帖' : '创建讨论' }}</text>
 						<view v-else class="submitting-content">
 							<view class="submitting-spinner"></view>
 							<text class="submitting-text">创建中{{ submitTimeout ? '，请稍候...' : '...' }}</text>
@@ -103,6 +143,19 @@ const messages = ref([])
 const linkedMessage = ref(null) // 存储关联的消息详情
 const showMessagePicker = ref(true) // 是否显示消息选择器
 
+// 发帖类型: 'discussion' = 互动交流, 'position' = 持仓帖
+const postType = ref('discussion')
+const stockCodeInput = ref('')
+
+// 切换发帖类型
+const switchPostType = (type) => {
+	postType.value = type
+	if (type === 'position') {
+		// 切换到持仓帖时清除messageId
+		formData.value.messageId = null
+	}
+}
+
 // 获取消息标题
 const getMessageTitle = (id) => {
 	const message = messages.value.find(m => m.id === id)
@@ -129,7 +182,7 @@ const loadMessages = async () => {
 
 // 表单验证
 const validateForm = () => {
-	if (!formData.value.messageId) {
+	if (postType.value === 'discussion' && !formData.value.messageId) {
 		uni.showToast({
 			title: '请选择关联消息',
 			icon: 'none'
@@ -139,7 +192,7 @@ const validateForm = () => {
 
 	if (!formData.value.content.trim()) {
 		uni.showToast({
-			title: '请输入讨论内容',
+			title: postType.value === 'position' ? '请描述您的持仓情况' : '请输入讨论内容',
 			icon: 'none'
 		})
 		return false
@@ -182,10 +235,11 @@ const handleSubmit = async () => {
 		const data = {
 			title: discussionTitle,
 			content: formData.value.content.trim(),
-			visibility: 'private' // 默认私密
+			visibility: 'private', // 默认私密
+			category: postType.value === 'position' ? 'position' : 'interaction'
 		}
 
-		// 关联消息ID
+		// 关联消息ID（互动交流必须传，持仓帖不传）
 		if (formData.value.messageId) {
 			data.messageId = formData.value.messageId
 		}
@@ -354,6 +408,35 @@ button::after {
 
 .form-container {
 	padding: 30rpx;
+}
+
+// 发帖类型选择按钮
+.post-type-group {
+	display: flex;
+	gap: 20rpx;
+}
+
+.post-type-btn {
+	flex: 1;
+	text-align: center;
+	padding: 24rpx 20rpx;
+	font-size: 28rpx;
+	color: #666;
+	background: #f5f5f5;
+	border-radius: 16rpx;
+	border: 2rpx solid #e0e0e0;
+	transition: all 0.2s;
+
+	&.active {
+		color: #ffffff;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		border-color: transparent;
+		box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+	}
+
+	&:active {
+		transform: scale(0.97);
+	}
 }
 
 .form-item {
