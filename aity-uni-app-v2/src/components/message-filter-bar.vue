@@ -127,19 +127,19 @@ defineExpose({
 
 // 筛选面板
 .filter-panel {
-	padding: 16rpx 20rpx;
+	padding: 10rpx 16rpx;
 }
 
 // 标签和tab同行布局
 .filter-row {
 	display: flex;
 	align-items: center;
-	gap: 20rpx;
+	gap: 14rpx;
 }
 
 // 分组标签
 .group-label {
-	font-size: 26rpx;
+	font-size: 24rpx;
 	color: #999;
 	font-weight: 500;
 	flex-shrink: 0;
@@ -158,24 +158,24 @@ defineExpose({
 
 .filter-tabs {
 	display: inline-flex;
-	gap: 20rpx;
+	gap: 14rpx;
 	align-items: center;
 }
 
-// 推送范围tab - 只有3个，间距更大
+// 推送范围tab - 只有3个，间距稍大
 .push-tabs {
-	gap: 24rpx;
+	gap: 18rpx;
 }
 
 .filter-tab {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	height: 60rpx;
-	min-width: 80rpx;
-	padding: 0 20rpx;
+	height: 52rpx;
+	min-width: 72rpx;
+	padding: 0 16rpx;
 	background: #f0f0f0;
-	border-radius: 30rpx;
+	border-radius: 26rpx;
 	transition: all 0.15s;
 	flex-shrink: 0;
 
@@ -202,13 +202,13 @@ defineExpose({
 }
 
 .tab-text {
-	font-size: 28rpx;
+	font-size: 26rpx;
 	color: #666;
 	font-weight: 400;
 	transition: all 0.15s;
 
 	&.active {
-		font-size: 30rpx;
+		font-size: 28rpx;
 		font-weight: 600;
 	}
 }

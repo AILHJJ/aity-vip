@@ -17,29 +17,16 @@
 			<button class="search-btn" @click="handleSearch">搜索</button>
 		</view>
 
-		<!-- 分类子tab -->
-		<view class="category-tabs">
-			<view
-				v-for="cat in categoryTabs"
-				:key="cat.value"
-				class="category-tab"
-				:class="{ active: activeCategory === cat.value }"
-				@click="switchCategory(cat.value)"
-			>
-				<text>{{ cat.label }}</text>
-			</view>
-		</view>
-
-		<!-- 状态筛选栏 -->
-		<view class="status-filter-bar">
+		<!-- 筛选pill栏 -->
+		<view class="pill-bar">
 			<view
 				v-for="filter in statusFilters"
 				:key="filter.value"
-				class="status-filter"
-				:class="{ active: activeStatus === filter.value }"
+				class="pill-item"
+				:class="{ active: activeFilter === filter.value }"
 				@click="handleStatusFilter(filter.value)"
 			>
-				{{ filter.label }}
+				<text>{{ filter.label }}</text>
 			</view>
 		</view>
 
@@ -132,30 +119,18 @@ const activeStatus = ref('')
 const searchKeyword = ref('')
 const userInfoLoaded = ref(false)
 
-// 分类子tab
-const categoryTabs = [
-	{ label: '💬 讨论交流', value: 'interaction' },
-	{ label: '📊 持仓追踪', value: 'position' }
-]
-const activeCategory = ref('interaction')
-
-// 状态筛选（在每个分类下通用）
+// 筛选pill
 const statusFilters = [
 	{ label: '全部', value: '' },
-	{ label: '待回复', value: 'pending' },
-	{ label: '已回复', value: 'replied' }
+	{ label: '📋 实盘', value: 'position' },
+	{ label: '⏳ 待回复', value: 'pending' },
+	{ label: '✅ 已回复', value: 'replied' }
 ]
+const activeFilter = ref('')
 
-// 切换分类
-const switchCategory = (value) => {
-	activeCategory.value = value
-	activeStatus.value = ''
-	loadDiscussions(true)
-}
-
-// 切换状态筛选
+// 切换筛选
 const handleStatusFilter = (value) => {
-	activeStatus.value = value
+	activeFilter.value = value
 	loadDiscussions(true)
 }
 
@@ -205,12 +180,16 @@ const loadDiscussions = async (isRefresh = false) => {
 	try {
 		const params = {
 			page: page.value,
-			limit: limit.value,
-			category: activeCategory.value // 按分类筛选
+			limit: limit.value
 		}
 
-		if (activeStatus.value) {
-			params.status = activeStatus.value
+		// 根据选中pill决定筛选参数
+		if (activeFilter.value === 'position') {
+			params.category = 'position'
+		} else if (activeFilter.value === 'pending') {
+			params.status = 'pending'
+		} else if (activeFilter.value === 'replied') {
+			params.status = 'replied'
 		}
 
 		const res = await getDiscussionsApi(params)
@@ -408,61 +387,38 @@ button::after {
 	text-align: center;
 }
 
-// 分类子tab
-.category-tabs {
+// 筛选pill栏（大号易触版）
+.pill-bar {
 	display: flex;
-	padding: 16rpx 20rpx 0;
-	gap: 16rpx;
+	padding: 16rpx 20rpx;
 	background: #ffffff;
-	border-bottom: 1rpx solid #e8e8e8;
-}
-
-.category-tab {
-	flex: 1;
-	text-align: center;
-	padding: 20rpx 10rpx 18rpx;
-	font-size: 28rpx;
-	color: #888888;
-	font-weight: 500;
-	border-bottom: 4rpx solid transparent;
-	transition: all 0.3s;
-
-	&.active {
-		color: #667eea;
-		font-weight: 600;
-		border-bottom-color: #667eea;
-	}
-
-	&:active {
-		opacity: 0.7;
-	}
-}
-
-// 状态筛选栏
-.status-filter-bar {
-	display: flex;
-	padding: 12rpx 20rpx;
-	background: #ffffff;
-	gap: 16rpx;
+	gap: 14rpx;
+	overflow-x: auto;
 	border-bottom: 1rpx solid #f0f0f0;
 }
 
-.status-filter {
-	padding: 8rpx 24rpx;
-	font-size: 24rpx;
-	color: #888888;
-	background: #f5f5f5;
-	border-radius: 20rpx;
+.pill-item {
+	white-space: nowrap;
+	padding: 14rpx 32rpx;
+	font-size: 28rpx;
+	color: #666;
+	background: #f0f0f0;
+	border-radius: 26rpx;
 	transition: all 0.2s;
+	flex-shrink: 0;
+	font-weight: 500;
+	letter-spacing: 1rpx;
 
 	&.active {
 		color: #ffffff;
-		background: #667eea;
-		font-weight: 500;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		font-weight: 600;
+		box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
 	}
 
 	&:active {
-		opacity: 0.8;
+		opacity: 0.85;
+		transform: scale(0.96);
 	}
 }
 

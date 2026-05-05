@@ -1,19 +1,7 @@
 <template>
   <view class="market-page">
-    <!-- Header - 集成居中Tab -->
-    <view class="header">
-      <view class="header-tabs">
-        <view
-          v-for="tab in tabs"
-          :key="tab.key"
-          class="header-tab"
-          :class="{ active: activeTab === tab.key }"
-          @click="switchTab(tab.key)"
-        >
-          <text>{{ tab.name }}</text>
-        </view>
-      </view>
-    </view>
+    <!-- 简约顶栏（无Tab） -->
+    <view class="top-bar"></view>
 
     <!-- 可拖动悬浮刷新按钮 -->
     <view
@@ -78,6 +66,19 @@
           <text>中性</text>
           <text>贪婪</text>
         </view>
+      </view>
+    </view>
+
+    <!-- Tab切换（放在内容区上方，与内容直接关联） -->
+    <view class="data-tabs">
+      <view
+        v-for="tab in tabs"
+        :key="tab.key"
+        class="data-tab"
+        :class="{ active: activeTab === tab.key }"
+        @click="switchTab(tab.key)"
+      >
+        <text>{{ tab.name }}</text>
       </view>
     </view>
 
@@ -722,57 +723,48 @@ onShow(() => {
   background: #eef2f7;
   color: #172033;
   position: relative;
+  padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-.header {
-  padding: 20rpx 32rpx;
+// 简约顶栏
+.top-bar {
+  height: 20rpx;
   background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
-  border-bottom: 1rpx solid #d8e0ec;
-  box-shadow: 0 4rpx 18rpx rgba(21, 35, 64, 0.06);
-  position: relative;
-  z-index: 10;
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 32rpx;
-    right: 32rpx;
-    bottom: 0;
-    height: 3rpx;
-    background: linear-gradient(90deg, #1d4ed8 0%, #0ea5e9 42%, #ef4444 72%, #22c55e 100%);
-    border-radius: 3rpx;
-  }
 }
 
-// 头部居中Tab
-.header-tabs {
+// 数据Tab（放在内容区上方，与内容直接关联）
+.data-tabs {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20rpx;
+  padding: 16rpx 32rpx;
+  background: #eef2f7;
+  gap: 16rpx;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
-.header-tab {
+.data-tab {
+  flex: 1;
   text-align: center;
-  padding: 16rpx 32rpx;
-  color: #4b5563;
-  font-size: 27rpx;
+  padding: 18rpx 10rpx;
+  color: #6b7280;
+  font-size: 26rpx;
   font-weight: 700;
   background: #e5ebf3;
-  border-radius: 28rpx;
-  transition: all 0.3s;
-  min-width: 120rpx;
+  border-radius: 10rpx;
+  transition: all 0.2s;
+  border: 1rpx solid #d0dae8;
 
   &:active {
-    transform: scale(0.94);
-    opacity: 0.85;
+    transform: scale(0.96);
   }
 
   &.active {
-    color: #ffffff;
-    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
-    box-shadow: 0 4rpx 12rpx rgba(37, 99, 235, 0.3);
+    color: #1d4ed8;
+    background: #ffffff;
+    border-color: #b7c8e2;
+    box-shadow: inset 0 4rpx 0 #2563eb;
   }
 }
 
