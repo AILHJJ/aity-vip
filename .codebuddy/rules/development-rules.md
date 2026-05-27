@@ -1,8 +1,9 @@
 ﻿# AITY VIP 项目开发规则
 
-> **最后更新**: 2026-05-02  
+> **最后更新**: 2026-05-05  
 > **适用范围**: 所有使用 CodeBuddy AI 协助开发的人员  
-> **核心原则**: 先本地测试 → 用户验收 → 询问后部署生产
+> **核心原则**: 先本地测试 → 用户验收 → 询问后部署生产  
+> **AI自动输出原则**: 每次编码完成后，AI必须主动输出完整方案，不等用户逐项追问
 
 ---
 
@@ -80,13 +81,17 @@ AITY_VIP/
    ↓
 4. 确认后才开始编码
    ↓
-5. 编译测试
+5. 编译 + 自动测试
    ↓
-6. 用户验收
+6. 自动输出【测试指南 + 部署影响清单】— AI主动输出，不等用户问
    ↓
-7. 提交 Git + 更新迭代记录
+7. 用户验收
    ↓
-8. 询问用户是否部署生产
+8. 提交 Git + 打版本tag + 更新迭代记录
+   ↓
+9. 询问用户是否部署生产
+   ↓
+10. 用户确认后 → 执行部署 → 输出【部署完成清单】
 ```
 
 ### 步骤1：理解需求
@@ -106,7 +111,6 @@ AITY_VIP/
 
 ### UI设计方案
 【必须包含】界面布局描述或草图，例如：
-```
 ┌─────────────────────────────────┐
 │ [类型]           10:30         │
 │ 标题...                        │
@@ -114,7 +118,6 @@ AITY_VIP/
 ├─────────────────────────────────┤
 │ [标签]           👁12 💬3     │
 └─────────────────────────────────┘
-```
 
 ### 技术方案
 - 修改哪些文件
@@ -123,56 +126,74 @@ AITY_VIP/
 ### 修改文件清单
 - 文件1
 - 文件2
-
----
+```
 
 ### ⚠️ 禁止事项
 - ❌ 禁止不确认方案就编码
 - ❌ 禁止用户说"确认"前就开始编码
 - ❌ 禁止大幅修改代码而不先提交方案
-```
+- ❌ 禁止编码完成后等用户逐项追问（测试？部署？编译？）
+- **AI必须主动输出完整方案**
 
 ### 步骤3：等待用户确认
 - 用户回复"确认"或"可以"后才开始编码
 - 如用户有修改意见，先修改方案，再等待确认
 
-### 步骤3：本地测试（AI 自动执行，无需询问）
+### 步骤4：编码 + 本地测试（AI 自动执行，无需询问）
 
-#### 3.1 后端修改后
+#### 4.1 后端修改后 → 自动重启后端
 ```bash
-# 重启后端
 cd d:\your-mcp-proxy\AITY_VIP\backend
 # 杀掉占用3001端口的进程
 netstat -ano | findstr :3001 | Select-String "LISTENING" | ForEach-Object { $_.ToString().Split(' ')[-1] } | ForEach-Object { taskkill /PID $_ /F }
 npm run dev
 ```
 
-#### 3.2 前端修改后
+#### 4.2 前端修改后 → 自动编译
 ```bash
-# 重新编译微信小程序
 cd d:\your-mcp-proxy\AITY_VIP\aity-uni-app-v2
 npm run dev:mp-weixin
-# 输出: dist/dev/mp-weixin/
 ```
 
-#### 3.3 自动测试接口
+#### 4.3 自动测试后端接口
 ```bash
-# 测试后端是否正常运行
-Invoke-RestMethod -Uri "http://localhost:3001/" -Method Get
+Invoke-RestMethod -Uri "http://localhost:3001/api/health"
 ```
 
-### 步骤4：用户验收
+### 步骤5：AI输出【测试指南 + 部署影响清单】（强制自动执行）
+
+**编码编译完成后，AI必须主动输出以下内容，不等用户问！**
+
+#### 5.1 变更影响范围清单
+```
+| 层级 | 变更 | 是否需要部署 |
+|------|------|-------------|
+| 数据库 | DDL/SQL变更 | 是/否 |
+| 后端 | 代码变更 | 是/否 |
+| 前端 | UI/逻辑变更 | 是/否 |
+```
+
+#### 5.2 测试指南（主动列出需要验证的功能点）
+- 功能1：如何测试、预期结果
+- 功能2：如何测试、预期结果
+- 边界情况：XXX
+
+#### 5.3 版本号建议
+- 数据库变更 + 后端 + 前端 → 跳版本号（如 v1.6.0 → v1.7.0）
+- 仅前端UI → 小版本号（如 v1.7.0 → v1.7.1）
+
+### 步骤6：用户验收
 - **提示用户**: "本地测试完成，请进行验收"
 - **等待用户确认**后才能进入下一步
 - **严禁跳过验收流程**
 
-### 步骤5：提交 Git + 更新迭代记录（必须！）
+### 步骤7：提交 Git + 打版本tag + 更新迭代记录（必须！）
 ```bash
 # 1. 添加修改的文件
 cd d:\your-mcp-proxy\AITY_VIP
 git add <修改的文件>
 
-# 2. 提交（提交信息格式如下）
+# 2. 提交
 git commit -m "feat: <简要描述>
 
 - 修改内容1
@@ -180,9 +201,12 @@ git commit -m "feat: <简要描述>
 - 测试情况: <测试结果>
 - 已知问题: <如有>"
 
-# 3. 更新迭代记录 (docs/iteration-records.md)
-# 4. Push 到远程
-git push origin <分支名>
+# 3. 打版本标签（用于回滚）
+git tag -a v1.x.x -m "版本说明" <commit-hash>
+
+# 4. 更新迭代记录 (docs/08-项目规划/iterations/迭代总结-YYYY-MM-DD.md)
+# 5. Push 到远程
+git push origin <分支名> --tags
 ```
 
 **提交信息格式模板**:
@@ -195,25 +219,38 @@ feat: 添加未读消息数接口
 - 测试情况: 后端启动正常，接口返回200
 - 已知问题: 无
 
-迭代记录已更新: docs/iteration-records.md
+迭代记录已更新: docs/08-项目规划/iterations/迭代总结-YYYY-MM-DD.md
 ```
 
-### 步骤6：询问用户是否部署生产
+### 步骤8：询问用户是否部署生产
 - **询问**: "是否部署到生产环境？"
+- **同时输出完整部署清单**（数据库迁移SQL、后端部署命令、前端编译路径）
 - **等待用户确认**后才能执行部署
 - **严禁未经确认就部署**
 
-### 步骤7：部署生产（用户确认后）
-```bash
-# 部署后端
-cd d:\your-mcp-proxy\AITY_VIP\backend
-node deploy-run.js
+### 步骤9：部署生产（用户确认后）
 
-# 编译生产版本微信小程序
-cd d:\your-mcp-proxy\AITY_VIP\aity-uni-app-v2
-npm run build:mp-weixin
-# 输出: dist/build/mp-weixin/
-# 上传到微信公众平台
+#### 9.1 按影响范围部署
+```
+1. 数据库迁移（如有）→ 先执行SQL
+2. 后端部署（如有）→ node deploy.js
+3. 前端编译（如有）→ npm run build:mp-weixin:cloud
+4. 验证健康检查 → health API
+```
+
+#### 9.2 部署完成后输出【部署完成清单】
+```
+✅ 生产部署完成
+
+| 步骤 | 状态 | 详情 |
+|------|------|------|
+| 数据库迁移 | ✅ | SQL已执行 |
+| 后端部署 | ✅ | health ok |
+| 前端编译 | ✅ | dist/build/mp-weixin |
+| 小程序上传 | ⏳ | 用户操作 |
+
+git tag: v1.x.x
+回退命令: git reset --hard <commit-hash>
 ```
 
 ---
@@ -297,6 +334,120 @@ npm run build:mp-weixin
 
 ---
 
+## 📦 配置文件设计规范
+
+### ⚠️ 设计前必须调研
+
+**每次设计新配置文件前，必须先联网搜索行业内的成熟方案作为参考！**
+
+1. 搜索同类项目的配置文件设计
+2. 了解行业通用规范
+3. 基于行业规范进行设计，避免随意发挥
+
+### 大模型 Provider 配置规范（基于 Claude Code、lobehub、OpenClaw）
+
+**行业通用规则**：
+- **一个 Provider = 一个 Base URL** — 主流设计（如 Claude Code、lobehub）
+- **Code Plan 等特殊套餐 = 独立 Provider** — 不能嵌套配置
+- **图标命名与 id 保持一致**
+
+**正确设计示例**：
+```json
+[
+  { "id": "chatglm", "name": "智谱AI", "baseUrl": "https://open.bigmodel.cn/api/paas/v4" },
+  { "id": "chatglm-code", "name": "智谱 Code Plan", "baseUrl": "https://open.bigmodel.cn/api/coding/paas/v4" },
+  { "id": "bailian", "name": "百炼", "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1" },
+  { "id": "bailian-code", "name": "百炼 Code Plan", "baseUrl": "https://coding.dashscope.aliyuncs.com/v1" }
+]
+```
+
+**错误设计（嵌套多端点）**：
+```json
+{
+  "id": "chatglm",
+  "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
+  "codingPlan": {  // ❌ 不应该嵌套
+    "baseUrl": "https://open.bigmodel.cn/api/coding/paas/v4"
+  }
+}
+```
+
+### 大模型 Models List API 规范
+
+**设计原则**：下拉选择为主，手动输入为辅
+
+1. **服务端缓存**：有 `modelsListApi` 的平台，后端定时缓存模型列表
+2. **静态推荐列表**：无 API 的平台使用 `recommendedModels`
+3. **手动输入兜底**：始终允许用户手动输入模型名称（无需刷新按钮）
+
+**配置字段**：
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `modelsListApi` | string \| null | 有 API 则填端点，后端缓存 |
+| `recommendedModels` | array \| null | 无 API 时使用 |
+
+**平台分类**：
+
+| 类型 | 平台 | 获取方式 |
+|------|------|---------|
+| 有缓存 API | Kimi, DeepSeek, MiniMax, Ollama | 后端缓存 |
+| 无 API | 智谱AI, 百炼, 混元 | 静态推荐列表 |
+| 特殊 | 豆包, 通达信 | 手动输入 |
+
+**前端交互**：
+```
+下拉选择（推荐列表） → 选中模型
+        ↓ 不满意
+手动输入框（兜底） → 输入任意模型名称
+```
+
+### 图标文件规范
+
+| 规范 | 说明 |
+|------|------|
+| **目录位置** | 与配置文件在同一级别目录 |
+| **命名规则** | `图标.svg`，文件名与 provider `id` 完全一致 |
+| **图标来源** | 优先使用 lobehub/icons-static-svg 开源图标库 |
+
+**目录结构示例**：
+```
+tdx-mcp-info2/
+├── providers/           # 图标目录 (SVG 文件)
+├── server/
+│   └── config/
+│       └── llm-providers.json  # 配置引用 icon 字段
+```
+
+### 大模型显示名称规范（基于市场调研）
+
+**调研来源**：OpenClaw、Claude Code 配置教程、各官网产品名
+
+| Provider | 主流显示名称 | 来源依据 |
+|----------|-------------|----------|
+| moonshot | **Kimi** | 月之暗面产品名，Claude Code/OpenClaw 均用 Kimi |
+| deepseek | **DeepSeek** | 官方品牌名 |
+| chatglm | **智谱AI** | 官网产品名，可简化为"智谱" |
+| hunyuan | **混元** | 腾讯官方产品名（腾讯混元→混元） |
+| minimax | **MiniMax** | 官方品牌名 |
+| doubao | **豆包** | 字节跳动产品名 |
+| bailian | **百炼** | 阿里云百炼→百炼（简写更主流） |
+| ollama | **Ollama** | 官方品牌名 |
+
+**原则**：
+- 使用用户最熟悉的产品名
+- 参考 Claude Code、OpenClaw、lobehub 等主流产品的命名
+- 品牌名用官方名称，无需加公司前缀（如"Kimi"而非"月之暗面Kimi"）
+
+### 验证流程
+
+设计完成后，必须验证：
+1. ✅ 每个 Provider 只有一个 baseUrl
+2. ✅ Code Plan 等特殊套餐独立成 Provider
+3. ✅ icon 字段与 providers/ 目录下的文件名一致
+4. ✅ 图标与 id 命名保持一致
+
+---
+
 ## 📝 迭代记录规范（必须！）
 
 ### 记录位置
@@ -370,10 +521,16 @@ npm run build:mp-weixin
    - 发现代码错误自动修复并重新测试
    - 例如：忘记导出函数、路由顺序错误等
 
-2. ✅ **自动提交 Git**（本地测试通过后）
+2. ✅ **自动提交 Git + 打tag**（本地测试通过后）
    - 添加修改的文件
    - 写详细的提交信息
-   - 更新 `docs/iteration-records.md`
+   - 更新 `docs/08-项目规划/iterations/迭代总结-YYYY-MM-DD.md`
+   - 创建版本tag：`git tag -a v1.x.x -m "版本说明"`
+
+3. ✅ **主动输出《测试指南+影响清单》**（编码完成后自动执行）
+   - 列出变更影响范围（数据库/后端/前端）
+   - 建议版本号
+   - 列出需要验证的测试点
 
 ### ❌ 只有以下操作需要询问用户
 1. **部署到生产环境**
@@ -388,6 +545,8 @@ npm run build:mp-weixin
 2. ❌ **跳过验收流程**
 3. ❌ **在开发环境连接生产数据库**
 4. ❌ **不记录迭代内容就提交 Git**
+5. ❌ **编码完成后等用户问"测试了没"、"部署哪些"** — AI必须主动输出测试指南+影响清单
+6. ❌ **不说明数据库/后端/前端各自改动范围就询问是否部署**
 
 ---
 

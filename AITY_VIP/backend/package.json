@@ -1,0 +1,42 @@
+{
+  "name": "aity-backend",
+  "version": "1.0.0",
+  "description": "Private Sharing App Backend with MySQL",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "cross-env NODE_ENV=production node src/index.js",
+    "dev": "cross-env NODE_ENV=development nodemon src/index.js",
+    "dev:prod": "cross-env NODE_ENV=development DB_ENV=production nodemon src/index.js",
+    "test": "cross-env NODE_ENV=test jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "db:status": "node scripts/check-db-status.js",
+    "db:sync": "node scripts/sync-test-db.js",
+    "db:sync:dry": "node scripts/sync-test-db.js --dry-run",
+    "db:init": "node init-db.js"
+  },
+  "dependencies": {
+    "axios": "^1.13.5",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-fileupload": "^1.4.3",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.6.5",
+    "node-ssh": "^13.2.1",
+    "sequelize": "^6.35.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "archiver": "^7.0.1",
+    "cross-env": "^7.0.3",
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "supertest": "^6.3.3"
+  }
+}

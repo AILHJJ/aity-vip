@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>讨论系统 · 设计原型</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #f0f2f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  gap: 40px;
+}
+
+/* ===== Phone Frame ===== */
+.phone-frame {
+  width: 375px;
+  background: #ffffff;
+  border-radius: 32px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  overflow: hidden;
+  position: relative;
+}
+.phone-notch {
+  height: 44px;
+  background: #1a1a2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.phone-notch .time { color: #fff; font-size: 12px; font-weight: 600; }
+.phone-notch .battery { width: 20px; height: 10px; border: 1.5px solid #fff; border-radius: 2px; position: relative; }
+.phone-notch .battery::after { content: ''; position: absolute; right: -4px; top: 2px; width: 2px; height: 6px; background: #fff; border-radius: 1px; }
+
+/* ===== TabBar ===== */
+.tabbar {
+  display: flex;
+  background: #ffffff;
+  border-top: 1px solid #e8e8e8;
+  padding: 8px 0 12px;
+}
+.tabbar-item {
+  flex: 1;
+  text-align: center;
+  font-size: 20px;
+  color: #999;
+  position: relative;
+}
+.tabbar-item .label { font-size: 10px; margin-top: 2px; color: #999; }
+.tabbar-item.active { color: #667eea; }
+.tabbar-item.active .label { color: #667eea; }
+
+/* ===== Content ===== */
+.content { padding: 0; min-height: 500px; }
+
+/* ===== Header / Search ===== */
+.header-bar {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 10px;
+  background: #f8f9fa;
+}
+.search-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  padding: 8px 14px;
+  gap: 6px;
+}
+.search-box .icon { font-size: 14px; opacity: 0.5; }
+.search-box .placeholder { font-size: 13px; color: #bbb; }
+
+/* ===== Pill Tabs ===== */
+.pill-tabs {
+  display: flex;
+  padding: 12px 16px;
+  gap: 8px;
+  overflow-x: auto;
+  background: #fff;
+}
+.pill-tab {
+  white-space: nowrap;
+  padding: 7px 18px;
+  font-size: 13px;
+  color: #666;
+  background: #f0f0f0;
+  border-radius: 16px;
+  transition: all 0.2s;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}
+.pill-tab.active {
+  color: #fff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 8px rgba(102,126,234,0.3);
+}
+
+/* ===== List Items ===== */
+.discussion-item {
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.discussion-item:hover { background: #fafbff; }
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.user-name { font-size: 13px; font-weight: 600; color: #333; }
+.item-time { font-size: 11px; color: #aaa; }
+.status-badge {
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+.status-pending { background: #fff3e0; color: #e65100; }
+.status-replied { background: #e8f5e9; color: #2e7d32; }
+.item-title { font-size: 15px; font-weight: 600; color: #222; margin-bottom: 4px; }
+.item-content { font-size: 13px; color: #777; line-height: 1.5; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.item-tag {
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+.tag-position { background: #ede7f6; color: #5e35b1; }
+.tag-interaction { background: #e3f2fd; color: #1565c0; }
+.item-stats { display: flex; gap: 12px; font-size: 12px; color: #aaa; }
+.item-stats .lock { color: #ff9800; }
+
+/* ===== FAB ===== */
+.fab {
+  position: sticky;
+  bottom: 16px;
+  left: 100%;
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 300;
+  box-shadow: 0 4px 16px rgba(102,126,234,0.4);
+  margin-left: auto;
+  margin-right: 16px;
+  margin-top: -52px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+/* ===== Create Modal ===== */
+.create-modal {
+  background: #fff;
+  padding: 20px 16px;
+  border-top: 1px solid #e0e0e0;
+}
+.type-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.type-btn {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px solid #e0e0e0;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+}
+.type-btn.active {
+  border-color: #667eea;
+  background: #f0edff;
+  color: #667eea;
+  font-weight: 600;
+}
+.type-btn .sub { font-size: 11px; color: #999; margin-top: 4px; font-weight: 400; }
+.create-textarea {
+  width: 100%;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
+  min-height: 100px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  margin-bottom: 12px;
+}
+.create-textarea:focus { border-color: #667eea; }
+.create-submit {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.privacy-note {
+  font-size: 12px;
+  color: #999;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* ===== Detail Page Section ===== */
+.detail-section {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-bottom: 1px solid #e8e8e8;
+  flex-wrap: wrap;
+}
+.detail-badge {
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+.detail-post-title { font-size: 18px; font-weight: 700; color: #222; padding: 12px 16px; }
+.detail-post-content { font-size: 14px; color: #555; line-height: 1.7; padding: 0 16px 16px; }
+
+/* ===== Replies ===== */
+.replies-section { padding: 12px 16px; border-top: 8px solid #f0f0f0; }
+.reply-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.reply-item:last-child { border: none; }
+.reply-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.reply-name { font-size: 13px; font-weight: 600; color: #333; }
+.reply-time { font-size: 11px; color: #aaa; }
+.reply-private-badge { font-size: 10px; color: #e65100; background: #fff3e0; padding: 1px 8px; border-radius: 8px; }
+.reply-content { font-size: 14px; color: #444; line-height: 1.6; }
+.reply-private-hint { font-size: 11px; color: #e65100; margin-top: 4px; opacity: 0.7; display: block; }
+
+/* ===== Reply Input ===== */
+.reply-input-area {
+  padding: 12px 16px;
+  border-top: 1px solid #e8e8e8;
+  background: #fff;
+}
+.reply-input-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.reply-input-area textarea {
+  flex: 1;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 13px;
+  min-height: 36px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+}
+.reply-input-area textarea:focus { border-color: #667eea; }
+.reply-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.reply-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.reply-btn.public { background: #667eea; color: #fff; }
+.reply-btn.private { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
+.reply-btn.single { background: #667eea; color: #fff; width: 100%; }
+
+/* ===== Legend ===== */
+.legend {
+  width: 375px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.legend h3 { font-size: 16px; color: #333; margin-bottom: 12px; }
+.legend-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; color: #555; }
+.legend-color { width: 12px; height: 12px; border-radius: 3px; }
+
+/* ===== Sections ===== */
+.section-label {
+  width: 375px;
+  font-size: 14px;
+  color: #888;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: -20px;
+}
+
+/* ===== Arrow Connector ===== */
+.arrow-flow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #ccc;
+  font-size: 24px;
+}
+
+/* ===== Admin Reply Guide ===== */
+.guide {
+  width: 375px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.guide h3 { font-size: 16px; color: #333; margin-bottom: 12px; }
+.guide-row { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; }
+.guide-num {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: #667eea;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.guide-text { font-size: 13px; color: #555; line-height: 1.6; }
+.guide-text strong { color: #333; }
+.private-tag { background: #fff3e0; color: #e65100; font-size: 12px; padding: 1px 8px; border-radius: 6px; }
+.public-tag { background: #e8f5e9; color: #2e7d32; font-size: 12px; padding: 1px 8px; border-radius: 6px; }
+
+</style>
+</head>
+<body>
+
+<!-- ===================== SECTION LABEL ===================== -->
+<div class="section-label">📱 首页 · 讨论列表</div>
+
+<!-- ===== Phone: Discussion List ===== -->
+<div class="phone-frame">
+  <div class="phone-notch"><span class="time">08:41</span></div>
+  <div class="content">
+    <!-- TabBar Top -->
+    <div style="display:flex; border-bottom:1px solid #e8e8e8;">
+      <div style="flex:1; text-align:center; padding:12px 0; font-size:13px; color:#999;">消息</div>
+      <div style="flex:1; text-align:center; padding:12px 0; font-size:13px; color:#667eea; font-weight:600; border-bottom:3px solid #667eea;">讨论</div>
+      <div style="flex:1; text-align:center; padding:12px 0; font-size:13px; color:#999;">行情</div>
+      <div style="flex:1; text-align:center; padding:12px 0; font-size:13px; color:#999;">我的</div>
+    </div>
+
+    <!-- Search -->
+    <div class="header-bar">
+      <div class="search-box"><span class="icon">🔍</span><span class="placeholder">搜索持仓或讨论...</span></div>
+    </div>
+
+    <!-- Pill Tabs (方案A) -->
+    <div class="pill-tabs">
+      <div class="pill-tab active">全部</div>
+      <div class="pill-tab">📊 持仓帖</div>
+      <div class="pill-tab">⏳ 待回复</div>
+      <div class="pill-tab">✅ 已回复</div>
+    </div>
+
+    <!-- List Item 1 - Position Post -->
+    <div class="discussion-item">
+      <div class="item-header">
+        <span class="user-name">VIP用户A</span>
+        <span class="item-time">10分钟前</span>
+        <span class="status-badge status-pending">待回复</span>
+      </div>
+      <div class="item-title">5/5 持仓记录 · 白云电器</div>
+      <div class="item-content">持有白云电器(688316) 2000股，成本价15.8，今天反弹到16.2了，要不要止盈？另外士兰微今天放量下跌，手里还有500股，情况如何？</div>
+      <div class="item-footer">
+        <span class="item-tag tag-position">📊 持仓帖</span>
+        <div class="item-stats">
+          <span>💬 2</span>
+          <span class="lock">🔒 私密</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- List Item 2 - Interaction -->
+    <div class="discussion-item">
+      <div class="item-header">
+        <span class="user-name">VIP用户B</span>
+        <span class="item-time">昨天 15:20</span>
+        <span class="status-badge status-replied">已回复</span>
+      </div>
+      <div class="item-title">早盘策略第3条怎么看</div>
+      <div class="item-content">早盘说的券商板块今天异动，但下午回落了，明天还能继续关注吗？还是说今天只是脉冲行情？</div>
+      <div class="item-footer">
+        <span class="item-tag tag-interaction">💬 讨论</span>
+        <div class="item-stats"><span>💬 1</span></div>
+      </div>
+    </div>
+
+    <!-- List Item 3 - Position (already replied) -->
+    <div class="discussion-item">
+      <div class="item-header">
+        <span class="user-name">VIP用户C</span>
+        <span class="item-time">昨天 09:30</span>
+        <span class="status-badge status-replied">已回复</span>
+      </div>
+      <div class="item-title">4/29 持仓跟踪</div>
+      <div class="item-content">资金流向显示半导体有资金流入，我手上科技股偏多，需要调整一下配置吗？</div>
+      <div class="item-footer">
+        <span class="item-tag tag-position">📊 持仓帖</span>
+        <div class="item-stats">
+          <span>💬 3</span>
+          <span class="lock">🔒 私密</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAB -->
+  <div class="fab">+</div>
+
+  <!-- Bottom TabBar -->
+  <div class="tabbar" style="border-top:1px solid #e8e8e8;">
+    <div class="tabbar-item">💬<div class="label">消息</div></div>
+    <div class="tabbar-item active">💭<div class="label" style="color:#667eea;">讨论</div></div>
+    <div class="tabbar-item">📈<div class="label">行情</div></div>
+    <div class="tabbar-item">👤<div class="label">我的</div></div>
+  </div>
+</div>
+
+<!-- ===================== ARROW ===================== -->
+<div class="arrow-flow">↓ 点击帖子进入详情</div>
+
+<!-- ===================== SECTION LABEL ===================== -->
+<div class="section-label">📱 帖子详情 · 管理员视角</div>
+
+<!-- ===== Phone: Detail Page ===== -->
+<div class="phone-frame">
+  <div class="phone-notch"><span class="time">08:41</span></div>
+  <div style="display:flex; align-items:center; padding:10px 16px; border-bottom:1px solid #e8e8e8;">
+    <span style="font-size:18px; margin-right:12px; cursor:pointer;">←</span>
+    <span style="font-size:16px; font-weight:600;">帖子详情</span>
+  </div>
+  <div class="content">
+    <!-- Post Content -->
+    <div class="detail-post-title">5/5 持仓记录 · 白云电器</div>
+    <div class="detail-header">
+      <span class="user-name">VIP用户A</span>
+      <span style="font-size:11px; color:#aaa;">10分钟前</span>
+      <span class="detail-badge tag-position">📊 持仓帖</span>
+      <span class="status-badge status-pending" style="font-size:11px;">待回复</span>
+      <span style="font-size:11px; color:#ff9800; margin-left:auto;">🔒 私密</span>
+    </div>
+    <div class="detail-post-content">
+      持有白云电器(688316) 2000股，成本价15.8，今天反弹到16.2了，要不要止盈？另外士兰微今天放量下跌，手里还有500股，情况如何？
+    </div>
+
+    <!-- Public Replies -->
+    <div class="replies-section">
+      <div style="font-size:14px; font-weight:600; margin-bottom:12px; color:#333;">回复（2）</div>
+
+      <!-- Public Reply -->
+      <div class="reply-item">
+        <div class="reply-header">
+          <span class="reply-name">你（管理员）</span>
+          <span class="reply-time">5分钟前</span>
+          <span class="public-tag">公开</span>
+        </div>
+        <div class="reply-content">白云电器今天放量突破16元，短线看16.8-17附近有压力，建议如果到17附近可以先出一半锁利。持股逻辑还在，关注下周的订单公告。</div>
+      </div>
+
+      <!-- Private Reply -->
+      <div class="reply-item" style="background:#fffde7; border-radius:8px; padding:12px;">
+        <div class="reply-header">
+          <span class="reply-name">你（管理员）</span>
+          <span class="reply-time">3分钟前</span>
+          <span class="reply-private-badge">🔒 私密回复</span>
+        </div>
+        <div class="reply-content">士兰微这里放量下跌建议先减仓到200股，成本线附近有支撑但科技板块情绪偏弱，等企稳信号再加回来。你仓位偏重，建议控制在7成以内。</div>
+        <span class="reply-private-hint">🔒 仅管理员和发帖人可见</span>
+      </div>
+    </div>
+
+    <!-- Reply Input (Admin View) -->
+    <div class="reply-input-area">
+      <div class="reply-input-row">
+        <textarea placeholder="输入你的回复..." rows="2"></textarea>
+      </div>
+      <div class="reply-btns">
+        <button class="reply-btn private">🔒 私密回复</button>
+        <button class="reply-btn public">🔓 公开回复</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ARROW ===================== -->
+<div class="arrow-flow">↓ 点击 [+] 创建新帖</div>
+
+<!-- ===================== SECTION LABEL ===================== -->
+<div class="section-label">📱 创建帖子 · 发帖类型选择</div>
+
+<!-- ===== Phone: Create Post ===== -->
+<div class="phone-frame">
+  <div class="phone-notch"><span class="time">08:41</span></div>
+  <div style="display:flex; align-items:center; padding:10px 16px; border-bottom:1px solid #e8e8e8;">
+    <span style="font-size:18px; margin-right:12px; cursor:pointer;">←</span>
+    <span style="font-size:16px; font-weight:600;">创建帖子</span>
+  </div>
+  <div class="create-modal" style="border:none;">
+    <div class="type-selector">
+      <div class="type-btn" style="border-color:#e0e0e0; color:#666;">
+        💬 互动交流
+        <div class="sub">针对某条消息提问</div>
+      </div>
+      <div class="type-btn active">
+        📊 持仓帖
+        <div class="sub" style="color:#667eea;">记录持仓/提问</div>
+      </div>
+    </div>
+    <div style="font-size:13px; color:#888; margin-bottom:8px;">持仓描述 / 问题</div>
+    <textarea class="create-textarea" placeholder="描述您的持仓情况或交易中遇到的问题...">持有白云电器(688316) 2000股，成本价15.8，今天反弹到16.2了，要不要止盈？</textarea>
+    <button class="create-submit">创建持仓帖</button>
+    <div class="privacy-note">🔒 默认私密，仅管理员可见</div>
+  </div>
+</div>
+
+<!-- ===================== LEGEND / GUIDE ===================== -->
+
+<div class="guide">
+  <h3>📋 隐私可见性规则</h3>
+  <div class="guide-row">
+    <div class="guide-num">1</div>
+    <div class="guide-text"><strong>发帖人</strong>发帖 → 默认 <span class="private-tag">私密</span>，仅管理员和发帖人本人可见</div>
+  </div>
+  <div class="guide-row">
+    <div class="guide-num">2</div>
+    <div class="guide-text"><strong>管理员回复</strong> → 可选 <span class="public-tag">公开回复</span>（所有人可见）或 <span class="private-tag">私密回复</span>（仅对发帖人可见）</div>
+  </div>
+  <div class="guide-row">
+    <div class="guide-num">3</div>
+    <div class="guide-text"><strong>公开回复</strong> → 所有用户都能看到这条回复和内容</div>
+  </div>
+  <div class="guide-row">
+    <div class="guide-num">4</div>
+    <div class="guide-text"><strong>私密回复</strong> → 只对 <strong>管理员</strong> 和 <strong>发帖人</strong> 显示，带 🔒 标记。其他用户完全看不到</div>
+  </div>
+  <div class="guide-row">
+    <div class="guide-num">5</div>
+    <div class="guide-text"><strong>帖子可见性</strong> → 管理员可在详情页将整个帖子改为<span class="public-tag">公开</span>，让优质内容帮助更多人</div>
+  </div>
+</div>
+
+<div class="guide" style="margin-top:-10px;">
+  <h3>🎨 方案A · 筛选栏设计</h3>
+  <div class="guide-row">
+    <div class="guide-num">→</div>
+    <div class="guide-text">一行圆角 pill 风格，替代当前两级tab<br>
+    <strong>[ 全部 ] [ 📊 持仓帖 ] [ ⏳ 待回复 ] [ ✅ 已回复 ]</strong><br>
+    点击「持仓帖」只看持仓相关帖子，点击「待回复」只看待回复的帖子。
+    与消息中心的筛选栏风格一致。</div>
+  </div>
+</div>
+
+</body>
+</html>
