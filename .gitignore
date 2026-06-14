@@ -48,6 +48,23 @@ pnpm-lock.yaml
 
 # Testing
 coverage/
+
+# SSL Certificate Automation - Temporary/Sensitive files (DO NOT COMMIT)
+diagnose-*.js                           # Diagnostic scripts with API references
+install-acme-server.js                 # Replaced by install-acme-fixed.js
+install-acme-auto.js                   # Replaced by install-acme-fixed.js
+check-*.ps1                             # Temporary PowerShell scripts
+test-*.ps1                              # Temporary test scripts
+final-verify.ps1                        # Temporary verification script
+diagnose-website.ps1                    # Temporary diagnosis script
+
+# Credentials and secrets (NEVER commit!)
+*.pem                                   # SSH private keys
+*credentials*                           # Any credentials file
+dnspod_credentials                      # DNSPod API keys
+
+# Sensitive configuration
+.env.production                         # Production environment vars
 .nyc_output/
 
 # Production
