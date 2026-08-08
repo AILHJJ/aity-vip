@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+logs/
+*.log
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.tar.gz
+*.tgz
+uploads/
+coverage/
+test-results/
+.DS_Store
+Thumbs.db

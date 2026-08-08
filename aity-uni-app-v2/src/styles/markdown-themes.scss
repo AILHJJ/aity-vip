@@ -1,0 +1,2049 @@
+/**
+ * Markdown主题样式集合
+ * 参考mdnice开源项目的经典主题
+ * https://github.com/zhangbaby/markdown-nice
+ */
+
+/* ==================== 默认主题（简洁白） ==================== */
+.markdown-theme-default {
+	/* 整体容器 */
+	.markdown-content {
+		font-size: 30rpx;
+		line-height: 1.8;
+		color: #333333;
+		word-wrap: break-word;
+	}
+
+	/* 标题样式 */
+	h1 {
+		font-size: 40rpx;
+		font-weight: 700;
+		color: #1a1a1a;
+		margin: 40rpx 0 20rpx;
+		padding-bottom: 12rpx;
+		border-bottom: 3rpx solid #e0e0e0;
+	}
+
+	h2 {
+		font-size: 36rpx;
+		font-weight: 600;
+		color: #2c3e50;
+		margin: 32rpx 0 16rpx;
+		padding-bottom: 10rpx;
+		border-bottom: 1rpx solid #e8e8e8;
+	}
+
+	h3 {
+		font-size: 32rpx;
+		font-weight: 600;
+		color: #34495e;
+		margin: 28rpx 0 14rpx;
+	}
+
+	h4 {
+		font-size: 30rpx;
+		font-weight: 600;
+		color: #5a6c7d;
+		margin: 24rpx 0 12rpx;
+	}
+
+	h5 {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #6a7c8d;
+		margin: 20rpx 0 10rpx;
+	}
+
+	h6 {
+		font-size: 26rpx;
+		font-weight: 500;
+		color: #7a8c9d;
+		margin: 16rpx 0 8rpx;
+	}
+
+	/* 文本样式 */
+	strong {
+		font-weight: 600;
+		color: #1a1a1a;
+	}
+
+	em {
+		font-style: italic;
+		color: #555555;
+	}
+
+	del {
+		text-decoration: line-through;
+		color: #999999;
+	}
+
+	/* 代码样式 */
+	.inline-code {
+		background: #f6f8fa;
+		color: #e83e8c;
+		padding: 4rpx 8rpx;
+		border-radius: 4rpx;
+		font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+		font-size: 26rpx;
+	}
+
+	.code-block {
+		background: #282c34;
+		color: #abb2bf;
+		padding: 20rpx;
+		border-radius: 8rpx;
+		overflow-x: auto;
+		margin: 20rpx 0;
+		font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+		font-size: 26rpx;
+		line-height: 1.6;
+	}
+
+	/* 列表样式 */
+	.list-unstyled,
+	.list-ordered {
+		padding-left: 40rpx;
+		margin: 16rpx 0;
+	}
+
+	.list-item {
+		margin: 8rpx 0;
+		line-height: 1.8;
+	}
+
+	/* 引用样式 */
+	blockquote {
+		margin: 16rpx 0;
+		padding: 16rpx 20rpx;
+		background: #f0f2ff;
+		border-left: 4rpx solid #667eea;
+		color: #555555;
+		font-style: italic;
+		border-radius: 0 8rpx 8rpx 0;
+	}
+
+	/* 表格样式 */
+	.markdown-table {
+		width: 100%;
+		border-collapse: collapse;
+		border: 1rpx solid #e0e0e0;
+		border-radius: 8rpx;
+		overflow: hidden;
+		margin: 24rpx 0;
+		font-size: 28rpx;
+	}
+
+	.markdown-table thead {
+		background: linear-gradient(to bottom, #f8f9fa, #f5f5f5);
+	}
+
+	.markdown-table th {
+		font-weight: 600;
+		padding: 12rpx 16rpx;
+		text-align: left;
+		color: #333333;
+		border-bottom: 2rpx solid #e0e0e0;
+	}
+
+	.markdown-table td {
+		padding: 12rpx 16rpx;
+		border-bottom: 1rpx solid #f0f0f0;
+	}
+
+	.markdown-table tbody tr:nth-child(even) {
+		background: #fafafa;
+	}
+
+	.markdown-table tbody tr:hover {
+		background: #f0f2ff;
+		transition: background 0.2s ease;
+	}
+
+	/* 链接样式 */
+	.link {
+		color: #667eea;
+		text-decoration: none;
+		border-bottom: 1rpx dashed #667eea;
+		transition: all 0.2s ease;
+	}
+
+	.link:active {
+		color: #764ba2;
+		border-bottom-style: solid;
+	}
+
+	/* 图片样式 */
+	.markdown-image {
+		max-width: 100%;
+		height: auto;
+		border-radius: 8rpx;
+		margin: 16rpx 0;
+		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+	}
+
+	/* 分割线样式 */
+	.divider {
+		border: none;
+		border-top: 2rpx solid #e0e0e0;
+		margin: 32rpx 0;
+	}
+
+	/* 金融数据颜色 */
+	.text-up {
+		color: #ff4d4f;
+		font-weight: 500;
+	}
+
+	.text-down {
+		color: #52c41a;
+		font-weight: 500;
+	}
+
+	.text-neutral {
+		color: #666666;
+	}
+}
+
+/* ==================== GitHub主题 ==================== */
+.markdown-theme-github {
+	.markdown-content {
+		font-size: 30rpx;
+		line-height: 1.8;
+		color: #24292e;
+		word-wrap: break-word;
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+	}
+
+	h1 {
+		font-size: 40rpx;
+		font-weight: 600;
+		color: #1b1f23;
+		margin: 40rpx 0 20rpx;
+		padding-bottom: 16rpx;
+		border-bottom: 2rpx solid #eaecef;
+	}
+
+	h2 {
+		font-size: 36rpx;
+		font-weight: 600;
+		color: #1b1f23;
+		margin: 32rpx 0 16rpx;
+		padding-bottom: 8rpx;
+		border-bottom: 1rpx solid #eaecef;
+	}
+
+	h3 {
+		font-size: 32rpx;
+		font-weight: 600;
+		color: #1b1f23;
+		margin: 28rpx 0 14rpx;
+	}
+
+	h4 {
+		font-size: 30rpx;
+		font-weight: 600;
+		color: #1b1f23;
+		margin: 24rpx 0 12rpx;
+	}
+
+	h5 {
+		font-size: 28rpx;
+		font-weight: 600;
+		color: #1b1f23;
+		margin: 20rpx 0 10rpx;
+	}
+
+	h6 {
+		font-size: 26rpx;
+		font-weight: 600;
+		color: #1b1f23;
+		margin: 16rpx 0 8rpx;
+		color: #6a737d;
+	}
+
+	strong {
+		font-weight: 600;
+		color: #24292e;
+	}
+
+	em {
+		font-style: italic;
+		color: #24292e;
+	}
+
+	.inline-code {
+		background: rgba(27, 31, 35, 0.05);
+		color: #d73a49;
+		padding: 4rpx 8rpx;
+		border-radius: 6rpx;
+		font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+		font-size: 26rpx;
+	}
+
+	.code-block {
+		background: #f6f8fa;
+		color: #24292e;
+		padding: 20rpx;
+		border-radius: 6rpx;
+		overflow-x: auto;
+		margin: 20rpx 0;
+		font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+		font-size: 26rpx;
+		line-height: 1.6;
+		border: 1rpx solid #e1e4e8;
+	}
+
+	.list-unstyled,
+	.list-ordered {
+		padding-left: 40rpx;
+		margin: 16rpx 0;
+	}
+
+	.list-item {
+		margin: 8rpx 0;
+		line-height: 1.8;
+	}
+
+	blockquote {
+		margin: 16rpx 0;
+		padding: 0 20rpx;
+		background: #fffef8;
+		border-left: 4rpx solid #dfe2e5;
+		color: #6a737d;
+	}
+
+	.markdown-table {
+		width: 100%;
+		border-collapse: collapse;
+		border: 1rpx solid #dfe2e5;
+		border-radius: 6rpx;
+		overflow: hidden;
+		margin: 24rpx 0;
+		font-size: 28rpx;
+	}
+
+	.markdown-table thead {
+		background: #f6f8fa;
+	}
+
+	.markdown-table th {
+		font-weight: 600;
+		padding: 12rpx 16rpx;
+		text-align: left;
+		color: #24292e;
+		border-bottom: 2rpx solid #dfe2e5;
+	}
+
+	.markdown-table td {
+		padding: 12rpx 16rpx;
+		border-bottom: 1rpx solid #e1e4e8;
+	}
+
+	.markdown-table tbody tr:nth-child(even) {
+		background: #f6f8fa;
+	}
+
+	.markdown-table tbody tr:hover {
+		background: #f1f8ff;
+		transition: background 0.2s ease;
+	}
+
+	.link {
+		color: #0366d6;
+		text-decoration: none;
+		font-weight: 500;
+	}
+
+	.link:active {
+		color: #0366d6;
+		text-decoration: underline;
+	}
+
+	.markdown-image {
+		max-width: 100%;
+		height: auto;
+		border-radius: 6rpx;
+		margin: 16rpx 0;
+		border: 1rpx solid #e1e4e8;
+	}
+
+	.divider {
+		border: none;
+		border-top: 2rpx solid #e1e4e8;
+		margin: 32rpx 0;
+	}
+
+	.text-up {
+		color: #cb2431;
+		font-weight: 500;
+	}
+
+	.text-down {
+		color: #28a745;
+		font-weight: 500;
+	}
+
+	.text-neutral {
+		color: #6a737d;
+	}
+}
+
+/* ==================== 翡翠绿主题 ==================== */
+.markdown-theme-emerald {
+	.markdown-content {
+		font-size: 30rpx;
+		line-height: 1.8;
+		color: #2d3748;
+		word-wrap: break-word;
+	}
+
+	h1 {
+		font-size: 40rpx;
+		font-weight: 700;
+		color: #065f46;
+		margin: 40rpx 0 20rpx;
+		padding-bottom: 12rpx;
+		border-bottom: 3rpx solid #10b981;
+	}
+
+	h2 {
+		font-size: 36rpx;
+		font-weight: 600;
+		color: #047857;
+		margin: 32rpx 0 16rpx;
+		padding-bottom: 10rpx;
+		border-bottom: 1rpx solid #a7f3d0;
+	}
+
+	h3 {
+		font-size: 32rpx;
+		font-weight: 600;
+		color: #059669;
+		margin: 28rpx 0 14rpx;
+	}
+
+	h4 {
+		font-size: 30rpx;
+		font-weight: 600;
+		color: #10b981;
+		margin: 24rpx 0 12rpx;
+	}
+
+	h5, h6 {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #34d399;
+		margin: 20rpx 0 10rpx;
+	}
+
+	strong {
+		font-weight: 600;
+		color: #065f46;
+	}
+
+	em {
+		font-style: italic;
+		color: #047857;
+	}
+
+	.inline-code {
+		background: #ecfdf5;
+		color: #059669;
+		padding: 4rpx 8rpx;
+		border-radius: 4rpx;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		border: 1rpx solid #a7f3d0;
+	}
+
+	.code-block {
+		background: #064e3b;
+		color: #d1fae5;
+		padding: 20rpx;
+		border-radius: 8rpx;
+		overflow-x: auto;
+		margin: 20rpx 0;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		line-height: 1.6;
+	}
+
+	.list-unstyled,
+	.list-ordered {
+		padding-left: 40rpx;
+		margin: 16rpx 0;
+	}
+
+	.list-item {
+		margin: 8rpx 0;
+		line-height: 1.8;
+	}
+
+	blockquote {
+		margin: 16rpx 0;
+		padding: 16rpx 20rpx;
+		background: #ecfdf5;
+		border-left: 4rpx solid #10b981;
+		color: #065f46;
+		border-radius: 0 8rpx 8rpx 0;
+	}
+
+	.markdown-table {
+		width: 100%;
+		border-collapse: collapse;
+		border: 1rpx solid #a7f3d0;
+		border-radius: 8rpx;
+		overflow: hidden;
+		margin: 24rpx 0;
+		font-size: 28rpx;
+	}
+
+	.markdown-table thead {
+		background: #ecfdf5;
+	}
+
+	.markdown-table th {
+		font-weight: 600;
+		padding: 12rpx 16rpx;
+		text-align: left;
+		color: #065f46;
+		border-bottom: 2rpx solid #10b981;
+	}
+
+	.markdown-table td {
+		padding: 12rpx 16rpx;
+		border-bottom: 1rpx solid #d1fae5;
+	}
+
+	.markdown-table tbody tr:nth-child(even) {
+		background: #f0fdf4;
+	}
+
+	.markdown-table tbody tr:hover {
+		background: #d1fae5;
+		transition: background 0.2s ease;
+	}
+
+	.link {
+		color: #059669;
+		text-decoration: none;
+		border-bottom: 1rpx dashed #10b981;
+		transition: all 0.2s ease;
+	}
+
+	.link:active {
+		color: #047857;
+		border-bottom-style: solid;
+	}
+
+	.markdown-image {
+		max-width: 100%;
+		height: auto;
+		border-radius: 8rpx;
+		margin: 16rpx 0;
+		box-shadow: 0 2rpx 12rpx rgba(16, 185, 129, 0.15);
+	}
+
+	.divider {
+		border: none;
+		border-top: 2rpx solid #a7f3d0;
+		margin: 32rpx 0;
+	}
+
+	.text-up {
+		color: #ef4444;
+		font-weight: 500;
+	}
+
+	.text-down {
+		color: #10b981;
+		font-weight: 500;
+	}
+
+	.text-neutral {
+		color: #6b7280;
+	}
+}
+
+/* ==================== 暗夜模式主题（增强版） ==================== */
+.markdown-theme-dark {
+	.markdown-content {
+		font-size: 30rpx;
+		line-height: 1.8;
+		color: #e2e8f0;
+		word-wrap: break-word;
+		background: linear-gradient(180deg, #0f0f11 0%, #1a1b1e 100%);
+		padding: 28rpx;
+		border-radius: 16rpx;
+		box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.3);
+	}
+
+	h1 {
+		font-size: 42rpx;
+		font-weight: 700;
+		color: #f1f5f9;
+		margin: 48rpx 0 24rpx;
+		padding-bottom: 16rpx;
+		border-bottom: 2rpx solid rgba(99, 102, 241, 0.3);
+		text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.3);
+	}
+
+	h2 {
+		font-size: 38rpx;
+		font-weight: 600;
+		color: #e2e8f0;
+		margin: 36rpx 0 18rpx;
+		padding-bottom: 12rpx;
+		border-bottom: 1rpx solid rgba(99, 102, 241, 0.2);
+	}
+
+	h3 {
+		font-size: 34rpx;
+		font-weight: 600;
+		color: #cbd5e1;
+		margin: 32rpx 0 16rpx;
+	}
+
+	h4 {
+		font-size: 30rpx;
+		font-weight: 600;
+		color: #94a3b8;
+		margin: 28rpx 0 14rpx;
+	}
+
+	h5, h6 {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #64748b;
+		margin: 24rpx 0 12rpx;
+	}
+
+	strong {
+		font-weight: 600;
+		color: #f1f5f9;
+	}
+
+	em {
+		font-style: italic;
+		color: #94a3b8;
+	}
+
+	/* 股票代码样式 */
+	.stock-code {
+		background: rgba(99, 102, 241, 0.15);
+		color: #a5b4fc;
+		padding: 4rpx 12rpx;
+		border-radius: 6rpx;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		border: 1rpx solid rgba(99, 102, 241, 0.3);
+		font-weight: 600;
+	}
+
+	.inline-code {
+		background: rgba(99, 102, 241, 0.15);
+		color: #818cf8;
+		padding: 4rpx 10rpx;
+		border-radius: 6rpx;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		border: 1rpx solid rgba(99, 102, 241, 0.25);
+	}
+
+	.code-block {
+		background: #1e1e24;
+		color: #e2e8f0;
+		padding: 24rpx;
+		border-radius: 12rpx;
+		overflow-x: auto;
+		margin: 24rpx 0;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		line-height: 1.7;
+		border: 1rpx solid rgba(99, 102, 241, 0.2);
+		box-shadow: inset 0 2rpx 8rpx rgba(0, 0, 0, 0.3);
+	}
+
+	.list-unstyled,
+	.list-ordered {
+		padding-left: 40rpx;
+		margin: 16rpx 0;
+	}
+
+	.list-item {
+		margin: 10rpx 0;
+		line-height: 1.9;
+		color: #cbd5e1;
+	}
+
+	blockquote {
+		margin: 20rpx 0;
+		padding: 20rpx 24rpx;
+		background: rgba(99, 102, 241, 0.1);
+		border-left: 4rpx solid #818cf8;
+		color: #94a3b8;
+		font-style: italic;
+		border-radius: 0 12rpx 12rpx 0;
+		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);
+	}
+
+	.markdown-table {
+		width: 100%;
+		border-collapse: collapse;
+		border: 1rpx solid rgba(99, 102, 241, 0.2);
+		border-radius: 12rpx;
+		overflow: hidden;
+		margin: 24rpx 0;
+		font-size: 28rpx;
+		box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+	}
+
+	.markdown-table thead {
+		background: rgba(30, 30, 36, 0.9);
+	}
+
+	.markdown-table th {
+		font-weight: 600;
+		padding: 16rpx 20rpx;
+		text-align: left;
+		color: #f1f5f9;
+		border-bottom: 2rpx solid rgba(99, 102, 241, 0.3);
+	}
+
+	.markdown-table td {
+		padding: 16rpx 20rpx;
+		border-bottom: 1rpx solid rgba(99, 102, 241, 0.1);
+		color: #cbd5e1;
+	}
+
+	.markdown-table tbody tr:nth-child(even) {
+		background: rgba(99, 102, 241, 0.03);
+	}
+
+	.markdown-table tbody tr:hover {
+		background: rgba(99, 102, 241, 0.08);
+		transition: background 0.2s ease;
+	}
+
+	.link {
+		color: #818cf8;
+		text-decoration: none;
+		border-bottom: 1rpx dashed #818cf8;
+		transition: all 0.2s ease;
+		font-weight: 500;
+	}
+
+	.link:active {
+		color: #a5b4fc;
+		border-bottom-style: solid;
+	}
+
+	.markdown-image {
+		max-width: 100%;
+		height: auto;
+		border-radius: 12rpx;
+		margin: 20rpx 0;
+		box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.3);
+		border: 1rpx solid rgba(99, 102, 241, 0.15);
+	}
+
+	.divider {
+		border: none;
+		border-top: 2rpx solid rgba(99, 102, 241, 0.2);
+		margin: 40rpx 0;
+		background: linear-gradient(90deg, transparent 0%, rgba(99, 102, 241, 0.3) 50%, transparent 100%);
+		height: 2rpx;
+	}
+
+	/* 柔和的涨跌颜色 */
+	.text-up {
+		color: #fca5a5;
+		font-weight: 600;
+		background: rgba(239, 68, 68, 0.15);
+		padding: 2rpx 8rpx;
+		border-radius: 4rpx;
+	}
+
+	.text-down {
+		color: #86efac;
+		font-weight: 600;
+		background: rgba(34, 197, 94, 0.15);
+		padding: 2rpx 8rpx;
+		border-radius: 4rpx;
+	}
+
+	.text-neutral {
+		color: #64748b;
+	}
+
+	/* 涨跌幅百分比 */
+	.percent-change {
+		font-weight: 600;
+		padding: 2rpx 8rpx;
+		border-radius: 4rpx;
+		font-size: 28rpx;
+	}
+
+	.percent-change.up {
+		color: #fca5a5;
+		background: rgba(239, 68, 68, 0.2);
+	}
+
+	.percent-change.down {
+		color: #86efac;
+		background: rgba(34, 197, 94, 0.2);
+	}
+}
+
+/* ==================== 蓝色海洋主题 ==================== */
+.markdown-theme-ocean {
+	.markdown-content {
+		font-size: 30rpx;
+		line-height: 1.8;
+		color: #1e293b;
+		word-wrap: break-word;
+	}
+
+	h1 {
+		font-size: 40rpx;
+		font-weight: 700;
+		color: #0c4a6e;
+		margin: 40rpx 0 20rpx;
+		padding-bottom: 12rpx;
+		border-bottom: 3rpx solid #0ea5e9;
+	}
+
+	h2 {
+		font-size: 36rpx;
+		font-weight: 600;
+		color: #075985;
+		margin: 32rpx 0 16rpx;
+		padding-bottom: 10rpx;
+		border-bottom: 1rpx solid #bae6fd;
+	}
+
+	h3 {
+		font-size: 32rpx;
+		font-weight: 600;
+		color: #0369a1;
+		margin: 28rpx 0 14rpx;
+	}
+
+	h4 {
+		font-size: 30rpx;
+		font-weight: 600;
+		color: #0284c7;
+		margin: 24rpx 0 12rpx;
+	}
+
+	h5, h6 {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #0ea5e9;
+		margin: 20rpx 0 10rpx;
+	}
+
+	strong {
+		font-weight: 600;
+		color: #0c4a6e;
+	}
+
+	em {
+		font-style: italic;
+		color: #075985;
+	}
+
+	.inline-code {
+		background: #f0f9ff;
+		color: #0369a1;
+		padding: 4rpx 8rpx;
+		border-radius: 4rpx;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		border: 1rpx solid #bae6fd;
+	}
+
+	.code-block {
+		background: #0c4a6e;
+		color: #f0f9ff;
+		padding: 20rpx;
+		border-radius: 8rpx;
+		overflow-x: auto;
+		margin: 20rpx 0;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		line-height: 1.6;
+	}
+
+	.list-unstyled,
+	.list-ordered {
+		padding-left: 40rpx;
+		margin: 16rpx 0;
+	}
+
+	.list-item {
+		margin: 8rpx 0;
+		line-height: 1.8;
+	}
+
+	blockquote {
+		margin: 16rpx 0;
+		padding: 16rpx 20rpx;
+		background: #f0f9ff;
+		border-left: 4rpx solid #0ea5e9;
+		color: #075985;
+		border-radius: 0 8rpx 8rpx 0;
+	}
+
+	.markdown-table {
+		width: 100%;
+		border-collapse: collapse;
+		border: 1rpx solid #bae6fd;
+		border-radius: 8rpx;
+		overflow: hidden;
+		margin: 24rpx 0;
+		font-size: 28rpx;
+	}
+
+	.markdown-table thead {
+		background: #f0f9ff;
+	}
+
+	.markdown-table th {
+		font-weight: 600;
+		padding: 12rpx 16rpx;
+		text-align: left;
+		color: #0c4a6e;
+		border-bottom: 2rpx solid #0ea5e9;
+	}
+
+	.markdown-table td {
+		padding: 12rpx 16rpx;
+		border-bottom: 1rpx solid #e0f2fe;
+	}
+
+	.markdown-table tbody tr:nth-child(even) {
+		background: #f0f9ff;
+	}
+
+	.markdown-table tbody tr:hover {
+		background: #bae6fd;
+		transition: background 0.2s ease;
+	}
+
+	.link {
+		color: #0369a1;
+		text-decoration: none;
+		border-bottom: 1rpx dashed #0ea5e9;
+		transition: all 0.2s ease;
+	}
+
+	.link:active {
+		color: #075985;
+		border-bottom-style: solid;
+	}
+
+	.markdown-image {
+		max-width: 100%;
+		height: auto;
+		border-radius: 8rpx;
+		margin: 16rpx 0;
+		box-shadow: 0 2rpx 12rpx rgba(14, 165, 233, 0.15);
+	}
+
+	.divider {
+		border: none;
+		border-top: 2rpx solid #bae6fd;
+		margin: 32rpx 0;
+	}
+
+	.text-up {
+		color: #ef4444;
+		font-weight: 500;
+	}
+
+	.text-down {
+		color: #22c55e;
+		font-weight: 500;
+	}
+
+	.text-neutral {
+		color: #64748b;
+	}
+}
+
+/* ==================== 暖阳橙主题 ==================== */
+.markdown-theme-warm {
+	.markdown-content {
+		font-size: 30rpx;
+		line-height: 1.8;
+		color: #292524;
+		word-wrap: break-word;
+	}
+
+	h1 {
+		font-size: 40rpx;
+		font-weight: 700;
+		color: #7c2d12;
+		margin: 40rpx 0 20rpx;
+		padding-bottom: 12rpx;
+		border-bottom: 3rpx solid #f97316;
+	}
+
+	h2 {
+		font-size: 36rpx;
+		font-weight: 600;
+		color: #9a3412;
+		margin: 32rpx 0 16rpx;
+		padding-bottom: 10rpx;
+		border-bottom: 1rpx solid #fed7aa;
+	}
+
+	h3 {
+		font-size: 32rpx;
+		font-weight: 600;
+		color: #c2410c;
+		margin: 28rpx 0 14rpx;
+	}
+
+	h4 {
+		font-size: 30rpx;
+		font-weight: 600;
+		color: #ea580c;
+		margin: 24rpx 0 12rpx;
+	}
+
+	h5, h6 {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #f97316;
+		margin: 20rpx 0 10rpx;
+	}
+
+	strong {
+		font-weight: 600;
+		color: #7c2d12;
+	}
+
+	em {
+		font-style: italic;
+		color: #9a3412;
+	}
+
+	.inline-code {
+		background: #fff7ed;
+		color: #c2410c;
+		padding: 4rpx 8rpx;
+		border-radius: 4rpx;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		border: 1rpx solid #fed7aa;
+	}
+
+	.code-block {
+		background: #7c2d12;
+		color: #fff7ed;
+		padding: 20rpx;
+		border-radius: 8rpx;
+		overflow-x: auto;
+		margin: 20rpx 0;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		line-height: 1.6;
+	}
+
+	.list-unstyled,
+	.list-ordered {
+		padding-left: 40rpx;
+		margin: 16rpx 0;
+	}
+
+	.list-item {
+		margin: 8rpx 0;
+		line-height: 1.8;
+	}
+
+	blockquote {
+		margin: 16rpx 0;
+		padding: 16rpx 20rpx;
+		background: #fff7ed;
+		border-left: 4rpx solid #f97316;
+		color: #9a3412;
+		border-radius: 0 8rpx 8rpx 0;
+	}
+
+	.markdown-table {
+		width: 100%;
+		border-collapse: collapse;
+		border: 1rpx solid #fed7aa;
+		border-radius: 8rpx;
+		overflow: hidden;
+		margin: 24rpx 0;
+		font-size: 28rpx;
+	}
+
+	.markdown-table thead {
+		background: #fff7ed;
+	}
+
+	.markdown-table th {
+		font-weight: 600;
+		padding: 12rpx 16rpx;
+		text-align: left;
+		color: #7c2d12;
+		border-bottom: 2rpx solid #f97316;
+	}
+
+	.markdown-table td {
+		padding: 12rpx 16rpx;
+		border-bottom: 1rpx solid #ffedd5;
+	}
+
+	.markdown-table tbody tr:nth-child(even) {
+		background: #fff7ed;
+	}
+
+	.markdown-table tbody tr:hover {
+		background: #fed7aa;
+		transition: background 0.2s ease;
+	}
+
+	.link {
+		color: #c2410c;
+		text-decoration: none;
+		border-bottom: 1rpx dashed #f97316;
+		transition: all 0.2s ease;
+	}
+
+	.link:active {
+		color: #9a3412;
+		border-bottom-style: solid;
+	}
+
+	.markdown-image {
+		max-width: 100%;
+		height: auto;
+		border-radius: 8rpx;
+		margin: 16rpx 0;
+		box-shadow: 0 2rpx 12rpx rgba(249, 115, 22, 0.15);
+	}
+
+	.divider {
+		border: none;
+		border-top: 2rpx solid #fed7aa;
+		margin: 32rpx 0;
+	}
+
+	.text-up {
+		color: #dc2626;
+		font-weight: 500;
+	}
+
+	.text-down {
+		color: #16a34a;
+		font-weight: 500;
+	}
+
+	.text-neutral {
+		color: #78716c;
+	}
+}
+
+/* ==================== 金融专业主题（深蓝/金色） ==================== */
+.markdown-theme-finance {
+	.markdown-content {
+		font-size: 30rpx;
+		line-height: 1.8;
+		color: #1a202c;
+		word-wrap: break-word;
+		background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%);
+		padding: 32rpx;
+		border-radius: 16rpx;
+		box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.15);
+	}
+
+	h1 {
+		font-size: 42rpx;
+		font-weight: 700;
+		color: #d4af37;
+		margin: 48rpx 0 24rpx;
+		padding-bottom: 16rpx;
+		border-bottom: 3rpx solid #d4af37;
+		text-shadow: 0 2rpx 4rpx rgba(212, 175, 55, 0.3);
+	}
+
+	h2 {
+		font-size: 38rpx;
+		font-weight: 600;
+		color: #f0d78c;
+		margin: 36rpx 0 18rpx;
+		padding-bottom: 12rpx;
+		border-bottom: 2rpx solid rgba(212, 175, 55, 0.3);
+	}
+
+	h3 {
+		font-size: 34rpx;
+		font-weight: 600;
+		color: #e8c872;
+		margin: 32rpx 0 16rpx;
+	}
+
+	h4 {
+		font-size: 30rpx;
+		font-weight: 600;
+		color: #d4af37;
+		margin: 28rpx 0 14rpx;
+	}
+
+	h5, h6 {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #c9a961;
+		margin: 24rpx 0 12rpx;
+	}
+
+	strong {
+		font-weight: 600;
+		color: #d4af37;
+	}
+
+	em {
+		font-style: italic;
+		color: #e8c872;
+	}
+
+	/* 股票代码特殊样式 */
+	.stock-code {
+		background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%);
+		color: #d4af37;
+		padding: 4rpx 12rpx;
+		border-radius: 6rpx;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		border: 1rpx solid rgba(212, 175, 55, 0.3);
+		font-weight: 600;
+	}
+
+	.inline-code {
+		background: rgba(14, 165, 233, 0.15);
+		color: #0ea5e9;
+		padding: 4rpx 8rpx;
+		border-radius: 4rpx;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		border: 1rpx solid rgba(14, 165, 233, 0.3);
+	}
+
+	.code-block {
+		background: #0d1421;
+		color: #e2e8f0;
+		padding: 24rpx;
+		border-radius: 12rpx;
+		overflow-x: auto;
+		margin: 24rpx 0;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		line-height: 1.6;
+		border: 1rpx solid rgba(212, 175, 55, 0.2);
+		box-shadow: inset 0 2rpx 8rpx rgba(0, 0, 0, 0.3);
+	}
+
+	.list-unstyled,
+	.list-ordered {
+		padding-left: 40rpx;
+		margin: 16rpx 0;
+	}
+
+	.list-item {
+		margin: 10rpx 0;
+		line-height: 1.9;
+		color: #cbd5e1;
+	}
+
+	blockquote {
+		margin: 20rpx 0;
+		padding: 20rpx 24rpx;
+		background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
+		border-left: 4rpx solid #d4af37;
+		color: #e2e8f0;
+		font-style: italic;
+		border-radius: 0 12rpx 12rpx 0;
+		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+	}
+
+	.markdown-table {
+		width: 100%;
+		border-collapse: collapse;
+		border: 1rpx solid rgba(212, 175, 55, 0.3);
+		border-radius: 12rpx;
+		overflow: hidden;
+		margin: 24rpx 0;
+		font-size: 28rpx;
+		box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+	}
+
+	.markdown-table thead {
+		background: linear-gradient(135deg, #0d1421 0%, #1a2332 100%);
+	}
+
+	.markdown-table th {
+		font-weight: 600;
+		padding: 16rpx 20rpx;
+		text-align: left;
+		color: #d4af37;
+		border-bottom: 2rpx solid #d4af37;
+	}
+
+	.markdown-table td {
+		padding: 16rpx 20rpx;
+		border-bottom: 1rpx solid rgba(212, 175, 55, 0.1);
+		color: #cbd5e1;
+	}
+
+	.markdown-table tbody tr:nth-child(even) {
+		background: rgba(212, 175, 55, 0.03);
+	}
+
+	.markdown-table tbody tr:hover {
+		background: rgba(212, 175, 55, 0.08);
+		transition: background 0.2s ease;
+	}
+
+	.link {
+		color: #0ea5e9;
+		text-decoration: none;
+		border-bottom: 1rpx dashed #0ea5e9;
+		transition: all 0.2s ease;
+		font-weight: 500;
+	}
+
+	.link:active {
+		color: #38bdf8;
+		border-bottom-style: solid;
+	}
+
+	.markdown-image {
+		max-width: 100%;
+		height: auto;
+		border-radius: 12rpx;
+		margin: 20rpx 0;
+		box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.25);
+		border: 1rpx solid rgba(212, 175, 55, 0.2);
+	}
+
+	.divider {
+		border: none;
+		border-top: 2rpx solid rgba(212, 175, 55, 0.3);
+		margin: 40rpx 0;
+		background: linear-gradient(90deg, transparent 0%, #d4af37 50%, transparent 100%);
+		height: 2rpx;
+	}
+
+	/* 金融数据颜色 - 更鲜艳 */
+	.text-up {
+		color: #ff4757;
+		font-weight: 600;
+		background: linear-gradient(135deg, rgba(255, 71, 87, 0.1) 0%, rgba(255, 71, 87, 0.05) 100%);
+		padding: 2rpx 8rpx;
+		border-radius: 4rpx;
+	}
+
+	.text-down {
+		color: #2ed573;
+		font-weight: 600;
+		background: linear-gradient(135deg, rgba(46, 213, 115, 0.1) 0%, rgba(46, 213, 115, 0.05) 100%);
+		padding: 2rpx 8rpx;
+		border-radius: 4rpx;
+	}
+
+	.text-neutral {
+		color: #a0aec0;
+	}
+
+	/* 涨跌幅百分比特殊样式 */
+	.percent-change {
+		font-weight: 600;
+		padding: 2rpx 8rpx;
+		border-radius: 4rpx;
+		font-size: 28rpx;
+	}
+
+	.percent-change.up {
+		color: #ff4757;
+		background: rgba(255, 71, 87, 0.15);
+	}
+
+	.percent-change.down {
+		color: #2ed573;
+		background: rgba(46, 213, 115, 0.15);
+	}
+}
+
+/* ==================== 简约优雅主题 ==================== */
+.markdown-theme-elegant {
+	.markdown-content {
+		font-size: 30rpx;
+		line-height: 1.9;
+		color: #2d3748;
+		word-wrap: break-word;
+		background: #ffffff;
+		padding: 40rpx;
+		border-radius: 20rpx;
+		box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+	}
+
+	h1 {
+		font-size: 44rpx;
+		font-weight: 300;
+		color: #1a202c;
+		margin: 56rpx 0 28rpx;
+		padding-bottom: 20rpx;
+		border-bottom: 1rpx solid #e2e8f0;
+		letter-spacing: 2rpx;
+	}
+
+	h2 {
+		font-size: 38rpx;
+		font-weight: 400;
+		color: #2d3748;
+		margin: 44rpx 0 22rpx;
+		padding-bottom: 16rpx;
+		border-bottom: 1rpx solid #edf2f7;
+		letter-spacing: 1rpx;
+	}
+
+	h3 {
+		font-size: 32rpx;
+		font-weight: 500;
+		color: #4a5568;
+		margin: 36rpx 0 18rpx;
+		letter-spacing: 0.5rpx;
+	}
+
+	h4 {
+		font-size: 30rpx;
+		font-weight: 500;
+		color: #5a6578;
+		margin: 32rpx 0 16rpx;
+	}
+
+	h5, h6 {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #718096;
+		margin: 28rpx 0 14rpx;
+	}
+
+	strong {
+		font-weight: 600;
+		color: #1a202c;
+	}
+
+	em {
+		font-style: italic;
+		color: #4a5568;
+	}
+
+	/* 股票代码样式 */
+	.stock-code {
+		background: #f7fafc;
+		color: #4a5568;
+		padding: 4rpx 12rpx;
+		border-radius: 4rpx;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		border: 1rpx solid #e2e8f0;
+		font-weight: 500;
+		letter-spacing: 1rpx;
+	}
+
+	.inline-code {
+		background: #f7fafc;
+		color: #2d3748;
+		padding: 4rpx 10rpx;
+		border-radius: 4rpx;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		border: 1rpx solid #e2e8f0;
+	}
+
+	.code-block {
+		background: #f7fafc;
+		color: #2d3748;
+		padding: 28rpx;
+		border-radius: 12rpx;
+		overflow-x: auto;
+		margin: 28rpx 0;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		line-height: 1.7;
+		border: 1rpx solid #e2e8f0;
+	}
+
+	.list-unstyled,
+	.list-ordered {
+		padding-left: 40rpx;
+		margin: 20rpx 0;
+	}
+
+	.list-item {
+		margin: 12rpx 0;
+		line-height: 1.9;
+		color: #4a5568;
+	}
+
+	blockquote {
+		margin: 24rpx 0;
+		padding: 24rpx 28rpx;
+		background: #f7fafc;
+		border-left: 3rpx solid #cbd5e0;
+		color: #4a5568;
+		font-style: normal;
+		border-radius: 0 8rpx 8rpx 0;
+		font-weight: 400;
+	}
+
+	.markdown-table {
+		width: 100%;
+		border-collapse: collapse;
+		border: 1rpx solid #e2e8f0;
+		border-radius: 12rpx;
+		overflow: hidden;
+		margin: 28rpx 0;
+		font-size: 28rpx;
+	}
+
+	.markdown-table thead {
+		background: #f7fafc;
+	}
+
+	.markdown-table th {
+		font-weight: 500;
+		padding: 16rpx 24rpx;
+		text-align: left;
+		color: #2d3748;
+		border-bottom: 2rpx solid #e2e8f0;
+	}
+
+	.markdown-table td {
+		padding: 16rpx 24rpx;
+		border-bottom: 1rpx solid #edf2f7;
+		color: #4a5568;
+	}
+
+	.markdown-table tbody tr:nth-child(even) {
+		background: #fafbfc;
+	}
+
+	.markdown-table tbody tr:hover {
+		background: #f7fafc;
+		transition: background 0.2s ease;
+	}
+
+	.link {
+		color: #4a5568;
+		text-decoration: none;
+		border-bottom: 1rpx solid #cbd5e0;
+		transition: all 0.2s ease;
+		font-weight: 400;
+	}
+
+	.link:active {
+		color: #2d3748;
+		border-bottom-color: #2d3748;
+	}
+
+	.markdown-image {
+		max-width: 100%;
+		height: auto;
+		border-radius: 12rpx;
+		margin: 24rpx 0;
+		box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+	}
+
+	.divider {
+		border: none;
+		border-top: 1rpx solid #e2e8f0;
+		margin: 48rpx 0;
+	}
+
+	/* 简约的金融数据颜色 */
+	.text-up {
+		color: #e53e3e;
+		font-weight: 500;
+	}
+
+	.text-down {
+		color: #38a169;
+		font-weight: 500;
+	}
+
+	.text-neutral {
+		color: #718096;
+	}
+
+	.percent-change {
+		font-weight: 500;
+		padding: 2rpx 6rpx;
+		border-radius: 4rpx;
+		font-size: 28rpx;
+	}
+
+	.percent-change.up {
+		color: #e53e3e;
+	}
+
+	.percent-change.down {
+		color: #38a169;
+	}
+}
+
+/* ==================== 高对比度主题 ==================== */
+.markdown-theme-contrast {
+	.markdown-content {
+		font-size: 32rpx;
+		line-height: 1.8;
+		color: #000000;
+		word-wrap: break-word;
+		background: #ffffff;
+		padding: 32rpx;
+		border-radius: 12rpx;
+		border: 3rpx solid #000000;
+	}
+
+	h1 {
+		font-size: 46rpx;
+		font-weight: 800;
+		color: #000000;
+		margin: 48rpx 0 24rpx;
+		padding-bottom: 16rpx;
+		border-bottom: 4rpx solid #000000;
+	}
+
+	h2 {
+		font-size: 40rpx;
+		font-weight: 700;
+		color: #000000;
+		margin: 40rpx 0 20rpx;
+		padding-bottom: 14rpx;
+		border-bottom: 3rpx solid #000000;
+	}
+
+	h3 {
+		font-size: 36rpx;
+		font-weight: 700;
+		color: #000000;
+		margin: 32rpx 0 16rpx;
+	}
+
+	h4 {
+		font-size: 32rpx;
+		font-weight: 700;
+		color: #000000;
+		margin: 28rpx 0 14rpx;
+	}
+
+	h5, h6 {
+		font-size: 30rpx;
+		font-weight: 700;
+		color: #000000;
+		margin: 24rpx 0 12rpx;
+	}
+
+	strong {
+		font-weight: 800;
+		color: #000000;
+	}
+
+	em {
+		font-style: italic;
+		color: #000000;
+	}
+
+	/* 股票代码样式 - 高对比度 */
+	.stock-code {
+		background: #000000;
+		color: #ffffff;
+		padding: 6rpx 14rpx;
+		border-radius: 4rpx;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 28rpx;
+		font-weight: 700;
+	}
+
+	.inline-code {
+		background: #000000;
+		color: #ffffff;
+		padding: 4rpx 10rpx;
+		border-radius: 4rpx;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 28rpx;
+		font-weight: 600;
+	}
+
+	.code-block {
+		background: #000000;
+		color: #ffffff;
+		padding: 24rpx;
+		border-radius: 8rpx;
+		overflow-x: auto;
+		margin: 24rpx 0;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 28rpx;
+		line-height: 1.6;
+		border: 3rpx solid #000000;
+	}
+
+	.list-unstyled,
+	.list-ordered {
+		padding-left: 40rpx;
+		margin: 16rpx 0;
+	}
+
+	.list-item {
+		margin: 10rpx 0;
+		line-height: 1.9;
+		color: #000000;
+		font-weight: 500;
+	}
+
+	blockquote {
+		margin: 20rpx 0;
+		padding: 20rpx 24rpx;
+		background: #ffffff;
+		border-left: 6rpx solid #000000;
+		color: #000000;
+		font-style: normal;
+		font-weight: 600;
+		border-radius: 0;
+		border: 3rpx solid #000000;
+	}
+
+	.markdown-table {
+		width: 100%;
+		border-collapse: collapse;
+		border: 3rpx solid #000000;
+		border-radius: 8rpx;
+		overflow: hidden;
+		margin: 24rpx 0;
+		font-size: 30rpx;
+	}
+
+	.markdown-table thead {
+		background: #000000;
+	}
+
+	.markdown-table th {
+		font-weight: 700;
+		padding: 16rpx 20rpx;
+		text-align: left;
+		color: #ffffff;
+		border-bottom: 3rpx solid #000000;
+	}
+
+	.markdown-table td {
+		padding: 16rpx 20rpx;
+		border-bottom: 2rpx solid #000000;
+		color: #000000;
+		font-weight: 500;
+	}
+
+	.markdown-table tbody tr:nth-child(even) {
+		background: #f5f5f5;
+	}
+
+	.markdown-table tbody tr:hover {
+		background: #e8e8e8;
+		transition: background 0.2s ease;
+	}
+
+	.link {
+		color: #0000ff;
+		text-decoration: underline;
+		font-weight: 700;
+	}
+
+	.link:active {
+		color: #0000ff;
+		text-decoration: underline;
+	}
+
+	.markdown-image {
+		max-width: 100%;
+		height: auto;
+		border-radius: 8rpx;
+		margin: 20rpx 0;
+		border: 3rpx solid #000000;
+	}
+
+	.divider {
+		border: none;
+		border-top: 4rpx solid #000000;
+		margin: 40rpx 0;
+	}
+
+	/* 高对比度的金融数据颜色 */
+	.text-up {
+		color: #ff0000;
+		font-weight: 800;
+		text-decoration: underline;
+	}
+
+	.text-down {
+		color: #008000;
+		font-weight: 800;
+		text-decoration: underline;
+	}
+
+	.text-neutral {
+		color: #000000;
+		font-weight: 700;
+	}
+
+	.percent-change {
+		font-weight: 800;
+		padding: 2rpx 6rpx;
+		border-radius: 4rpx;
+		font-size: 30rpx;
+	}
+
+	.percent-change.up {
+		color: #ff0000;
+		background: #ffe6e6;
+		text-decoration: underline;
+	}
+
+	.percent-change.down {
+		color: #008000;
+		background: #e6ffe6;
+		text-decoration: underline;
+	}
+}
+
+/* ==================== 护眼绿主题 ==================== */
+.markdown-theme-eyecare {
+	.markdown-content {
+		font-size: 30rpx;
+		line-height: 1.9;
+		color: #2c3e2c;
+		word-wrap: break-word;
+		background: linear-gradient(135deg, #f0f9f0 0%, #e8f5e8 100%);
+		padding: 36rpx;
+		border-radius: 16rpx;
+		box-shadow: 0 4rpx 20rpx rgba(76, 175, 80, 0.1);
+	}
+
+	h1 {
+		font-size: 42rpx;
+		font-weight: 600;
+		color: #1b5e20;
+		margin: 48rpx 0 24rpx;
+		padding-bottom: 16rpx;
+		border-bottom: 3rpx solid #66bb6a;
+	}
+
+	h2 {
+		font-size: 38rpx;
+		font-weight: 600;
+		color: #2e7d32;
+		margin: 40rpx 0 20rpx;
+		padding-bottom: 14rpx;
+		border-bottom: 2rpx solid #a5d6a7;
+	}
+
+	h3 {
+		font-size: 34rpx;
+		font-weight: 600;
+		color: #388e3c;
+		margin: 36rpx 0 18rpx;
+	}
+
+	h4 {
+		font-size: 30rpx;
+		font-weight: 600;
+		color: #43a047;
+		margin: 32rpx 0 16rpx;
+	}
+
+	h5, h6 {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #4caf50;
+		margin: 28rpx 0 14rpx;
+	}
+
+	strong {
+		font-weight: 600;
+		color: #1b5e20;
+	}
+
+	em {
+		font-style: italic;
+		color: #2e7d32;
+	}
+
+	/* 股票代码样式 - 护眼绿 */
+	.stock-code {
+		background: #c8e6c9;
+		color: #1b5e20;
+		padding: 4rpx 12rpx;
+		border-radius: 6rpx;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		border: 1rpx solid #81c784;
+		font-weight: 600;
+	}
+
+	.inline-code {
+		background: #c8e6c9;
+		color: #2e7d32;
+		padding: 4rpx 10rpx;
+		border-radius: 4rpx;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		border: 1rpx solid #a5d6a7;
+	}
+
+	.code-block {
+		background: #1b5e20;
+		color: #e8f5e9;
+		padding: 24rpx;
+		border-radius: 12rpx;
+		overflow-x: auto;
+		margin: 24rpx 0;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 26rpx;
+		line-height: 1.7;
+		border: 1rpx solid #66bb6a;
+		box-shadow: inset 0 2rpx 8rpx rgba(0, 0, 0, 0.2);
+	}
+
+	.list-unstyled,
+	.list-ordered {
+		padding-left: 40rpx;
+		margin: 16rpx 0;
+	}
+
+	.list-item {
+		margin: 10rpx 0;
+		line-height: 1.9;
+		color: #3e4e3e;
+	}
+
+	blockquote {
+		margin: 20rpx 0;
+		padding: 20rpx 24rpx;
+		background: #c8e6c9;
+		border-left: 4rpx solid #66bb6a;
+		color: #1b5e20;
+		font-style: normal;
+		border-radius: 0 12rpx 12rpx 0;
+		box-shadow: 0 2rpx 8rpx rgba(76, 175, 80, 0.15);
+	}
+
+	.markdown-table {
+		width: 100%;
+		border-collapse: collapse;
+		border: 1rpx solid #a5d6a7;
+		border-radius: 12rpx;
+		overflow: hidden;
+		margin: 24rpx 0;
+		font-size: 28rpx;
+		box-shadow: 0 2rpx 12rpx rgba(76, 175, 80, 0.1);
+	}
+
+	.markdown-table thead {
+		background: #c8e6c9;
+	}
+
+	.markdown-table th {
+		font-weight: 600;
+		padding: 16rpx 20rpx;
+		text-align: left;
+		color: #1b5e20;
+		border-bottom: 2rpx solid #66bb6a;
+	}
+
+	.markdown-table td {
+		padding: 16rpx 20rpx;
+		border-bottom: 1rpx solid #c8e6c9;
+		color: #2c3e2c;
+	}
+
+	.markdown-table tbody tr:nth-child(even) {
+		background: #f1f8f1;
+	}
+
+	.markdown-table tbody tr:hover {
+		background: #dceddc;
+		transition: background 0.2s ease;
+	}
+
+	.link {
+		color: #2e7d32;
+		text-decoration: none;
+		border-bottom: 1rpx dashed #43a047;
+		transition: all 0.2s ease;
+		font-weight: 500;
+	}
+
+	.link:active {
+		color: #1b5e20;
+		border-bottom-style: solid;
+	}
+
+	.markdown-image {
+		max-width: 100%;
+		height: auto;
+		border-radius: 12rpx;
+		margin: 20rpx 0;
+		box-shadow: 0 4rpx 16rpx rgba(76, 175, 80, 0.15);
+		border: 1rpx solid #a5d6a7;
+	}
+
+	.divider {
+		border: none;
+		border-top: 2rpx solid #a5d6a7;
+		margin: 40rpx 0;
+		background: linear-gradient(90deg, transparent 0%, #66bb6a 50%, transparent 100%);
+		height: 2rpx;
+	}
+
+	/* 护眼的金融数据颜色 - 柔和版 */
+	.text-up {
+		color: #d32f2f;
+		font-weight: 600;
+		background: #ffcdd2;
+		padding: 2rpx 8rpx;
+		border-radius: 4rpx;
+	}
+
+	.text-down {
+		color: #388e3c;
+		font-weight: 600;
+		background: #c8e6c9;
+		padding: 2rpx 8rpx;
+		border-radius: 4rpx;
+	}
+
+	.text-neutral {
+		color: #546e5a;
+	}
+
+	.percent-change {
+		font-weight: 600;
+		padding: 2rpx 8rpx;
+		border-radius: 4rpx;
+		font-size: 28rpx;
+	}
+
+	.percent-change.up {
+		color: #d32f2f;
+		background: #ffcdd2;
+	}
+
+	.percent-change.down {
+		color: #388e3c;
+		background: #c8e6c9;
+	}
+}
