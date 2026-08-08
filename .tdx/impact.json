@@ -1,0 +1,114 @@
+{
+  "$schema": "../tdx-ai-engineering-standards/impact/impact-config.schema.json",
+  "version": 1,
+  "modules": {
+    "miniapp-api-client": {
+      "description": "uni-app 前端 API 客户端与请求配置，影响微信小程序和 H5",
+      "paths": [
+        "aity-uni-app-v2/src/api/**",
+        "aity-uni-app-v2/src/utils/request.js",
+        "aity-uni-app-v2/src/utils/config.js"
+      ],
+      "consumers": [
+        "Weixin mini-program",
+        "H5 build",
+        "backend API"
+      ],
+      "tests": [
+        "cd aity-uni-app-v2 && npm run build:mp-weixin",
+        "cd aity-uni-app-v2 && npm run build:h5"
+      ],
+      "docs": [
+        "docs/operations/前端多端迭代与发布规范.md"
+      ],
+      "risk": "high"
+    },
+    "miniapp-pages": {
+      "description": "uni-app 页面、路由、组件和多端样式适配",
+      "paths": [
+        "aity-uni-app-v2/src/pages.json",
+        "aity-uni-app-v2/src/pages/**",
+        "aity-uni-app-v2/src/components/**",
+        "aity-uni-app-v2/src/styles/**",
+        "aity-uni-app-v2/src/App.vue"
+      ],
+      "consumers": [
+        "Weixin mini-program",
+        "H5 build"
+      ],
+      "tests": [
+        "cd aity-uni-app-v2 && npm run build:mp-weixin"
+      ],
+      "docs": [
+        "docs/operations/前端多端迭代与发布规范.md"
+      ],
+      "risk": "medium"
+    },
+    "backend-api-contract": {
+      "description": "后端 API 路由、控制器、模型和前端调用契约",
+      "paths": [
+        "backend/src/routes/**",
+        "backend/src/controllers/**",
+        "backend/src/models/**",
+        "backend/src/middleware/**"
+      ],
+      "consumers": [
+        "aity-uni-app-v2/src/api/**",
+        "production backend"
+      ],
+      "tests": [
+        "cd backend && node --check src/index.js",
+        "cd backend && npm test"
+      ],
+      "docs": [
+        "docs/operations/项目线上基线与迭代维护说明.md"
+      ],
+      "risk": "high"
+    },
+    "backend-database": {
+      "description": "数据库模型、迁移和环境配置",
+      "paths": [
+        "backend/migrations/**",
+        "backend/src/config/db.js",
+        "backend/.env.example"
+      ],
+      "consumers": [
+        "production database",
+        "test database",
+        "backend API"
+      ],
+      "tests": [
+        "cd backend && node --check src/index.js"
+      ],
+      "docs": [
+        "docs/operations/项目线上基线与迭代维护说明.md"
+      ],
+      "risk": "high"
+    },
+    "notification-push": {
+      "description": "邮件、短信、站内消息等用户触达能力",
+      "paths": [
+        "backend/src/**/notification*.js",
+        "backend/src/**/email*.js",
+        "backend/src/**/sms*.js",
+        "backend/migrations/*notification*",
+        "aity-uni-app-v2/src/pages/**/notification*",
+        "aity-uni-app-v2/src/api/**notification*"
+      ],
+      "consumers": [
+        "message publishing",
+        "Weixin mini-program",
+        "H5 build",
+        "email/SMS provider"
+      ],
+      "tests": [
+        "cd backend && node --check src/index.js",
+        "cd aity-uni-app-v2 && npm run build:mp-weixin"
+      ],
+      "docs": [
+        "docs/operations/持续迭代维护SOP.md"
+      ],
+      "risk": "high"
+    }
+  }
+}
