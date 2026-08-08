@@ -24,6 +24,19 @@
 							<text class="linked-arrow">→</text>
 						</view>
 						<view class="linked-title">{{ discussion.linkedMessage.title }}</view>
+						<view class="linked-meta">
+							<text v-if="discussion.linkedMessage.type">
+								{{ getMessageTypeDisplayLabel(discussion.linkedMessage.type, discussion.linkedMessage.typeLabel) }}
+							</text>
+							<text v-if="discussion.linkedMessage.createdAt">{{ formatFriendlyTime(discussion.linkedMessage.createdAt) }}</text>
+						</view>
+						<view v-if="linkedMessageRenderedContent" class="linked-content markdown-rendered">
+							<rich-text :nodes="linkedMessageRenderedContent"></rich-text>
+						</view>
+						<text v-else-if="discussion.linkedMessage.content" class="linked-content-text">
+							{{ discussion.linkedMessage.content }}
+						</text>
+						<text class="linked-hint">点击查看原文</text>
 					</view>
 
 					<view class="discussion-header">
@@ -213,7 +226,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import EmptyState from '../../components/empty-state.vue'
@@ -225,8 +238,12 @@ import {
 	deleteReplyApi,
 	updateDiscussionVisibilityApi
 } from '../../api/discussion'
+import { getMessageDetailApi } from '../../api/message'
 import { uploadImageApi } from '../../api/upload'
 import { formatFriendlyTime } from '../../utils/time'
+import { MarkdownRenderer } from '../../utils/markdown-renderer'
+import { getMessageTypeDisplayLabel } from '../../utils/message-labels.mjs'
+import { normalizeMessageId } from '../../utils/discussion-link.mjs'
 
 const userStore = useUserStore()
 
@@ -256,11 +273,48 @@ const visibilityOptions = [
 	{ label: '私密', value: 'private' }
 ]
 
+const linkedMessageTheme = computed(() => discussion.value?.linkedMessage?.theme || 'default')
+const linkedMessageRenderedContent = computed(() => {
+	const content = discussion.value?.linkedMessage?.content
+	if (!content) return ''
+	return MarkdownRenderer.renderWithTheme(content, linkedMessageTheme.value)
+})
+
 // 获取讨论ID
 const getDiscussionId = () => {
 	const pages = getCurrentPages()
 	const currentPage = pages[pages.length - 1]
 	return currentPage.options.id
+}
+
+// 兼容旧后端或旧数据：详情未展开关联消息时，按 messageId 补查消息内容
+const loadLinkedMessageFallback = async () => {
+	if (!discussion.value) return
+
+	const pages = getCurrentPages()
+	const currentPage = pages[pages.length - 1]
+	const fallbackId = discussion.value.linkedMessage?.id
+		|| discussion.value.messageId
+		|| currentPage.options.fallbackMessageId
+	const messageId = normalizeMessageId(fallbackId)
+
+	if (!messageId) return
+	if (discussion.value.linkedMessage?.content && discussion.value.linkedMessage?.theme) return
+
+	try {
+		const res = await getMessageDetailApi(messageId)
+		if (res.code === 200 && res.data) {
+			discussion.value.messageId = messageId
+			discussion.value.linkedMessage = {
+				...discussion.value.linkedMessage,
+				...res.data,
+				id: messageId
+			}
+		}
+	} catch (error) {
+		// 关联消息无权限或已删除时，保留已有标题，不阻断讨论查看
+		console.warn('[讨论详情] 补充关联消息内容失败:', error)
+	}
 }
 
 // 加载讨论详情
@@ -275,6 +329,7 @@ const loadDiscussion = async () => {
 
 		if (res.code === 200 && res.data) {
 			discussion.value = res.data
+			await loadLinkedMessageFallback()
 
 			// 权限检查：私密讨论只有管理员和发起者可见
 			if (discussion.value.visibility === 'private') {
@@ -769,6 +824,49 @@ button::after {
 	display: -webkit-box;
 	-webkit-line-clamp: 2;
 	-webkit-box-orient: vertical;
+}
+
+.linked-meta {
+	display: flex;
+	margin-top: 10rpx;
+	font-size: 22rpx;
+	color: #777777;
+
+	text {
+		margin-right: 16rpx;
+	}
+}
+
+.linked-content {
+	margin-top: 14rpx;
+	overflow: hidden;
+	max-height: 320rpx;
+}
+
+.markdown-rendered {
+	font-size: 26rpx;
+	color: #555555;
+	line-height: 1.6;
+}
+
+.linked-content-text {
+	display: block;
+	font-size: 26rpx;
+	color: #555555;
+	line-height: 1.6;
+	margin-top: 14rpx;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 4;
+	-webkit-box-orient: vertical;
+}
+
+.linked-hint {
+	display: block;
+	margin-top: 14rpx;
+	font-size: 24rpx;
+	color: #667eea;
 }
 
 @keyframes fadeIn {

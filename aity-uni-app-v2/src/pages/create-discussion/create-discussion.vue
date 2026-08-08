@@ -30,10 +30,13 @@
 						<view class="linked-message-card">
 							<view class="linked-message-header">
 								<text class="linked-message-badge">已关联</text>
-								<text class="linked-message-type">{{ linkedMessage.type }}</text>
+								<text class="linked-message-type">{{ getMessageTypeDisplayLabel(linkedMessage.type, linkedMessage.typeLabel) }}</text>
 							</view>
 							<text class="linked-message-title">{{ linkedMessage.title }}</text>
-							<text class="linked-message-content">{{ linkedMessage.content }}</text>
+							<view v-if="linkedMessageRenderedContent" class="linked-message-content markdown-rendered">
+								<rich-text :nodes="linkedMessageRenderedContent"></rich-text>
+							</view>
+							<text v-else-if="linkedMessage.content" class="linked-message-content-text">{{ linkedMessage.content }}</text>
 							<text class="linked-message-hint">💬 基于此消息发起讨论</text>
 						</view>
 					</view>
@@ -53,6 +56,17 @@
 							</view>
 						</picker>
 						<text class="form-hint">💡 讨论基于消息内容，选择消息后可参考该内容发表观点</text>
+						<view v-if="linkedMessage" class="linked-message-card selected-message-preview">
+							<view class="linked-message-header">
+								<text class="linked-message-badge">已选择</text>
+								<text class="linked-message-type">{{ getMessageTypeDisplayLabel(linkedMessage.type, linkedMessage.typeLabel) }}</text>
+							</view>
+							<text class="linked-message-title">{{ linkedMessage.title }}</text>
+							<view v-if="linkedMessageRenderedContent" class="linked-message-content markdown-rendered">
+								<rich-text :nodes="linkedMessageRenderedContent"></rich-text>
+							</view>
+							<text v-else-if="linkedMessage.content" class="linked-message-content-text">{{ linkedMessage.content }}</text>
+						</view>
 					</view>
 				</template>
 
@@ -124,10 +138,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '../../store/user'
 import { createDiscussionApi } from '../../api/discussion'
 import { getMessagesApi, getMessageDetailApi } from '../../api/message'
+import { MarkdownRenderer } from '../../utils/markdown-renderer'
+import { getMessageTypeDisplayLabel } from '../../utils/message-labels.mjs'
+import {
+	findMessageById,
+	getMessageTitleById,
+	normalizeMessageId,
+	selectMessageByPickerIndex
+} from '../../utils/discussion-link.mjs'
 
 const userStore = useUserStore()
 
@@ -143,6 +165,12 @@ const messages = ref([])
 const linkedMessage = ref(null) // 存储关联的消息详情
 const showMessagePicker = ref(true) // 是否显示消息选择器
 
+const linkedMessageTheme = computed(() => linkedMessage.value?.theme || 'default')
+const linkedMessageRenderedContent = computed(() => {
+	if (!linkedMessage.value?.content) return ''
+	return MarkdownRenderer.renderWithTheme(linkedMessage.value.content, linkedMessageTheme.value)
+})
+
 // 发帖类型: 'discussion' = 互动交流, 'position' = 持仓帖
 const postType = ref('discussion')
 const stockCodeInput = ref('')
@@ -153,19 +181,33 @@ const switchPostType = (type) => {
 	if (type === 'position') {
 		// 切换到持仓帖时清除messageId
 		formData.value.messageId = null
+		linkedMessage.value = null
 	}
 }
 
 // 获取消息标题
 const getMessageTitle = (id) => {
-	const message = messages.value.find(m => m.id === id)
-	return message ? message.title : ''
+	return getMessageTitleById(messages.value, id)
 }
 
 // 处理消息选择
 const handleMessageChange = (e) => {
-	const index = e.detail.value
-	formData.value.messageId = messages.value[index].id
+	const selectedMessage = selectMessageByPickerIndex(messages.value, e.detail.value)
+	const selectedMessageId = normalizeMessageId(selectedMessage)
+
+	if (!selectedMessageId) {
+		formData.value.messageId = null
+		linkedMessage.value = null
+		uni.showToast({
+			title: '关联消息无效，请重新选择',
+			icon: 'none'
+		})
+		return
+	}
+
+	formData.value.messageId = selectedMessageId
+	linkedMessage.value = selectedMessage
+	loadLinkedMessage(selectedMessageId)
 }
 
 // 加载消息列表
@@ -226,7 +268,7 @@ const handleSubmit = async () => {
 			discussionTitle = linkedMessage.value.title
 		} else if (formData.value.messageId) {
 			// 如果没有加载到关联消息，从消息列表中查找
-			const message = messages.value.find(m => m.id === formData.value.messageId)
+			const message = findMessageById(messages.value, formData.value.messageId)
 			if (message && message.title) {
 				discussionTitle = message.title
 			}
@@ -241,7 +283,7 @@ const handleSubmit = async () => {
 
 		// 关联消息ID（互动交流必须传，持仓帖不传）
 		if (formData.value.messageId) {
-			data.messageId = formData.value.messageId
+			data.messageId = normalizeMessageId(formData.value.messageId)
 		}
 
 		const res = await createDiscussionApi(data)
@@ -258,7 +300,7 @@ const handleSubmit = async () => {
 
 		// 后端返回 {code: 200, message: "...", data: {...}}
 		if (res.code === 200 || res.success) {
-			console.log('=== 创建讨论成功 v2.1,准备返回上一页 ===')
+			console.log('=== 创建讨论成功 v2.2,准备进入详情页 ===')
 
 			// 显示成功提示
 			uni.showToast({
@@ -269,7 +311,16 @@ const handleSubmit = async () => {
 
 			// 立即返回上一页,用户体验更流畅
 			setTimeout(() => {
-				console.log('=== 执行返回上一页操作 v2.1 ===')
+				const discussionId = res.data?.id
+				if (discussionId) {
+					console.log('=== 执行进入讨论详情页操作 v2.2 ===', discussionId)
+					uni.redirectTo({
+						url: `/pages/discussion-detail/discussion-detail?id=${discussionId}&fallbackMessageId=${data.messageId || ''}`
+					})
+					return
+				}
+
+				console.log('=== 未获得讨论ID，执行返回上一页操作 v2.2 ===')
 				uni.navigateBack()
 			}, 1000)
 		} else {
@@ -596,6 +647,18 @@ button::after {
 	display: -webkit-box;
 	-webkit-line-clamp: 2;
 	-webkit-box-orient: vertical;
+}
+
+.markdown-rendered {
+	margin-bottom: 12rpx;
+}
+
+.linked-message-content-text {
+	display: block;
+	font-size: 26rpx;
+	color: #666666;
+	line-height: 1.6;
+	margin-bottom: 12rpx;
 }
 
 .linked-message-hint {
