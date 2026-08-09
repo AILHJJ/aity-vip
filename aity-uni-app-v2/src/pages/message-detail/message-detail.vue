@@ -363,8 +363,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
-import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { ref, computed, watch } from 'vue'
+import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import { getMessageDetailApi, markMessageAsReadApi, favoriteMessageApi, unfavoriteMessageApi, deleteMessageApi, pinMessageApi, unpinMessageApi, getMessageReadDetailsApi } from '../../api/message'
 import { getDiscussionsApi } from '../../api/discussion'
@@ -402,6 +402,15 @@ const readDetails = ref(null)
 const readDetailsLoading = ref(false)
 const readDetailsTab = ref('unread')
 const avatarErrors = ref({})
+
+const normalizeMessageData = (raw) => {
+	const data = raw && typeof raw === 'object' ? { ...raw } : {}
+	const attachments = Array.isArray(data.attachments) ? data.attachments : []
+	const images = Array.isArray(data.images) ? data.images : []
+	data.attachments = attachments
+	data.images = images
+	return data
+}
 
 // Markdown主题 - 从消息数据读取，默认为default
 const markdownTheme = ref('default')
@@ -603,21 +612,23 @@ const loadMessageDetail = async () => {
 
 		// 兼容 success 和 code 两种格式
 		if (res.success || res.code === 200) {
-			const messageData = res.data
+			const messageData = normalizeMessageData(res.data)
 
 			// 处理附件数据：转换为images格式
-			if (messageData.attachments && messageData.attachments.length > 0) {
+			if (messageData.attachments.length > 0) {
 				messageData.images = messageData.attachments
 					.filter(att => att.type === 'image')
 					.map(att => {
 						// 如果是相对路径，补全服务器地址
-						let url = att.url
+						let url = att.url || att.path || ''
+						if (!url) return ''
 						if (url.startsWith('/uploads/')) {
 							url = BASE_URL + url
 						}
 						// 清理URL中的查询参数
 						return cleanImageUrl(url)
 					})
+					.filter(Boolean)
 			}
 
 			message.value = messageData
@@ -1062,11 +1073,9 @@ onPullDownRefresh(async () => {
 })
 
 // 页面加载
-onMounted(() => {
-	// 获取消息ID
-	const pages = getCurrentPages()
-	const currentPage = pages[pages.length - 1]
-	messageId.value = currentPage.options.id || 0
+onLoad((options) => {
+	const id = options?.id
+	messageId.value = Number(id) || 0
 
 	if (!messageId.value) {
 		uni.showToast({
@@ -1079,7 +1088,7 @@ onMounted(() => {
 
 	// 主题从消息数据中读取，不再从本地存储读取
 	loadMessageDetail()
-	loadDiscussions()  // 加载相关讨论
+	loadDiscussions()
 })
 </script>
 

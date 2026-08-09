@@ -60,6 +60,9 @@
 			<text v-if="unloadedUnreadCount > 0" class="unread-note">
 				还有 {{ unloadedUnreadCount }} 条未读可能在未加载消息中，可继续下拉刷新或加载更多。
 			</text>
+			<text v-if="userStore.isAdmin" class="unread-note">
+				自己发布的消息不会在列表中标为未读；角标仍以服务端统计为准。
+			</text>
 		</view>
 
 		<!-- 消息列表 -->
@@ -692,8 +695,26 @@ const isMessageUnread = (messageOrId) => {
 	readStatusVersion.value
 	const message = typeof messageOrId === 'object' && messageOrId !== null ? messageOrId : null
 	const messageId = message ? message.id : messageOrId
+	if (message && isOwnMessage(message)) return false
 	if (message && typeof message.isRead === 'boolean') return !message.isRead
 	return !isMessageRead(messageId)
+}
+
+const getMessageSenderId = (message) => {
+	if (!message || typeof message !== 'object') return null
+	return message.senderId
+		|| message.sender_id
+		|| message.senderUser?.id
+		|| message.sender?.id
+		|| message.createdBy
+		|| message.userId
+		|| null
+}
+
+const isOwnMessage = (message) => {
+	const senderId = getMessageSenderId(message)
+	const currentUserId = userStore.userId
+	return senderId !== null && currentUserId !== null && String(senderId) === String(currentUserId)
 }
 
 const toggleUnreadOnly = () => {
