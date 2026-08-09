@@ -67,6 +67,11 @@
     backend.env
     logs/
     uploads/
+  deploy/
+    releases/
+      20260809-001/
+        aity-backend-20260809-001.tar.gz
+        sha256.txt
 ```
 
 ## 四、迁移原则
@@ -99,6 +104,12 @@ mkdir -p /root/aity-vip/shared/uploads
 
 ```text
 /root/aity-vip/releases/20260809-001
+```
+
+本地发布包建议同步保存在：
+
+```text
+<项目根>/deploy/releases/20260809-001/
 ```
 
 ### 第 4 步：接入共享配置
@@ -157,6 +168,7 @@ pm2 restart aity-backend --update-env
 - `uploads` 可读写
 - `/api/health` 正常
 - `notification_outbox` 能写入
+- 本地归档目录已有对应版本的 tar 包和 sha256
 
 ## 八、邮件配置提示
 
@@ -176,4 +188,3 @@ pm2 restart aity-backend --update-env
 
 - `https://mail.163.com/`
 - `https://help.mail.163.com/faqDetail.do?code=d7a5dc8471cd0c0e8b4b8f4f8e49998b374173cfe9171305fa1ce630d7f67ac24aac98d1012d23f2`
-
