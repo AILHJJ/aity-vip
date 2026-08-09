@@ -42,28 +42,11 @@
 		<!-- 筛选栏 -->
 		<message-filter-bar
 			:total-count="filteredMessages.length"
+			:unread-count="serverUnreadCount || loadedUnreadCount"
+			:unread-active="showUnreadOnly"
 			@filter-change="handleMessageFilterChange"
+			@unread-change="handleUnreadFilterChange"
 		/>
-
-		<view v-if="serverUnreadCount > 0 || loadedUnreadCount > 0" class="unread-panel">
-			<view class="unread-panel-main">
-				<view class="unread-copy">
-					<text class="unread-title">未读消息</text>
-					<text class="unread-desc">
-						角标显示 {{ serverUnreadCount }} 条，当前列表可定位 {{ loadedUnreadCount }} 条
-					</text>
-				</view>
-				<button class="unread-filter-btn" :class="{ active: showUnreadOnly }" @click="toggleUnreadOnly">
-					{{ showUnreadOnly ? '查看全部' : '只看未读' }}
-				</button>
-			</view>
-			<text v-if="unloadedUnreadCount > 0" class="unread-note">
-				还有 {{ unloadedUnreadCount }} 条未读可能在未加载消息中，可继续下拉刷新或加载更多。
-			</text>
-			<text v-if="userStore.isAdmin" class="unread-note">
-				自己发布的消息不会在列表中标为未读；角标仍以服务端统计为准。
-			</text>
-		</view>
 
 		<!-- 消息列表 -->
 		<scroll-view
@@ -99,6 +82,7 @@
 			<view v-else-if="displayedMessages.length === 0 && showUnreadOnly" class="unread-empty">
 				<text class="unread-empty-title">当前列表没有未读消息</text>
 				<text class="unread-empty-desc">如果底部角标仍有数量，说明未读消息可能在未加载分页中。</text>
+				<button class="unread-empty-btn" @click="handleUnreadFilterChange(false)">查看全部消息</button>
 			</view>
 
 			<!-- 置顶消息区域 -->
@@ -468,7 +452,6 @@ const displayedMessages = computed(() => {
 
 const loadedUnreadCount = computed(() => unreadMessagesInFiltered.value.length)
 const serverUnreadCount = computed(() => Number(userStore.unreadCount || 0))
-const unloadedUnreadCount = computed(() => Math.max(serverUnreadCount.value - loadedUnreadCount.value, 0))
 
 // 加载动态消息类型标签，默认类型仍使用本地2字标签，自定义类型使用后台名称
 const loadMessageTypeLabels = async () => {
@@ -717,10 +700,6 @@ const isOwnMessage = (message) => {
 	return senderId !== null && currentUserId !== null && String(senderId) === String(currentUserId)
 }
 
-const toggleUnreadOnly = () => {
-	showUnreadOnly.value = !showUnreadOnly.value
-}
-
 // 下拉刷新
 const onRefresh = () => {
 	refreshing.value = true
@@ -785,6 +764,10 @@ const handleRemoveHistory = (keyword) => {
 // 处理消息筛选变化（从 MessageFilterBar 组件接收）
 const handleMessageFilterChange = (newFilters) => {
 	basicFilters.value = { ...basicFilters.value, ...newFilters }
+}
+
+const handleUnreadFilterChange = (unreadOnly) => {
+	showUnreadOnly.value = unreadOnly
 }
 
 // 跳转到详情
@@ -1048,65 +1031,6 @@ button::after {
 	overflow-y: auto;
 }
 
-.unread-panel {
-	margin: 16rpx 20rpx 0;
-	padding: 20rpx;
-	background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 100%);
-	border: 1rpx solid #fed7aa;
-	border-radius: 16rpx;
-}
-
-.unread-panel-main {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 20rpx;
-}
-
-.unread-copy {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 6rpx;
-}
-
-.unread-title {
-	font-size: 28rpx;
-	font-weight: 700;
-	color: #9a3412;
-}
-
-.unread-desc,
-.unread-note {
-	font-size: 24rpx;
-	color: #b45309;
-	line-height: 1.5;
-}
-
-.unread-note {
-	display: block;
-	margin-top: 12rpx;
-}
-
-.unread-filter-btn {
-	flex-shrink: 0;
-	min-width: 150rpx;
-	height: 58rpx;
-	line-height: 58rpx;
-	padding: 0 22rpx;
-	font-size: 24rpx;
-	color: #ea580c;
-	background: #ffffff;
-	border: 1rpx solid #fdba74;
-	border-radius: 29rpx;
-}
-
-.unread-filter-btn.active {
-	color: #ffffff;
-	background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
-	border-color: transparent;
-}
-
 .unread-empty {
 	margin: 60rpx 40rpx;
 	padding: 48rpx 30rpx;
@@ -1130,6 +1054,17 @@ button::after {
 	color: var(--text-tertiary);
 	text-align: center;
 	line-height: 1.5;
+}
+
+.unread-empty-btn {
+	margin-top: 12rpx;
+	height: 64rpx;
+	line-height: 64rpx;
+	padding: 0 28rpx;
+	font-size: 26rpx;
+	color: #ffffff;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border-radius: 32rpx;
 }
 
 /* 刷新提示 */

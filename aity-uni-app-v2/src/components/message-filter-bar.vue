@@ -40,6 +40,30 @@
 					</scroll-view>
 				</view>
 			</view>
+
+			<!-- 第三行：阅读状态筛选 -->
+			<view class="filter-panel status-panel">
+				<view class="filter-row">
+					<text class="group-label">阅读状态</text>
+					<view class="filter-tabs status-tabs">
+						<view
+							class="filter-tab status-tab"
+							:class="{ active: !unreadActive }"
+							@click="selectUnreadFilter(false)"
+						>
+							<text class="tab-text">全部</text>
+						</view>
+						<view
+							class="filter-tab status-tab unread-status-tab"
+							:class="{ active: unreadActive }"
+							@click="selectUnreadFilter(true)"
+						>
+							<text class="tab-text">未读{{ unreadCount > 0 ? ' ' + unreadCount : '' }}</text>
+						</view>
+						<text class="status-help" @click="showUnreadHelp">?</text>
+					</view>
+				</view>
+			</view>
 		</view>
 	</view>
 </template>
@@ -52,10 +76,18 @@ const props = defineProps({
 	totalCount: {
 		type: Number,
 		default: 0
+	},
+	unreadCount: {
+		type: Number,
+		default: 0
+	},
+	unreadActive: {
+		type: Boolean,
+		default: false
 	}
 })
 
-const emit = defineEmits(['filter-change'])
+const emit = defineEmits(['filter-change', 'unread-change'])
 
 // 筛选条件：消息类型 + 推送用户
 const filters = ref({
@@ -90,6 +122,20 @@ const selectMessageTypeFilter = (value) => {
 const selectPushScopeFilter = (value) => {
 	filters.value.pushScope = value
 	emitFilterChange()
+}
+
+// 选择阅读状态筛选
+const selectUnreadFilter = (unreadOnly) => {
+	emit('unread-change', unreadOnly)
+}
+
+const showUnreadHelp = () => {
+	uni.showModal({
+		title: '未读说明',
+		content: '未读筛选只显示当前列表中尚未阅读的消息。自己发布的消息不会标为未读；底部角标仍以服务端未读统计为准。',
+		showCancel: false,
+		confirmText: '知道了'
+	})
 }
 
 // 发送筛选变化事件
@@ -199,6 +245,37 @@ defineExpose({
 .push-tab.active {
 	background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 	box-shadow: 0 2rpx 8rpx rgba(245, 158, 11, 0.25);
+}
+
+.status-panel {
+	padding-top: 4rpx;
+	padding-bottom: 12rpx;
+}
+
+.status-tabs {
+	display: flex;
+	gap: 14rpx;
+	align-items: center;
+}
+
+.status-tab {
+	min-width: 96rpx;
+}
+
+.unread-status-tab.active {
+	background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+	box-shadow: 0 2rpx 8rpx rgba(249, 115, 22, 0.25);
+}
+
+.status-help {
+	width: 36rpx;
+	height: 36rpx;
+	line-height: 36rpx;
+	text-align: center;
+	font-size: 22rpx;
+	color: #999;
+	background: #f4f4f5;
+	border-radius: 50%;
 }
 
 .tab-text {
