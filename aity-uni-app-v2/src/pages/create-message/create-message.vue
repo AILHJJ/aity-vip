@@ -228,11 +228,15 @@
 					<switch
 						:checked="formData.emailNotify"
 						color="#667eea"
-						@change="formData.emailNotify = $event.detail.value"
+						:disabled="emailNotifyBlocked"
+						@change="handleEmailNotifyChange"
 					/>
 				</view>
 				<text v-if="formData.emailNotify" class="publish-option-warning">
 					发布后会立即邮件提醒匹配用户，短时间测试请避免重复勾选。
+				</text>
+				<text v-else-if="emailNotifyBlocked" class="publish-option-warning">
+					当前仍在提醒冷却期内，系统会阻止重复发送。
 				</text>
 			</view>
 			<view class="bottom-actions">
@@ -361,7 +365,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useUserStore } from '../../store/user'
-import { createMessageApi, updateMessageApi, getMessageDetailApi } from '../../api/message'
+import { createMessageApi, updateMessageApi, getMessageDetailApi, getEmailNotificationStatusApi } from '../../api/message'
 import { uploadImageApi } from '../../api/upload'
 import { optimizeContentApi } from '../../api/ai'
 import { getMessageTypesApi, createMessageTypeApi, deleteMessageTypeApi } from '../../api/messageType'
@@ -395,6 +399,8 @@ const editMode = ref(false)
 const editMessageId = ref(0)
 const draftTimer = ref(null)
 const stockCodeInput = ref('') // 股票代码输入
+const emailNotificationStatus = ref(null)
+const isLoadingEmailNotificationStatus = ref(false)
 
 // AI优化相关状态
 const isOptimizing = ref(false)
@@ -411,11 +417,68 @@ const strategyOptions = [
 	{ label: '中线推送', value: MESSAGE_TAGS.MID_TERM, pushTarget: MESSAGE_TAGS.ALL_USERS }
 ]
 
+const emailNotifyBlocked = computed(() =>
+	Boolean(emailNotificationStatus.value?.inCooldown && emailNotificationStatus.value?.remainingSeconds > 0)
+)
+
+const formatNotifyTime = (value) => {
+	if (!value) return '暂无记录'
+	const date = new Date(value)
+	if (Number.isNaN(date.getTime())) return '暂无记录'
+	const pad = (num) => String(num).padStart(2, '0')
+	return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+const formatRemainingTime = (seconds) => {
+	const totalSeconds = Math.max(0, Number(seconds || 0))
+	const minutes = Math.ceil(totalSeconds / 60)
+	return `${minutes}分钟`
+}
+
 const emailNotifyHint = computed(() => {
+	if (isLoadingEmailNotificationStatus.value) {
+		return '正在读取最近提醒时间...'
+	}
+	if (emailNotifyBlocked.value) {
+		return `上次提醒 ${formatNotifyTime(emailNotificationStatus.value?.lastSentAt)}，还需等待 ${formatRemainingTime(emailNotificationStatus.value?.remainingSeconds)}`
+	}
+	if (emailNotificationStatus.value?.lastSentAt) {
+		return `上次提醒 ${formatNotifyTime(emailNotificationStatus.value.lastSentAt)}，现在可按需发送`
+	}
 	const option = strategyOptions.find(s => s.value === formData.value.strategy)
 	const targetText = option?.label || '当前策略'
 	return `随本次${targetText}通知匹配用户`
 })
+
+const loadEmailNotificationStatus = async () => {
+	if (!userStore.isAdmin) return
+	isLoadingEmailNotificationStatus.value = true
+	try {
+		const res = await getEmailNotificationStatusApi()
+		if ((res.success || res.code === 200) && res.data) {
+			emailNotificationStatus.value = res.data
+			if (emailNotifyBlocked.value) {
+				formData.value.emailNotify = false
+			}
+		}
+	} catch (error) {
+		console.warn('获取邮件提醒状态失败:', error)
+	} finally {
+		isLoadingEmailNotificationStatus.value = false
+	}
+}
+
+const handleEmailNotifyChange = (event) => {
+	if (emailNotifyBlocked.value) {
+		formData.value.emailNotify = false
+		uni.showToast({
+			title: '仍在提醒冷却期内',
+			icon: 'none'
+		})
+		return
+	}
+	formData.value.emailNotify = event.detail.value
+}
 
 // 消息类型选项（简化版本：只显示主要类型）
 const messageTypeOptions = ref([
@@ -1110,7 +1173,7 @@ const handleSubmit = async () => {
 			theme: formData.value.theme || 'default', // 添加主题字段
 			content: finalContent,
 			attachments: uploadedAttachments,
-			emailNotify: !editMode.value && userStore.isAdmin ? Boolean(formData.value.emailNotify) : false
+			emailNotify: !editMode.value && userStore.isAdmin && !emailNotifyBlocked.value ? Boolean(formData.value.emailNotify) : false
 		}
 
 		// 如果使用了AI优化，添加原始内容和优化内容字段
@@ -1182,10 +1245,15 @@ const handleSubmit = async () => {
 				}
 			}
 
+			const notification = res.data?.notification
+			const successTitle = notification?.skipped && notification?.reason === 'cooldown'
+				? '发布成功，提醒冷却中'
+				: (editMode.value ? '修改成功' : '发布成功')
+
 			uni.showToast({
-				title: editMode.value ? '修改成功' : '发布成功',
+				title: successTitle,
 				icon: 'success',
-				duration: 1500
+				duration: 1800
 			})
 
 			// 发布成功后自动返回消息中心并刷新
@@ -1554,6 +1622,7 @@ onMounted(async () => {
 
 	// 加载消息类型列表
 	await loadMessageTypes()
+	await loadEmailNotificationStatus()
 
 	// 检查是否是编辑模式
 	const pages = getCurrentPages()

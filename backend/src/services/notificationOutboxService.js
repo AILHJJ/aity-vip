@@ -1,6 +1,11 @@
 const NotificationOutbox = require('../models/NotificationOutbox');
 const { getEmailTargetsByTags } = require('./notificationTargetService');
 const { sendEmail } = require('./mailService');
+const { Op } = require('sequelize');
+const {
+  buildNotificationEmail,
+  buildCooldownStatus
+} = require('../utils/notificationEmailPolicy');
 
 let tableReadyPromise;
 
@@ -16,35 +21,52 @@ function ensureOutboxTable() {
   return tableReadyPromise;
 }
 
-function buildMessageEmail({ title, content }) {
-  const textContent = String(content || '').replace(/\s+/g, ' ').trim();
-  const summary = textContent.length > 120 ? `${textContent.slice(0, 120)}...` : textContent;
+async function getLastEmailNotification() {
+  await ensureOutboxTable();
+
+  const row = await NotificationOutbox.findOne({
+    where: {
+      channel: 'email',
+      status: { [Op.in]: ['sent', 'dry_run'] },
+      sentAt: { [Op.ne]: null }
+    },
+    order: [['sent_at', 'DESC']]
+  });
+
+  return row;
+}
+
+async function getEmailNotificationStatus(now = new Date()) {
+  const row = await getLastEmailNotification();
+  const status = buildCooldownStatus(row?.sentAt, now);
 
   return {
-    subject: `AITY投研提醒：${title}`,
-    content: [
-      '有新的投研消息，请打开小程序查看。',
-      '',
-      `标题：${title}`,
-      summary ? `摘要：${summary}` : '',
-      '',
-      '本邮件为系统提醒，请勿直接回复。'
-    ].filter(Boolean).join('\n')
+    ...status,
+    lastStatus: row?.status || null,
+    lastRecipient: row?.recipient || null
   };
 }
 
 async function queueMessageEmailNotifications({ message, tags, senderId }) {
   await ensureOutboxTable();
 
-  const targets = await getEmailTargetsByTags(tags, senderId);
-  if (targets.length === 0) {
-    return { queued: 0, targets: 0 };
+  const emailStatus = await getEmailNotificationStatus();
+  if (emailStatus.inCooldown) {
+    return {
+      queued: 0,
+      targets: 0,
+      skipped: true,
+      reason: 'cooldown',
+      cooldown: emailStatus
+    };
   }
 
-  const email = buildMessageEmail({
-    title: message.title,
-    content: message.content
-  });
+  const targets = await getEmailTargetsByTags(tags, senderId);
+  if (targets.length === 0) {
+    return { queued: 0, targets: 0, cooldown: emailStatus };
+  }
+
+  const email = buildNotificationEmail();
 
   const rows = targets.map(target => ({
     messageId: message.id,
@@ -57,7 +79,7 @@ async function queueMessageEmailNotifications({ message, tags, senderId }) {
   }));
 
   await NotificationOutbox.bulkCreate(rows);
-  return { queued: rows.length, targets: targets.length };
+  return { queued: rows.length, targets: targets.length, cooldown: emailStatus };
 }
 
 async function processPendingEmailOutbox(limit = 20) {
@@ -125,7 +147,8 @@ function processPendingEmailOutboxInBackground() {
 }
 
 module.exports = {
-  buildMessageEmail,
+  buildNotificationEmail,
+  getEmailNotificationStatus,
   queueMessageEmailNotifications,
   processPendingEmailOutbox,
   processPendingEmailOutboxInBackground

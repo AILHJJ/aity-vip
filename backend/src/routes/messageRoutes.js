@@ -23,6 +23,12 @@ router.post('/notifications/process',
   messageController.processEmailNotifications
 );
 
+router.get('/notifications/status',
+  authenticateToken,
+  checkAdmin,
+  messageController.getEmailNotificationInfo
+);
+
 router.get('/:id',
   authenticateToken,
   ...validateIdParam(),

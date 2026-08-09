@@ -203,12 +203,14 @@ pm2 restart aity-backend --update-env
 - `MAIL_DRY_RUN=true`
 - 先确认 outbox 记录正常
 - 再切 `MAIL_DRY_RUN=false`
+- 默认保留 `MAIL_NOTIFY_COOLDOWN_MINUTES=10`，避免短时间连续提醒打扰用户
 
 真实发信需要：
 
 - 发件人邮箱：`lhdms88@163.com`
 - 收件人测试邮箱：`625668823@qq.com`
 - 163 客户端授权码
+- 邮件标题和正文只提示有更新，引导用户回到微信小程序查看，不写具体投研内容
 
 ## 十、来源链接
 

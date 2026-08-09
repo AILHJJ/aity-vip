@@ -125,6 +125,14 @@ export function getUnreadCountApi() {
   return get('/messages/unread-count')
 }
 
+/**
+ * 获取邮件提醒状态（管理员专用）
+ * @returns {Promise}
+ */
+export function getEmailNotificationStatusApi() {
+  return get('/messages/notifications/status')
+}
+
 export default {
   getMessagesApi,
   getMessageDetailApi,
@@ -138,5 +146,6 @@ export default {
   pinMessageApi,
   unpinMessageApi,
   getMessageReadDetailsApi,
-  getUnreadCountApi
+  getUnreadCountApi,
+  getEmailNotificationStatusApi
 }

@@ -12,6 +12,7 @@ const DiscussionReply = require('../models/DiscussionReply');
 const { buildVisibleMessageWhere } = require('../utils/messageQueryOptions');
 const {
   queueMessageEmailNotifications,
+  getEmailNotificationStatus,
   processPendingEmailOutbox,
   processPendingEmailOutboxInBackground
 } = require('../services/notificationOutboxService');
@@ -329,6 +330,16 @@ async function processEmailNotifications(req, res) {
   } catch (err) {
     console.error('[邮件推送] 手动处理失败:', err);
     res.status(500).json(error('Server error: ' + err.message));
+  }
+}
+
+async function getEmailNotificationInfo(req, res) {
+  try {
+    const status = await getEmailNotificationStatus();
+    res.json(success(status));
+  } catch (err) {
+    console.error('[邮件推送] 获取提醒状态失败:', err);
+    res.status(500).json(error('Server error'));
   }
 }
 
@@ -752,6 +763,7 @@ module.exports = {
   markMessageAsRead,
   getMessageReadDetails,
   getUnreadCount,
+  getEmailNotificationInfo,
   processEmailNotifications,
   favoriteMessage,
   unfavoriteMessage,

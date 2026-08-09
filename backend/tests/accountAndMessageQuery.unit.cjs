@@ -8,6 +8,10 @@ const {
   normalizeAccountEmail,
   validateAccountEmail
 } = require('../src/utils/accountEmail');
+const {
+  buildNotificationEmail,
+  buildCooldownStatus
+} = require('../src/utils/notificationEmailPolicy');
 
 const fakeOp = {
   or: Symbol.for('or'),
@@ -65,5 +69,19 @@ assert.strictEqual(normalizeAccountEmail('  USER@Example.COM  '), 'user@example.
 assert.deepStrictEqual(validateAccountEmail('user@example.com'), { valid: true, email: 'user@example.com' });
 assert.strictEqual(validateAccountEmail('bad-email').valid, false);
 assert.strictEqual(validateAccountEmail('demo@users.aity.vip').valid, false);
+
+const email = buildNotificationEmail();
+assert.strictEqual(email.subject.includes('小程序有新的内容更新'), true);
+assert.strictEqual(email.content.includes('请打开微信小程序查看最新内容'), true);
+assert.strictEqual(email.content.includes('投资建议'), true);
+assert.strictEqual(email.content.includes('邮件测试'), false);
+
+process.env.MAIL_NOTIFY_COOLDOWN_MINUTES = '10';
+const cooldownStatus = buildCooldownStatus(
+  '2026-08-09T10:00:00.000Z',
+  new Date('2026-08-09T10:05:30.000Z')
+);
+assert.strictEqual(cooldownStatus.inCooldown, true);
+assert.strictEqual(cooldownStatus.remainingSeconds, 270);
 
 console.log('accountAndMessageQuery unit tests passed');
