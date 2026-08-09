@@ -9,6 +9,11 @@ const User = require('../models/User');
 const Group = require('../models/Group');
 const Discussion = require('../models/Discussion');
 const DiscussionReply = require('../models/DiscussionReply');
+const {
+  queueMessageEmailNotifications,
+  processPendingEmailOutbox,
+  processPendingEmailOutboxInBackground
+} = require('../services/notificationOutboxService');
 
 // 统一响应格式
 function success(data, message = 'Success') {
@@ -238,7 +243,7 @@ async function getMessageById(req, res) {
 // 创建消息
 async function createMessage(req, res) {
   try {
-    const { title, content, type, groupId, attachments, tags, theme, publishTime } = req.body;
+    const { title, content, type, groupId, attachments, tags, theme, publishTime, emailNotify } = req.body;
     const userId = req.user.userId;
 
     // 获取用户信息
@@ -304,9 +309,30 @@ async function createMessage(req, res) {
       }
     }
 
+    let notificationResult = null;
+    if (emailNotify === true) {
+      try {
+        notificationResult = await queueMessageEmailNotifications({
+          message,
+          tags: tags || [],
+          senderId: userId
+        });
+        if (process.env.MAIL_AUTO_PROCESS !== 'false') {
+          processPendingEmailOutboxInBackground();
+        }
+      } catch (notifyError) {
+        console.error('[邮件推送] 写入 outbox 失败:', notifyError);
+        notificationResult = {
+          queued: 0,
+          error: notifyError.message
+        };
+      }
+    }
+
     const messageData = {
       ...message.toJSON(),
-      attachments: attachments || []
+      attachments: attachments || [],
+      notification: notificationResult
     };
 
     res.status(201).json(success(messageData, 'Message created successfully'));
@@ -319,6 +345,23 @@ async function createMessage(req, res) {
     } else {
       console.error(err.stack);
     }
+    res.status(500).json(error('Server error: ' + err.message));
+  }
+}
+
+async function processEmailNotifications(req, res) {
+  try {
+    const requestedLimit = Number(req.body?.limit || req.query?.limit || 20);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(Math.max(requestedLimit, 1), 100)
+      : 20;
+    const results = await processPendingEmailOutbox(limit);
+    res.json(success({
+      processed: results.length,
+      results
+    }, 'Email notifications processed'));
+  } catch (err) {
+    console.error('[邮件推送] 手动处理失败:', err);
     res.status(500).json(error('Server error: ' + err.message));
   }
 }
@@ -778,6 +821,7 @@ module.exports = {
   markMessageAsRead,
   getMessageReadDetails,
   getUnreadCount,
+  processEmailNotifications,
   favoriteMessage,
   unfavoriteMessage,
   pinMessage,

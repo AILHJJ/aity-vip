@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS notification_outbox (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  message_id INT NOT NULL,
+  user_id INT NULL,
+  channel ENUM('email') NOT NULL DEFAULT 'email',
+  recipient VARCHAR(255) NOT NULL,
+  subject VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  status ENUM('pending', 'sending', 'sent', 'failed', 'skipped', 'dry_run') NOT NULL DEFAULT 'pending',
+  retry_count INT NOT NULL DEFAULT 0,
+  max_retries INT NOT NULL DEFAULT 3,
+  last_error TEXT NULL,
+  sent_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_notification_outbox_status (status, created_at),
+  INDEX idx_notification_outbox_message (message_id),
+  INDEX idx_notification_outbox_user (user_id),
+  INDEX idx_notification_outbox_recipient (recipient)
+);

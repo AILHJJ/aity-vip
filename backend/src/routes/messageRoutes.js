@@ -17,6 +17,12 @@ router.get('/unread-count',
   messageController.getUnreadCount
 );
 
+router.post('/notifications/process',
+  authenticateToken,
+  checkAdmin,
+  messageController.processEmailNotifications
+);
+
 router.get('/:id',
   authenticateToken,
   ...validateIdParam(),

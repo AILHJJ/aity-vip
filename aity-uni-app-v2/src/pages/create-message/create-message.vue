@@ -20,6 +20,20 @@
 					</view>
 				</view>
 
+				<view v-if="!editMode && userStore.isAdmin" class="form-item mail-notify-section">
+					<view class="setting-row">
+						<view class="mail-notify-copy">
+							<text class="setting-label">邮件提醒</text>
+							<text class="mail-notify-hint">发布后按策略推送范围提醒对应用户</text>
+						</view>
+						<switch
+							:checked="formData.emailNotify"
+							color="#667eea"
+							@change="formData.emailNotify = $event.detail.value"
+						/>
+					</view>
+				</view>
+
 				<!-- 消息类型（标签按钮组，支持动态加载） -->
 				<view class="form-item msg-type-section">
 					<view class="form-label-row">
@@ -368,7 +382,8 @@ const formData = ref({
 	title: '',
 	content: '',
 	attachments: [],
-	stockCodes: [] // 关联股票代码
+	stockCodes: [], // 关联股票代码
+	emailNotify: false
 })
 
 const submitting = ref(false)
@@ -1084,7 +1099,8 @@ const handleSubmit = async () => {
 			tags: tags,
 			theme: formData.value.theme || 'default', // 添加主题字段
 			content: finalContent,
-			attachments: uploadedAttachments
+			attachments: uploadedAttachments,
+			emailNotify: !editMode.value && userStore.isAdmin ? Boolean(formData.value.emailNotify) : false
 		}
 
 		// 如果使用了AI优化，添加原始内容和优化内容字段
@@ -1234,6 +1250,7 @@ const restoreDraft = () => {
 							formData.value.title = draftData.title || ''
 							formData.value.content = draftData.content || ''
 							formData.value.attachments = draftData.attachments || []
+							formData.value.emailNotify = Boolean(draftData.emailNotify)
 							uni.showToast({
 								title: '草稿已恢复',
 								icon: 'success'
@@ -1606,7 +1623,8 @@ onMounted(async () => {
 					title: res.data.title || '',
 					content: res.data.content || '',
 					attachments: processedAttachments,
-					stockCodes: stockCodes
+					stockCodes: stockCodes,
+					emailNotify: false
 				}
 
 				console.log('编辑模式 - formData已设置:', formData.value)
@@ -1693,6 +1711,31 @@ button::after {
 	border: 2rpx solid #667eea;
 	margin-bottom: 24rpx;
 	box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.15);
+}
+
+.mail-notify-section {
+	background: #ffffff;
+	padding: 18rpx 24rpx;
+	border-radius: 12rpx;
+	border: 1rpx solid #e8ecff;
+	margin-bottom: 24rpx;
+}
+
+.mail-notify-section .setting-row {
+	justify-content: space-between;
+	flex-wrap: nowrap;
+}
+
+.mail-notify-copy {
+	display: flex;
+	flex-direction: column;
+	gap: 6rpx;
+}
+
+.mail-notify-hint {
+	font-size: 22rpx;
+	color: #999999;
+	line-height: 1.4;
 }
 
 .setting-row {
