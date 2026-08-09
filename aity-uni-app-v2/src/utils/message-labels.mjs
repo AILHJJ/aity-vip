@@ -20,3 +20,19 @@ export function getMessageTypeDisplayLabel(type, customLabel = '') {
 	const normalizedType = typeof type === 'string' ? type.trim() : ''
 	return MESSAGE_TYPE_DISPLAY_LABELS[normalizedType] || '消息'
 }
+
+const OPERATION_MESSAGE_LABELS = Object.freeze({
+	Success: '操作成功',
+	'Message pinned': '已置顶',
+	'Message unpinned': '已取消置顶',
+	'Message favorited': '已收藏',
+	'Message unfavorited': '已取消收藏',
+	'Message deleted': '已删除'
+})
+
+export function getUserFacingOperationMessage(message, fallback = '操作成功') {
+	const normalizedMessage = typeof message === 'string' ? message.trim() : ''
+	if (!normalizedMessage) return fallback
+
+	return OPERATION_MESSAGE_LABELS[normalizedMessage] || fallback
+}

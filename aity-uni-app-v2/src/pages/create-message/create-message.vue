@@ -97,6 +97,9 @@
 					<view class="editor-footer">
 						<text class="char-count">{{ formData.content.length }}/5000</text>
 					</view>
+					<view class="clipboard-image-tip">
+						小程序暂不支持直接粘贴剪贴板图片，请点击相机按钮从相册、聊天图片或拍照选择。
+					</view>
 				</view>
 
 				<!-- 预览模式 -->
@@ -1794,6 +1797,17 @@ button::after {
 .image-upload-btn-small:active {
 	transform: scale(0.92);
 	background: linear-gradient(135deg, rgba(102, 126, 234, 0.25) 0%, rgba(118, 75, 162, 0.25) 100%);
+}
+
+.clipboard-image-tip {
+	margin-top: 12rpx;
+	font-size: 24rpx;
+	line-height: 1.5;
+	color: #8a6d3b;
+	background: #fff8e1;
+	border: 1rpx solid #ffe0a3;
+	border-radius: 12rpx;
+	padding: 14rpx 18rpx;
 }
 
 .form-label-row {

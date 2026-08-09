@@ -372,6 +372,7 @@ import { MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatTime, formatFriendlyTime } from '../../utils/time'
 import { MarkdownRenderer, ThemeStyles } from '../../utils/markdown-renderer'
 import { BASE_URL } from '../../utils/config'
+import { getUserFacingOperationMessage } from '../../utils/message-labels.mjs'
 
 const userStore = useUserStore()
 
@@ -945,16 +946,16 @@ const handleTogglePin = async () => {
 		const action = message.value.isPinned ? '取消置顶' : '置顶'
 
 		const result = await api(messageId.value)
-		if (result.success) {
+		if (result.success || result.code === 200) {
 			// 更新本地状态
 			message.value.isPinned = !message.value.isPinned
 			uni.showToast({
-				title: `${action}成功`,
+				title: getUserFacingOperationMessage(result.message, `${action}成功`),
 				icon: 'success'
 			})
 		} else {
 			uni.showToast({
-				title: result.message || `${action}失败`,
+				title: getUserFacingOperationMessage(result.message, `${action}失败`),
 				icon: 'none'
 			})
 		}

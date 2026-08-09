@@ -186,6 +186,9 @@
 					<text class="image-add-btn" @click="chooseReplyImage">📷 添加图片</text>
 					<text v-if="replyImages.length > 0" class="image-count">{{ replyImages.length }}/9</text>
 				</view>
+				<view class="clipboard-image-tip">
+					小程序暂不支持直接粘贴剪贴板图片，请从相册、聊天图片或拍照选择。
+				</view>
 				<!-- 管理员：始终显示两个按钮 -->
 				<view v-if="userStore.isAdmin" class="reply-buttons">
 					<button
@@ -1327,5 +1330,16 @@ button::after {
 .image-count {
 	font-size: 22rpx;
 	color: #999999;
+}
+
+.clipboard-image-tip {
+	margin-top: 10rpx;
+	font-size: 22rpx;
+	line-height: 1.5;
+	color: #8a6d3b;
+	background: #fff8e1;
+	border: 1rpx solid #ffe0a3;
+	border-radius: 10rpx;
+	padding: 12rpx 16rpx;
 }
 </style>

@@ -45,6 +45,23 @@
 			@filter-change="handleMessageFilterChange"
 		/>
 
+		<view v-if="serverUnreadCount > 0 || loadedUnreadCount > 0" class="unread-panel">
+			<view class="unread-panel-main">
+				<view class="unread-copy">
+					<text class="unread-title">未读消息</text>
+					<text class="unread-desc">
+						角标显示 {{ serverUnreadCount }} 条，当前列表可定位 {{ loadedUnreadCount }} 条
+					</text>
+				</view>
+				<button class="unread-filter-btn" :class="{ active: showUnreadOnly }" @click="toggleUnreadOnly">
+					{{ showUnreadOnly ? '查看全部' : '只看未读' }}
+				</button>
+			</view>
+			<text v-if="unloadedUnreadCount > 0" class="unread-note">
+				还有 {{ unloadedUnreadCount }} 条未读可能在未加载消息中，可继续下拉刷新或加载更多。
+			</text>
+		</view>
+
 		<!-- 消息列表 -->
 		<scroll-view
 				class="messages-scroll"
@@ -76,6 +93,11 @@
 			<!-- 搜索无结果 -->
 			<empty-state v-else-if="filteredMessages.length === 0 && searchKeyword" type="no-result" />
 
+			<view v-else-if="displayedMessages.length === 0 && showUnreadOnly" class="unread-empty">
+				<text class="unread-empty-title">当前列表没有未读消息</text>
+				<text class="unread-empty-desc">如果底部角标仍有数量，说明未读消息可能在未加载分页中。</text>
+			</view>
+
 			<!-- 置顶消息区域 -->
 			<view v-if="pinnedMessages.length > 0" class="pinned-section">
 				<!-- 置顶消息头部 -->
@@ -93,7 +115,7 @@
 						v-for="message in pinnedMessages"
 						:key="'pinned-' + message.id"
 						class="message-item pinned"
-						:class="{ unread: isMessageUnread(message.id) }"
+						:class="{ unread: isMessageUnread(message) }"
 						@click="goToDetail(message.id)"
 					>
 						<!-- 第一行：类型标签 + 日期 -->
@@ -102,6 +124,7 @@
 								{{ getMessageTypeLabel(message.type) }}
 							</view>
 							<view class="message-time-wrapper">
+								<text v-if="isMessageUnread(message)" class="unread-pill">未读</text>
 								<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
 							</view>
 						</view>
@@ -148,7 +171,7 @@
 				v-for="message in normalMessages"
 				:key="message.id"
 				class="message-item"
-				:class="{ unread: isMessageUnread(message.id) }"
+				:class="{ unread: isMessageUnread(message) }"
 				@click="goToDetail(message.id)"
 			>
 				<!-- 第一行：类型标签 + 日期 -->
@@ -157,6 +180,7 @@
 						{{ getMessageTypeLabel(message.type) }}
 					</view>
 					<view class="message-time-wrapper">
+						<text v-if="isMessageUnread(message)" class="unread-pill">未读</text>
 						<text class="message-time">{{ formatFriendlyTime(message.createdAt) }}</text>
 					</view>
 				</view>
@@ -223,7 +247,7 @@ import { getMessageTypesApi } from '../../api/messageType'
 import { MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../utils/constants'
 import { formatFriendlyTime } from '../../utils/time'
 import { getSearchHistory, addSearchHistory, clearSearchHistory, removeSearchHistory } from '../../utils/search-history'
-import { isMessageRead, markAsRead, getUnreadCount } from '../../utils/read-status'
+import { isMessageRead, markAsRead } from '../../utils/read-status'
 import { markMessageAsReadApi } from '../../api/message'
 import dayjs from 'dayjs'
 import MessageSkeleton from '@/components/message-skeleton.vue'
@@ -248,6 +272,8 @@ const searchHistory = ref([]) // 搜索历史列表
 const today = ref('') // 今天的日期
 const isPinnedSectionExpanded = ref(true) // 置顶消息区域是否展开
 const messageTypeLabelMap = ref({ ...MESSAGE_TYPE_LABELS }) // 动态消息类型标签映射
+const showUnreadOnly = ref(false)
+const readStatusVersion = ref(0)
 
 // 可拖动FAB按钮状态
 const fabX = ref(0)
@@ -285,7 +311,7 @@ const togglePinnedSection = () => {
 
 // 置顶消息列表（最多显示3条，按置顶时间倒序）
 const pinnedMessages = computed(() => {
-	return filteredMessages.value
+	return displayedMessages.value
 		.filter(msg => msg.isPinned)
 		.sort((a, b) => {
 			// 按置顶时间倒序（最新置顶的在最上面）
@@ -298,7 +324,7 @@ const pinnedMessages = computed(() => {
 
 // 普通消息列表（不包含置顶消息）
 const normalMessages = computed(() => {
-	return filteredMessages.value.filter(msg => !msg.isPinned)
+	return displayedMessages.value.filter(msg => !msg.isPinned)
 })
 
 // 基础筛选条件（所有用户） - 从 MessageFilterBar 组件接收
@@ -428,6 +454,18 @@ const filteredMessages = computed(() => {
 
 	return filtered
 })
+
+const unreadMessagesInFiltered = computed(() => {
+	return filteredMessages.value.filter(msg => isMessageUnread(msg))
+})
+
+const displayedMessages = computed(() => {
+	return showUnreadOnly.value ? unreadMessagesInFiltered.value : filteredMessages.value
+})
+
+const loadedUnreadCount = computed(() => unreadMessagesInFiltered.value.length)
+const serverUnreadCount = computed(() => Number(userStore.unreadCount || 0))
+const unloadedUnreadCount = computed(() => Math.max(serverUnreadCount.value - loadedUnreadCount.value, 0))
 
 // 加载动态消息类型标签，默认类型仍使用本地2字标签，自定义类型使用后台名称
 const loadMessageTypeLabels = async () => {
@@ -617,9 +655,7 @@ const loadMessages = async (isRefresh = false) => {
 
 // 更新未读消息数
 const updateUnreadCount = () => {
-	const allMessageIds = messages.value.map(msg => msg.id)
-	const unreadCount = getUnreadCount(allMessageIds)
-	userStore.setUnreadCount(unreadCount)
+	userStore.fetchUnreadCount()
 }
 
 // ========== 页面生命周期 ==========
@@ -652,8 +688,16 @@ onMounted(async () => {
 })
 
 // 检查消息是否未读
-const isMessageUnread = (messageId) => {
+const isMessageUnread = (messageOrId) => {
+	readStatusVersion.value
+	const message = typeof messageOrId === 'object' && messageOrId !== null ? messageOrId : null
+	const messageId = message ? message.id : messageOrId
+	if (message && typeof message.isRead === 'boolean') return !message.isRead
 	return !isMessageRead(messageId)
+}
+
+const toggleUnreadOnly = () => {
+	showUnreadOnly.value = !showUnreadOnly.value
 }
 
 // 下拉刷新
@@ -726,6 +770,9 @@ const handleMessageFilterChange = (newFilters) => {
 const goToDetail = (id) => {
 	// 本地标记已读
 	markAsRead(id)
+	const target = messages.value.find(msg => msg.id === id)
+	if (target) target.isRead = true
+	readStatusVersion.value++
 	updateUnreadCount()
 
 	// 同步到服务端（不阻塞UI）
@@ -978,6 +1025,90 @@ button::after {
 .messages-scroll {
 	flex: 1;
 	overflow-y: auto;
+}
+
+.unread-panel {
+	margin: 16rpx 20rpx 0;
+	padding: 20rpx;
+	background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 100%);
+	border: 1rpx solid #fed7aa;
+	border-radius: 16rpx;
+}
+
+.unread-panel-main {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20rpx;
+}
+
+.unread-copy {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 6rpx;
+}
+
+.unread-title {
+	font-size: 28rpx;
+	font-weight: 700;
+	color: #9a3412;
+}
+
+.unread-desc,
+.unread-note {
+	font-size: 24rpx;
+	color: #b45309;
+	line-height: 1.5;
+}
+
+.unread-note {
+	display: block;
+	margin-top: 12rpx;
+}
+
+.unread-filter-btn {
+	flex-shrink: 0;
+	min-width: 150rpx;
+	height: 58rpx;
+	line-height: 58rpx;
+	padding: 0 22rpx;
+	font-size: 24rpx;
+	color: #ea580c;
+	background: #ffffff;
+	border: 1rpx solid #fdba74;
+	border-radius: 29rpx;
+}
+
+.unread-filter-btn.active {
+	color: #ffffff;
+	background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+	border-color: transparent;
+}
+
+.unread-empty {
+	margin: 60rpx 40rpx;
+	padding: 48rpx 30rpx;
+	background: var(--bg-card);
+	border: 1rpx dashed var(--border-secondary);
+	border-radius: 18rpx;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12rpx;
+}
+
+.unread-empty-title {
+	font-size: 30rpx;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.unread-empty-desc {
+	font-size: 24rpx;
+	color: var(--text-tertiary);
+	text-align: center;
+	line-height: 1.5;
 }
 
 /* 刷新提示 */
@@ -1657,6 +1788,19 @@ button::after {
 
 .message-time-wrapper {
 	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	gap: 10rpx;
+}
+
+.unread-pill {
+	padding: 4rpx 12rpx;
+	font-size: 20rpx;
+	font-weight: 600;
+	color: #ffffff;
+	background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+	border-radius: 999rpx;
+	box-shadow: 0 2rpx 8rpx rgba(239, 68, 68, 0.25);
 }
 
 .message-footer-row {
