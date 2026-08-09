@@ -1,7 +1,8 @@
 param(
   [string]$Version = (git rev-parse --short HEAD),
   [string]$Server = 'root@124.221.119.134',
-  [string]$KeyPath = 'D:\your-mcp-proxy\99-个人探索\AITY_VIP\_运维配置_敏感\AITY0127.pem'
+  [string]$KeyPath = 'D:\your-mcp-proxy\99-个人探索\AITY_VIP\_运维配置_敏感\AITY0127.pem',
+  [string]$ScpExe = 'C:\Program Files\Git\usr\bin\scp.exe'
 )
 
 $repoRoot = Split-Path $PSScriptRoot -Parent
@@ -13,10 +14,10 @@ New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
 
 Push-Location $repoRoot
 try {
-  git archive --format=tar HEAD backend | tar -czf "$artifact" -
+  git archive --format=tar.gz -o "$artifact" HEAD backend
   $hash = Get-FileHash -Algorithm SHA256 -Path $artifact
   Set-Content -LiteralPath $shaFile -Value ("{0}  {1}" -f $hash.Hash, (Split-Path $artifact -Leaf))
-  scp -i $KeyPath $artifact "${Server}:/tmp/"
+  & $ScpExe -i $KeyPath $artifact "${Server}:/tmp/"
   Write-Host "发布包已生成: $artifact"
   Write-Host "SHA256: $($hash.Hash)"
   Write-Host "已上传到服务器 /tmp/"
