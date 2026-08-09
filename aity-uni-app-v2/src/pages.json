@@ -105,6 +105,12 @@
 			}
 		},
 		{
+			"path": "pages/change-email/change-email",
+			"style": {
+				"navigationBarTitleText": "修改邮箱"
+			}
+		},
+		{
 			"path": "pages/webview/webview",
 			"style": {
 				"navigationBarTitleText": "行情图",

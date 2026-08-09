@@ -9,6 +9,7 @@ const User = require('../models/User');
 const Group = require('../models/Group');
 const Discussion = require('../models/Discussion');
 const DiscussionReply = require('../models/DiscussionReply');
+const { buildVisibleMessageWhere } = require('../utils/messageQueryOptions');
 const {
   queueMessageEmailNotifications,
   processPendingEmailOutbox,
@@ -65,10 +66,9 @@ async function getMessages(req, res) {
     console.log('=== 获取消息列表请求开始 ===');
     const startTime = Date.now();
 
-    const { page = 1, limit = 10, type, groupId, status } = req.query;
+    const { page = 1, limit = 10 } = req.query;
     const userId = req.user.userId;
     const offset = (page - 1) * limit;
-    const where = {};
 
     // 获取当前用户信息
     const currentUser = await User.findByPk(userId);
@@ -76,61 +76,18 @@ async function getMessages(req, res) {
       return res.status(404).json(notFound('User not found'));
     }
 
-    // 构建复杂的查询条件
-    const andConditions = [];
-
-    // 状态过滤（仅管理员可用）
-    if (status && (currentUser.role === 'super_admin' || currentUser.role === 'admin')) {
-      // 管理员可以看到所有状态的消息
-      where.status = status;
-    } else {
-      // 普通用户只能看到已发布的消息，或者定时发布时间已到的消息
-      // 向后兼容：status为null的旧消息也应该显示
-      andConditions.push({
-        [Op.or]: [
-          { status: 'published' },
-          { status: { [Op.is]: null } }, // 向后兼容旧数据
-          {
-            status: 'scheduled',
-            publishTime: { [Op.lte]: new Date() }
-          }
-        ]
-      });
-    }
-
-    // 类型过滤
-    if (type) where.type = type;
-
-    // 分组过滤
-    if (groupId) where.groupId = groupId;
-
-    // 标签权限过滤（trial用户和管理员不受限制）
-    if (currentUser.role !== 'trial' && currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
-      // vip_mid 只能看到包含"mid_term"或"all_users"标签的消息
-      // vip_short 只能看到包含"short_term"或"all_users"标签的消息
-      const allowedTags = currentUser.role === 'vip_mid'
-        ? ['mid_term', 'all_users']
-        : ['short_term', 'all_users'];
-
-      andConditions.push({
-        [Op.or]: [
-          { tags: null }, // 没有标签的消息所有人可见（向后兼容）
-          sequelize.where(
-            sequelize.fn('JSON_CONTAINS', sequelize.col('tags'), JSON.stringify(allowedTags[0])),
-            1
-          ),
-          sequelize.where(
-            sequelize.fn('JSON_CONTAINS', sequelize.col('tags'), JSON.stringify(allowedTags[1])),
-            1
-          )
-        ]
-      });
-    }
-
-    // 合并所有条件
-    if (andConditions.length > 0) {
-      where[Op.and] = andConditions;
-    }
+    const readRecords = await UserMessageRead.findAll({
+      where: { userId },
+      attributes: ['messageId']
+    });
+    const readMessageIds = readRecords.map(record => record.messageId);
+    const where = buildVisibleMessageWhere({
+      user: currentUser,
+      query: req.query,
+      readMessageIds,
+      sequelize,
+      Op
+    });
 
     // 排序：置顶消息优先，然后按创建时间倒序
     const { count, rows } = await Message.findAndCountAll({
@@ -145,11 +102,20 @@ async function getMessages(req, res) {
       }]
     });
 
+    const readMessageIdSet = new Set(readMessageIds.map(id => Number(id)));
+    const list = rows.map(row => {
+      const item = row.toJSON();
+      const senderId = item.senderId || item.sender_id;
+      item.isRead = String(senderId || '') === String(userId)
+        || readMessageIdSet.has(Number(item.id));
+      return item;
+    });
+
     console.log('获取消息列表请求处理完成，总耗时:', Date.now() - startTime, 'ms');
 
     // 统一响应格式: { code, message, data: { list, pagination } }
     res.json(success({
-      list: rows,
+      list,
       pagination: {
         total: count,
         page: parseInt(page),
@@ -647,54 +613,19 @@ async function getUnreadCount(req, res) {
       return res.status(404).json(notFound('User not found'));
     }
 
-    // 构建用户可见消息的查询条件
-    const messageWhere = {
-      [Op.or]: [
-        { status: 'published' },
-        { status: { [Op.is]: null } },
-        {
-          status: 'scheduled',
-          publishTime: { [Op.lte]: new Date() }
-        }
-      ]
-    };
-
-    // tags 权限过滤
-    if (currentUser.role !== 'trial' && currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
-      const allowedTags = currentUser.role === 'vip_mid'
-        ? ['mid_term', 'all_users']
-        : ['short_term', 'all_users'];
-
-      messageWhere[Op.and] = [
-        messageWhere[Op.or] ? { [Op.or]: messageWhere[Op.or] } : {},
-        {
-          [Op.or]: [
-            { tags: null },
-            sequelize.where(
-              sequelize.fn('JSON_CONTAINS', sequelize.col('tags'), JSON.stringify(allowedTags[0])),
-              1
-            ),
-            sequelize.where(
-              sequelize.fn('JSON_CONTAINS', sequelize.col('tags'), JSON.stringify(allowedTags[1])),
-              1
-            )
-          ]
-        }
-      ];
-      delete messageWhere[Op.or];
-    }
-
     // 获取用户已读消息ID列表
     const readRecords = await UserMessageRead.findAll({
       where: { userId },
       attributes: ['messageId']
     });
     const readMessageIds = readRecords.map(r => r.messageId);
-
-    // 排除已读消息
-    if (readMessageIds.length > 0) {
-      messageWhere.id = { [Op.notIn]: readMessageIds };
-    }
+    const messageWhere = buildVisibleMessageWhere({
+      user: currentUser,
+      query: { readStatus: 'unread' },
+      readMessageIds,
+      sequelize,
+      Op
+    });
 
     const unreadCount = await Message.count({ where: messageWhere });
 

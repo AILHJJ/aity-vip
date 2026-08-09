@@ -2,7 +2,7 @@
  * 用户状态管理
  */
 import { defineStore } from 'pinia'
-import { loginApi, logoutApi, getCurrentUserApi, changePasswordApi } from '../api/auth'
+import { loginApi, logoutApi, getCurrentUserApi, changePasswordApi, changeEmailApi } from '../api/auth'
 import { getUnreadCountApi } from '../api/message'
 
 export const useUserStore = defineStore('user', {
@@ -263,6 +263,29 @@ export const useUserStore = defineStore('user', {
       } catch (error) {
         console.error('修改密码失败:', error)
         return { success: false, message: error.message || '密码修改失败' }
+      }
+    },
+
+    /**
+     * 修改邮箱
+     * @param {Object} data 邮箱数据
+     * @param {String} data.email 新邮箱
+     */
+    async changeEmail(data) {
+      try {
+        const res = await changeEmailApi(data)
+
+        if (res.code === 200) {
+          this.updateUserInfo({
+            email: res.data?.email || data.email
+          })
+          return { success: true, message: '邮箱修改成功', data: res.data }
+        }
+
+        return { success: false, message: res.message || '邮箱修改失败' }
+      } catch (error) {
+        console.error('修改邮箱失败:', error)
+        return { success: false, message: error.message || '邮箱修改失败' }
       }
     },
 

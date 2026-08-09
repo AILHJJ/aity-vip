@@ -43,9 +43,20 @@ export function changePasswordApi(data) {
   return post('/auth/change-password', data)
 }
 
+/**
+ * 修改邮箱
+ * @param {Object} data 邮箱数据
+ * @param {String} data.email 新邮箱
+ * @returns {Promise}
+ */
+export function changeEmailApi(data) {
+  return post('/auth/change-email', data)
+}
+
 export default {
   loginApi,
   logoutApi,
   getCurrentUserApi,
-  changePasswordApi
+  changePasswordApi,
+  changeEmailApi
 }

@@ -132,7 +132,7 @@ const selectUnreadFilter = (unreadOnly) => {
 const showUnreadHelp = () => {
 	uni.showModal({
 		title: '未读说明',
-		content: '未读筛选只显示当前列表中尚未阅读的消息。自己发布的消息不会标为未读；底部角标仍以服务端未读统计为准。',
+		content: '未读筛选会从服务端加载当前筛选范围内尚未阅读的消息。自己发布的消息不会计入未读。',
 		showCancel: false,
 		confirmText: '知道了'
 	})

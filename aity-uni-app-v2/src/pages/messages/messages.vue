@@ -41,8 +41,8 @@
 
 		<!-- 筛选栏 -->
 		<message-filter-bar
-			:total-count="filteredMessages.length"
-			:unread-count="serverUnreadCount || loadedUnreadCount"
+			:total-count="totalMessages || filteredMessages.length"
+			:unread-count="serverUnreadCount"
 			:unread-active="showUnreadOnly"
 			@filter-change="handleMessageFilterChange"
 			@unread-change="handleUnreadFilterChange"
@@ -73,17 +73,17 @@
 				<text class="loading-text">加载中...</text>
 			</view>
 
+			<view v-else-if="messages.length === 0 && showUnreadOnly" class="unread-empty">
+				<text class="unread-empty-title">暂无未读消息</text>
+				<text class="unread-empty-desc">当前筛选范围内没有未读内容，可以切回全部消息继续浏览。</text>
+				<button class="unread-empty-btn" @click="handleUnreadFilterChange(false)">查看全部消息</button>
+			</view>
+
 			<!-- 空状态 -->
 			<empty-state v-else-if="messages.length === 0" type="message" />
 
 			<!-- 搜索无结果 -->
 			<empty-state v-else-if="filteredMessages.length === 0 && searchKeyword" type="no-result" />
-
-			<view v-else-if="displayedMessages.length === 0 && showUnreadOnly" class="unread-empty">
-				<text class="unread-empty-title">当前列表没有未读消息</text>
-				<text class="unread-empty-desc">如果底部角标仍有数量，说明未读消息可能在未加载分页中。</text>
-				<button class="unread-empty-btn" @click="handleUnreadFilterChange(false)">查看全部消息</button>
-			</view>
 
 			<!-- 置顶消息区域 -->
 			<view v-if="pinnedMessages.length > 0" class="pinned-section">
@@ -251,6 +251,7 @@ const refreshing = ref(false)
 const page = ref(1)
 const limit = ref(20)
 const hasMore = ref(true)
+const totalMessages = ref(0)
 const activeTag = ref('')
 const searchKeyword = ref('')
 const userInfoLoaded = ref(false) // 用户信息加载状态
@@ -442,15 +443,10 @@ const filteredMessages = computed(() => {
 	return filtered
 })
 
-const unreadMessagesInFiltered = computed(() => {
-	return filteredMessages.value.filter(msg => isMessageUnread(msg))
-})
-
 const displayedMessages = computed(() => {
-	return showUnreadOnly.value ? unreadMessagesInFiltered.value : filteredMessages.value
+	return filteredMessages.value
 })
 
-const loadedUnreadCount = computed(() => unreadMessagesInFiltered.value.length)
 const serverUnreadCount = computed(() => Number(userStore.unreadCount || 0))
 
 // 加载动态消息类型标签，默认类型仍使用本地2字标签，自定义类型使用后台名称
@@ -597,6 +593,18 @@ const loadMessages = async (isRefresh = false) => {
 			limit: limit.value
 		}
 
+		if (showUnreadOnly.value) {
+			params.readStatus = 'unread'
+		}
+
+		if (basicFilters.value.messageType && basicFilters.value.messageType !== 'all') {
+			params.type = basicFilters.value.messageType
+		}
+
+		if (basicFilters.value.pushScope) {
+			params.tag = basicFilters.value.pushScope
+		}
+
 		if (activeTag.value) {
 			params.tag = activeTag.value
 		}
@@ -609,6 +617,7 @@ const loadMessages = async (isRefresh = false) => {
 			// 后端返回格式: { code: 200, message: "Success", data: { list: [...], pagination: {...} } }
 			const messageList = res.data.list || []
 			const total = res.data.pagination?.total || 0
+			totalMessages.value = total
 
 			if (isRefresh) {
 				messages.value = messageList
@@ -643,35 +652,6 @@ const loadMessages = async (isRefresh = false) => {
 const updateUnreadCount = () => {
 	userStore.fetchUnreadCount()
 }
-
-// ========== 页面生命周期 ==========
-
-// 页面加载时初始化
-onMounted(async () => {
-	// 检查登录状态
-	if (!userStore.isLoggedIn) {
-		uni.reLaunch({
-			url: '/pages/login/login'
-		})
-		return
-	}
-
-	// 设置今天的日期
-	const now = new Date()
-	today.value = now.toISOString().split('T')[0]
-
-	// 加载动态消息类型标签和消息列表
-	await loadMessageTypeLabels()
-	await loadMessages()
-
-	// 恢复搜索历史
-	searchHistory.value = getSearchHistory()
-
-	// 注意: 筛选条件现在通过 filter-bar 和 message-filter-bar 组件内部处理
-
-	// 标记页面加载完成
-	userInfoLoaded.value = true
-})
 
 // 检查消息是否未读
 const isMessageUnread = (messageOrId) => {
@@ -764,10 +744,15 @@ const handleRemoveHistory = (keyword) => {
 // 处理消息筛选变化（从 MessageFilterBar 组件接收）
 const handleMessageFilterChange = (newFilters) => {
 	basicFilters.value = { ...basicFilters.value, ...newFilters }
+	if (userInfoLoaded.value) {
+		loadMessages(true)
+	}
 }
 
 const handleUnreadFilterChange = (unreadOnly) => {
+	if (showUnreadOnly.value === unreadOnly) return
 	showUnreadOnly.value = unreadOnly
+	loadMessages(true)
 }
 
 // 跳转到详情

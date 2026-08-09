@@ -1,6 +1,8 @@
 // 认证控制器
 const bcrypt = require('bcryptjs');
+const { Op } = require('sequelize');
 const { generateToken } = require('../utils/jwtUtils');
+const { validateAccountEmail } = require('../utils/accountEmail');
 
 // 导入用户模型
 const User = require('../models/User');
@@ -275,11 +277,59 @@ async function changePassword(req, res) {
   }
 }
 
+// 修改当前用户邮箱
+async function changeEmail(req, res) {
+  try {
+    const userId = req.user.userId;
+    const validation = validateAccountEmail(req.body?.email);
+
+    if (!validation.valid) {
+      return res.status(400).json(badRequest(validation.message));
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json(notFound('用户不存在'));
+    }
+
+    const email = validation.email;
+    const existingUser = await User.findOne({
+      where: {
+        email,
+        id: { [Op.ne]: userId }
+      }
+    });
+
+    if (existingUser) {
+      return res.status(400).json(badRequest('该邮箱已被其他用户使用'));
+    }
+
+    if (user.email !== email) {
+      await user.update({ email });
+      console.log(`[修改邮箱] 用户: ${user.name} 邮箱修改为 ${email}`);
+    }
+
+    return res.json(success({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      groupId: user.groupId,
+      avatar: user.avatar,
+      status: user.status
+    }, '邮箱修改成功'));
+  } catch (err) {
+    console.error('修改邮箱错误:', err);
+    res.status(500).json(error('系统错误，请稍后重试'));
+  }
+}
+
 module.exports = {
   login,
   logout,
   getCurrentUser,
   getUsers,
   updateUser,
-  changePassword
+  changePassword,
+  changeEmail
 };

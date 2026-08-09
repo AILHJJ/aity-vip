@@ -34,4 +34,10 @@ router.post('/change-password',
   authController.changePassword
 );
 
+// 修改当前用户邮箱
+router.post('/change-email',
+  authenticateToken,
+  authController.changeEmail
+);
+
 module.exports = router;

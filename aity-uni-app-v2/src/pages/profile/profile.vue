@@ -8,6 +8,7 @@
 			<view class="user-info">
 				<text class="user-name">{{ userStore.userName || '用户' }}</text>
 				<text class="user-role">{{ getRoleLabel(userStore.userRole) }}</text>
+				<text class="user-email">{{ userEmailText }}</text>
 			</view>
 			<view class="card-decoration"></view>
 		</view>
@@ -99,6 +100,17 @@
 			</view>
 
 			<!-- 主题设置 -->
+			<view class="menu-item" @click="goToChangeEmail">
+				<view class="menu-left">
+					<text class="menu-icon">@</text>
+					<text class="menu-text">修改邮箱</text>
+				</view>
+				<view class="menu-right">
+					<text class="email-preview">{{ userEmailPreview }}</text>
+					<text class="menu-arrow">?</text>
+				</view>
+			</view>
+
 			<view class="menu-item" @click="showThemeSettings">
 				<view class="menu-left">
 					<text class="menu-icon">🎨</text>
@@ -167,6 +179,26 @@ const userInitial = computed(() => {
 	}
 	// 处理中文名，取第一个字符
 	return name.charAt(0).toUpperCase()
+})
+
+const isPlaceholderEmail = computed(() => {
+	return String(userStore.userEmail || '').toLowerCase().endsWith('@users.aity.vip')
+})
+
+const userEmailText = computed(() => {
+	if (!userStore.userEmail || isPlaceholderEmail.value) {
+		return '未设置有效邮箱'
+	}
+	return userStore.userEmail
+})
+
+const userEmailPreview = computed(() => {
+	if (!userStore.userEmail || isPlaceholderEmail.value) {
+		return '待完善'
+	}
+	return userStore.userEmail.length > 18
+		? `${userStore.userEmail.slice(0, 15)}...`
+		: userStore.userEmail
 })
 
 // 获取角色标签
@@ -265,6 +297,13 @@ const goToAiConfig = () => {
 const goToChangePassword = () => {
 	uni.navigateTo({
 		url: '/pages/change-password/change-password'
+	})
+}
+
+// 跳转到修改邮箱
+const goToChangeEmail = () => {
+	uni.navigateTo({
+		url: '/pages/change-email/change-email'
 	})
 }
 
@@ -392,6 +431,15 @@ button::after {
 	align-self: flex-start;
 }
 
+.user-email {
+	max-width: 460rpx;
+	font-size: 24rpx;
+	color: rgba(255, 255, 255, 0.72);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 /* 菜单区块 - 玻璃拟态 */
 .menu-section {
 	background-color: var(--bg-card);
@@ -455,6 +503,15 @@ button::after {
 	background-color: var(--bg-tertiary);
 	padding: 4rpx 16rpx;
 	border-radius: 12rpx;
+}
+
+.email-preview {
+	max-width: 260rpx;
+	font-size: 24rpx;
+	color: var(--text-secondary);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .unread-badge {
