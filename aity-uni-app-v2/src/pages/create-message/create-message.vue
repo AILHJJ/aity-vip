@@ -20,20 +20,6 @@
 					</view>
 				</view>
 
-				<view v-if="!editMode && userStore.isAdmin" class="form-item mail-notify-section">
-					<view class="setting-row">
-						<view class="mail-notify-copy">
-							<text class="setting-label">邮件提醒</text>
-							<text class="mail-notify-hint">发布后按策略推送范围提醒对应用户</text>
-						</view>
-						<switch
-							:checked="formData.emailNotify"
-							color="#667eea"
-							@change="formData.emailNotify = $event.detail.value"
-						/>
-					</view>
-				</view>
-
 				<!-- 消息类型（标签按钮组，支持动态加载） -->
 				<view class="form-item msg-type-section">
 					<view class="form-label-row">
@@ -233,10 +219,28 @@
 
 		<!-- 固定底部按钮 -->
 		<view class="fixed-bottom-bar">
-			<button class="cancel-btn" @click="handleCancel">取消</button>
-			<button class="submit-btn" :disabled="submitting || isOptimizing" @click="handleSubmit">
-				{{ submitting ? '发布中...' : '发布消息' }}
-			</button>
+			<view v-if="!editMode && userStore.isAdmin" class="publish-options">
+				<view class="publish-option-main">
+					<view class="publish-option-copy">
+						<text class="publish-option-title">邮件提醒</text>
+						<text class="publish-option-hint">{{ emailNotifyHint }}</text>
+					</view>
+					<switch
+						:checked="formData.emailNotify"
+						color="#667eea"
+						@change="formData.emailNotify = $event.detail.value"
+					/>
+				</view>
+				<text v-if="formData.emailNotify" class="publish-option-warning">
+					发布后会立即邮件提醒匹配用户，短时间测试请避免重复勾选。
+				</text>
+			</view>
+			<view class="bottom-actions">
+				<button class="cancel-btn" @click="handleCancel">取消</button>
+				<button class="submit-btn" :disabled="submitting || isOptimizing" @click="handleSubmit">
+					{{ submitting ? '发布中...' : '发布消息' }}
+				</button>
+			</view>
 		</view>
 
 		<!-- AI优化预览弹窗 -->
@@ -406,6 +410,12 @@ const strategyOptions = [
 	{ label: '短线推送', value: MESSAGE_TAGS.SHORT_TERM, pushTarget: MESSAGE_TAGS.SHORT_TERM },
 	{ label: '中线推送', value: MESSAGE_TAGS.MID_TERM, pushTarget: MESSAGE_TAGS.ALL_USERS }
 ]
+
+const emailNotifyHint = computed(() => {
+	const option = strategyOptions.find(s => s.value === formData.value.strategy)
+	const targetText = option?.label || '当前策略'
+	return `随本次${targetText}通知匹配用户`
+})
 
 // 消息类型选项（简化版本：只显示主要类型）
 const messageTypeOptions = ref([
@@ -1713,31 +1723,6 @@ button::after {
 	box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.15);
 }
 
-.mail-notify-section {
-	background: #ffffff;
-	padding: 18rpx 24rpx;
-	border-radius: 12rpx;
-	border: 1rpx solid #e8ecff;
-	margin-bottom: 24rpx;
-}
-
-.mail-notify-section .setting-row {
-	justify-content: space-between;
-	flex-wrap: nowrap;
-}
-
-.mail-notify-copy {
-	display: flex;
-	flex-direction: column;
-	gap: 6rpx;
-}
-
-.mail-notify-hint {
-	font-size: 22rpx;
-	color: #999999;
-	line-height: 1.4;
-}
-
 .setting-row {
 	display: flex;
 	align-items: center;
@@ -2259,7 +2244,7 @@ button::after {
 
 /* 底部占位 */
 .bottom-spacer {
-	height: 180rpx;
+	height: 260rpx;
 }
 
 /* 固定底部按钮栏 */
@@ -2269,7 +2254,8 @@ button::after {
 	left: 0;
 	right: 0;
 	display: flex;
-	gap: 20rpx;
+	flex-direction: column;
+	gap: 14rpx;
 	padding: 20rpx 30rpx;
 	background: #ffffff;
 	border-top: 2rpx solid #e5e5e5;
@@ -2277,6 +2263,52 @@ button::after {
 	z-index: 100;
 	// 安全区域适配
 	padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+}
+
+.publish-options {
+	padding: 14rpx 18rpx;
+	background: #f8f9ff;
+	border: 1rpx solid #e3e7ff;
+	border-radius: 14rpx;
+}
+
+.publish-option-main {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16rpx;
+}
+
+.publish-option-copy {
+	display: flex;
+	flex-direction: column;
+	gap: 4rpx;
+	min-width: 0;
+}
+
+.publish-option-title {
+	font-size: 26rpx;
+	color: #4f5fd5;
+	font-weight: 600;
+}
+
+.publish-option-hint {
+	font-size: 22rpx;
+	color: #7a8199;
+	line-height: 1.4;
+}
+
+.publish-option-warning {
+	display: block;
+	margin-top: 8rpx;
+	font-size: 21rpx;
+	line-height: 1.4;
+	color: #b7791f;
+}
+
+.bottom-actions {
+	display: flex;
+	gap: 20rpx;
 }
 
 /* 内容编辑区域优化 */

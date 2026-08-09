@@ -170,7 +170,33 @@ pm2 restart aity-backend --update-env
 - `notification_outbox` 能写入
 - 本地归档目录已有对应版本的 tar 包和 sha256
 
-## 八、邮件配置提示
+## 八、一键脚本
+
+本地脚本入口：
+
+```powershell
+# 查看线上状态
+.\scripts\腾讯云后端发布管理.ps1 -Action status
+
+# 服务器准备 release，要求 /tmp/aity-backend-<版本号>.tar.gz 已存在
+.\scripts\腾讯云后端发布管理.ps1 -Action prepare -Version c11ff54
+
+# 切换线上 current 到指定版本
+.\scripts\腾讯云后端发布管理.ps1 -Action switch -Version c11ff54
+
+# 回滚到指定版本
+.\scripts\腾讯云后端发布管理.ps1 -Action rollback -Version 上一个版本号
+```
+
+说明：
+
+- `prepare` 只解压、安装依赖和做语法检查，不切流量
+- `switch` 会重启 PM2，属于生产发布动作
+- `rollback` 会重启 PM2，属于生产回滚动作
+- 脚本不会写入密钥，真实密钥仍由服务器 `/root/aity-vip/shared/backend.env` 维护
+- 如果只是查看当前版本和健康状态，使用 `status`，不会改动线上服务
+
+## 九、邮件配置提示
 
 首次发布建议：
 
@@ -184,7 +210,7 @@ pm2 restart aity-backend --update-env
 - 收件人测试邮箱：`625668823@qq.com`
 - 163 客户端授权码
 
-## 九、来源链接
+## 十、来源链接
 
 - `https://mail.163.com/`
 - `https://help.mail.163.com/faqDetail.do?code=d7a5dc8471cd0c0e8b4b8f4f8e49998b374173cfe9171305fa1ce630d7f67ac24aac98d1012d23f2`
