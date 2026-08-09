@@ -73,6 +73,7 @@ switch_release() {
   cd "$CURRENT/backend"
   NODE_ENV=production PORT=3001 pm2 start src/index.js --name "$APP_NAME" --cwd "$CURRENT/backend" -i 1 --time
   pm2 save
+  sleep 3
   show_status
 }
 
@@ -94,6 +95,7 @@ rollback_release() {
   cd "$CURRENT/backend"
   NODE_ENV=production PORT=3001 pm2 start src/index.js --name "$APP_NAME" --cwd "$CURRENT/backend" -i 1 --time
   pm2 save
+  sleep 3
   show_status
 }
 

@@ -5,12 +5,15 @@ function getEmailCooldownMinutes() {
 }
 
 function buildNotificationEmail() {
+  const cooldownMinutes = getEmailCooldownMinutes();
   return {
     subject: 'AITY投研提醒：小程序有新的内容更新',
     content: [
       'AITY投研小程序有新的内容更新。',
       '',
       '请打开微信小程序查看最新内容。',
+      '',
+      `为减少打扰，系统已控制提醒频率，${cooldownMinutes}分钟内不会重复发送同类邮件提醒。`,
       '',
       '本邮件仅作更新提醒，不包含任何投资建议或具体投研内容，请勿直接回复。'
     ].join('\n')
@@ -47,4 +50,3 @@ module.exports = {
   buildNotificationEmail,
   buildCooldownStatus
 };
-
