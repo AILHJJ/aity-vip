@@ -204,6 +204,8 @@ pm2 restart aity-backend --update-env
 - 先确认 outbox 记录正常
 - 再切 `MAIL_DRY_RUN=false`
 - 默认保留 `MAIL_NOTIFY_COOLDOWN_MINUTES=10`，避免短时间连续提醒打扰用户
+- 默认保留 `BUSINESS_TIMEZONE_OFFSET_MINUTES=480`，邮件提醒冷却时间按北京时间计算
+- 冷却期内如确有重要更新，管理员可在发布页弹窗确认继续发送
 
 真实发信需要：
 

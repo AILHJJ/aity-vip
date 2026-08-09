@@ -4,6 +4,12 @@ function getEmailCooldownMinutes() {
   return Math.floor(value);
 }
 
+function getBusinessTimezoneOffsetMinutes() {
+  const value = Number(process.env.BUSINESS_TIMEZONE_OFFSET_MINUTES || 480);
+  if (!Number.isFinite(value)) return 480;
+  return Math.floor(value);
+}
+
 function buildNotificationEmail() {
   const cooldownMinutes = getEmailCooldownMinutes();
   return {
@@ -22,17 +28,18 @@ function buildNotificationEmail() {
 
 function buildCooldownStatus(lastSentAt, now = new Date()) {
   const cooldownMinutes = getEmailCooldownMinutes();
-  if (!lastSentAt || cooldownMinutes <= 0) {
+  const normalizedLastSentAt = normalizeNotificationTime(lastSentAt, now);
+  if (!normalizedLastSentAt || cooldownMinutes <= 0) {
     return {
       cooldownMinutes,
-      lastSentAt: lastSentAt ? new Date(lastSentAt).toISOString() : null,
+      lastSentAt: normalizedLastSentAt ? normalizedLastSentAt.toISOString() : null,
       nextAvailableAt: null,
       remainingSeconds: 0,
       inCooldown: false
     };
   }
 
-  const lastTime = new Date(lastSentAt);
+  const lastTime = normalizedLastSentAt;
   const nextAvailable = new Date(lastTime.getTime() + cooldownMinutes * 60 * 1000);
   const remainingSeconds = Math.max(0, Math.ceil((nextAvailable.getTime() - now.getTime()) / 1000));
 
@@ -45,8 +52,31 @@ function buildCooldownStatus(lastSentAt, now = new Date()) {
   };
 }
 
+function normalizeNotificationTime(value, now = new Date()) {
+  if (!value) return null;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  const futureMs = parsed.getTime() - now.getTime();
+  if (futureMs <= 60 * 1000) {
+    return parsed;
+  }
+
+  const offsetMs = getBusinessTimezoneOffsetMinutes() * 60 * 1000;
+  const adjusted = new Date(parsed.getTime() - offsetMs);
+
+  if (adjusted.getTime() <= now.getTime() + 60 * 1000) {
+    return adjusted;
+  }
+
+  return parsed;
+}
+
 module.exports = {
   getEmailCooldownMinutes,
+  getBusinessTimezoneOffsetMinutes,
   buildNotificationEmail,
-  buildCooldownStatus
+  buildCooldownStatus,
+  normalizeNotificationTime
 };

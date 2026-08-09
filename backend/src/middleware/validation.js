@@ -55,6 +55,7 @@ function validateCreateMessage() {
     body('tags').optional().isArray().withMessage('Tags must be an array'),
     body('publishTime').optional().isISO8601().withMessage('Publish time must be a valid date'),
     body('emailNotify').optional().isBoolean().withMessage('Email notify must be a boolean'),
+    body('emailNotifyForce').optional().isBoolean().withMessage('Email notify force must be a boolean'),
     handleValidationErrors
   ];
 }

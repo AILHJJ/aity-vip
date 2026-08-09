@@ -225,7 +225,6 @@
 					<switch
 						:checked="formData.emailNotify"
 						color="#667eea"
-						:disabled="emailNotifyBlocked"
 						@change="handleEmailNotifyChange"
 					/>
 				</view>
@@ -388,7 +387,8 @@ const formData = ref({
 	content: '',
 	attachments: [],
 	stockCodes: [], // 关联股票代码
-	emailNotify: false
+	emailNotify: false,
+	emailNotifyForce: false
 })
 
 const submitting = ref(false)
@@ -437,7 +437,7 @@ const emailNotifyHint = computed(() => {
 		return '正在读取最近提醒时间...'
 	}
 	if (emailNotifyBlocked.value) {
-		return `上次提醒 ${formatNotifyTime(emailNotificationStatus.value?.lastSentAt)}，还需等待 ${formatRemainingTime(emailNotificationStatus.value?.remainingSeconds)}`
+		return `上次提醒 ${formatNotifyTime(emailNotificationStatus.value?.lastSentAt)}，建议等待 ${formatRemainingTime(emailNotificationStatus.value?.remainingSeconds)}`
 	}
 	if (emailNotificationStatus.value?.lastSentAt) {
 		return `上次提醒 ${formatNotifyTime(emailNotificationStatus.value.lastSentAt)}，现在可按需发送`
@@ -466,15 +466,33 @@ const loadEmailNotificationStatus = async () => {
 }
 
 const handleEmailNotifyChange = (event) => {
-	if (emailNotifyBlocked.value) {
+	const nextValue = event.detail.value
+	if (!nextValue) {
 		formData.value.emailNotify = false
-		uni.showToast({
-			title: '仍在提醒冷却期内',
-			icon: 'none'
-		})
+		formData.value.emailNotifyForce = false
 		return
 	}
-	formData.value.emailNotify = event.detail.value
+
+	if (!emailNotifyBlocked.value) {
+		formData.value.emailNotify = true
+		formData.value.emailNotifyForce = false
+		return
+	}
+
+	formData.value.emailNotify = false
+	formData.value.emailNotifyForce = false
+	uni.showModal({
+		title: '邮件提醒较频繁',
+		content: `上次邮件提醒在 ${formatNotifyTime(emailNotificationStatus.value?.lastSentAt)}，建议再等待 ${formatRemainingTime(emailNotificationStatus.value?.remainingSeconds)}。如这次内容确实重要，可以确认继续发送提醒。`,
+		confirmText: '继续发送',
+		cancelText: '暂不发送',
+		success: (res) => {
+			if (res.confirm) {
+				formData.value.emailNotify = true
+				formData.value.emailNotifyForce = true
+			}
+		}
+	})
 }
 
 // 消息类型选项（简化版本：只显示主要类型）
@@ -1170,7 +1188,8 @@ const handleSubmit = async () => {
 			theme: formData.value.theme || 'default', // 添加主题字段
 			content: finalContent,
 			attachments: uploadedAttachments,
-			emailNotify: !editMode.value && userStore.isAdmin && !emailNotifyBlocked.value ? Boolean(formData.value.emailNotify) : false
+			emailNotify: !editMode.value && userStore.isAdmin ? Boolean(formData.value.emailNotify) : false,
+			emailNotifyForce: !editMode.value && userStore.isAdmin ? Boolean(formData.value.emailNotifyForce) : false
 		}
 
 		// 如果使用了AI优化，添加原始内容和优化内容字段
@@ -1326,6 +1345,7 @@ const restoreDraft = () => {
 							formData.value.content = draftData.content || ''
 							formData.value.attachments = draftData.attachments || []
 							formData.value.emailNotify = Boolean(draftData.emailNotify)
+							formData.value.emailNotifyForce = false
 							uni.showToast({
 								title: '草稿已恢复',
 								icon: 'success'
@@ -1700,7 +1720,8 @@ onMounted(async () => {
 					content: res.data.content || '',
 					attachments: processedAttachments,
 					stockCodes: stockCodes,
-					emailNotify: false
+					emailNotify: false,
+					emailNotifyForce: false
 				}
 
 				console.log('编辑模式 - formData已设置:', formData.value)

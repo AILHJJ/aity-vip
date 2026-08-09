@@ -10,7 +10,8 @@ const {
 } = require('../src/utils/accountEmail');
 const {
   buildNotificationEmail,
-  buildCooldownStatus
+  buildCooldownStatus,
+  normalizeNotificationTime
 } = require('../src/utils/notificationEmailPolicy');
 
 const fakeOp = {
@@ -84,5 +85,18 @@ const cooldownStatus = buildCooldownStatus(
 );
 assert.strictEqual(cooldownStatus.inCooldown, true);
 assert.strictEqual(cooldownStatus.remainingSeconds, 270);
+
+process.env.BUSINESS_TIMEZONE_OFFSET_MINUTES = '480';
+const normalizedFutureMysqlDate = normalizeNotificationTime(
+  new Date('2026-08-09T23:30:49.000Z'),
+  new Date('2026-08-09T16:03:25.000Z')
+);
+assert.strictEqual(normalizedFutureMysqlDate.toISOString(), '2026-08-09T15:30:49.000Z');
+
+const timezoneCooldownStatus = buildCooldownStatus(
+  new Date('2026-08-09T23:30:49.000Z'),
+  new Date('2026-08-09T16:03:25.000Z')
+);
+assert.strictEqual(timezoneCooldownStatus.inCooldown, false);
 
 console.log('accountAndMessageQuery unit tests passed');

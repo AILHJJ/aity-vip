@@ -210,7 +210,7 @@ async function getMessageById(req, res) {
 // 创建消息
 async function createMessage(req, res) {
   try {
-    const { title, content, type, groupId, attachments, tags, theme, publishTime, emailNotify } = req.body;
+    const { title, content, type, groupId, attachments, tags, theme, publishTime, emailNotify, emailNotifyForce } = req.body;
     const userId = req.user.userId;
 
     // 获取用户信息
@@ -282,7 +282,8 @@ async function createMessage(req, res) {
         notificationResult = await queueMessageEmailNotifications({
           message,
           tags: tags || [],
-          senderId: userId
+          senderId: userId,
+          force: emailNotifyForce === true
         });
         if (process.env.MAIL_AUTO_PROCESS !== 'false') {
           processPendingEmailOutboxInBackground();

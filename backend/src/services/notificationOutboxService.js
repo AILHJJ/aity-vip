@@ -47,11 +47,11 @@ async function getEmailNotificationStatus(now = new Date()) {
   };
 }
 
-async function queueMessageEmailNotifications({ message, tags, senderId }) {
+async function queueMessageEmailNotifications({ message, tags, senderId, force = false }) {
   await ensureOutboxTable();
 
   const emailStatus = await getEmailNotificationStatus();
-  if (emailStatus.inCooldown) {
+  if (emailStatus.inCooldown && force !== true) {
     return {
       queued: 0,
       targets: 0,
@@ -79,7 +79,7 @@ async function queueMessageEmailNotifications({ message, tags, senderId }) {
   }));
 
   await NotificationOutbox.bulkCreate(rows);
-  return { queued: rows.length, targets: targets.length, cooldown: emailStatus };
+  return { queued: rows.length, targets: targets.length, cooldown: emailStatus, forced: force === true };
 }
 
 async function processPendingEmailOutbox(limit = 20) {
