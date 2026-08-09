@@ -228,11 +228,14 @@
 						@change="handleEmailNotifyChange"
 					/>
 				</view>
-				<text v-if="formData.emailNotify" class="publish-option-warning">
-					发布后会立即邮件提醒匹配用户，短时间测试请避免重复勾选。
+				<text v-if="formData.emailNotify && formData.emailNotifyForce" class="publish-option-warning">
+					已确认本次仍发送邮件提醒，点击发布消息后生效。
+				</text>
+				<text v-else-if="formData.emailNotify" class="publish-option-warning">
+					发布后会邮件提醒匹配用户，短时间测试请避免重复勾选。
 				</text>
 				<text v-else-if="emailNotifyBlocked" class="publish-option-warning">
-					当前仍在提醒冷却期内，系统会阻止重复发送。
+					当前仍在提醒冷却期内，如有重要更新可勾选后确认提醒。
 				</text>
 			</view>
 			<view class="bottom-actions">
@@ -483,13 +486,17 @@ const handleEmailNotifyChange = (event) => {
 	formData.value.emailNotifyForce = false
 	uni.showModal({
 		title: '邮件提醒较频繁',
-		content: `上次邮件提醒在 ${formatNotifyTime(emailNotificationStatus.value?.lastSentAt)}，建议再等待 ${formatRemainingTime(emailNotificationStatus.value?.remainingSeconds)}。如这次内容确实重要，可以确认继续发送提醒。`,
-		confirmText: '继续发送',
+		content: `上次邮件提醒在 ${formatNotifyTime(emailNotificationStatus.value?.lastSentAt)}，建议再等待 ${formatRemainingTime(emailNotificationStatus.value?.remainingSeconds)}。如这次内容确实重要，可确认本次发布仍发送提醒；确认后仍需点击“发布消息”才会生效。`,
+		confirmText: '本次提醒',
 		cancelText: '暂不发送',
 		success: (res) => {
 			if (res.confirm) {
 				formData.value.emailNotify = true
 				formData.value.emailNotifyForce = true
+				uni.showToast({
+					title: '已开启本次邮件提醒',
+					icon: 'none'
+				})
 			}
 		}
 	})
