@@ -6,6 +6,9 @@ const {
   buildNotificationEmail,
   buildCooldownStatus
 } = require('../utils/notificationEmailPolicy');
+const {
+  getLastEmailNotificationOrder
+} = require('../utils/notificationOutboxPolicy');
 
 let tableReadyPromise;
 
@@ -30,7 +33,7 @@ async function getLastEmailNotification() {
       status: { [Op.in]: ['sent', 'dry_run'] },
       sentAt: { [Op.ne]: null }
     },
-    order: [['sent_at', 'DESC']]
+    order: getLastEmailNotificationOrder()
   });
 
   return row;
