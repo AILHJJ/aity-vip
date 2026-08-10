@@ -24,7 +24,7 @@ function ensureOutboxTable() {
   return tableReadyPromise;
 }
 
-async function getLastEmailNotification(now = new Date()) {
+async function getLastEmailNotification() {
   await ensureOutboxTable();
 
   const rows = await NotificationOutbox.findAll({
@@ -37,11 +37,11 @@ async function getLastEmailNotification(now = new Date()) {
     limit: 1000
   });
 
-  return selectLatestEmailNotification(rows, now);
+  return selectLatestEmailNotification(rows);
 }
 
 async function getEmailNotificationStatus(now = new Date()) {
-  const row = await getLastEmailNotification(now);
+  const row = await getLastEmailNotification();
   const status = buildCooldownStatus(row?.sentAt, now);
 
   return {

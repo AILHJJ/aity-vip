@@ -111,7 +111,7 @@ const latestNotification = selectLatestEmailNotification([
     id: 41,
     sentAt: new Date('2026-08-09T16:29:47.000Z')
   }
-], new Date('2026-08-09T16:30:00.000Z'));
+]);
 assert.strictEqual(latestNotification.id, 41);
 
 console.log('accountAndMessageQuery unit tests passed');
