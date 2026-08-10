@@ -72,3 +72,4 @@ backend/migrations/20260809-create-notification-outbox.sql
 - 当前没有管理端发送日志页面，可直接查 `notification_outbox`。
 - 当前只支持文本邮件，不做 HTML 模板。
 - 短信和微信订阅消息不在一期范围。
+- 发件前会再次过滤空邮箱、占位邮箱 `@users.aity.vip` 和非法邮箱，避免历史 outbox 或脏数据触发真实发送。

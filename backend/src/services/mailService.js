@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { isValidNotificationEmail } = require('../utils/notificationRules');
 
 let transporter;
 
@@ -33,6 +34,10 @@ function buildFromAddress() {
 }
 
 async function sendEmail({ to, subject, text }) {
+  if (!isValidNotificationEmail(to)) {
+    return { skipped: true, reason: 'invalid_recipient' };
+  }
+
   if (isDryRun()) {
     return { dryRun: true, reason: 'MAIL_DRY_RUN is enabled' };
   }
