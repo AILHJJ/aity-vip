@@ -15,28 +15,6 @@
 
 		<!-- 功能菜单 -->
 		<view class="menu-section">
-			<view class="menu-item" @click="goToMarket">
-				<view class="menu-left">
-					<text class="menu-icon">📈</text>
-					<text class="menu-text">行情中心</text>
-					<text class="menu-tag">体验版</text>
-				</view>
-				<text class="menu-arrow">›</text>
-			</view>
-
-			<view class="menu-item" @click="goToMessages">
-				<view class="menu-left">
-					<text class="menu-icon">📨</text>
-					<text class="menu-text">消息中心</text>
-				</view>
-				<view class="menu-right">
-					<view v-if="userStore.hasUnread" class="unread-badge">
-						<text class="unread-count">{{ userStore.unreadCount > 99 ? '99+' : userStore.unreadCount }}</text>
-					</view>
-					<text class="menu-arrow">›</text>
-				</view>
-			</view>
-
 			<view class="menu-item" @click="goToFavorites">
 				<view class="menu-left">
 					<text class="menu-icon">⭐</text>
@@ -107,7 +85,7 @@
 				</view>
 				<view class="menu-right">
 					<text class="email-preview">{{ userEmailPreview }}</text>
-					<text class="menu-arrow">?</text>
+					<text class="menu-arrow">›</text>
 				</view>
 			</view>
 
@@ -142,7 +120,7 @@
 
 		<!-- 版本信息 -->
 		<view class="version-info">
-			<text class="version-text">VIP投研分享系统 v1.0.0</text>
+			<text class="version-text">VIP投研分享系统 v1.6.0</text>
 		</view>
 	</view>
 </template>
@@ -243,20 +221,6 @@ onShow(() => {
 	// 刷新 tabBar 未读角标
 	userStore.updateTabBarBadge()
 })
-
-// 跳转到行情中心
-const goToMarket = () => {
-	uni.navigateTo({
-		url: '/pages/market/market'
-	})
-}
-
-// 跳转到消息中心
-const goToMessages = () => {
-	uni.switchTab({
-		url: '/pages/messages/messages'
-	})
-}
 
 // 跳转到收藏页面
 const goToFavorites = () => {

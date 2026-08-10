@@ -1,19 +1,7 @@
 <template>
   <view class="market-page">
-    <!-- 简约顶栏（无Tab） -->
-    <view class="top-bar"></view>
-
-    <!-- 可拖动悬浮刷新按钮 -->
-    <view
-      class="fab-refresh"
-      :class="{ spinning: isRefreshing }"
-      :style="{ transform: 'translate(' + fabRefreshX + 'px, ' + fabRefreshY + 'px)' }"
-      @touchstart="onRefreshTouchStart"
-      @touchmove="onRefreshTouchMove"
-      @touchend="onRefreshTouchEnd"
-    >
-      <text class="fab-refresh-icon">↻</text>
-    </view>
+    <!-- 自定义导航栏需要避开微信状态栏和胶囊按钮 -->
+    <app-nav-bar title="行情中心" />
 
     <!-- Index Bar -->
     <scroll-view class="index-bar" scroll-x :show-scrollbar="false">
@@ -30,6 +18,14 @@
         </view>
       </view>
     </scroll-view>
+
+    <view class="market-update-bar">
+      <text class="market-update-text">{{ updateTime || '正在获取行情数据' }}</text>
+      <view class="refresh-action" :class="{ spinning: isRefreshing }" @click="handleRefresh">
+        <text class="refresh-action-icon">↻</text>
+        <text>刷新</text>
+      </view>
+    </view>
 
     <!-- Stats Grid -->
     <view class="stats-grid">
@@ -336,6 +332,7 @@ import {
 import { useUserStore } from '../../store/user'
 import MarketSkeleton from '@/components/market-skeleton.vue'
 import EmptyState from '@/components/empty-state.vue'
+import AppNavBar from '@/components/app-nav-bar.vue'
 
 const userStore = useUserStore()
 
@@ -349,35 +346,6 @@ const activeFilter = ref('all')
 const fundFlowType = ref('inflow')
 // 个股展开状态
 const expandedStocks = ref([])
-
-// 可拖动刷新按钮状态
-const fabRefreshX = ref(0)
-const fabRefreshY = ref(0)
-let refreshDragStartX = 0
-let refreshDragStartY = 0
-let refreshIsDragging = false
-
-const onRefreshTouchStart = (e) => {
-  refreshIsDragging = false
-  refreshDragStartX = e.touches[0].clientX
-  refreshDragStartY = e.touches[0].clientY
-}
-
-const onRefreshTouchMove = (e) => {
-  refreshIsDragging = true
-  const dx = e.touches[0].clientX - refreshDragStartX
-  const dy = e.touches[0].clientY - refreshDragStartY
-  fabRefreshX.value += dx
-  fabRefreshY.value += dy
-  refreshDragStartX = e.touches[0].clientX
-  refreshDragStartY = e.touches[0].clientY
-}
-
-const onRefreshTouchEnd = (e) => {
-  if (!refreshIsDragging) {
-    handleRefresh()
-  }
-}
 
 const toggleStockExpand = (code) => {
   const idx = expandedStocks.value.indexOf(code)
@@ -723,14 +691,7 @@ onShow(() => {
   background: #eef2f7;
   color: #172033;
   position: relative;
-  padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
-}
-
-// 简约顶栏
-.top-bar {
-  height: 20rpx;
-  background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
 }
 
 // 数据Tab（放在内容区上方，与内容直接关联）
@@ -768,42 +729,45 @@ onShow(() => {
   }
 }
 
-.fab-refresh {
-  position: fixed;
-  right: 32rpx;
-  bottom: 120rpx;
-  width: 78rpx;
-  height: 78rpx;
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.market-update-bar {
+  min-height: 64rpx;
+  padding: 0 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  background: #ffffff;
+  border-bottom: 1rpx solid #dde6f2;
+}
+
+.market-update-text {
+  color: #64748b;
+  font-size: 22rpx;
+}
+
+.refresh-action {
+  min-width: 112rpx;
+  min-height: 56rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 2rpx solid #bfdbfe;
-  box-shadow: 0 12rpx 26rpx rgba(37, 99, 235, 0.18);
-  z-index: 999;
-  touch-action: none;
-  user-select: none;
-
-  &:active {
-    transform: scale(0.96);
-    background: #eff6ff;
-  }
-
-  &.spinning .fab-refresh-icon {
-    animation: spin 1s linear infinite;
-  }
-
-  .fab-refresh-icon {
-    font-size: 36rpx;
-    color: #2563eb;
-    font-weight: 700;
-    pointer-events: none;
-  }
+  gap: 8rpx;
+  color: #2563eb;
+  font-size: 24rpx;
+  font-weight: 600;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.refresh-action.spinning .refresh-action-icon {
+  animation: spin 1s linear infinite;
+}
+
+.refresh-action-icon {
+  font-size: 32rpx;
+  line-height: 1;
 }
 
 .index-bar {

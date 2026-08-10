@@ -1,18 +1,6 @@
 <template>
   <view class="ladder-page">
-    <!-- Header -->
-    <view class="header-bar">
-      <view class="header-left" @click="goBack">
-        <text class="back-icon">←</text>
-      </view>
-      <view class="header-center">
-        <text class="header-title">连板天梯</text>
-        <text class="header-count">共 {{ totalCount }} 只涨停股</text>
-      </view>
-      <view class="header-right">
-        <view class="glow-dot"></view>
-      </view>
-    </view>
+    <app-nav-bar title="连板天梯" theme="dark" show-back />
 
     <!-- Summary Bar -->
     <view class="summary-bar">
@@ -111,6 +99,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { getLimitUpLadderApi } from '../../api/market.js'
+import AppNavBar from '@/components/app-nav-bar.vue'
 
 // 状态
 const loading = ref(false)
@@ -137,10 +126,6 @@ const medianDays = computed(() => {
 })
 
 // 方法
-const goBack = () => {
-  uni.navigateBack()
-}
-
 const formatAmount = (amount) => {
   if (!amount) return '0'
   const num = Math.abs(parseFloat(amount))

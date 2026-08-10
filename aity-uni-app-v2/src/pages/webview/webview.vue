@@ -1,14 +1,6 @@
 <template>
 	<view class="webview-container">
-		<!-- 顶部导航栏 -->
-		<view class="nav-bar">
-			<view class="nav-left" @click="goBack">
-				<text class="back-icon">←</text>
-				<text class="nav-title">返回</text>
-			</view>
-			<view class="nav-center">{{ title }}</view>
-			<view class="nav-right"></view>
-		</view>
+		<app-nav-bar :title="title" show-back />
 		
 		<!-- WebView -->
 		<view class="webview-wrapper">
@@ -20,6 +12,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import AppNavBar from '@/components/app-nav-bar.vue'
 
 // 页面参数
 const url = ref('')
@@ -34,11 +27,6 @@ onLoad((options) => {
 		title.value = options.title
 	}
 })
-
-// 返回上一页
-const goBack = () => {
-	uni.navigateBack()
-}
 
 // 处理WebView消息
 const handleMessage = (e) => {

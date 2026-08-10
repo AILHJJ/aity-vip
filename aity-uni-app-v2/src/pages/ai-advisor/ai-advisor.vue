@@ -1,9 +1,6 @@
 <template>
 	<view class="ai-advisor-container">
-		<!-- 顶部标题栏 -->
-		<view class="header-bar">
-			<text class="header-title">AI图灵</text>
-		</view>
+		<app-nav-bar title="AI图灵" show-back />
 
 		<!-- 对话消息区域 -->
 		<scroll-view
@@ -165,6 +162,7 @@
 
 <script setup>
 import { ref, nextTick, onMounted, onUnmounted } from 'vue'
+import AppNavBar from '@/components/app-nav-bar.vue'
 import { sendAIMessage } from '@/api/ai-advisor'
 import { getChatHistory, saveChatHistory, saveThreadId, clearChatHistory, getThreadId } from '@/utils/ai-advisor-config'
 import { MarkdownRenderer, FinancialTableParser } from '@/utils/markdown-renderer'
