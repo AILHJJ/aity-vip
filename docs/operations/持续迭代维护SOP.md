@@ -49,6 +49,16 @@
 | 上传/文件 | 不把 `uploads/` 进 Git，发布时保留服务器运行态数据 |
 | 配置/密钥 | 只维护 `.env.example`，真实值留在服务器或密钥系统 |
 
+## 固化脚本入口
+
+| 场景 | 推荐命令 | 说明 |
+| --- | --- | --- |
+| 构建微信小程序 | `.\scripts\一键构建微信小程序.ps1` | 输出到 `aity-uni-app-v2/dist/build/mp-weixin` |
+| 查看腾讯云后端状态 | `.\scripts\检查腾讯云后端状态.ps1` | 只读检查 current、PM2、health、邮件提醒状态 |
+| 准备后端 release | `.\scripts\一键发布腾讯云后端.ps1` | 测试、打包、上传、prepare，不切换线上 |
+| 发布后端到线上 | `.\scripts\一键发布腾讯云后端.ps1 -Switch` | 包含 PM2 重启，属于生产动作 |
+| 回滚后端 | `.\scripts\一键发布腾讯云后端.ps1 -Rollback -RollbackVersion <版本号>` | 切回指定 release |
+
 ## 提交说明模板
 
 ```text

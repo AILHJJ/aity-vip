@@ -229,13 +229,13 @@
 					/>
 				</view>
 				<text v-if="formData.emailNotify && formData.emailNotifyForce" class="publish-option-warning">
-					已确认本次仍发送邮件提醒，点击发布消息后生效。
+					已确认本次仍提醒，点击发布消息后生效。
 				</text>
 				<text v-else-if="formData.emailNotify" class="publish-option-warning">
-					发布后会邮件提醒匹配用户，短时间测试请避免重复勾选。
+					发布后将邮件提醒匹配用户。
 				</text>
 				<text v-else-if="emailNotifyBlocked" class="publish-option-warning">
-					当前仍在提醒冷却期内，如有重要更新可勾选后确认提醒。
+					提醒较频繁，如有重要更新可勾选后确认。
 				</text>
 			</view>
 			<view class="bottom-actions">
@@ -429,21 +429,15 @@ const formatNotifyTime = (value) => {
 	return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-const formatRemainingTime = (seconds) => {
-	const totalSeconds = Math.max(0, Number(seconds || 0))
-	const minutes = Math.ceil(totalSeconds / 60)
-	return `${minutes}分钟`
-}
-
 const emailNotifyHint = computed(() => {
 	if (isLoadingEmailNotificationStatus.value) {
 		return '正在读取最近提醒时间...'
 	}
 	if (emailNotifyBlocked.value) {
-		return `上次提醒 ${formatNotifyTime(emailNotificationStatus.value?.lastSentAt)}，建议等待 ${formatRemainingTime(emailNotificationStatus.value?.remainingSeconds)}`
+		return `最近提醒 ${formatNotifyTime(emailNotificationStatus.value?.lastSentAt)}，建议稍后再发`
 	}
 	if (emailNotificationStatus.value?.lastSentAt) {
-		return `上次提醒 ${formatNotifyTime(emailNotificationStatus.value.lastSentAt)}，现在可按需发送`
+		return `最近提醒 ${formatNotifyTime(emailNotificationStatus.value.lastSentAt)}，可按需发送`
 	}
 	const option = strategyOptions.find(s => s.value === formData.value.strategy)
 	const targetText = option?.label || '当前策略'
@@ -486,9 +480,9 @@ const handleEmailNotifyChange = (event) => {
 	formData.value.emailNotifyForce = false
 	uni.showModal({
 		title: '邮件提醒较频繁',
-		content: `上次邮件提醒在 ${formatNotifyTime(emailNotificationStatus.value?.lastSentAt)}，建议再等待 ${formatRemainingTime(emailNotificationStatus.value?.remainingSeconds)}。如这次内容确实重要，可确认本次发布仍发送提醒；确认后仍需点击“发布消息”才会生效。`,
-		confirmText: '本次提醒',
-		cancelText: '暂不发送',
+		content: `最近邮件提醒是 ${formatNotifyTime(emailNotificationStatus.value?.lastSentAt)}。是否本次发布仍发送邮件提醒？确认后仍需点击“发布消息”才会生效。`,
+		confirmText: '仍然提醒',
+		cancelText: '暂不提醒',
 		success: (res) => {
 			if (res.confirm) {
 				formData.value.emailNotify = true

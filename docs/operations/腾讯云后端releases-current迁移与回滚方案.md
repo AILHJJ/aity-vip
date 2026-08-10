@@ -175,6 +175,18 @@ pm2 restart aity-backend --update-env
 本地脚本入口：
 
 ```powershell
+# 一键测试、打包、上传并准备 release
+.\scripts\一键发布腾讯云后端.ps1
+
+# 一键测试、打包、上传、准备并切换线上
+.\scripts\一键发布腾讯云后端.ps1 -Switch
+
+# 一键回滚到指定版本
+.\scripts\一键发布腾讯云后端.ps1 -Rollback -RollbackVersion 上一个版本号
+
+# 查看线上状态和邮件提醒状态
+.\scripts\检查腾讯云后端状态.ps1
+
 # 查看线上状态
 .\scripts\腾讯云后端发布管理.ps1 -Action status
 
@@ -193,6 +205,8 @@ pm2 restart aity-backend --update-env
 - `prepare` 只解压、安装依赖和做语法检查，不切流量
 - `switch` 会重启 PM2，属于生产发布动作
 - `rollback` 会重启 PM2，属于生产回滚动作
+- `一键发布腾讯云后端.ps1` 是推荐入口，底层仍复用 `发布腾讯云后端.ps1` 和 `腾讯云后端发布管理.ps1`
+- 如果工作区存在未提交内容，一键脚本默认中止；确认无风险时可加 `-AllowDirty`
 - 脚本不会写入密钥，真实密钥仍由服务器 `/root/aity-vip/shared/backend.env` 维护
 - 如果只是查看当前版本和健康状态，使用 `status`，不会改动线上服务
 
