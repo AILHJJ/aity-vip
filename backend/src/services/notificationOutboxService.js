@@ -7,7 +7,7 @@ const {
   buildCooldownStatus
 } = require('../utils/notificationEmailPolicy');
 const {
-  getLastEmailNotificationOrder
+  selectLatestEmailNotification
 } = require('../utils/notificationOutboxPolicy');
 
 let tableReadyPromise;
@@ -24,23 +24,24 @@ function ensureOutboxTable() {
   return tableReadyPromise;
 }
 
-async function getLastEmailNotification() {
+async function getLastEmailNotification(now = new Date()) {
   await ensureOutboxTable();
 
-  const row = await NotificationOutbox.findOne({
+  const rows = await NotificationOutbox.findAll({
     where: {
       channel: 'email',
       status: { [Op.in]: ['sent', 'dry_run'] },
       sentAt: { [Op.ne]: null }
     },
-    order: getLastEmailNotificationOrder()
+    order: [['id', 'DESC']],
+    limit: 1000
   });
 
-  return row;
+  return selectLatestEmailNotification(rows, now);
 }
 
 async function getEmailNotificationStatus(now = new Date()) {
-  const row = await getLastEmailNotification();
+  const row = await getLastEmailNotification(now);
   const status = buildCooldownStatus(row?.sentAt, now);
 
   return {

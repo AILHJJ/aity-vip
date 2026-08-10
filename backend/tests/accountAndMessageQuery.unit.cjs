@@ -14,7 +14,7 @@ const {
   normalizeNotificationTime
 } = require('../src/utils/notificationEmailPolicy');
 const {
-  getLastEmailNotificationOrder
+  selectLatestEmailNotification
 } = require('../src/utils/notificationOutboxPolicy');
 
 const fakeOp = {
@@ -102,6 +102,16 @@ const timezoneCooldownStatus = buildCooldownStatus(
 );
 assert.strictEqual(timezoneCooldownStatus.inCooldown, false);
 
-assert.deepStrictEqual(getLastEmailNotificationOrder(), [['updated_at', 'DESC'], ['id', 'DESC']]);
+const latestNotification = selectLatestEmailNotification([
+  {
+    id: 9,
+    sentAt: new Date('2026-08-09T23:30:49.000Z')
+  },
+  {
+    id: 41,
+    sentAt: new Date('2026-08-09T16:29:47.000Z')
+  }
+], new Date('2026-08-09T16:30:00.000Z'));
+assert.strictEqual(latestNotification.id, 41);
 
 console.log('accountAndMessageQuery unit tests passed');
