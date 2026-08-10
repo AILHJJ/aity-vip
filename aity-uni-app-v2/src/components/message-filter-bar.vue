@@ -208,6 +208,7 @@ onMounted(() => {
 		filters.value.messageType = 'all'
 		filters.value.pushScope = ''
 		expanded.value = false
+		emit('unread-change', false)
 		emitFilterChange()
 	}
 })
@@ -215,6 +216,7 @@ onMounted(() => {
 const resetFilters = () => {
 	filters.value.messageType = 'all'
 	filters.value.pushScope = ''
+	emit('unread-change', false)
 	emitFilterChange()
 }
 </script>

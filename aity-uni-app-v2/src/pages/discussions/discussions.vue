@@ -630,7 +630,7 @@ button::after {
 .fab-button {
 	position: fixed;
 	right: 40rpx;
-	bottom: 120rpx;
+	bottom: calc(120rpx + env(safe-area-inset-bottom));
 	width: 100rpx;
 	height: 100rpx;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

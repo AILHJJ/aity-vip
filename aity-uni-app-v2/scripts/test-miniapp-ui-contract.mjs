@@ -13,9 +13,24 @@ const [filterBar, marketPage, marketLadderPage, webviewPage, aiAdvisorPage, prof
 	read('src/components/app-nav-bar.vue')
 ])
 
+const [messagesPage, discussionsPage, createMessagePage] = await Promise.all([
+	read('src/pages/messages/messages.vue'),
+	read('src/pages/discussions/discussions.vue'),
+	read('src/pages/create-message/create-message.vue')
+])
+
 assert.match(filterBar, /v-if="expanded" class="filter-card"/, '消息高级筛选必须默认收起')
 assert.match(filterBar, /未读\{\{ unreadCount/, '未读快捷入口必须保留在收起状态')
+assert.match(filterBar, /const resetFilters = \(\) => \{[\s\S]*?emit\('unread-change', false\)/, '重置筛选必须恢复全部阅读状态')
 assert.match(navBar, /getMenuButtonBoundingClientRect/, '自定义导航必须读取微信胶囊位置')
+
+assert.doesNotMatch(messagesPage, /fabX|onFabTouch(Start|Move|End)|@touch(move|start|end)/, '消息发布按钮不得支持任意拖拽')
+assert.match(messagesPage, /class="fab-button" @click="goToCreate"/, '消息发布按钮必须保留点击发布入口')
+assert.match(messagesPage, /bottom: calc\(120rpx \+ env\(safe-area-inset-bottom\)\)/, '消息发布按钮必须避开底部 TabBar 和安全区')
+assert.doesNotMatch(discussionsPage, /@touch(move|start|end)|fabX|onFabTouch(Start|Move|End)/, '讨论发布按钮不得引入拖拽状态')
+assert.match(discussionsPage, /bottom: calc\(120rpx \+ env\(safe-area-inset-bottom\)\)/, '讨论发布按钮必须避开底部 TabBar 和安全区')
+assert.doesNotMatch(createMessagePage, /height: calc\(100vh - 140rpx\)/, '发布表单不得依赖固定底栏高度计算滚动区域')
+assert.match(createMessagePage, /\.form-scroll \{[\s\S]*?height: 100%;/, '发布表单滚动区域必须随页面容器自适应')
 
 assert.match(marketPage, /<app-nav-bar title="行情中心"/, '行情页必须展示安全区标题栏')
 assert.doesNotMatch(marketPage, /class="fab-refresh"/, '行情页不得使用遮挡内容的悬浮刷新按钮')

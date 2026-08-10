@@ -2321,7 +2321,7 @@ button::after {
 
 /* 底部占位 */
 .bottom-spacer {
-	height: 260rpx;
+	min-height: 280rpx;
 }
 
 /* 固定底部按钮栏 */
@@ -2567,9 +2567,8 @@ button::after {
 	word-break: break-all;
 }
 
-/* 滚动容器高度调整 */
+/* 滚动容器高度由页面容器提供，底部占位负责避开固定操作栏 */
 .form-scroll {
-	height: calc(100vh - 140rpx); // 减去底部按钮栏高度
 /* 主题选择器样式 */.theme-selector {	padding: 20rpx;	background: #f8f9fa;	border-bottom: 2rpx solid #e5e5e5;}.theme-selector-label {	font-size: 28rpx;	color: #333;	font-weight: 500;	margin-bottom: 16rpx;	display: block;}.theme-list {	display: flex;	white-space: nowrap;	padding: 10rpx 0;}.theme-item {	display: inline-flex;	flex-direction: column;	align-items: center;	min-width: 100rpx;	margin-right: 20rpx;	padding: 12rpx;	border-radius: 12rpx;	background: #ffffff;	border: 2rpx solid #e0e0e0;	transition: all 0.3s ease;}.theme-item.active {	border-color: #667eea;	background: #f0f2ff;	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.2);}.theme-preview-color {	width: 64rpx;	height: 64rpx;	border-radius: 8rpx;	display: flex;	align-items: center;	justify-content: center;	margin-bottom: 8rpx;	box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);}.theme-check-icon {	color: #ffffff;	font-size: 32rpx;	font-weight: bold;	text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.3);}.theme-name {	font-size: 22rpx;	color: #666;}.theme-item.active .theme-name {	color: #667eea;	font-weight: 500;}.theme-hint {	font-size: 22rpx;	color: #667eea;}/* 主题预览样式 - 深色主题 */.markdown-preview.theme-dark {	background: #1a1a1a;	color: #e2e8f0;}.markdown-preview.theme-dark h1,.markdown-preview.theme-dark h2,.markdown-preview.theme-dark h3 {	color: #f1f5f9;}.markdown-preview.theme-dark strong {	color: #fbbf24;}.markdown-preview.theme-dark blockquote {	background: #2d3748;	border-left-color: #667eea;	color: #cbd5e0;}.markdown-preview.theme-dark code.inline-code {	background: #374151;	color: #f87171;	border-color: #4b5563;}
 }
 
