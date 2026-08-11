@@ -1,3 +1,5 @@
+const { getVisibleTagsForRole } = require('./messageTagRules');
+
 function normalizeReadStatus(readStatus) {
   const normalized = String(readStatus || '').trim().toLowerCase();
   return ['read', 'unread'].includes(normalized) ? normalized : '';
@@ -41,20 +43,16 @@ function buildVisibleMessageWhere({ user, query = {}, readMessageIds = [], seque
   }
 
   if (user.role !== 'trial' && !isAdminRole(user.role)) {
-    const allowedTags = user.role === 'vip_mid'
-      ? ['mid_term', 'all_users']
-      : ['short_term', 'all_users'];
+    const allowedTags = getVisibleTagsForRole(user.role);
 
     andConditions.push({
       [Op.or]: [
         { tags: null },
-        sequelize.where(
-          sequelize.fn('JSON_CONTAINS', sequelize.col('tags'), JSON.stringify(allowedTags[0])),
-          1
-        ),
-        sequelize.where(
-          sequelize.fn('JSON_CONTAINS', sequelize.col('tags'), JSON.stringify(allowedTags[1])),
-          1
+        ...allowedTags.map(allowedTag =>
+          sequelize.where(
+            sequelize.fn('JSON_CONTAINS', sequelize.col('tags'), JSON.stringify(allowedTag)),
+            1
+          )
         )
       ]
     });

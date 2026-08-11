@@ -17,7 +17,7 @@
 | 消息标签 | 邮件目标 |
 | --- | --- |
 | `short_term` | active 的 `vip_short` 用户 |
-| `mid_term` | active 的 `vip_mid` 用户 |
+| `mid_term` | active 的 `vip_short`、`vip_mid`、`trial` 用户；中线机会按产品规则覆盖全部普通用户 |
 | `all_users` | active 的 `vip_short`、`vip_mid`、`trial` 用户 |
 
 默认不发给管理员。如需让管理员也收到 `all_users` 邮件，设置：

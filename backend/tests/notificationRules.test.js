@@ -6,8 +6,8 @@ const {
 describe('notification rules', () => {
   test('resolves target roles from message tags', () => {
     expect(resolveTargetRoles(['short_term'])).toEqual(['vip_short']);
-    expect(resolveTargetRoles(['mid_term'])).toEqual(['vip_mid']);
-    expect(resolveTargetRoles(['short_term', 'mid_term'])).toEqual(['vip_short', 'vip_mid']);
+    expect(resolveTargetRoles(['mid_term'])).toEqual(['vip_short', 'vip_mid', 'trial']);
+    expect(resolveTargetRoles(['short_term', 'mid_term'])).toEqual(['vip_short', 'vip_mid', 'trial']);
     expect(resolveTargetRoles(['all_users'])).toEqual(['vip_short', 'vip_mid', 'trial']);
     expect(resolveTargetRoles(['all_users'], { notifyAdmins: true })).toEqual([
       'vip_short',

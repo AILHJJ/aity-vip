@@ -10,6 +10,7 @@ const Group = require('../models/Group');
 const Discussion = require('../models/Discussion');
 const DiscussionReply = require('../models/DiscussionReply');
 const { buildVisibleMessageWhere } = require('../utils/messageQueryOptions');
+const { normalizeMessageTags } = require('../utils/messageTagRules');
 const {
   queueMessageEmailNotifications,
   getEmailNotificationStatus,
@@ -164,7 +165,7 @@ async function getMessageById(req, res) {
         break;
       case 'vip_short':
         // 只能查看短线策略或全部用户的消息
-        hasPermission = messageTags.includes('short_term') || messageTags.includes('all_users');
+        hasPermission = messageTags.includes('short_term') || messageTags.includes('mid_term') || messageTags.includes('all_users');
         break;
       default:
         hasPermission = false;
@@ -212,6 +213,7 @@ async function createMessage(req, res) {
   try {
     const { title, content, type, groupId, attachments, tags, theme, publishTime, emailNotify, emailNotifyForce } = req.body;
     const userId = req.user.userId;
+    const normalizedTags = normalizeMessageTags(tags || []);
 
     // 获取用户信息
     const user = await User.findByPk(userId);
@@ -253,7 +255,7 @@ async function createMessage(req, res) {
       senderId: userId,
       groupId: targetGroupId || 'all',
       totalCount,
-      tags: tags || null,
+      tags: normalizedTags.length > 0 ? normalizedTags : null,
       theme: theme || 'default',
       publishTime: messagePublishTime,
       status: messageStatus
@@ -281,7 +283,7 @@ async function createMessage(req, res) {
       try {
         notificationResult = await queueMessageEmailNotifications({
           message,
-          tags: tags || [],
+          tags: normalizedTags,
           senderId: userId,
           force: emailNotifyForce === true
         });
@@ -361,7 +363,8 @@ async function updateMessage(req, res) {
 
     // 处理tags
     if (tags !== undefined) {
-      updateData.tags = tags;
+      const normalizedTags = normalizeMessageTags(tags);
+      updateData.tags = normalizedTags.length > 0 ? normalizedTags : null;
     }
 
     // 处理theme
@@ -552,7 +555,7 @@ async function getMessageReadDetails(req, res) {
     // tags 权限过滤：只统计有权限看这条消息的用户
     if (messageTags.length > 0 && !messageTags.includes('all_users')) {
       const allowedRoles = ['super_admin', 'admin', 'trial'];
-      if (messageTags.includes('mid_term')) allowedRoles.push('vip_mid');
+      if (messageTags.includes('mid_term')) allowedRoles.push('vip_short', 'vip_mid');
       if (messageTags.includes('short_term')) allowedRoles.push('vip_short');
       userWhere.role = { [Op.in]: allowedRoles };
     }

@@ -69,6 +69,21 @@ const readWhere = buildVisibleMessageWhere({
 
 assert.deepStrictEqual(readWhere.id, { [fakeOp.in]: [10, 11] });
 
+const shortUserWhere = buildVisibleMessageWhere({
+  user: { id: 8, role: 'vip_short' },
+  query: {},
+  readMessageIds: [],
+  sequelize: fakeSequelize,
+  Op: fakeOp
+});
+
+assert.ok(
+  shortUserWhere[fakeOp.and].some(condition =>
+    Array.isArray(condition[fakeOp.or]) &&
+    condition[fakeOp.or].some(item => item.left?.value === JSON.stringify('mid_term'))
+  )
+);
+
 assert.strictEqual(normalizeAccountEmail('  USER@Example.COM  '), 'user@example.com');
 assert.deepStrictEqual(validateAccountEmail('user@example.com'), { valid: true, email: 'user@example.com' });
 assert.strictEqual(validateAccountEmail('bad-email').valid, false);
