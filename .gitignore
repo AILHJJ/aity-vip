@@ -13,5 +13,6 @@ logs/
 uploads/
 coverage/
 test-results/
+deploy/releases/
 .DS_Store
 Thumbs.db

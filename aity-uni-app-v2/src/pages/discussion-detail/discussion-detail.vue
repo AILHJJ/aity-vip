@@ -60,8 +60,8 @@
 							<text class="user-name">{{ discussion.creatorName }}</text>
 						</view>
 						<view class="discussion-stats">
-							<text class="stat-item">💬 {{ discussion.replyCount || 0 }}</text>
-							<text class="stat-item">👁 {{ discussion.viewCount || 0 }}</text>
+							<text class="stat-item">回复 {{ discussion.replyCount || 0 }}</text>
+							<text class="stat-item">浏览 {{ discussion.viewCount || 0 }}</text>
 						</view>
 					</view>
 
@@ -106,7 +106,7 @@
 							<view class="reply-header">
 								<text class="reply-user">{{ reply.userName }}</text>
 								<text class="reply-time">{{ formatFriendlyTime(reply.createdAt) }}</text>
-								<text v-if="reply.isPrivate" class="private-badge">🔒 私密</text>
+								<text v-if="reply.isPrivate" class="private-badge">私密</text>
 								<!-- 编辑/删除操作按钮（仅本人或管理员可见） -->
 								<view v-if="canEditReply(reply)" class="reply-actions">
 									<text class="action-link edit-link" @click="startEditReply(reply)">编辑</text>
@@ -152,7 +152,7 @@
 									</view>
 									<view class="edit-actions">
 										<text class="image-add-btn" @click="chooseEditImage">+ 图片</text>
-										<button class="edit-confirm-btn" :disabled="!editContent.trim() || editing" @click="handleUpdateReply(reply)">确认修改</button>
+										<button class="edit-confirm-btn" :disabled="!editContent.trim() && editImages.length === 0 || editing" @click="handleUpdateReply(reply)">确认修改</button>
 										<text class="cancel-edit-btn" @click="cancelEditReply">取消</text>
 									</view>
 								</view>
@@ -183,11 +183,8 @@
 					</view>
 				</view>
 				<view class="reply-toolbar">
-					<text class="image-add-btn" @click="chooseReplyImage">📷 添加图片</text>
+					<text class="image-add-btn" @click="chooseReplyImage">添加图片</text>
 					<text v-if="replyImages.length > 0" class="image-count">{{ replyImages.length }}/9</text>
-				</view>
-				<view class="clipboard-image-tip">
-					小程序暂不支持直接粘贴剪贴板图片，请从相册、聊天图片或拍照选择。
 				</view>
 				<!-- 管理员：始终显示两个按钮 -->
 				<view v-if="userStore.isAdmin" class="reply-buttons">
@@ -196,24 +193,24 @@
 						:disabled="!replyContent.trim() && replyImages.length === 0 || submitting"
 						@click="handleReply(false)"
 					>
-						{{ submitting ? '发送中...' : '🔓 公开回复' }}
+						{{ submitting ? '发送中...' : '公开回复' }}
 					</button>
 					<button
 						class="reply-btn secondary"
 						:disabled="!replyContent.trim() && replyImages.length === 0 || submitting"
 						@click="handleReply(true)"
 					>
-						{{ submitting ? '发送中...' : '🔒 私密回复' }}
+						{{ submitting ? '发送中...' : '私密回复' }}
 					</button>
 				</view>
-				<!-- 非管理员：显示单个按钮 -->
+				<!-- 非管理员：默认私密回复 -->
 				<view v-else class="reply-buttons single">
 					<button
 						class="reply-btn primary full"
 						:disabled="!replyContent.trim() && replyImages.length === 0 || submitting"
 						@click="handleUserReply"
 					>
-						{{ submitting ? '发送中...' : '发送回复' }}
+						{{ submitting ? '发送中...' : '发送私密回复' }}
 					</button>
 				</view>
 			</view>
@@ -398,9 +395,9 @@ const onRefresh = async () => {
 	refreshing.value = false
 }
 
-// 非管理员用户发送公开回复
+// 非管理员用户默认发送私密回复
 const handleUserReply = () => {
-	handleReply(false)
+	handleReply(true)
 }
 
 // 发送回复（isPrivate: true=私密回复仅发帖人可见, false=公开回复并公开讨论）
@@ -439,8 +436,9 @@ const handleReply = async (isPrivate) => {
 		console.log('[发送回复] API响应:', res)
 
 		if (res.code === 200) {
+			const successTitle = isPrivate ? '私密回复已发送' : '公开回复已发送'
 			uni.showToast({
-				title: isPrivate ? '🔒 私密回复已发送' : '🔓 回复成功，讨论已公开',
+				title: successTitle,
 				icon: 'success',
 				duration: 1500
 			})
@@ -1332,14 +1330,4 @@ button::after {
 	color: #999999;
 }
 
-.clipboard-image-tip {
-	margin-top: 10rpx;
-	font-size: 22rpx;
-	line-height: 1.5;
-	color: #8a6d3b;
-	background: #fff8e1;
-	border: 1rpx solid #ffe0a3;
-	border-radius: 10rpx;
-	padding: 12rpx 16rpx;
-}
 </style>

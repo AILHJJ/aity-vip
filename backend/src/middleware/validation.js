@@ -103,7 +103,16 @@ function validateCreateDiscussion() {
 function validateAddReply() {
   return [
     param('id').isInt().withMessage('Invalid discussion ID'),
-    body('content').notEmpty().withMessage('Content is required'),
+    body('content').optional({ nullable: true }).isString().withMessage('Content must be a string'),
+    body('images').optional().isArray({ max: 9 }).withMessage('Images must be an array with at most 9 items'),
+    body().custom((value, { req }) => {
+      const hasContent = typeof req.body.content === 'string' && req.body.content.trim().length > 0;
+      const hasImages = Array.isArray(req.body.images) && req.body.images.length > 0;
+      if (!hasContent && !hasImages) {
+        throw new Error('回复内容或图片不能为空');
+      }
+      return true;
+    }),
     handleValidationErrors
   ];
 }

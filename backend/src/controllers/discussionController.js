@@ -5,6 +5,10 @@ const DiscussionReply = require('../models/DiscussionReply');
 const DiscussionFavorite = require('../models/DiscussionFavorite');
 const Message = require('../models/Message');
 const User = require('../models/User');
+const {
+  canViewPrivateReply,
+  resolveReplyPrivacy
+} = require('../utils/discussionReplyPolicy');
 
 // 统一响应格式
 function success(data, message = 'Success') {
@@ -53,14 +57,12 @@ function badRequest(message = 'Bad request') {
 // 根据用户角色过滤私密回复
 function filterPrivateReplies(replies, discussion, currentUserId, currentUserRole) {
   const isAdmin = currentUserRole === 'super_admin' || currentUserRole === 'admin';
-  const isPoster = discussion.userId === currentUserId;
   
   return replies.map(reply => {
     const replyData = reply.toJSON ? reply.toJSON() : reply;
     
     if (replyData.isPrivate) {
-      // 私密回复：仅管理员和发帖人可见
-      if (isAdmin || isPoster) {
+      if (canViewPrivateReply({ isAdmin, discussion, reply: replyData, currentUserId })) {
         return { ...replyData, _privateLabel: true };
       }
       return null; // 其他用户看不到
@@ -226,10 +228,9 @@ async function getDiscussionById(req, res) {
 
     // 按隐私权限过滤回复
     const isAdmin = currentUserRole === 'super_admin' || currentUserRole === 'admin';
-    const isPoster = discussion.userId === currentUserId;
     const filteredReplies = repliesWithSender.filter(reply => {
       if (reply.isPrivate) {
-        return isAdmin || isPoster;
+        return canViewPrivateReply({ isAdmin, discussion, reply, currentUserId });
       }
       return true;
     });
@@ -402,15 +403,17 @@ async function addDiscussionReply(req, res) {
       return res.status(404).json(notFound('User not found'));
     }
 
-    // 非管理员不能设置私密回复
-    const finalIsPrivate = isAdmin ? (isPrivate ? 1 : 0) : 0;
+    const finalIsPrivate = resolveReplyPrivacy({
+      isAdmin,
+      requestedIsPrivate: isPrivate
+    });
 
     // 创建回复（支持图片）
     const replyData = {
       discussionId: id,
       userId,
       userName: user.name,
-      content,
+      content: typeof content === 'string' ? content.trim() : '',
       isPrivate: finalIsPrivate
     };
 
@@ -644,10 +647,9 @@ async function getDiscussionReplies(req, res) {
 
     // 按隐私过滤
     const isAdmin = currentUserRole === 'super_admin' || currentUserRole === 'admin';
-    const isPoster = discussion.userId === currentUserId;
     const filteredReplies = repliesWithSender.filter(reply => {
       if (reply.isPrivate) {
-        return isAdmin || isPoster;
+        return canViewPrivateReply({ isAdmin, discussion, reply, currentUserId });
       }
       return true;
     });
