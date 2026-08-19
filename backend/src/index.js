@@ -8,6 +8,7 @@ const swaggerUi = require('swagger-ui-express');
 const logger = require('./utils/logger');
 const swaggerSpec = require('./config/swagger');
 const { trackRequest, trackError, getMetrics } = require('./middleware/monitoring');
+const { startUserExpirySync } = require('./services/userExpiryService');
 
 // ============================================
 // 环境变量自动加载
@@ -241,6 +242,7 @@ if (require.main === module) {
       environment: NODE_ENV,
       allowedOrigins: ALLOWED_ORIGINS
     });
+    startUserExpirySync();
   });
 }
 

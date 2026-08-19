@@ -59,7 +59,10 @@
 					v-for="user in users"
 					:key="user.id"
 					class="user-card"
-					:class="{ 'user-inactive': user.status === 'inactive' }"
+					:class="{
+						'user-inactive': user.status === 'inactive',
+						'user-expired': isUserExpired(user)
+					}"
 				>
 					<!-- 卡片头部 -->
 					<view class="card-header">
@@ -79,8 +82,8 @@
 					<view class="card-body">
 						<view class="info-row">
 							<text class="info-label">状态</text>
-							<text class="info-value" :class="'status-' + user.status">
-								{{ user.status === 'active' ? '✓ 正常' : '✗ 已禁用' }}
+							<text class="info-value" :class="getUserStatusClass(user)">
+								{{ getUserStatusLabel(user) }}
 							</text>
 						</view>
 						<view class="info-row">
@@ -99,6 +102,10 @@
 							<text class="warning-icon">⚠️</text>
 							<text class="warning-text">VIP即将到期 ({{ getDaysRemaining(getUserExpireDate(user)) }}天)</text>
 						</view>
+						<view v-else-if="isUserExpired(user)" class="expiry-warning expired">
+							<text class="warning-icon">⛔</text>
+							<text class="warning-text">VIP已到期，请延期后再启用</text>
+						</view>
 						<!-- 用户简介 -->
 						<view v-if="user.bio" class="info-row bio-row">
 							<text class="info-label">简介</text>
@@ -115,7 +122,7 @@
 							<text>重置</text>
 						</button>
 						<button
-							v-if="user.status === 'active'"
+							v-if="user.status === 'active' && !isUserExpired(user)"
 							class="action-btn deactivate-btn"
 							@click="handleDeactivate(user)"
 						>
@@ -479,6 +486,36 @@ const isAdminRole = (role) => {
 // 获取用户到期日期（兼容不同字段名）
 const getUserExpireDate = (user) => {
 	return user.expireDate || user.expire_date || user.expiresAt || null
+}
+
+const getBusinessDateKey = (date = new Date()) => {
+	const businessTime = new Date(date.getTime() + 480 * 60 * 1000)
+	return businessTime.toISOString().slice(0, 10)
+}
+
+const getDateKey = (dateValue) => {
+	if (!dateValue) return null
+	const text = String(dateValue)
+	const match = text.match(/^(\d{4}-\d{2}-\d{2})/)
+	if (match) return match[1]
+	const parsed = new Date(dateValue)
+	return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10)
+}
+
+const isUserExpired = (user) => {
+	if (!user || ['admin', 'super_admin'].includes(user.role)) return false
+	const expireDate = getDateKey(getUserExpireDate(user))
+	return Boolean(expireDate && expireDate < getBusinessDateKey())
+}
+
+const getUserStatusLabel = (user) => {
+	if (isUserExpired(user)) return '✗ 已到期'
+	return user.status === 'active' ? '✓ 正常' : '✗ 已禁用'
+}
+
+const getUserStatusClass = (user) => {
+	if (isUserExpired(user)) return 'status-expired'
+	return `status-${user.status}`
 }
 
 // 计算剩余交易日（简单估算：排除周末）
@@ -1227,6 +1264,10 @@ button::after {
 	opacity: 0.7;
 }
 
+.user-card.user-expired {
+	background: #fff7f5;
+}
+
 .user-card.user-inactive .avatar-text {
 	color: #999;
 }
@@ -1348,6 +1389,11 @@ button::after {
 	color: #ff4d4f;
 }
 
+.info-value.status-expired {
+	color: #cf1322;
+	font-weight: bold;
+}
+
 .info-value.expiring {
 	color: #faad14;
 }
@@ -1397,6 +1443,15 @@ button::after {
 
 .expiry-warning.normal .warning-text {
 	color: #1890ff;
+}
+
+.expiry-warning.expired {
+	background: #fff1f0;
+	border: 1rpx solid #ffa39e;
+}
+
+.expiry-warning.expired .warning-text {
+	color: #cf1322;
 }
 
 .warning-icon {

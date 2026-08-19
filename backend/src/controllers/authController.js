@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const { generateToken } = require('../utils/jwtUtils');
 const { validateAccountEmail } = require('../utils/accountEmail');
+const { syncUserExpiryStatus } = require('../utils/userAccessPolicy');
 
 // 导入用户模型
 const User = require('../models/User');
@@ -104,10 +105,17 @@ async function login(req, res) {
         return res.status(401).json(unauthorized('用户名或密码错误'));
       }
 
-      // 检查用户状态
-      if (user.status !== 'active') {
-        console.log(`[登录失败] 账号未激活, 用户: ${user.name}, 状态: ${user.status}`);
-        return res.status(403).json(forbidden('账号已被禁用，请联系管理员'));
+      // 到期用户在登录时自动变为 inactive；延期后仍需管理员手动启用。
+      const synced = await syncUserExpiryStatus(user);
+      if (!synced.access.active) {
+        console.log(`[登录失败] 用户不可访问: ${user.name}, 原因: ${synced.access.reason}`);
+        return res.status(403).json(
+          forbidden(
+            synced.access.expired
+              ? '账号已到期，请联系管理员续期'
+              : '账号已被禁用，请联系管理员'
+          )
+        );
       }
 
       // 保存上次登录时间（在更新当前登录时间之前）
@@ -132,6 +140,7 @@ async function login(req, res) {
           groupId: user.groupId,
           avatar: user.avatar,
           status: user.status,
+          expireDate: user.expireDate,
           isInitialPassword: user.isInitialPassword,
           lastLoginAt: lastLoginAt
         }
@@ -160,6 +169,17 @@ async function getCurrentUser(req, res) {
     const user = await User.findByPk(req.user.userId);
     if (!user) {
       return res.status(404).json(notFound('User not found'));
+    }
+
+    const synced = await syncUserExpiryStatus(user);
+    if (!synced.access.active) {
+      return res.status(403).json(
+        forbidden(
+          synced.access.expired
+            ? '账号已到期，请联系管理员续期'
+            : '账号已被禁用，请联系管理员'
+        )
+      );
     }
     
     res.json(success({
@@ -316,7 +336,8 @@ async function changeEmail(req, res) {
       role: user.role,
       groupId: user.groupId,
       avatar: user.avatar,
-      status: user.status
+      status: user.status,
+      expireDate: user.expireDate
     }, '邮箱修改成功'));
   } catch (err) {
     console.error('修改邮箱错误:', err);

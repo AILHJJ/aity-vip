@@ -4,6 +4,11 @@ const { Op } = require('sequelize');
 
 // 导入用户模型
 const User = require('../models/User');
+const {
+  isUserExpired,
+  resolvePersistedStatus,
+  syncUserExpiryStatus
+} = require('../utils/userAccessPolicy');
 
 // 统一响应格式
 function success(data, message = 'Success') {
@@ -92,6 +97,9 @@ async function getAllUsers(req, res) {
       offset: offset
     });
 
+    // 管理员打开列表时同步到期状态，避免界面显示为正常但账号已经失效。
+    await Promise.all(rows.map(user => syncUserExpiryStatus(user)));
+
     return res.json(success({
       users: rows,
       pagination: {
@@ -159,13 +167,18 @@ async function createUser(req, res) {
     // 加密密码
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const requestedStatus = status || 'active';
     const user = await User.create({
       name,
       email: userEmail,
       password: hashedPassword,
       role: role || 'trial',
       groupId: groupId || null,
-      status: status || 'active',
+      status: resolvePersistedStatus({
+        role: role || 'trial',
+        status: requestedStatus,
+        expireDate: expireDate || null
+      }),
       expireDate: expireDate || null,
       bio: bio || null
     });
@@ -221,6 +234,11 @@ async function updateUser(req, res) {
       expireDate: expireDate !== undefined ? expireDate : user.expireDate,
       bio: bio !== undefined ? bio : user.bio
     };
+    updateData.status = resolvePersistedStatus({
+      role: updateData.role,
+      status: updateData.status,
+      expireDate: updateData.expireDate
+    });
 
     // 如果提供了新密码，则更新密码
     if (password) {
@@ -351,6 +369,10 @@ async function activateUser(req, res) {
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json(notFound('用户不存在'));
+    }
+
+    if (isUserExpired(user)) {
+      return res.status(400).json(badRequest('该用户已到期，请先延期后再启用'));
     }
 
     await user.update({ status: 'active' });
