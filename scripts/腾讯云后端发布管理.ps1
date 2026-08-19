@@ -110,4 +110,11 @@ esac
 $scriptBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($remoteScript))
 $remoteCommand = "printf '%s' '$scriptBase64' | base64 -d > /tmp/aity-backend-release-manager.sh && bash /tmp/aity-backend-release-manager.sh '$Action' '$Version'"
 
-& $SshExe -i $KeyPath -o StrictHostKeyChecking=no $Server $remoteCommand
+$tempKeyPath = Join-Path $env:TEMP "aity-vip-deploy-$PID.pem"
+try {
+  Copy-Item -LiteralPath $KeyPath -Destination $tempKeyPath -Force
+  & $SshExe -i $tempKeyPath -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $Server $remoteCommand
+}
+finally {
+  Remove-Item -LiteralPath $tempKeyPath -Force -ErrorAction SilentlyContinue
+}
