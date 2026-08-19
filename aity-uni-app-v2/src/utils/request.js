@@ -11,6 +11,8 @@
 
 import { API_BASE_URL } from './config.js'
 
+let authExpiredHandling = false
+
 // 友好的错误提示映射
 const ERROR_MESSAGES = {
   'Network Error': '网络连接失败，请检查网络设置',
@@ -128,6 +130,9 @@ export function request(options) {
 
         // 请求成功 (200 OK, 201 Created, 204 No Content)
         if (res.statusCode >= 200 && res.statusCode < 300) {
+          if (isLoginRequest) {
+            authExpiredHandling = false
+          }
           resolve(res.data)
         } else if (res.statusCode === 401) {
           // 判断是否是登录请求
@@ -137,8 +142,15 @@ export function request(options) {
             reject(new Error(errorMsg))
           } else {
             // 其他请求的401错误，token过期，清除登录信息并跳转登录页
+            if (authExpiredHandling) {
+              reject(new Error(ERROR_MESSAGES['401']))
+              return
+            }
+
+            authExpiredHandling = true
             uni.removeStorageSync('token')
             uni.removeStorageSync('userInfo')
+            uni.removeStorageSync('unreadCount')
             uni.showToast({
               title: ERROR_MESSAGES['401'],
               icon: 'none',

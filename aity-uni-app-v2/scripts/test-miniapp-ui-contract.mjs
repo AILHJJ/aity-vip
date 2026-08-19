@@ -18,6 +18,7 @@ const [messagesPage, discussionsPage, createMessagePage] = await Promise.all([
 	read('src/pages/discussions/discussions.vue'),
 	read('src/pages/create-message/create-message.vue')
 ])
+const requestUtil = await read('src/utils/request.js')
 
 assert.match(filterBar, /v-if="expanded" class="filter-card"/, '消息高级筛选必须默认收起')
 assert.match(filterBar, /未读\{\{ unreadCount/, '未读快捷入口必须保留在收起状态')
@@ -31,6 +32,12 @@ assert.doesNotMatch(discussionsPage, /@touch(move|start|end)|fabX|onFabTouch(Sta
 assert.match(discussionsPage, /bottom: calc\(120rpx \+ env\(safe-area-inset-bottom\)\)/, '讨论发布按钮必须避开底部 TabBar 和安全区')
 assert.doesNotMatch(createMessagePage, /height: calc\(100vh - 140rpx\)/, '发布表单不得依赖固定底栏高度计算滚动区域')
 assert.match(createMessagePage, /\.form-scroll \{[\s\S]*?height: 100%;/, '发布表单滚动区域必须随页面容器自适应')
+assert.match(messagesPage, /params\.keyword = searchKeyword\.value\.trim\(\)/, '消息搜索必须把关键词交给后端处理')
+assert.doesNotMatch(messagesPage, /filtered = filtered\.filter\(msg => \{[\s\S]*?title\.includes\(keyword\)/, '消息搜索不得只过滤当前已加载数组')
+assert.match(messagesPage, /const handleSearch = \(\) => \{[\s\S]*?loadMessages\(true\)/, '确认搜索必须重新加载服务端结果')
+assert.match(messagesPage, /const clearSearch = \(\) => \{[\s\S]*?loadMessages\(true\)/, '清除搜索必须恢复服务端列表')
+assert.match(requestUtil, /uni\.removeStorageSync\('unreadCount'\)/, '登录过期必须清理本地未读数')
+assert.match(requestUtil, /认证失效处理中|authExpiredHandling/, '登录过期必须避免重复提示和重复跳转')
 
 assert.match(marketPage, /<app-nav-bar title="行情中心"/, '行情页必须展示安全区标题栏')
 assert.doesNotMatch(marketPage, /class="fab-refresh"/, '行情页不得使用遮挡内容的悬浮刷新按钮')

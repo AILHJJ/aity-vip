@@ -24,7 +24,8 @@ const fakeOp = {
   lte: Symbol.for('lte'),
   ne: Symbol.for('ne'),
   in: Symbol.for('in'),
-  notIn: Symbol.for('notIn')
+  notIn: Symbol.for('notIn'),
+  like: Symbol.for('like')
 };
 
 const fakeSequelize = {
@@ -81,6 +82,22 @@ assert.ok(
   shortUserWhere[fakeOp.and].some(condition =>
     Array.isArray(condition[fakeOp.or]) &&
     condition[fakeOp.or].some(item => item.left?.value === JSON.stringify('mid_term'))
+  )
+);
+
+const keywordWhere = buildVisibleMessageWhere({
+  user: { id: 9, role: 'admin' },
+  query: { keyword: '  财报  ' },
+  readMessageIds: [],
+  sequelize: fakeSequelize,
+  Op: fakeOp
+});
+
+assert.ok(
+  keywordWhere[fakeOp.and].some(condition =>
+    Array.isArray(condition[fakeOp.or]) &&
+    condition[fakeOp.or].some(item => item.title?.[fakeOp.like] === '%财报%') &&
+    condition[fakeOp.or].some(item => item.content?.[fakeOp.like] === '%财报%')
   )
 );
 

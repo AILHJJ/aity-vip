@@ -65,7 +65,7 @@ async function authenticateToken(req, res, next) {
 
   const decoded = verifyToken(token);
   if (!decoded) {
-    return res.status(403).json(forbidden('Invalid or expired token'));
+    return res.status(401).json(unauthorized('Invalid or expired token'));
   }
 
   try {

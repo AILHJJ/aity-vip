@@ -119,7 +119,8 @@ describe('Auth API', () => {
         .get('/api/auth/me')
         .set('Authorization', 'Bearer invalid-token');
 
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(401);
+      expect(response.body.message).toContain('Invalid or expired token');
     });
   });
 });

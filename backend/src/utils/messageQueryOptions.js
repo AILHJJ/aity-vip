@@ -11,6 +11,7 @@ function isAdminRole(role) {
 
 function buildVisibleMessageWhere({ user, query = {}, readMessageIds = [], sequelize, Op }) {
   const { type, groupId, status, tag } = query;
+  const keyword = String(query.keyword || '').trim();
   const readStatus = normalizeReadStatus(query.readStatus);
   const where = {};
   const andConditions = [];
@@ -40,6 +41,16 @@ function buildVisibleMessageWhere({ user, query = {}, readMessageIds = [], seque
         1
       )
     );
+  }
+
+  if (keyword) {
+    const pattern = `%${keyword}%`;
+    andConditions.push({
+      [Op.or]: [
+        { title: { [Op.like]: pattern } },
+        { content: { [Op.like]: pattern } }
+      ]
+    });
   }
 
   if (user.role !== 'trial' && !isAdminRole(user.role)) {

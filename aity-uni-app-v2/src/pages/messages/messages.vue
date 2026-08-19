@@ -79,11 +79,11 @@
 				<button class="unread-empty-btn" @click="handleUnreadFilterChange(false)">查看全部消息</button>
 			</view>
 
+			<!-- 搜索无结果 -->
+			<empty-state v-else-if="messages.length === 0 && searchKeyword" type="no-result" />
+
 			<!-- 空状态 -->
 			<empty-state v-else-if="messages.length === 0" type="message" />
-
-			<!-- 搜索无结果 -->
-			<empty-state v-else-if="filteredMessages.length === 0 && searchKeyword" type="no-result" />
 
 			<!-- 置顶消息区域 -->
 			<view v-if="pinnedMessages.length > 0" class="pinned-section">
@@ -290,30 +290,9 @@ const basicFilters = ref({
 
 // 高级筛选条件（已合并到 message-filter-bar）
 
-// 根据用户角色和搜索关键词过滤消息
+// 页面展示筛选。权限和关键词查询由后端处理，避免前端只对已加载内容进行误过滤。
 const filteredMessages = computed(() => {
 	let filtered = messages.value
-
-	// 权限过滤：根据用户角色过滤消息
-	const userRole = userStore.userRole
-	if (userRole === 'vip_mid') {
-		// VIP中线用户：只显示包含"中线策略"或"全部用户"标签的消息
-		filtered = filtered.filter(msg => {
-			return msg.tags && (
-				msg.tags.includes(MESSAGE_TAGS.MID_TERM) ||
-				msg.tags.includes(MESSAGE_TAGS.ALL_USERS)
-			)
-		})
-	} else if (userRole === 'vip_short') {
-		// VIP短线用户：只显示包含"短线策略"或"全部用户"标签的消息
-		filtered = filtered.filter(msg => {
-			return msg.tags && (
-				msg.tags.includes(MESSAGE_TAGS.SHORT_TERM) ||
-				msg.tags.includes(MESSAGE_TAGS.ALL_USERS)
-			)
-		})
-	}
-	// trial、admin、super_admin 显示所有消息，不需要过滤
 
 	// ========== 快捷筛选（完全独立） ==========
 	if (basicFilters.value.quickType !== 'all') {
@@ -392,16 +371,6 @@ const filteredMessages = computed(() => {
 				return msgDate.isAfter(startDate) && msgDate.isBefore(endDate.add(1, 'day'))
 			})
 		}
-	}
-
-	// 搜索过滤：根据关键词过滤标题和内容
-	if (searchKeyword.value.trim()) {
-		const keyword = searchKeyword.value.trim().toLowerCase()
-		filtered = filtered.filter(msg => {
-			const title = (msg.title || '').toLowerCase()
-			const content = (msg.content || '').toLowerCase()
-			return title.includes(keyword) || content.includes(keyword)
-		})
 	}
 
 	return filtered
@@ -573,6 +542,10 @@ const loadMessages = async (isRefresh = false) => {
 			params.tag = activeTag.value
 		}
 
+		if (searchKeyword.value.trim()) {
+			params.keyword = searchKeyword.value.trim()
+		}
+
 		const res = await getMessagesApi(params)
 
 		// 修复: 后端返回格式是 { code: 200, message: "Success", data: { list: [...], pagination: {...} } }
@@ -669,13 +642,13 @@ const handleSearch = () => {
 		searchHistory.value = getSearchHistory()
 	}
 	showSearchHistory.value = false
+	loadMessages(true)
 }
 
 // 清除搜索
 const clearSearch = () => {
 	searchKeyword.value = ''
-	// 触发重新渲染
-	filteredMessages.value // 引用一下确保响应式
+	loadMessages(true)
 }
 
 // 选择搜索历史
