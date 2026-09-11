@@ -85,6 +85,12 @@
 			}
 		},
 		{
+			"path": "pages/admin/agent-config",
+			"style": {
+				"navigationBarTitleText": "Agent 管理"
+			}
+		},
+		{
 			"path": "pages/market/market",
 			"style": {
 				"navigationBarTitleText": "行情中心",
@@ -120,7 +126,7 @@
 		{
 			"path": "pages/ai-advisor/ai-advisor",
 			"style": {
-				"navigationBarTitleText": "图灵",
+				"navigationBarTitleText": "Agent",
 				"navigationStyle": "custom"
 			}
 		}

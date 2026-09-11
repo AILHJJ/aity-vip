@@ -1,55 +1,7 @@
 /**
- * AI投顾API配置
- * 通过后端代理服务访问通达信问小达API
- *
- * 环境区分：
- * - 开发环境：连接本地后端代理
- * - 生产环境：连接生产服务器代理
+ * Agent 对话本地状态。
+ * 服务地址、鉴权和默认 Agent 均由后端统一处理，前端只保存当前用户的会话状态。
  */
-
-import { API_BASE_URL, IS_PRODUCTION } from './config'
-
-// API配置 - 使用后端代理
-export const AI_ADVISOR_CONFIG = {
-  // 后端代理API地址（自动根据环境选择）
-  get API_URL() {
-    return `${API_BASE_URL}/ai-advisor`
-  },
-
-  // Agent类型
-  AGENT_TYPE: 'wenda', // 问小达
-
-  // 是否开启深度思考
-  ENABLE_THINK: false,
-
-  // 请求超时时间（毫秒）
-  TIMEOUT: 120000,
-}
-
-/**
- * 获取API基础URL
- */
-export function getApiBaseUrl() {
-  return AI_ADVISOR_CONFIG.API_URL
-}
-
-// 延迟导入用户store（避免循环依赖）
-// 注意：小程序运行时不支持 require('@/xxx') 路径别名，必须在函数内部动态导入
-let _userStore = null
-function getUserStore() {
-  if (!_userStore) {
-    try {
-      // 方式1：尝试 uni-app 的全局 store（通过 getApp 获取）
-      const app = typeof getApp === 'function' ? getApp() : null
-      if (app && app.$store && app.$store.state && app.$store.state.user) {
-        _userStore = app.$store.state.user
-      }
-    } catch (e) {
-      // 忽略
-    }
-  }
-  return _userStore
-}
 
 /**
  * 获取当前用户的存储Key
@@ -88,39 +40,6 @@ export function getUserStorageKey(key) {
     // 降级方案：使用固定key（所有用户共享，仅用于错误恢复）
     return `ai_advisor_${key}`
   }
-}
-
-// 获取深度思考模式状态
-export function getThinkMode() {
-  return uni.getStorageSync('ai_advisor_think_mode') || AI_ADVISOR_CONFIG.ENABLE_THINK
-}
-
-// 设置深度思考模式状态
-export function setThinkMode(enabled) {
-  uni.setStorageSync('ai_advisor_think_mode', enabled)
-  AI_ADVISOR_CONFIG.ENABLE_THINK = enabled
-  return enabled
-}
-
-/**
- * 构建请求体
- */
-export function buildRequestBody(content, threadId = null) {
-  // 获取当前的深度思考模式状态（而不是使用配置中的静态值）
-  const currentThinkMode = getThinkMode()
-
-  const body = {
-    content: content,
-    agent: AI_ADVISOR_CONFIG.AGENT_TYPE,
-    think: currentThinkMode
-  }
-
-  // 如果有threadId，添加到请求体
-  if (threadId) {
-    body.threadId = threadId
-  }
-
-  return body
 }
 
 /**

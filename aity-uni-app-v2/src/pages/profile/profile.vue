@@ -89,6 +89,14 @@
 				</view>
 			</view>
 
+			<view v-if="userStore.isAdmin" class="menu-item" @click="goToAgentConfig">
+				<view class="menu-left">
+					<text class="menu-icon">AI</text>
+					<text class="menu-text">Agent 管理</text>
+				</view>
+				<text class="menu-arrow">?</text>
+			</view>
+
 			<view class="menu-item" @click="showThemeSettings">
 				<view class="menu-left">
 					<text class="menu-icon">🎨</text>
@@ -255,6 +263,10 @@ const goToAiConfig = () => {
 	uni.navigateTo({
 		url: '/pages/admin/ai-config'
 	})
+}
+
+const goToAgentConfig = () => {
+	uni.navigateTo({ url: '/pages/admin/agent-config' })
 }
 
 // 跳转到修改密码

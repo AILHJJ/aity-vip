@@ -1,6 +1,6 @@
 <template>
 	<view class="ai-advisor-container">
-		<app-nav-bar title="AI图灵" show-back />
+		<app-nav-bar title="Agent" show-back />
 
 		<!-- 对话消息区域 -->
 		<scroll-view
@@ -18,8 +18,8 @@
 					<view class="welcome-icon-bg"></view>
 					<text class="welcome-icon">✦</text>
 				</view>
-				<view class="welcome-title">图灵</view>
-				<view class="welcome-subtitle">智能金融助手</view>
+				<view class="welcome-title">{{ agent.name || 'Agent' }}</view>
+				<view class="welcome-subtitle">{{ agent.description || '智能金融助手' }}</view>
 				<view class="welcome-hint">开始提问，探索AI金融</view>
 			</view>
 
@@ -163,8 +163,8 @@
 <script setup>
 import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import AppNavBar from '@/components/app-nav-bar.vue'
-import { sendAIMessage } from '@/api/ai-advisor'
-import { getChatHistory, saveChatHistory, saveThreadId, clearChatHistory, getThreadId } from '@/utils/ai-advisor-config'
+import { getAgentConfigApi, sendAgentMessageApi } from '@/api/ai-advisor'
+import { getChatHistory, saveChatHistory, clearChatHistory, getThreadId, saveThreadId } from '@/utils/ai-advisor-config'
 import { MarkdownRenderer, FinancialTableParser } from '@/utils/markdown-renderer'
 import { API_BASE_URL } from '@/utils/config'
 
@@ -179,6 +179,7 @@ const scrollWithAnimation = ref(true)
 const currentToolCalls = ref([])
 const currentReasoning = ref('')
 const isFinancialQuery = ref(false)
+const agent = ref({ name: 'Agent', description: '' })
 
 // 键盘高度管理
 const keyboardHeight = ref(0)
@@ -203,6 +204,15 @@ function handleNewSession() {
 	// 新会话：清空threadId，下次请求将传递空字符串，后台会创建新会话
 	// 后台创建的新threadId会从metadata事件中返回，自动保存
 	console.log('开启新会话：清空threadId')
+}
+
+async function loadAgentConfig() {
+	try {
+		const response = await getAgentConfigApi()
+		if (response.code === 200 && response.data?.agent) agent.value = response.data.agent
+	} catch (error) {
+		console.error('加载 Agent 配置失败:', error)
+	}
 }
 
 // 加载行情数据
@@ -319,65 +329,19 @@ async function handleSend() {
 	uni.hideKeyboard()
 
 	try {
-		sendAIMessage(
-			content,
-			(data) => {
-				const lastMessage = messages.value[messages.value.length - 1]
-
-				if (data.type === 'content') {
-					updateAIMessage(data.fullContent)
-					// 流式输出时自动滚动到底部（不使用动画，避免卡顿）
-					scrollToBottom(false)
-				} else if (data.type === 'reasoning') {
-					currentReasoning.value = data.fullReasoning
-					if (lastMessage) {
-						lastMessage.reasoning = data.fullReasoning
-						scrollToBottom(false)
-					}
-				} else if (data.type === 'tool_calls') {
-					if (data.tool_calls && data.tool_calls.length > 0) {
-						currentToolCalls.value.push(...data.tool_calls)
-						if (lastMessage) {
-							lastMessage.toolCalls = [...currentToolCalls.value]
-							const hasFinancialTool = data.tool_calls.some(tool =>
-								tool.function?.name === '金融选股'
-							)
-							if (hasFinancialTool) {
-								isFinancialQuery.value = true
-								lastMessage.isTable = true
-							}
-						}
-						scrollToBottom(false)
-					}
-				} else if (data.type === 'tool_result') {
-					// 工具响应结果（原始JSON数据）
-					console.log('工具响应结果:', data.tool_name, data.tool_result)
-
-					if (lastMessage) {
-						// 如果是金融选股工具，保存工具响应的原始数据
-						if (data.tool_name === '金融选股') {
-							lastMessage.toolResult = data.tool_result
-							lastMessage.isTable = true
-						}
-					}
-					scrollToBottom(false)
-				}
-			},
-			(error) => {
-				console.error('AI请求失败:', error)
-				errorMessage.value = '请求失败，请稍后重试'
-				completeAIMessage()
-				isLoading.value = false
-			},
-			(result) => {
-				console.log('AI回复完成:', result)
-				completeAIMessage()
-				isLoading.value = false
-			}
-		)
+		const response = await sendAgentMessageApi({ message: content, conversationId: getThreadId() })
+		const answer = response.data?.output?.content || ''
+		if (!answer) throw new Error('Agent 未返回有效内容')
+		if (response.data?.conversationId) saveThreadId(response.data.conversationId)
+		updateAIMessage(answer)
+		completeAIMessage()
+		scrollToBottom()
 	} catch (error) {
 		console.error('发送消息失败:', error)
+		const placeholder = messages.value[messages.value.length - 1]
+		if (placeholder?.role === 'ai' && placeholder.isStreaming) messages.value.pop()
 		errorMessage.value = '发送失败，请重试'
+	} finally {
 		isLoading.value = false
 	}
 }
@@ -656,6 +620,7 @@ function scrollToBottom(animate = true) {
 
 // 页面加载
 onMounted(() => {
+	loadAgentConfig()
 	const accepted = uni.getStorageSync('disclaimer_accepted')
 	if (!accepted) {
 		showDisclaimerModal.value = true

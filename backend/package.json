@@ -8,6 +8,7 @@
     "dev": "cross-env NODE_ENV=development nodemon src/index.js",
     "dev:prod": "cross-env NODE_ENV=development DB_ENV=production nodemon src/index.js",
     "test": "cross-env NODE_ENV=test jest",
+    "test:agent": "node tests/agentOpenApiService.unit.cjs && node tests/agentUsageService.unit.cjs && node tests/agentAdvisorController.unit.cjs",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "db:status": "node scripts/check-db-status.js",

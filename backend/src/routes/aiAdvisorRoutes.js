@@ -4,23 +4,15 @@ const aiAdvisorController = require('../controllers/aiAdvisorController');
 const { authenticateToken, checkAdmin } = require('../utils/jwtUtils');
 
 /**
- * 图灵AI代理路由
- * 用于代理通达信问小达API请求，自动处理token认证
+ * Agent 对话与管理路由。
+ * 小程序始终通过本服务使用 OpenAPI，服务端负责密钥与用户身份映射。
  */
 
-// 获取当前token状态
-router.get('/token-status', aiAdvisorController.getTokenStatus);
-
-// 刷新token（需要手动触发或定时任务）
-router.post('/refresh-token', aiAdvisorController.refreshToken);
-
-// 手动设置token（管理员接口）
-router.post('/set-token', authenticateToken, checkAdmin, aiAdvisorController.setToken);
-
-// 代理图灵聊天请求
-router.post('/chat', aiAdvisorController.proxyChat);
-
-// 流式聊天代理
-router.post('/stream-chat', aiAdvisorController.proxyStreamChat);
+router.get('/config', authenticateToken, aiAdvisorController.getConfig);
+router.get('/agents', authenticateToken, checkAdmin, aiAdvisorController.listAgents);
+router.put('/config', authenticateToken, checkAdmin, aiAdvisorController.updateConfig);
+router.post('/chat', authenticateToken, aiAdvisorController.chat);
+router.get('/usage/personal', authenticateToken, aiAdvisorController.personalUsage);
+router.get('/usage', authenticateToken, checkAdmin, aiAdvisorController.globalUsage);
 
 module.exports = router;
