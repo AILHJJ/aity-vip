@@ -232,7 +232,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import EmptyState from '../../components/empty-state.vue'
@@ -246,6 +246,10 @@ import {
 } from '../../api/discussion'
 import { getMessageDetailApi } from '../../api/message'
 import { uploadImageApi } from '../../api/upload'
+// #ifdef H5
+import { setupPasteUpload } from '../../utils/pasteImage'
+let removePasteListener = null
+// #endif
 import { formatFriendlyTime } from '../../utils/time'
 import { BASE_URL } from '../../utils/config'
 import { MarkdownRenderer } from '../../utils/markdown-renderer'
@@ -725,7 +729,35 @@ onMounted(() => {
 	}
 
 	loadDiscussion()
+
+	// #ifdef H5
+	// 支持剪贴板图片粘贴上传（回帖图片，PC 端效率）
+	removePasteListener = setupPasteUpload(async (files) => {
+		for (const file of files) {
+			if (file.size > 10 * 1024 * 1024) {
+				uni.showToast({ title: '图片大小不能超过 10MB', icon: 'none' })
+				continue
+			}
+			try {
+				const blobUrl = URL.createObjectURL(file)
+				const res = await uploadImageApi(blobUrl)
+				URL.revokeObjectURL(blobUrl)
+				replyImages.value.push({ url: res.url, filename: res.filename })
+			} catch (err) {
+				console.error('[粘贴上传] 失败:', err)
+				uni.showToast({ title: '图片上传失败', icon: 'none' })
+			}
+		}
+		uni.showToast({ title: `已粘贴 ${files.length} 张图片`, icon: 'none' })
+	})
+	// #endif
 })
+
+// #ifdef H5
+onBeforeUnmount(() => {
+	if (removePasteListener) removePasteListener()
+})
+// #endif
 
 // 页面显示时刷新回复列表（如果需要）
 onShow(() => {

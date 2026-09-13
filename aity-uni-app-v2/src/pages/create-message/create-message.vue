@@ -369,6 +369,10 @@ import { uploadImageApi } from '../../api/upload'
 import { optimizeContentApi } from '../../api/ai'
 import { getMessageTypesApi, createMessageTypeApi, deleteMessageTypeApi } from '../../api/messageType'
 import { MESSAGE_TYPES, MESSAGE_TAGS, MESSAGE_TYPE_LABELS, MESSAGE_TAG_LABELS, USER_ROLES } from '../../utils/constants'
+// #ifdef H5
+import { setupPasteUpload } from '../../utils/pasteImage'
+let removePasteListener = null
+// #endif
 import { BASE_URL } from '../../utils/config'
 
 const userStore = useUserStore()
@@ -1751,6 +1755,25 @@ onMounted(async () => {
 
 	// 启动定时保存草稿（每30秒）
 	draftTimer.value = setInterval(saveDraft, 30000)
+
+	// #ifdef H5
+	// 支持剪贴板图片粘贴上传（PC 端管理员效率）
+	removePasteListener = setupPasteUpload((files) => {
+		files.forEach(file => {
+			if (file.size > 10 * 1024 * 1024) {
+				uni.showToast({ title: '图片大小不能超过 10MB', icon: 'none' })
+				return
+			}
+			const blobUrl = URL.createObjectURL(file)
+			formData.value.attachments.push({
+				name: file.name || 'paste-image.png',
+				path: blobUrl,
+				size: file.size
+			})
+		})
+		uni.showToast({ title: `已粘贴 ${files.length} 张图片`, icon: 'none' })
+	})
+	// #endif
 })
 
 // 页面卸载时清除定时器
@@ -1758,6 +1781,9 @@ onBeforeUnmount(() => {
 	if (draftTimer.value) {
 		clearInterval(draftTimer.value)
 	}
+	// #ifdef H5
+	if (removePasteListener) removePasteListener()
+	// #endif
 })
 </script>
 
@@ -3367,4 +3393,36 @@ button::after {
 		opacity: 0.5;
 	}
 }
+
+/* #ifdef H5 */
+/* ========== PC 端管理员后台适配（仅 H5 编译，小程序不受影响） ========== */
+.create-message-container {
+	max-width: 1280px;
+	margin: 0 auto;
+	padding: 20rpx 40rpx;
+	box-sizing: border-box;
+}
+
+.form-container {
+	max-width: 920px;
+	margin: 0 auto;
+}
+
+/* 加大字号（PC 端屏幕大） */
+.form-textarea {
+	font-size: 32rpx;
+	line-height: 1.6;
+}
+
+.setting-label,
+.form-label {
+	font-size: 30rpx;
+}
+
+/* 消息类型/策略标签加大易点 */
+.tag-group .tag-item {
+	font-size: 28rpx;
+	padding: 14rpx 28rpx;
+}
+/* #endif */
 </style>
