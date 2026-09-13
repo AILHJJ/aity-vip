@@ -19,6 +19,17 @@ export default {
 
     // 延迟跳转，确保框架完全初始化
     setTimeout(() => {
+      // #ifdef H5
+      // 若通过通知卡片的 deep link（如 #/pages/discussion-detail/...）直接进入具体页面，
+      // 则不要强制跳转到默认首页，否则会覆盖用户点击的目标页面
+      const hash = window.location.hash
+      const isDeepLink = hash && hash !== '#' && hash !== '#/'
+      if (hasToken && isDeepLink) {
+        console.log('App Launch - deep link 直达，保持当前页面:', hash)
+        return
+      }
+      // #endif
+
       if (hasToken) {
         console.log('App Launch - 跳转到消息页面')
         uni.switchTab({
