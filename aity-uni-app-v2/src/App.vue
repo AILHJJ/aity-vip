@@ -81,6 +81,31 @@ uni-page-body {
   box-sizing: border-box;
 }
 
+/* 顶部导航条 uni-page-head 居中限制宽度，与 tabBar 一致 */
+@media (min-width: 769px) {
+	.uni-page-head {
+		left: 0 !important;
+		right: 0 !important;
+		margin-left: auto !important;
+		margin-right: auto !important;
+		width: auto !important;
+		max-width: 1280px !important;
+	}
+
+	/* PC 端去掉 uni-page-head 内置的返回箭头（浏览器原生后退即可） */
+	.uni-page-head-hd,
+	.uni-page-head .uni-btn-icon[onClick*='back'],
+	.uni-page-head-hd .uni-page-head-btn {
+		display: none !important;
+	}
+
+	/* 标题居中 */
+	.uni-page-head .uni-page-head-bd {
+		text-align: center;
+		flex: 1;
+	}
+}
+
 /* 底部/顶部 tabBar 居中限制宽度（避免大屏下横跨全屏）
    经典 fixed 居中：left:0; right:0; margin:0 auto; max-width 限制最大宽 */
 @media (min-width: 769px) {
