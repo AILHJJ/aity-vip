@@ -59,6 +59,13 @@ const Discussion = sequelize.define('Discussion', {
     allowNull: false,
     defaultValue: 'private',
     comment: 'private: 只有管理员和发起者可见, public: 所有人可见'
+  },
+  images: {
+    type: DataTypes.JSON,
+    field: 'images',
+    allowNull: true,
+    defaultValue: null,
+    comment: '图片列表 [{url, filename}]'
   }
 }, {
   tableName: 'discussions',

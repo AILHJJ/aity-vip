@@ -28,6 +28,7 @@ const logger = require('./utils/logger');
 const swaggerSpec = require('./config/swagger');
 const { trackRequest, trackError, getMetrics } = require('./middleware/monitoring');
 const { startUserExpirySync } = require('./services/userExpiryService');
+const wecomBotService = require('./services/wecomBotService');
 
 // 导入路由
 const authRoutes = require('./routes/authRoutes');
@@ -239,6 +240,7 @@ if (require.main === module) {
       allowedOrigins: ALLOWED_ORIGINS
     });
     startUserExpirySync();
+    wecomBotService.start();
   });
 }
 

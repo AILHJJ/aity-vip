@@ -32,7 +32,8 @@
     "sequelize": "^6.35.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
-    "winston": "^3.11.0"
+    "winston": "^3.11.0",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "archiver": "^7.0.1",
