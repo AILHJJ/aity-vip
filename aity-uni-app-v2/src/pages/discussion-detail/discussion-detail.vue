@@ -123,7 +123,7 @@
 										v-for="(img, imgIdx) in reply.images"
 										:key="imgIdx"
 										class="reply-image"
-										:src="img.url"
+										:src="fullUrl(img.url)"
 										mode="aspectFill"
 										@click="previewImage(img.url, reply.images)"
 									/>
@@ -146,7 +146,7 @@
 									<!-- 编辑模式图片预览 -->
 									<view v-if="editImages.length > 0" class="edit-images-preview">
 										<view v-for="(img, idx) in editImages" :key="idx" class="edit-image-item">
-											<image class="edit-image-thumb" :src="img.url || img" mode="aspectFill" />
+											<image class="edit-image-thumb" :src="fullUrl(img.url || img)" mode="aspectFill" />
 											<text class="remove-image-btn" @click="removeEditImage(idx)">✕</text>
 										</view>
 									</view>
@@ -178,7 +178,7 @@
 				<!-- 已选图片预览 -->
 				<view v-if="replyImages.length > 0" class="images-preview">
 					<view v-for="(img, idx) in replyImages" :key="idx" class="image-item">
-						<image class="image-thumb" :src="img.url" mode="aspectFill" />
+						<image class="image-thumb" :src="fullUrl(img.url)" mode="aspectFill" />
 						<text class="remove-image-btn" @click="removeReplyImage(idx)">✕</text>
 					</view>
 				</view>
@@ -241,6 +241,7 @@ import {
 import { getMessageDetailApi } from '../../api/message'
 import { uploadImageApi } from '../../api/upload'
 import { formatFriendlyTime } from '../../utils/time'
+import { BASE_URL } from '../../utils/config'
 import { MarkdownRenderer } from '../../utils/markdown-renderer'
 import { getMessageTypeDisplayLabel } from '../../utils/message-labels.mjs'
 import { normalizeMessageId } from '../../utils/discussion-link.mjs'
@@ -512,8 +513,17 @@ const removeReplyImage = (index) => {
 
 // 预览图片
 const previewImage = (currentUrl, images) => {
-	const urls = images.map(img => img.url)
-	uni.previewImage({ current: currentUrl, urls })
+	const urls = images.map(img => fullUrl(img.url))
+	uni.previewImage({ current: fullUrl(currentUrl), urls })
+}
+
+// 将后端返回的相对路径（如 /uploads/...）转为完整 URL，避免 H5 uni-image
+// 在 hash 路由下对根路径 src 错误拼接 base 导致图片无法显示
+const fullUrl = (url) => {
+	if (!url) return ''
+	if (typeof url !== 'string') return ''
+	if (url.startsWith('http://') || url.startsWith('https://')) return url
+	return `${BASE_URL}${url}`
 }
 
 // ========== 编辑/删除回复方法 ==========
