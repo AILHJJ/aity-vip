@@ -1,19 +1,7 @@
 // 主应用文件
-const express = require('express');
-const cors = require('cors');
-const fileUpload = require('express-fileupload');
+// ⚠️ 环境变量必须最先加载：userExpiryService 等模块会间接 require db/models，
+//    必须在它们加载前完成 env 注入，否则数据库连接会使用默认 root@localhost 导致失败
 const path = require('path');
-const helmet = require('helmet');
-const swaggerUi = require('swagger-ui-express');
-const logger = require('./utils/logger');
-const swaggerSpec = require('./config/swagger');
-const { trackRequest, trackError, getMetrics } = require('./middleware/monitoring');
-const { startUserExpirySync } = require('./services/userExpiryService');
-
-// ============================================
-// 环境变量自动加载
-// 根据 NODE_ENV 自动选择对应的 .env 文件
-// ============================================
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const envFileMap = {
   production: '.env.production',
@@ -22,8 +10,6 @@ const envFileMap = {
 };
 const envFile = envFileMap[NODE_ENV] || '.env.development';
 const envPath = path.resolve(__dirname, `../${envFile}`);
-
-// 加载对应环境的配置文件
 const dotenvResult = require('dotenv').config({ path: envPath });
 
 if (dotenvResult.error) {
@@ -32,6 +18,16 @@ if (dotenvResult.error) {
 } else {
   console.log(`✅ 已加载环境配置: ${envFile}`);
 }
+
+const express = require('express');
+const cors = require('cors');
+const fileUpload = require('express-fileupload');
+const helmet = require('helmet');
+const swaggerUi = require('swagger-ui-express');
+const logger = require('./utils/logger');
+const swaggerSpec = require('./config/swagger');
+const { trackRequest, trackError, getMetrics } = require('./middleware/monitoring');
+const { startUserExpirySync } = require('./services/userExpiryService');
 
 // 导入路由
 const authRoutes = require('./routes/authRoutes');

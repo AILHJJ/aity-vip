@@ -9,6 +9,7 @@ const {
   canViewPrivateReply,
   resolveReplyPrivacy
 } = require('../utils/discussionReplyPolicy');
+const { notifyNewDiscussion, notifyNewReply } = require('../services/wecomNotifyService');
 
 // 统一响应格式
 function success(data, message = 'Success') {
@@ -344,6 +345,9 @@ async function createDiscussion(req, res) {
       user_avatar: user.avatar
     };
 
+    // 新帖通知管理员（fire-and-forget，不影响发帖响应）
+    notifyNewDiscussion(discussion);
+
     res.status(201).json(success(discussionData, 'Discussion created successfully'));
   } catch (err) {
     const elapsed = Date.now() - startTime;
@@ -448,6 +452,9 @@ async function addDiscussionReply(req, res) {
         replies_count: actualReplyCount
       }
     };
+
+    // 用户回帖通知管理员（管理员自己的回复不推）
+    notifyNewReply(discussion, reply, isAdmin);
 
     res.status(201).json(success(responseData, 'Reply added successfully'));
   } catch (err) {
