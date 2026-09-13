@@ -15,6 +15,15 @@ function testParseCommand() {
     { input: '帮助', expected: { cmd: 'help' } },
     { input: '@AITY回帖助手 发帖 测试', expected: { cmd: 'post', visibility: 'private', content: '测试' } },
     { input: '@AITY回帖助手 回复 95 已处理', expected: { cmd: 'reply', raw: '95 已处理' } },
+    // 自然语言变体（用户实际用法的扩展）
+    { input: '发帖 公开 测试', expected: { cmd: 'post', visibility: 'public', content: '测试' } },
+    { input: '发帖子 公开 测试', expected: { cmd: 'post', visibility: 'public', content: '测试' } },
+    { input: '发个帖子 测试', expected: { cmd: 'post', visibility: 'private', content: '测试' } },
+    { input: '发一个帖子用于测试吧', expected: { cmd: 'post', visibility: 'private', content: '用于测试吧' } },
+    { input: '发个帖 测试', expected: { cmd: 'post', visibility: 'private', content: '测试' } },
+    { input: '回复 1024 内容', expected: { cmd: 'reply', raw: '1024 内容' } },
+    { input: '回帖 1024 内容', expected: { cmd: 'reply', raw: '1024 内容' } },
+    { input: '回复帖子 1024 内容', expected: { cmd: 'reply', raw: '1024 内容' } },
     { input: '乱七八糟的输入', expected: null }
   ];
 

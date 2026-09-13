@@ -115,21 +115,43 @@ class WecomBotService {
   }
 
   onMessage(data) {
+    // 类型安全：ws 库的 message data 可能是 string / Buffer / ArrayBuffer
+    // 注意 catch 里**不能再调 data.toString()**（可能不存在，会二次抛异常被吞）
+    let text;
+    if (typeof data === 'string') {
+      text = data;
+    } else if (Buffer.isBuffer(data)) {
+      text = data.toString('utf8');
+    } else if (data instanceof ArrayBuffer) {
+      text = Buffer.from(data).toString('utf8');
+    } else {
+      console.log('[企微机器人] 未知消息类型:', typeof data);
+      return;
+    }
+    let msg;
     try {
-      const msg = JSON.parse(data.toString());
-      if (msg.cmd === 'aibot_subscribe') {
-        this.onSubscribeResult(msg);
-      } else if (msg.cmd === 'aibot_msg_callback') {
-        this.onMsgCallback(msg);
-      }
+      msg = JSON.parse(text);
     } catch (err) {
-      console.error('[企微机器人] 消息解析失败:', err.message);
+      console.error('[企微机器人] JSON.parse 失败:', err.message, '前80字符:', text.substring(0, 80));
+      return;
+    }
+    // 实际响应格式（与官方文档略有差异）：
+    //  消息回调：{ cmd: "aibot_msg_callback", headers, body: {...} }
+    //  订阅响应：{ headers: {req_id}, errcode, errmsg }（无 cmd 字段，errcode 在顶层）
+    //  应用层 ping：{ headers: {req_id}, ... }（无 cmd，无 errcode，errcode undefined）
+    if (msg.cmd === 'aibot_msg_callback') {
+      this.onMsgCallback(msg);
+    } else if (msg.cmd === 'aibot_subscribe' || (msg.errcode !== undefined && msg.cmd === undefined)) {
+      this.onSubscribeResult(msg);
+    } else {
+      console.log('[企微机器人] 未知 cmd:', msg.cmd);
     }
   }
 
   onSubscribeResult(msg) {
-    const body = msg.body || {};
-    if (body.errcode === 0) {
+    // errcode 可能位于顶层（实际响应）或 msg.body（按文档）
+    const errcode = msg.errcode !== undefined ? msg.errcode : (msg.body && msg.body.errcode);
+    if (errcode === 0) {
       console.log('[企微机器人] 订阅成功');
     } else {
       console.error('[企微机器人] 订阅失败:', JSON.stringify(msg));
@@ -228,7 +250,8 @@ class WecomBotService {
       return { cmd: 'bind', code: bindMatch[1] };
     }
 
-    const postMatch = text.match(/^发帖\s*(公开|私密)?\s*([\s\S]+)/);
+    // 发帖：发(一个|个)?帖(子)? — 支持 "发帖/发个帖/发帖子/发个帖子/发一个帖子"
+    const postMatch = text.match(/^发(?:一个|个)?帖(?:子)?\s*(公开|私密)?\s*([\s\S]+)/);
     if (postMatch) {
       return {
         cmd: 'post',
@@ -237,7 +260,8 @@ class WecomBotService {
       };
     }
 
-    const replyMatch = text.match(/^回复\s*([\s\S]+)/);
+    // 回帖：回(复|帖)(帖子)? — 支持 "回复/回帖/回复帖子"
+    const replyMatch = text.match(/^回(?:复|帖)(?:帖子)?\s*([\s\S]+)/);
     if (replyMatch) {
       return { cmd: 'reply', raw: replyMatch[1].trim() };
     }
@@ -369,8 +393,8 @@ class WecomBotService {
       cmd: 'aibot_respond_msg',
       headers: { req_id: reqId },
       body: {
-        msgtype: 'text',
-        text: { content: text }
+        msgtype: 'markdown',
+        markdown: { content: text }
       }
     });
   }
