@@ -1537,7 +1537,7 @@ onShow(() => {
 /* #ifdef H5 */
 @media (min-width: 769px) {
 	.market-container {
-		max-width: 1200px;
+		max-width: 1600px;
 		margin: 0 auto;
 	}
 }

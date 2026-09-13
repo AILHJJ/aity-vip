@@ -81,26 +81,21 @@ uni-page-body {
   box-sizing: border-box;
 }
 
-/* 大屏下给页面加左右留白，内容居中更聚拢 */
-@media (min-width: 769px) {
-  uni-page-body {
-    padding: 0 24px;
-  }
-}
-
 /* 底部/顶部 tabBar 居中限制宽度（避免大屏下横跨全屏）
-   uni-app H5 的 tabBar 用 left:var(--window-left) 撑满视口，fixed 居中需 left:50% + transform */
+   经典 fixed 居中：left:0; right:0; margin:0 auto; max-width 限制最大宽 */
 @media (min-width: 769px) {
 	.uni-tabbar-bottom,
 	.uni-tabbar-top,
 	.uni-tabbar-bottom .uni-tabbar,
 	.uni-tabbar-top .uni-tabbar {
-		left: 50% !important;
-		right: auto !important;
-		width: 100% !important;
+		left: 0 !important;
+		right: 0 !important;
+		margin-left: auto !important;
+		margin-right: auto !important;
+		width: auto !important;
 		max-width: 1280px !important;
-		transform: translateX(-50%) !important;
-		-webkit-transform: translateX(-50%) !important;
+		transform: none !important;
+		-webkit-transform: none !important;
 	}
 }
 /* #endif */
