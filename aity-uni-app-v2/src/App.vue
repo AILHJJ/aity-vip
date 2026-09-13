@@ -88,14 +88,20 @@ uni-page-body {
   }
 }
 
-/* 底部/顶部 tabBar 居中限制宽度（避免大屏下横跨全屏） */
+/* 底部/顶部 tabBar 居中限制宽度（避免大屏下横跨全屏）
+   uni-app H5 的 tabBar 用 left:var(--window-left) 撑满视口，fixed 居中需 left:50% + transform */
 @media (min-width: 769px) {
-  uni-tabbar {
-    left: 0 !important;
-    right: 0 !important;
-    margin: 0 auto !important;
-    max-width: 1280px !important;
-  }
+	.uni-tabbar-bottom,
+	.uni-tabbar-top,
+	.uni-tabbar-bottom .uni-tabbar,
+	.uni-tabbar-top .uni-tabbar {
+		left: 50% !important;
+		right: auto !important;
+		width: 100% !important;
+		max-width: 1280px !important;
+		transform: translateX(-50%) !important;
+		-webkit-transform: translateX(-50%) !important;
+	}
 }
 /* #endif */
 </style>
