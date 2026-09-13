@@ -142,6 +142,9 @@
 										:maxlength="500"
 										:auto-height="true"
 										:focus="true"
+										:adjust-position="true"
+										:cursor-spacing="20"
+										@keyboardheightchange="onKeyboardHeightChange"
 									/>
 									<!-- 编辑模式图片预览 -->
 									<view v-if="editImages.length > 0" class="edit-images-preview">
@@ -163,7 +166,7 @@
 			</scroll-view>
 
 			<!-- 回复输入框 -->
-			<view class="reply-input-wrapper">
+			<view class="reply-input-wrapper" :style="{ paddingBottom: keyboardHeight + 'px' }">
 				<view class="reply-input-container">
 					<textarea
 						class="reply-input"
@@ -173,6 +176,9 @@
 						:maxlength="500"
 						:show-confirm-bar="false"
 						:auto-height="true"
+						:adjust-position="true"
+						:cursor-spacing="20"
+						@keyboardheightchange="onKeyboardHeightChange"
 					/>
 				</view>
 				<!-- 已选图片预览 -->
@@ -261,6 +267,12 @@ const needRefreshReplies = ref(false)
 
 // 回复图片
 const replyImages = ref([])
+
+// 键盘高度（用于输入框避让弹起的键盘，防止遮挡编辑内容）
+const keyboardHeight = ref(0)
+const onKeyboardHeightChange = (e) => {
+	keyboardHeight.value = e.detail.height || 0
+}
 
 // 编辑模式状态
 const editingReplyId = ref(null)

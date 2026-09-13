@@ -95,6 +95,8 @@
 						placeholder-style="color: #999999"
 						:maxlength="2000"
 						:show-confirm-bar="false"
+						:adjust-position="true"
+						:cursor-spacing="20"
 					/>
 					<view class="char-count-wrapper">
 						<text class="char-count">{{ formData.content.length }}/2000</text>
