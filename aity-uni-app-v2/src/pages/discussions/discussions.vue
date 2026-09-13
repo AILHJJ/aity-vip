@@ -1,5 +1,9 @@
 <template>
 	<view class="discussions-container">
+		<!-- #ifdef H5 -->
+		<pc-top-nav active="discussions" />
+		<!-- #endif -->
+
 		<!-- 搜索栏 -->
 		<view class="search-bar">
 			<view class="search-input-wrapper">
@@ -105,6 +109,7 @@ import { useUserStore } from '../../store/user'
 import { getDiscussionsApi } from '../../api/discussion'
 import { formatFriendlyTime } from '../../utils/time'
 import EmptyState from '@/components/empty-state.vue'
+import PcTopNav from '@/components/pc-top-nav.vue'
 
 const userStore = useUserStore()
 

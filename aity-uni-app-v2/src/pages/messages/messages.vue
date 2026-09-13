@@ -1,5 +1,9 @@
 <template>
 	<view class="messages-container">
+		<!-- #ifdef H5 -->
+		<pc-top-nav active="messages" />
+		<!-- #endif -->
+
 		<!-- 管理员操作栏 - 已移除，仅保留右下角悬浮按钮 -->
 
 		<!-- 搜索栏 - 优化版 -->
@@ -233,6 +237,7 @@ import dayjs from 'dayjs'
 import MessageSkeleton from '@/components/message-skeleton.vue'
 import EmptyState from '@/components/empty-state.vue'
 import MessageFilterBar from '@/components/message-filter-bar.vue'
+import PcTopNav from '@/components/pc-top-nav.vue'
 import { MarkdownRenderer } from '../../utils/markdown-renderer'
 
 const userStore = useUserStore()

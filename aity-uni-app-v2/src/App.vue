@@ -106,21 +106,18 @@ uni-page-body {
 	}
 }
 
-/* 底部/顶部 tabBar 居中限制宽度（避免大屏下横跨全屏）
-   经典 fixed 居中：left:0; right:0; margin:0 auto; max-width 限制最大宽 */
+/* PC 大屏：隐藏底部 tabBar（由 pc-top-nav 顶部导航接管） */
 @media (min-width: 769px) {
 	.uni-tabbar-bottom,
-	.uni-tabbar-top,
-	.uni-tabbar-bottom .uni-tabbar,
-	.uni-tabbar-top .uni-tabbar {
-		left: 0 !important;
-		right: 0 !important;
-		margin-left: auto !important;
-		margin-right: auto !important;
-		width: auto !important;
-		max-width: 1280px !important;
-		transform: none !important;
-		-webkit-transform: none !important;
+	.uni-tabbar-top {
+		display: none !important;
+	}
+}
+
+/* PC 大屏：profile 页面的管理入口由 pc-top-nav 接管，隐藏冗余菜单项 */
+@media (min-width: 769px) {
+	.admin-only-mobile {
+		display: none !important;
 	}
 }
 /* #endif */

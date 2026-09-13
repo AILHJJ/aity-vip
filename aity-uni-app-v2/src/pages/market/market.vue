@@ -1,7 +1,13 @@
 <template>
   <view class="market-page">
-    <!-- 自定义导航栏需要避开微信状态栏和胶囊按钮 -->
+    <!-- #ifdef H5 -->
+    <pc-top-nav active="market" />
+    <!-- #endif -->
+
+    <!-- 自定义导航栏需要避开微信状态栏和胶囊按钮（H5 大屏由 pc-top-nav 接管） -->
+    <!-- #ifdef MP-WEIXIN -->
     <app-nav-bar title="行情中心" />
+    <!-- #endif -->
 
     <!-- Index Bar -->
     <scroll-view class="index-bar" scroll-x :show-scrollbar="false">
@@ -333,6 +339,7 @@ import { useUserStore } from '../../store/user'
 import MarketSkeleton from '@/components/market-skeleton.vue'
 import EmptyState from '@/components/empty-state.vue'
 import AppNavBar from '@/components/app-nav-bar.vue'
+import PcTopNav from '@/components/pc-top-nav.vue'
 
 const userStore = useUserStore()
 
@@ -1539,6 +1546,11 @@ onShow(() => {
 	.market-container {
 		max-width: 1600px;
 		margin: 0 auto;
+	}
+
+	/* H5 大屏：避让 pc-top-nav fixed 顶部导航（44px），原 app-nav-bar 已隐藏 */
+	.market-page {
+		padding-top: 44px;
 	}
 }
 /* #endif */

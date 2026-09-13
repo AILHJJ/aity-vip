@@ -1,5 +1,9 @@
 <template>
 	<view class="profile-container">
+		<!-- #ifdef H5 -->
+		<pc-top-nav active="profile" />
+		<!-- #endif -->
+
 		<!-- 用户信息卡片 -->
 		<view class="user-card">
 			<view class="user-avatar">
@@ -37,7 +41,7 @@
 				</view>
 			</view>
 
-			<view v-if="userStore.isAdmin" class="menu-item" @click="goToUserManagement">
+			<view v-if="userStore.isAdmin" class="menu-item admin-only-mobile" @click="goToUserManagement">
 				<view class="menu-left">
 					<text class="menu-icon">👥</text>
 					<text class="menu-text">用户管理</text>
@@ -45,7 +49,7 @@
 				<text class="menu-arrow">›</text>
 			</view>
 
-			<view v-if="userStore.isAdmin" class="menu-item" @click="goToStats">
+			<view v-if="userStore.isAdmin" class="menu-item admin-only-mobile" @click="goToStats">
 				<view class="menu-left">
 					<text class="menu-icon">📊</text>
 					<text class="menu-text">数据统计</text>
@@ -53,7 +57,7 @@
 				<text class="menu-arrow">›</text>
 			</view>
 
-			<view v-if="userStore.isAdmin" class="menu-item" @click="goToAiConfig">
+			<view v-if="userStore.isAdmin" class="menu-item admin-only-mobile" @click="goToAiConfig">
 				<view class="menu-left">
 					<text class="menu-icon">🤖</text>
 					<text class="menu-text">AI管理</text>
@@ -89,7 +93,7 @@
 				</view>
 			</view>
 
-			<view v-if="userStore.isAdmin" class="menu-item" @click="goToAgentConfig">
+			<view v-if="userStore.isAdmin" class="menu-item admin-only-mobile" @click="goToAgentConfig">
 				<view class="menu-left">
 					<text class="menu-icon">AI</text>
 					<text class="menu-text">Agent 管理</text>
@@ -141,6 +145,7 @@ import { useThemeStore, ThemeMode } from '../../store/theme'
 import { USER_ROLE_LABELS } from '../../utils/constants'
 import { getDiscussionsApi } from '../../api/discussion'
 import { getFavoriteMessagesApi } from '../../api/message'
+import PcTopNav from '@/components/pc-top-nav.vue'
 
 const userStore = useUserStore()
 const themeStore = useThemeStore()

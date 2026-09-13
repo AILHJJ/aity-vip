@@ -54,9 +54,28 @@
 
 ---
 
-## 三、阶段 2 待规划（本次未做）
+## 三、阶段 2（进行中）
 
-### 2.1 PC 端独立后台布局（重）
+### 2.1 PC 端顶部导航（已完成 2026-09-13）✅
+
+**本次交付**：PC 顶部水平导航栏，替代底部 tabBar。
+
+| 项 | 实现 |
+|---|---|
+| 顶部导航组件 | `components/pc-top-nav.vue`（fixed top 44px，仅 H5 大屏 ≥769px 显示） |
+| 导航项 | 消息 / 交流 / 行情 / 我的（对应 4 个 tabBar，高亮当前页） |
+| 未读角标 | 消息 tab 显示未读红点（复用 userStore.unreadCount） |
+| 管理下拉 | 管理员可见：用户管理 / 数据统计 / AI 管理 / Agent 管理 |
+| 底部 tabBar | H5 大屏隐藏（App.vue `display:none`） |
+| 接入页面 | messages / discussions / profile / market 4 个 tabBar 页面 |
+
+**实现要点**：pc-top-nav 用 `position: fixed; height: 44px` 与 uni-app 原生 `uni-page-head` 等高对齐，直接盖住原生标题栏，无需额外 padding，避免内容错位。小程序端零影响（`#ifdef H5` 隔离，编译验证无残留）。
+
+### 2.1b 侧边栏布局（待做，视需求）
+
+导航项仅 7 个（4 tab + 3 管理），顶导 + 管理下拉已足够承载，暂不做独立侧边栏，避免过度设计。若后续导航项增长到 15+ 再评估。
+
+### 2.1 原 PC 端独立后台布局（重，已简化为 2.1a 顶部导航）
 
 **现状问题**：当前 H5 仍是"产品移动端布局硬撑到 PC"，只是居中+缩小字号，**本质还是单列堆叠**，不是真正的 B 端后台。
 
@@ -160,3 +179,4 @@ npm run build:mp-weixin
 3. **uni-image 相对路径**：H5 端对根路径 src 在 hash 路由下错误拼接，必须用 `fullUrl()` 拼绝对 URL
 4. **`#ifdef H5` 包裹**：所有 PC 适配都必须在媒体查询外面再包一层条件编译，否则小程序会带回去
 5. **不要直接修改 `dist/`**：它是编译产物，改了无效，源码在 `src/`
+6. **多端导航入口要唯一**：PC 顶导新增入口时，必须同步检查原页面的同名入口，否则会双重出现。修复手法：给冗余 view 加 `class="admin-only-mobile"` + App.vue 全局 `@media (min-width: 769px) { display: none }`，移动端/小程序无影响
