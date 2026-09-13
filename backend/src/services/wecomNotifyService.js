@@ -60,9 +60,11 @@ async function sendText(content) {
   return { ok: false };
 }
 
-// 新帖通知
-function notifyNewDiscussion(discussion) {
+// 新帖通知（管理员发帖不推）
+function notifyNewDiscussion(discussion, isAdminPost = false) {
   if (!NOTIFY_ON_CREATE) return;
+  if (isAdminPost) return;
+
   const content = [
     '📢 新帖子提醒',
     `标题：${discussion.title || '(无标题)'}`,

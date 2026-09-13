@@ -346,7 +346,9 @@ async function createDiscussion(req, res) {
     };
 
     // 新帖通知管理员（fire-and-forget，不影响发帖响应）
-    notifyNewDiscussion(discussion);
+    // 管理员（super_admin/admin）自己发帖不推群，仅推送用户发帖
+    const isAdminPost = req.user.role === 'super_admin' || req.user.role === 'admin';
+    notifyNewDiscussion(discussion, isAdminPost);
 
     res.status(201).json(success(discussionData, 'Discussion created successfully'));
   } catch (err) {
