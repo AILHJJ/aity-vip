@@ -70,4 +70,22 @@ page > view {
   background-color: var(--bg-primary);
   color: var(--text-primary);
 }
+
+/* #ifdef H5 */
+/* ========== PC 端全局适配（仅 H5，小程序不受影响） ========== */
+/* 页面主体居中，避免撑满宽屏 */
+uni-page-body {
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 大屏下给页面加左右留白，内容居中更聚拢 */
+@media (min-width: 769px) {
+  uni-page-body {
+    padding: 0 24px;
+  }
+}
+/* #endif */
 </style>

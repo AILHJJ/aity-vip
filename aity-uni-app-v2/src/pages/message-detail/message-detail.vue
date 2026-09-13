@@ -2163,4 +2163,38 @@ button::after {
 	border: none;
 }
 
+/* #ifdef H5 */
+/* ========== PC 端适配：限制 rpx 在宽屏下的字号放大 ========== */
+@media (min-width: 769px) {
+	.detail-container {
+		max-width: 960px;
+		margin: 0 auto;
+	}
+
+	.message-title {
+		font-size: 24px;
+	}
+
+	.content-text {
+		font-size: 16px;
+		line-height: 1.8;
+	}
+
+	.section-title {
+		font-size: 18px;
+	}
+
+	.discussion-content {
+		font-size: 15px;
+		line-height: 1.7;
+	}
+
+	.message-time,
+	.stat-text,
+	.discussion-user,
+	.discussion-time {
+		font-size: 14px;
+	}
+}
+/* #endif */
 </style>

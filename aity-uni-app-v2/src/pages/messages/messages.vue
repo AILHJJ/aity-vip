@@ -1695,4 +1695,33 @@ button::after {
 	flex-wrap: wrap;
 	flex: 1;
 }
+
+/* #ifdef H5 */
+/* ========== PC 端适配：限制 rpx 字号放大 ========== */
+@media (min-width: 769px) {
+	.messages-container {
+		max-width: 1000px;
+		margin: 0 auto;
+	}
+
+	.message-title {
+		font-size: 18px;
+	}
+
+	.message-content {
+		font-size: 15px;
+	}
+
+	.create-text {
+		font-size: 16px;
+	}
+
+	.message-time,
+	.stat-item,
+	.scope-text,
+	.strategy-text {
+		font-size: 14px;
+	}
+}
+/* #endif */
 </style>
