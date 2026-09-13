@@ -668,4 +668,20 @@ button::after {
 		margin: 0 auto;
 	}
 }
-/* #endif */</style>
+/* #endif */
+
+/* #ifdef H5 */
+@media (min-width: 769px) {
+	.fab-button {
+		right: calc((100vw - 1280px) / 2 + 30rpx) !important;
+		font-size: 48rpx !important;
+		width: 96rpx !important;
+		height: 96rpx !important;
+	}
+
+	.fab-icon {
+		font-size: 56rpx !important;
+	}
+}
+/* #endif */
+</style>

@@ -1542,4 +1542,22 @@ onShow(() => {
 	}
 }
 /* #endif */
+
+
+/* #ifdef H5 */
+@media (min-width: 769px) {
+	.stats-grid {
+		grid-template-columns: repeat(5, minmax(200px, 1fr)) !important;
+		gap: 20rpx !important;
+	}
+
+	.stat-value {
+		font-size: 36rpx !important;
+	}
+
+	.stat-label {
+		font-size: 24rpx !important;
+	}
+}
+/* #endif */
 </style>
