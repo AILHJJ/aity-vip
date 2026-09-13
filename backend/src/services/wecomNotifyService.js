@@ -60,10 +60,9 @@ async function sendText(content) {
   return { ok: false };
 }
 
-// 新帖通知（管理员发帖不推）
-function notifyNewDiscussion(discussion, isAdminPost = false) {
+// 新帖通知（所有用户发帖都推，含管理员，便于内部留痕）
+function notifyNewDiscussion(discussion) {
   if (!NOTIFY_ON_CREATE) return;
-  if (isAdminPost) return;
 
   const content = [
     '📢 新帖子提醒',
@@ -78,10 +77,9 @@ function notifyNewDiscussion(discussion, isAdminPost = false) {
   sendText(content).catch(err => logger.error('[wecom-notify] 新帖通知异常:', err.message));
 }
 
-// 用户回帖通知（管理员自己的回复不推）
-function notifyNewReply(discussion, reply, isAdminReply = false) {
+// 回帖通知（所有回复都推，含管理员，便于内部留痕）
+function notifyNewReply(discussion, reply) {
   if (!NOTIFY_ON_REPLY) return;
-  if (isAdminReply) return;
 
   const content = [
     '💬 新回复提醒',

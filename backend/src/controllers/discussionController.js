@@ -345,10 +345,8 @@ async function createDiscussion(req, res) {
       user_avatar: user.avatar
     };
 
-    // 新帖通知管理员（fire-and-forget，不影响发帖响应）
-    // 管理员（super_admin/admin）自己发帖不推群，仅推送用户发帖
-    const isAdminPost = req.user.role === 'super_admin' || req.user.role === 'admin';
-    notifyNewDiscussion(discussion, isAdminPost);
+    // 新帖通知管理员（fire-and-forget，不影响发帖响应；所有用户含管理员都推）
+    notifyNewDiscussion(discussion);
 
     res.status(201).json(success(discussionData, 'Discussion created successfully'));
   } catch (err) {
@@ -455,8 +453,8 @@ async function addDiscussionReply(req, res) {
       }
     };
 
-    // 用户回帖通知管理员（管理员自己的回复不推）
-    notifyNewReply(discussion, reply, isAdmin);
+    // 回帖通知管理员（所有回复含管理员都推，便于内部留痕）
+    notifyNewReply(discussion, reply);
 
     res.status(201).json(success(responseData, 'Reply added successfully'));
   } catch (err) {

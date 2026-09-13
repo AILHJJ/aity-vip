@@ -7,7 +7,7 @@ import App from './App.vue'
 // 通过劫持 document.title 的 setter 实现，uni-app 框架默认会写入页面 title
 // 条件编译确保只编译到 H5，不影响小程序
 ;(function lockH5Title() {
-  const BRAND = 'AITY投研'
+  const BRAND = '投研图灵室'
   Object.defineProperty(document, 'title', {
     configurable: true,
     get() { return BRAND },
