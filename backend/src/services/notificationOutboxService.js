@@ -1,9 +1,12 @@
 const NotificationOutbox = require('../models/NotificationOutbox');
+const User = require('../models/User');
 const { getEmailTargetsByTags } = require('./notificationTargetService');
 const { sendEmail } = require('./mailService');
+const { isValidNotificationEmail } = require('../utils/notificationRules');
 const { Op } = require('sequelize');
 const {
   buildNotificationEmail,
+  buildReplyNotificationEmail,
   buildCooldownStatus
 } = require('../utils/notificationEmailPolicy');
 const {
@@ -70,7 +73,7 @@ async function queueMessageEmailNotifications({ message, tags, senderId, force =
     return { queued: 0, targets: 0, cooldown: emailStatus };
   }
 
-  const email = buildNotificationEmail();
+  const email = buildNotificationEmail(message.id);
 
   const rows = targets.map(target => ({
     messageId: message.id,
@@ -84,6 +87,45 @@ async function queueMessageEmailNotifications({ message, tags, senderId, force =
 
   await NotificationOutbox.bulkCreate(rows);
   return { queued: rows.length, targets: targets.length, cooldown: emailStatus, forced: force === true };
+}
+
+// 回帖邮件冷却（按讨论帖维度，内存 Map，零 DB 复杂度）
+const replyEmailCooldownMap = new Map();
+const REPLY_EMAIL_COOLDOWN_MS = 10 * 60 * 1000;
+
+function isReplyEmailInCooldown(discussionId, now = Date.now()) {
+  const last = replyEmailCooldownMap.get(discussionId);
+  if (last && now - last < REPLY_EMAIL_COOLDOWN_MS) return true;
+  replyEmailCooldownMap.set(discussionId, now);
+  return false;
+}
+
+// 管理员回帖后，邮件通知发帖人（一对一，脱敏，按帖 10 分钟冷却）
+async function queueReplyEmailNotification({ discussion, reply, force = false }) {
+  const authorId = discussion && discussion.userId;
+  if (!authorId || authorId === (reply && reply.userId)) {
+    return { sent: 0, skipped: true, reason: 'self-reply-or-no-author' };
+  }
+
+  if (isReplyEmailInCooldown(discussion.id) && force !== true) {
+    return { sent: 0, skipped: true, reason: 'cooldown' };
+  }
+
+  const author = await User.findByPk(authorId, { attributes: ['id', 'name', 'email'] });
+  if (!author || !isValidNotificationEmail(author.email)) {
+    return { sent: 0, skipped: true, reason: 'no-valid-email' };
+  }
+
+  const email = buildReplyNotificationEmail(discussion.id);
+  try {
+    const result = await sendEmail({ to: author.email, subject: email.subject, text: email.content });
+    if (result.dryRun) return { sent: 0, skipped: true, reason: 'dry_run' };
+    if (result.skipped) return { sent: 0, skipped: true, reason: result.reason || 'skipped' };
+    return { sent: 1, skipped: false, recipient: author.email };
+  } catch (error) {
+    console.error('[回帖邮件通知] 发送失败:', error.message);
+    return { sent: 0, skipped: false, error: error.message };
+  }
 }
 
 async function processPendingEmailOutbox(limit = 20) {
@@ -154,6 +196,7 @@ module.exports = {
   buildNotificationEmail,
   getEmailNotificationStatus,
   queueMessageEmailNotifications,
+  queueReplyEmailNotification,
   processPendingEmailOutbox,
   processPendingEmailOutboxInBackground
 };

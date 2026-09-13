@@ -93,8 +93,25 @@ function notifyNewReply(discussion, reply) {
   sendText(content).catch(err => logger.error('[wecom-notify] 回帖通知异常:', err.message));
 }
 
+// 消息中心发消息通知（推管理员群留痕）
+function notifyNewMessage(message) {
+  if (!NOTIFY_ON_CREATE) return;
+
+  const content = [
+    '📣 新消息发布',
+    `标题：${message.title || '(无标题)'}`,
+    `类型：${message.type || 'system'}`,
+    `发布者：${message.sender || '未知'}`,
+    `时间：${formatTime(message.createdAt)}`,
+    `👉 查看：${SITE_BASE}/#/pages/message-detail/message-detail?id=${message.id}`
+  ].join('\n');
+
+  sendText(content).catch(err => logger.error('[wecom-notify] 消息通知异常:', err.message));
+}
+
 module.exports = {
   notifyNewDiscussion,
   notifyNewReply,
+  notifyNewMessage,
   sendText
 };

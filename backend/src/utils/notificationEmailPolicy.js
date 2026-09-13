@@ -10,17 +10,35 @@ function getBusinessTimezoneOffsetMinutes() {
   return Math.floor(value);
 }
 
-function buildNotificationEmail() {
+function buildNotificationEmail(messageId) {
   const cooldownMinutes = getEmailCooldownMinutes();
+  const detailLink = messageId
+    ? `https://aity88.online/#/pages/message-detail/message-detail?id=${messageId}`
+    : null;
   return {
-    subject: 'AITY投研提醒：小程序有新的内容更新',
+    subject: 'AITY投研提醒：您有新的内容更新',
     content: [
       'AITY投研小程序有新的内容更新。',
       '',
-      '请打开微信小程序查看最新内容。',
+      ...(detailLink ? [`查看详情：${detailLink}`] : ['请打开小程序查看最新内容。']),
       '',
       `为减少打扰，系统已控制提醒频率，${cooldownMinutes}分钟内不会重复发送同类邮件提醒。`,
       '',
+      '如不再接收邮件提醒，请联系管理员关闭。',
+      '本邮件仅作更新提醒，不包含任何投资建议或具体投研内容，请勿直接回复。'
+    ].join('\n')
+  };
+}
+
+function buildReplyNotificationEmail(discussionId) {
+  return {
+    subject: 'AITY投研提醒：您的帖子有新回复',
+    content: [
+      '您在投研交流中发布的帖子收到了新的回复。',
+      '',
+      `查看回复：https://aity88.online/#/pages/discussion-detail/discussion-detail?id=${discussionId}`,
+      '',
+      '如不再接收邮件提醒，请联系管理员关闭。',
       '本邮件仅作更新提醒，不包含任何投资建议或具体投研内容，请勿直接回复。'
     ].join('\n')
   };
@@ -77,6 +95,7 @@ module.exports = {
   getEmailCooldownMinutes,
   getBusinessTimezoneOffsetMinutes,
   buildNotificationEmail,
+  buildReplyNotificationEmail,
   buildCooldownStatus,
   normalizeNotificationTime
 };

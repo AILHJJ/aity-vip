@@ -10,6 +10,7 @@ const {
   resolveReplyPrivacy
 } = require('../utils/discussionReplyPolicy');
 const { notifyNewDiscussion, notifyNewReply } = require('../services/wecomNotifyService');
+const { queueReplyEmailNotification } = require('../services/notificationOutboxService');
 
 // 统一响应格式
 function success(data, message = 'Success') {
@@ -455,6 +456,13 @@ async function addDiscussionReply(req, res) {
 
     // 回帖通知管理员（所有回复含管理员都推，便于内部留痕）
     notifyNewReply(discussion, reply);
+
+    // 管理员回帖后，邮件通知发帖人（一对一，脱敏，按帖 10 分钟冷却）
+    if (isAdmin) {
+      queueReplyEmailNotification({ discussion, reply }).catch(err => {
+        console.error('[回帖邮件通知] 队列失败:', err.message);
+      });
+    }
 
     res.status(201).json(success(responseData, 'Reply added successfully'));
   } catch (err) {

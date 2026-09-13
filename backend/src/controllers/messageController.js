@@ -17,6 +17,7 @@ const {
   processPendingEmailOutbox,
   processPendingEmailOutboxInBackground
 } = require('../services/notificationOutboxService');
+const { notifyNewMessage } = require('../services/wecomNotifyService');
 
 // 统一响应格式
 function success(data, message = 'Success') {
@@ -304,6 +305,9 @@ async function createMessage(req, res) {
       attachments: attachments || [],
       notification: notificationResult
     };
+
+    // 消息中心发消息后，推管理员群留痕（fire-and-forget，不影响发消息响应）
+    notifyNewMessage(message);
 
     res.status(201).json(success(messageData, 'Message created successfully'));
   } catch (err) {
