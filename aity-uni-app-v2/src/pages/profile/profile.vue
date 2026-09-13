@@ -582,4 +582,12 @@ button.logout-btn::after {
 	background: rgba(56, 189, 248, 0.15);
 	color: var(--color-primary);
 }
-</style>
+
+/* #ifdef H5 */
+@media (min-width: 769px) {
+	.profile-container {
+		max-width: 720px;
+		margin: 0 auto;
+	}
+}
+/* #endif */</style>

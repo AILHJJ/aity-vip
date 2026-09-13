@@ -782,4 +782,13 @@ button::after {
 .submitting-text {
 	font-size: 32rpx;
 }
+
+/* #ifdef H5 */
+@media (min-width: 769px) {
+	.create-discussion-container {
+		max-width: 800px;
+		margin: 0 auto;
+	}
+}
+/* #endif */
 </style>

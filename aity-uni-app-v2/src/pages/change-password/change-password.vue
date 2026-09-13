@@ -277,4 +277,13 @@ button::after {
 	color: #856404;
 	line-height: 1.8;
 }
+
+/* #ifdef H5 */
+@media (min-width: 769px) {
+	.change-password-container {
+		max-width: 480px;
+		margin: 0 auto;
+	}
+}
+/* #endif */
 </style>

@@ -1384,4 +1384,13 @@ button::after {
 	color: #999999;
 }
 
+
+/* #ifdef H5 */
+@media (min-width: 769px) {
+	.discussion-detail-container {
+		max-width: 1000px;
+		margin: 0 auto;
+	}
+}
+/* #endif */
 </style>

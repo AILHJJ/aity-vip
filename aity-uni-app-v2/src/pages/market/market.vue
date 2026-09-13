@@ -1533,4 +1533,13 @@ onShow(() => {
   font-size: 26rpx;
   font-weight: 700;
 }
+
+/* #ifdef H5 */
+@media (min-width: 769px) {
+	.market-container {
+		max-width: 1200px;
+		margin: 0 auto;
+	}
+}
+/* #endif */
 </style>

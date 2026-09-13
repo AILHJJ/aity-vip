@@ -440,4 +440,13 @@ onMounted(() => {
 	color: #ffffff;
 	font-weight: 300;
 }
+
+/* #ifdef H5 */
+@media (min-width: 769px) {
+	.my-discussions-container {
+		max-width: 1000px;
+		margin: 0 auto;
+	}
+}
+/* #endif */
 </style>

@@ -542,4 +542,13 @@ onMounted(() => {
 	font-size: 26rpx;
 	color: #999999;
 }
+
+/* #ifdef H5 */
+@media (min-width: 769px) {
+	.favorites-container {
+		max-width: 1000px;
+		margin: 0 auto;
+	}
+}
+/* #endif */
 </style>

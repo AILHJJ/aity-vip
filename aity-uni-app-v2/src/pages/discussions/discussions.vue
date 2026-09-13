@@ -660,4 +660,12 @@ button::after {
 	font-size: 26rpx;
 	color: #999999;
 }
-</style>
+
+/* #ifdef H5 */
+@media (min-width: 769px) {
+	.discussions-container {
+		max-width: 1000px;
+		margin: 0 auto;
+	}
+}
+/* #endif */</style>

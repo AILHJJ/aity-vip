@@ -87,5 +87,15 @@ uni-page-body {
     padding: 0 24px;
   }
 }
+
+/* 底部/顶部 tabBar 居中限制宽度（避免大屏下横跨全屏） */
+@media (min-width: 769px) {
+  uni-tabbar {
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 auto !important;
+    max-width: 1280px !important;
+  }
+}
 /* #endif */
 </style>

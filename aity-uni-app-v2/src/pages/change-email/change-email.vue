@@ -258,4 +258,13 @@ button::after {
 	color: #1e40af;
 	line-height: 1.8;
 }
+
+/* #ifdef H5 */
+@media (min-width: 769px) {
+	.change-email-container {
+		max-width: 480px;
+		margin: 0 auto;
+	}
+}
+/* #endif */
 </style>

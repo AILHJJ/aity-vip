@@ -744,4 +744,13 @@ onMounted(() => {
 	transition: width 0.6s ease-out;
 	min-width: 4rpx;
 }
+
+/* #ifdef H5 */
+@media (min-width: 769px) {
+	.stats-container {
+		max-width: 1000px;
+		margin: 0 auto;
+	}
+}
+/* #endif */
 </style>
