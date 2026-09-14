@@ -203,10 +203,33 @@ class WecomBotService {
       return;
     }
 
-    // 文本消息
+    // 文本/mixed 消息：提取文本和内嵌图片
     let content = '';
     if (msgtype === 'text' && body.text) {
       content = (body.text.content || '').trim();
+    } else if (msgtype === 'mixed' && body.mixed && Array.isArray(body.mixed.msg_item)) {
+      // mixed 消息：遍历 msg_item，提取文本和图片（用户发"@机器人+文字+图片"时常见）
+      const texts = [];
+      for (const item of body.mixed.msg_item) {
+        if (item.msgtype === 'text' && item.text) {
+          texts.push((item.text.content || '').trim());
+        } else if (item.msgtype === 'image' && item.image) {
+          const img = await downloadAndSaveWecomImage(item.image);
+          if (img) {
+            if (!this.pendingImages[fromUserId]) this.pendingImages[fromUserId] = [];
+            this.pendingImages[fromUserId].push(img);
+            const self = this;
+            setTimeout(() => {
+              const arr = self.pendingImages[fromUserId];
+              if (arr) {
+                const i = arr.indexOf(img);
+                if (i >= 0) arr.splice(i, 1);
+              }
+            }, IMAGE_PENDING_MS);
+          }
+        }
+      }
+      content = texts.join(' ').trim();
     }
     if (!content) return;
 
@@ -357,7 +380,8 @@ class WecomBotService {
         groupId: isPrivate ? 'admin_only' : 'all', // 私密=发帖人+管理员可见；公开=全员
         totalCount: 0,
         theme: 'default',
-        status: 'published'
+        status: 'published',
+        images: images.length > 0 ? images : null // 图文消息的图片 URL 数组
       });
 
       // 不再调用 notifyNewMessage，避免群内重复（智能机器人回执已带完整信息）

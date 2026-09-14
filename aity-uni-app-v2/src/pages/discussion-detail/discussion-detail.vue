@@ -379,10 +379,19 @@ const loadDiscussion = async () => {
 		}
 	} catch (error) {
 		console.error('[讨论详情] 加载讨论详情失败:', error)
-		uni.showToast({
+		// 3 秒后自动跳转到讨论区（直接打开链接时 history 没有上一页）
+		uni.showModal({
 			title: '加载失败',
-			icon: 'none'
+			content: `${error.message || '讨论加载失败'}\n\n3 秒后自动返回讨论区`,
+			showCancel: false,
+			confirmText: '知道了',
+			success: () => {
+				uni.reLaunch({ url: '/pages/discussions/discussions' })
+			}
 		})
+		setTimeout(() => {
+			uni.reLaunch({ url: '/pages/discussions/discussions' })
+		}, 3000)
 	} finally {
 		loading.value = false
 	}

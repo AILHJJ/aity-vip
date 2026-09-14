@@ -602,10 +602,18 @@ const getMessageTypeLabel = (type) => {
 }
 
 // 清理图片URL（移除微信小程序添加的查询参数）
-const cleanImageUrl = (url) => {
+const cleanImageUrl = (img) => {
+	if (!img) return img
+	// 兼容对象 {url, filename} 和字符串两种格式
+	const url = typeof img === 'string' ? img : (img.url || img.path || '')
 	if (!url) return url
-	// 移除?后面的所有查询参数
-	return url.split('?')[0]
+	// 移除查询参数
+	let clean = url.split('?')[0]
+	// 补全相对路径为完整 URL
+	if (clean.startsWith('/uploads/')) {
+		clean = BASE_URL + clean
+	}
+	return clean
 }
 
 // 加载消息详情
@@ -664,19 +672,22 @@ const loadMessageDetail = async () => {
 			throw new Error(res.message || '加载失败')
 		}
 	} catch (error) {
-		console.error('加载消息详情失败:', error)
+				console.error('加载消息详情失败:', error)
 
-		// 更友好的错误提示
-		uni.showModal({
-			title: '加载失败',
-			content: error.message || '消息加载失败，请返回重试',
-			showCancel: false,
-			confirmText: '返回',
-			success: () => {
-				uni.navigateBack()
-			}
-		})
-	} finally {
+				// 3 秒后自动跳转（直接打开链接时 history 没有上一页）
+				uni.showModal({
+					title: '加载失败',
+					content: `${error.message || '消息加载失败'}\n\n3 秒后自动返回消息中心`,
+					showCancel: false,
+					confirmText: '知道了',
+					success: () => {
+						uni.reLaunch({ url: '/pages/messages/messages' })
+					}
+				})
+				setTimeout(() => {
+					uni.reLaunch({ url: '/pages/messages/messages' })
+				}, 3000)
+			} finally {
 		loading.value = false
 	}
 }

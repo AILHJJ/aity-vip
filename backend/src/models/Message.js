@@ -72,6 +72,12 @@ const Message = sequelize.define('Message', {
     defaultValue: null,
     comment: '消息标签数组，如 ["短线策略", "中线策略", "全部用户"]'
   },
+  images: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: null,
+    comment: '图片 URL 数组（图文消息），如 [{"url":"/uploads/images/xxx.jpg","filename":"xxx.jpg"}]'
+  },
   theme: {
     type: DataTypes.STRING(50),
     allowNull: false,
