@@ -4,11 +4,9 @@
 //   - fire-and-forget 设计，绝不影响发帖/回帖主流程
 //   - 发送失败自动重试 3 次，仍失败仅记日志（不落库，避免引入 DB 迁移风险）
 // 配置项见 .env.example 中 WECOM_* 段
-const axios = require('axios');
 const logger = require('../utils/logger');
-const wecomBotService = require('./wecomBotService'); // 统一 bot：主动推送通知（替代 webhook）
+const wecomBotService = require('./wecomBotService'); // 统一 bot：主动推送通知（webhook 已下线）
 
-const WEBHOOK_URL = process.env.WECOM_WEBHOOK_URL || '';
 // 默认开启新帖通知；回帖通知默认也开启（管理员自己的回复不推）
 const NOTIFY_ON_CREATE = process.env.WECOM_NOTIFY_ON_CREATE !== 'false';
 const NOTIFY_ON_REPLY = process.env.WECOM_NOTIFY_ON_REPLY !== 'false';
@@ -38,39 +36,18 @@ async function sendText(content) {
     return { dryRun: true };
   }
 
-  // 优先：智能机器人主动推送（统一 bot，替代 webhook）
+  // 统一走智能机器人主动推送（webhook 已完全下线）
   try {
     const botSent = wecomBotService.notifyToGroup(content);
     if (botSent) {
       return { ok: true, via: 'bot' };
     }
+    logger.warn('[wecom-notify] 智能机器人未连接或无群 chatid，通知未发送');
+    return { ok: false };
   } catch (err) {
     logger.warn('[wecom-notify] 智能机器人推送异常:', err.message);
+    return { ok: false };
   }
-
-  // Fallback：webhook（智能机器人未连接或无群 chatid 时）
-  if (!WEBHOOK_URL) {
-    logger.info('[wecom-notify] 智能机器人未就绪且 WECOM_WEBHOOK_URL 未配置，跳过通知');
-    return { skipped: true };
-  }
-
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const res = await axios.post(
-        WEBHOOK_URL,
-        { msgtype: 'text', text: { content } },
-        { timeout: 8000 }
-      );
-      if (res.data && res.data.errcode === 0) {
-        return { ok: true, via: 'webhook' };
-      }
-      logger.warn(`[wecom-notify] 第${attempt}次发送返回异常:`, res.data);
-    } catch (err) {
-      logger.warn(`[wecom-notify] 第${attempt}次发送失败: ${err.message}`);
-    }
-  }
-  logger.error('[wecom-notify] 发送最终失败，已放弃');
-  return { ok: false };
 }
 
 // 新帖通知（所有用户发帖都推，含管理员，便于内部留痕）
