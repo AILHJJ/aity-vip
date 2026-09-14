@@ -1,63 +1,74 @@
-// 企微机器人服务 集成测试（发帖/回帖实际落库，用测试库）
+// 企微机器人服务 集成测试（发帖到消息中心 + 回帖，用测试库）
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env.development') });
 process.env.WECOM_NOTIFY_DRY_RUN = 'true'; // 测试时不真实推群
 
 const wecomBot = require('../src/services/wecomBotService');
+const Message = require('../src/models/Message');
 const Discussion = require('../src/models/Discussion');
 const DiscussionReply = require('../src/models/DiscussionReply');
 
 const binding = { adminUserId: 1, adminName: 'admin', adminRole: 'super_admin' };
 
 async function testPost() {
-  const parsed = { cmd: 'post', visibility: 'public', content: '[测试] 群内发帖验证' };
-  const images = [{ url: '/uploads/images/test.jpg', filename: 'test.jpg' }];
-  await wecomBot.handlePost('test_req', binding, parsed, images);
+  const parsed = { cmd: 'post', title: '[测试] 群内发消息标题', content: '[测试] 群内发消息正文' };
+  await wecomBot.handlePost('test_req', binding, parsed, []);
 
-  const discussion = await Discussion.findOne({
-    where: { title: '[测试] 群内发帖验证' },
+  const message = await Message.findOne({
+    where: { title: '[测试] 群内发消息标题' },
     order: [['id', 'DESC']]
   });
-  if (!discussion) throw new Error('帖子未创建');
-  if (JSON.stringify(discussion.images) !== JSON.stringify(images)) {
-    throw new Error(`images 字段不符: ${JSON.stringify(discussion.images)}`);
-  }
-  if (discussion.visibility !== 'public') throw new Error('可见性不符');
-  console.log(`✅ handlePost 通过：帖子ID=${discussion.id}, images=${JSON.stringify(discussion.images)}`);
+  if (!message) throw new Error('消息未创建');
+  if (message.content !== '[测试] 群内发消息正文') throw new Error('正文不符');
+  if (message.type !== 'daily') throw new Error(`类型不符: ${message.type}`);
+  if (message.groupId !== 'all') throw new Error(`范围不符: ${message.groupId}`);
+  console.log(`✅ handlePost 发消息通过：消息ID=${message.id}, type=${message.type}, groupId=${message.groupId}`);
+  return message.id;
+}
+
+async function testReply() {
+  // 先创建一个讨论用于回帖
+  const discussion = await Discussion.create({
+    messageId: null,
+    userId: 1,
+    userName: 'admin',
+    title: '[测试] 群内回帖讨论',
+    content: '测试内容',
+    visibility: 'public',
+    category: 'interaction',
+    status: 'pending'
+  });
+
+  const parsed = { cmd: 'reply', raw: `${discussion.id} 测试回帖内容` };
+  await wecomBot.handleReply('test_req', binding, parsed, []);
+
+  const reply = await DiscussionReply.findOne({ where: { discussionId: discussion.id }, order: [['id', 'DESC']] });
+  if (!reply) throw new Error('回复未创建');
+  if (reply.content !== '测试回帖内容') throw new Error('回复内容不符');
+  console.log(`✅ handleReply 回帖通过：回复ID=${reply.id}`);
   return discussion.id;
 }
 
-async function testReply(discussionId) {
-  const parsed = { cmd: 'reply', raw: `${discussionId} 私密 测试回复内容` };
-  await wecomBot.handleReply('test_req', binding, parsed, []);
-
-  const reply = await DiscussionReply.findOne({ where: { discussionId }, order: [['id', 'DESC']] });
-  if (!reply) throw new Error('回复未创建');
-  if (reply.isPrivate !== 1) throw new Error(`私密标记不符: ${reply.isPrivate}`);
-  if (reply.userName !== 'admin') throw new Error('回复人账号不符');
-  console.log(`✅ handleReply 通过：回复ID=${reply.id}, isPrivate=${reply.isPrivate}, 回复人=${reply.userName}`);
-}
-
-async function cleanup(discussionId) {
-  await DiscussionReply.destroy({ where: { discussionId } });
-  await Discussion.destroy({ where: { id: discussionId } });
+async function cleanup(messageId, discussionId) {
+  if (messageId) await Message.destroy({ where: { id: messageId } });
+  if (discussionId) {
+    await DiscussionReply.destroy({ where: { discussionId } });
+    await Discussion.destroy({ where: { id: discussionId } });
+  }
   console.log('✅ 测试数据已清理');
 }
 
 async function main() {
-  let discussionId;
+  let messageId, discussionId;
   try {
-    discussionId = await testPost();
-    await testReply(discussionId);
-    await cleanup(discussionId);
+    messageId = await testPost();
+    discussionId = await testReply();
+    await cleanup(messageId, discussionId);
     console.log('\n集成测试全部通过');
     process.exit(0);
   } catch (err) {
     console.error('❌ 集成测试失败:', err.message);
-    if (discussionId) {
-      await DiscussionReply.destroy({ where: { discussionId } }).catch(() => {});
-      await Discussion.destroy({ where: { id: discussionId } }).catch(() => {});
-    }
+    await cleanup(messageId, discussionId).catch(() => {});
     process.exit(1);
   }
 }

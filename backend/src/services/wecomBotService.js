@@ -10,11 +10,12 @@ const User = require('../models/User');
 const Discussion = require('../models/Discussion');
 const DiscussionReply = require('../models/DiscussionReply');
 const WecomUserBinding = require('../models/WecomUserBinding');
-const { notifyNewDiscussion, notifyNewReply } = require('./wecomNotifyService');
+const Message = require('../models/Message');
+const { notifyNewDiscussion, notifyNewReply, notifyNewMessage } = require('./wecomNotifyService');
 const { downloadAndSaveWecomImage } = require('../utils/wecomImage');
 
 const WECOM_WS_URL = 'wss://openws.work.weixin.qq.com';
-const MAX_CONTENT_LENGTH = 500;
+const MAX_CONTENT_LENGTH = 2000;
 const IMAGE_PENDING_MS = 60 * 1000; // 图片缓存有效期 60 秒
 
 class WecomBotService {
@@ -251,13 +252,18 @@ class WecomBotService {
     }
 
     // 发帖：发(一个|个)?帖(子)? — 支持 "发帖/发个帖/发帖子/发个帖子/发一个帖子"
-    const postMatch = text.match(/^发(?:一个|个)?帖(?:子)?\s*(公开|私密)?\s*([\s\S]+)/);
+    // 支持 markdown 标题：# 标题（# 后到行尾为标题，换行后为正文）
+    const postMatch = text.match(/^发(?:一个|个)?帖(?:子)?([\s\S]*)$/);
     if (postMatch) {
-      return {
-        cmd: 'post',
-        visibility: postMatch[1] === '公开' ? 'public' : 'private',
-        content: postMatch[2].trim()
-      };
+      const rest = postMatch[1] || '';
+      const hashMatch = rest.match(/^\s*#+\s*([^\n]+)\n?([\s\S]*)$/);
+      let title = '';
+      let content = rest.trim();
+      if (hashMatch) {
+        title = hashMatch[1].trim();
+        content = (hashMatch[2] || '').trim();
+      }
+      return { cmd: 'post', title, content };
     }
 
     // 回帖：回(复|帖)(帖子)? — 支持 "回复/回帖/回复帖子"
@@ -302,31 +308,30 @@ class WecomBotService {
   }
 
   async handlePost(reqId, binding, parsed, images) {
-    const content = parsed.content;
+    const content = (parsed.content || '').trim();
     if (!content || content.length > MAX_CONTENT_LENGTH) {
-      this.respond(reqId, `内容为空或超长（最多 ${MAX_CONTENT_LENGTH} 字）。`);
+      this.respond(reqId, `正文为空或超长（最多 ${MAX_CONTENT_LENGTH} 字）。`);
       return;
     }
-    const title = content.length > 50 ? content.substring(0, 50) + '...' : content;
+    const title = (parsed.title || '').trim() || (content.length > 20 ? content.substring(0, 20) + '...' : content);
 
     try {
-      const discussion = await Discussion.create({
-        messageId: null,
-        userId: binding.adminUserId,
-        userName: binding.adminName,
+      const message = await Message.create({
         title,
         content,
-        visibility: parsed.visibility,
-        category: 'interaction',
-        status: 'pending',
-        images: images.length > 0 ? images : null
+        type: 'daily',        // 默认：日常消息
+        sender: binding.adminName,
+        senderId: binding.adminUserId,
+        groupId: 'all',       // 默认：全员可见
+        totalCount: 0,
+        theme: 'default',
+        status: 'published'
       });
 
-      notifyNewDiscussion(discussion);
+      notifyNewMessage(message);
 
-      const visibilityText = parsed.visibility === 'public' ? '公开' : '私密';
-      const link = `https://aity88.online/#/pages/discussion-detail/discussion-detail?id=${discussion.id}`;
-      this.respond(reqId, `✅ 已发布（${visibilityText}）《${title}》${images.length ? '（含图 ' + images.length + ' 张）' : ''}\n${link}`);
+      const link = `https://aity88.online/#/pages/message-detail/message-detail?id=${message.id}`;
+      this.respond(reqId, `✅ 已发布《${title}》\n类型：日常消息 ｜ 范围：全员 ｜ 邮箱：否\n${link}`);
     } catch (err) {
       console.error('[企微机器人] 发帖失败:', err.message);
       this.respond(reqId, '发帖失败，请稍后重试。');
@@ -401,9 +406,14 @@ class WecomBotService {
 
   helpText() {
     return [
-      'AITY回帖助手 使用说明：',
-      '• 发帖 [公开|私密] <内容>  发布帖子（缺省私密）',
-      '• 回复 <帖子ID> [公开|私密] <内容>  回复帖子（缺省公开）',
+      'AITY助手 使用说明：',
+      '• 发帖 发布消息到消息中心（markdown 格式）',
+      '  发帖 # 标题',
+      '  正文内容（支持 markdown 渲染）',
+      '  例：发帖 # 今日盘前策略',
+      '      今天关注xxx板块',
+      '• 回复 <帖子ID> [公开|私密] <内容>  回复讨论帖',
+      '  例：回复 95 感谢反馈',
       '• 绑定 <绑定码>  绑定管理员身份',
       '• 帮助  查看本说明',
       '（发帖/回复带图：先发图片，再发指令）'
