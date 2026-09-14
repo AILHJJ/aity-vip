@@ -1,5 +1,9 @@
 <template>
 	<view class="detail-container">
+		<!-- #ifdef H5 -->
+		<pc-detail-header title="消息详情" fallback-url="/pages/messages/messages" />
+		<!-- #endif -->
+
 		<!-- 加载中 -->
 		<view v-if="loading" class="loading-container">
 			<!-- 骨架屏 -->
@@ -373,6 +377,7 @@ import { formatTime, formatFriendlyTime } from '../../utils/time'
 import { MarkdownRenderer, ThemeStyles } from '../../utils/markdown-renderer'
 import { BASE_URL } from '../../utils/config'
 import { getUserFacingOperationMessage } from '../../utils/message-labels.mjs'
+import PcDetailHeader from '@/components/pc-detail-header.vue'
 
 const userStore = useUserStore()
 
@@ -2169,6 +2174,7 @@ button::after {
 	.detail-container {
 		max-width: 960px;
 		margin: 0 auto;
+		padding-top: 44px; // 避让 pc-detail-header（H5 大屏下显示）
 	}
 
 	.message-title {

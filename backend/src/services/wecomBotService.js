@@ -27,6 +27,7 @@ class WecomBotService {
     this.manualClose = false;
     this.processedMsgIds = new Set();
     this.pendingImages = {}; // { [wecomUserId]: [{url, filename}] }
+    this.groupChatid = null; // 缓存管理员群会话 ID（用于主动推送通知，替代 webhook）
   }
 
   start() {
@@ -177,6 +178,11 @@ class WecomBotService {
     const chattype = body.chattype;
     if (chattype !== 'group' || !fromUserId) return;
 
+    // 缓存群会话 ID，供主动推送通知（统一 bot 替代 webhook）使用
+    if (body.chatid) {
+      this.groupChatid = body.chatid;
+    }
+
     const msgtype = body.msgtype;
 
     // 图片消息：缓存，等待文本指令关联（发帖/回复带图，先发图再发指令）
@@ -241,6 +247,8 @@ class WecomBotService {
       await this.handlePost(reqId, binding, parsed, images);
     } else if (parsed.cmd === 'reply') {
       await this.handleReply(reqId, binding, parsed, images);
+    } else if (parsed.cmd === 'discuss') {
+      await this.handleCreateDiscussion(reqId, binding, parsed);
     }
   }
 
@@ -282,6 +290,17 @@ class WecomBotService {
     const replyMatch = text.match(/^回(?:复|帖)(?:帖子)?\s*([\s\S]+)/);
     if (replyMatch) {
       return { cmd: 'reply', raw: replyMatch[1].trim() };
+    }
+
+    // 创建讨论：(创建)?讨论 <消息ID> [公开|私密] [标题] — 把消息中心的消息转成讨论帖
+    const discussMatch = text.match(/^(?:创建)?讨论\s+(\d+)\s*(公开|私密)?\s*([\s\S]*)/);
+    if (discussMatch) {
+      return {
+        cmd: 'discuss',
+        messageId: parseInt(discussMatch[1], 10),
+        visibility: discussMatch[2] === '私密' ? 'private' : 'public',
+        title: (discussMatch[3] || '').trim()
+      };
     }
 
     return null;
@@ -409,6 +428,45 @@ class WecomBotService {
     }
   }
 
+  async handleCreateDiscussion(reqId, binding, parsed) {
+    const messageId = parsed.messageId;
+    const isPrivate = parsed.visibility === 'private';
+
+    try {
+      const message = await Message.findByPk(messageId);
+      if (!message) {
+        this.respond(reqId, `未找到消息 ${messageId}（注意：只能对「消息中心」的消息创建讨论，讨论帖请用「回复」指令）。`);
+        return;
+      }
+
+      const title = (parsed.title || '').trim() || message.title || `讨论：${message.title}`;
+
+      const discussion = await Discussion.create({
+        messageId,
+        userId: binding.adminUserId,
+        userName: binding.adminName,
+        title,
+        content: message.content || '',
+        visibility: isPrivate ? 'private' : 'public',
+        category: 'interaction',
+        status: 'pending'
+      });
+
+      const link = `https://aity88.online/#/pages/discussion-detail/discussion-detail?id=${discussion.id}`;
+      const scopeText = isPrivate ? '私密' : '公开';
+      this.respond(reqId, [
+        `✅ 已为消息《${message.title}》创建讨论帖`,
+        `标题：${title}`,
+        `ID：${discussion.id} ｜ ${scopeText}`,
+        `👉 回帖：@AITY回帖助手 回复 ${discussion.id} <内容>`,
+        `👉 查看：${link}`
+      ].join('\n'));
+    } catch (err) {
+      console.error('[企微机器人] 创建讨论失败:', err.message);
+      this.respond(reqId, '创建讨论失败，请稍后重试。');
+    }
+  }
+
   respond(reqId, text) {
     this.send({
       cmd: 'aibot_respond_msg',
@@ -418,6 +476,41 @@ class WecomBotService {
         markdown: { content: text }
       }
     });
+  }
+
+  /**
+   * 主动推送：向指定群会话发 markdown（aibot_send_msg 命令，无需回调帧）
+   * @param {string} chatid 群会话 ID
+   * @param {string} text markdown 内容
+   * @returns {boolean} 是否发送成功（未连接或无 chatid 返回 false）
+   */
+  sendToChat(chatid, text) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
+    if (!chatid) return false;
+    try {
+      this.send({
+        cmd: 'aibot_send_msg',
+        headers: { req_id: this.genReqId() },
+        body: {
+          chatid,
+          msgtype: 'markdown',
+          markdown: { content: text }
+        }
+      });
+      return true;
+    } catch (err) {
+      console.error('[企微机器人] 主动推送失败:', err.message);
+      return false;
+    }
+  }
+
+  /**
+   * 供 wecomNotifyService 调用的统一通知入口：向已缓存的管理员群主动推送
+   * @param {string} text markdown 内容
+   * @returns {boolean} 是否发送成功（未连接或无群 chatid 返回 false，调用方可 fallback webhook）
+   */
+  notifyToGroup(text) {
+    return this.sendToChat(this.groupChatid, text);
   }
 
   helpText() {
@@ -431,6 +524,9 @@ class WecomBotService {
       '  私密=仅发帖人+管理员可见，缺省公开',
       '• 回复 <帖子ID> [公开|私密] <内容>  回复讨论帖',
       '  例：回复 95 感谢反馈',
+      '• 讨论 <消息ID> [公开|私密] [标题]  把消息中心的消息转成讨论帖',
+      '  例：讨论 235 公开',
+      '  例：创建讨论 235 私密 讨论标题',
       '• 绑定 <绑定码>  绑定管理员身份',
       '• 帮助  查看本说明',
       '（发帖/回复带图：先发图片，再发指令）'

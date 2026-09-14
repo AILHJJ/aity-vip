@@ -1,5 +1,9 @@
 <template>
 	<view class="discussion-detail-container">
+		<!-- #ifdef H5 -->
+		<pc-detail-header title="讨论详情" fallback-url="/pages/discussions/discussions" />
+		<!-- #endif -->
+
 		<!-- 加载中 -->
 		<view v-if="loading" class="loading-container">
 			<view class="loading-spinner"></view>
@@ -255,6 +259,7 @@ import { BASE_URL } from '../../utils/config'
 import { MarkdownRenderer } from '../../utils/markdown-renderer'
 import { getMessageTypeDisplayLabel } from '../../utils/message-labels.mjs'
 import { normalizeMessageId } from '../../utils/discussion-link.mjs'
+import PcDetailHeader from '@/components/pc-detail-header.vue'
 
 const userStore = useUserStore()
 
@@ -1390,6 +1395,7 @@ button::after {
 	.discussion-detail-container {
 		max-width: 1000px;
 		margin: 0 auto;
+		padding-top: 44px; // 避让 pc-detail-header（H5 大屏下显示）
 	}
 }
 /* #endif */

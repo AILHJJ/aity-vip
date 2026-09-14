@@ -6,6 +6,7 @@
 // 配置项见 .env.example 中 WECOM_* 段
 const axios = require('axios');
 const logger = require('../utils/logger');
+const wecomBotService = require('./wecomBotService'); // 统一 bot：主动推送通知（替代 webhook）
 
 const WEBHOOK_URL = process.env.WECOM_WEBHOOK_URL || '';
 // 默认开启新帖通知；回帖通知默认也开启（管理员自己的回复不推）
@@ -32,13 +33,25 @@ function formatTime(date) {
 }
 
 async function sendText(content) {
-  if (!WEBHOOK_URL) {
-    logger.info('[wecom-notify] WECOM_WEBHOOK_URL 未配置，跳过通知');
-    return { skipped: true };
-  }
   if (DRY_RUN) {
     logger.info(`[wecom-notify][DRY_RUN] ${content.replace(/\n/g, ' | ')}`);
     return { dryRun: true };
+  }
+
+  // 优先：智能机器人主动推送（统一 bot，替代 webhook）
+  try {
+    const botSent = wecomBotService.notifyToGroup(content);
+    if (botSent) {
+      return { ok: true, via: 'bot' };
+    }
+  } catch (err) {
+    logger.warn('[wecom-notify] 智能机器人推送异常:', err.message);
+  }
+
+  // Fallback：webhook（智能机器人未连接或无群 chatid 时）
+  if (!WEBHOOK_URL) {
+    logger.info('[wecom-notify] 智能机器人未就绪且 WECOM_WEBHOOK_URL 未配置，跳过通知');
+    return { skipped: true };
   }
 
   for (let attempt = 1; attempt <= 3; attempt++) {
@@ -49,7 +62,7 @@ async function sendText(content) {
         { timeout: 8000 }
       );
       if (res.data && res.data.errcode === 0) {
-        return { ok: true };
+        return { ok: true, via: 'webhook' };
       }
       logger.warn(`[wecom-notify] 第${attempt}次发送返回异常:`, res.data);
     } catch (err) {
@@ -105,7 +118,8 @@ function notifyNewMessage(message) {
     `类型：${message.type || 'system'}`,
     `发布者：${message.sender || '未知'}`,
     `时间：${formatTime(message.createdAt)}`,
-    `👉 查看：${SITE_BASE}/#/pages/message-detail/message-detail?id=${message.id}`
+    `👉 查看：${SITE_BASE}/#/pages/message-detail/message-detail?id=${message.id}`,
+    `👉 讨论：@AITY回帖助手 讨论 ${message.id}`
   ].join('\n');
 
   sendText(content).catch(err => logger.error('[wecom-notify] 消息通知异常:', err.message));

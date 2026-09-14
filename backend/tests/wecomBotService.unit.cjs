@@ -26,6 +26,11 @@ function testParseCommand() {
     { input: '回复帖子 1024 内容', expected: { cmd: 'reply', raw: '1024 内容' } },
     { input: '@AITY助手 回复 95 已处理', expected: { cmd: 'reply', raw: '95 已处理' } },
 
+    // 创建讨论
+    { input: '讨论 235', expected: { cmd: 'discuss', messageId: 235, visibility: 'public', title: '' } },
+    { input: '讨论 235 公开', expected: { cmd: 'discuss', messageId: 235, visibility: 'public', title: '' } },
+    { input: '创建讨论 235 私密 讨论标题', expected: { cmd: 'discuss', messageId: 235, visibility: 'private', title: '讨论标题' } },
+
     // 绑定/帮助
     { input: '绑定 abc123', expected: { cmd: 'bind', code: 'abc123' } },
     { input: '帮助', expected: { cmd: 'help' } },
