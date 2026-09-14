@@ -86,6 +86,17 @@ function buildVisibleMessageWhere({ user, query = {}, readMessageIds = [], seque
     where.id = { [Op.in]: readMessageIds };
   }
 
+  // 私密消息（groupId='admin_only'，群内发帖私密）：仅发帖人 + 管理员可见
+  // 管理员能看到全部；非管理员只能看非私密消息，或自己发的私密消息
+  if (!isAdminRole(user.role)) {
+    andConditions.push({
+      [Op.or]: [
+        { groupId: { [Op.ne]: 'admin_only' } },
+        { groupId: 'admin_only', senderId: user.id }
+      ]
+    });
+  }
+
   if (andConditions.length > 0) {
     where[Op.and] = andConditions;
   }

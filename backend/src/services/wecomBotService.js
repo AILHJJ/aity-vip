@@ -11,7 +11,8 @@ const Discussion = require('../models/Discussion');
 const DiscussionReply = require('../models/DiscussionReply');
 const WecomUserBinding = require('../models/WecomUserBinding');
 const Message = require('../models/Message');
-const { notifyNewDiscussion, notifyNewReply, notifyNewMessage } = require('./wecomNotifyService');
+// 注：notifyNewMessage / notifyNewReply 不再在群内操作时调用（避免群内重复）；
+//   H5/小程序发帖/回帖的 webhook 通知由 messageController / discussionController 保留调用
 const { downloadAndSaveWecomImage } = require('../utils/wecomImage');
 
 const WECOM_WS_URL = 'wss://openws.work.weixin.qq.com';
@@ -220,7 +221,12 @@ class WecomBotService {
     }
 
     if (parsed.cmd === 'bind') {
-      await this.handleBind(reqId, fromUserId, parsed.code);
+      try {
+        await this.handleBind(reqId, fromUserId, parsed.code);
+      } catch (err) {
+        console.error('[企微机器人] 绑定异常:', err.message, err.stack);
+        this.respond(reqId, '绑定失败，请稍后重试：' + err.message);
+      }
       return;
     }
 
@@ -251,11 +257,17 @@ class WecomBotService {
       return { cmd: 'bind', code: bindMatch[1] };
     }
 
-    // 发帖：发(一个|个)?帖(子)? — 支持 "发帖/发个帖/发帖子/发个帖子/发一个帖子"
+    // 发帖：发(一个|个)?帖(子)? [公开|私密] — 支持 "发帖/发个帖/发帖子/发个帖子/发一个帖子"
     // 支持 markdown 标题：# 标题（# 后到行尾为标题，换行后为正文）
     const postMatch = text.match(/^发(?:一个|个)?帖(?:子)?([\s\S]*)$/);
     if (postMatch) {
-      const rest = postMatch[1] || '';
+      let rest = postMatch[1] || '';
+      let visibility = 'public';
+      const visMatch = rest.match(/^\s*(公开|私密)\s*/);
+      if (visMatch) {
+        visibility = visMatch[1] === '私密' ? 'private' : 'public';
+        rest = rest.substring(visMatch[0].length);
+      }
       const hashMatch = rest.match(/^\s*#+\s*([^\n]+)\n?([\s\S]*)$/);
       let title = '';
       let content = rest.trim();
@@ -263,7 +275,7 @@ class WecomBotService {
         title = hashMatch[1].trim();
         content = (hashMatch[2] || '').trim();
       }
-      return { cmd: 'post', title, content };
+      return { cmd: 'post', title, content, visibility };
     }
 
     // 回帖：回(复|帖)(帖子)? — 支持 "回复/回帖/回复帖子"
@@ -314,6 +326,7 @@ class WecomBotService {
       return;
     }
     const title = (parsed.title || '').trim() || (content.length > 20 ? content.substring(0, 20) + '...' : content);
+    const isPrivate = parsed.visibility === 'private';
 
     try {
       const message = await Message.create({
@@ -322,16 +335,18 @@ class WecomBotService {
         type: 'daily',        // 默认：日常消息
         sender: binding.adminName,
         senderId: binding.adminUserId,
-        groupId: 'all',       // 默认：全员可见
+        groupId: isPrivate ? 'admin_only' : 'all', // 私密=发帖人+管理员可见；公开=全员
         totalCount: 0,
         theme: 'default',
         status: 'published'
       });
 
-      notifyNewMessage(message);
+      // 不再调用 notifyNewMessage，避免群内重复（智能机器人回执已带完整信息）
+      // H5/小程序发帖仍走 messageController，那里保留通知调用
 
       const link = `https://aity88.online/#/pages/message-detail/message-detail?id=${message.id}`;
-      this.respond(reqId, `✅ 已发布《${title}》\n类型：日常消息 ｜ 范围：全员 ｜ 邮箱：否\n${link}`);
+      const scopeText = isPrivate ? '私密（仅发帖人+管理员）' : '公开（全员）';
+      this.respond(reqId, `✅ 已发布《${title}》\n范围：${scopeText} ｜ 类型：日常消息\n${link}`);
     } catch (err) {
       console.error('[企微机器人] 发帖失败:', err.message);
       this.respond(reqId, '发帖失败，请稍后重试。');
@@ -380,7 +395,8 @@ class WecomBotService {
 
       await discussion.update({ status: 'replied' });
 
-      notifyNewReply(discussion, reply);
+      // 不再调用 notifyNewReply，避免群内重复（智能机器人回执已带完整信息）
+      // H5/小程序回帖仍走 discussionController，那里保留通知调用
 
       if (isPrivate) {
         this.respond(reqId, `✅ 已私密回复《${discussion.title}》（内容仅帖主与管理员可见）`);
@@ -407,11 +423,12 @@ class WecomBotService {
   helpText() {
     return [
       'AITY助手 使用说明：',
-      '• 发帖 发布消息到消息中心（markdown 格式）',
-      '  发帖 # 标题',
+      '• 发帖 [公开|私密] 发布消息到消息中心（markdown 格式）',
+      '  发帖 [公开|私密] # 标题',
       '  正文内容（支持 markdown 渲染）',
       '  例：发帖 # 今日盘前策略',
       '      今天关注xxx板块',
+      '  私密=仅发帖人+管理员可见，缺省公开',
       '• 回复 <帖子ID> [公开|私密] <内容>  回复讨论帖',
       '  例：回复 95 感谢反馈',
       '• 绑定 <绑定码>  绑定管理员身份',

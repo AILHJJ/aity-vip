@@ -71,7 +71,8 @@ function notifyNewDiscussion(discussion) {
     `作者：${discussion.userName || '未知用户'}`,
     `摘要：${truncate(discussion.content)}`,
     `时间：${formatTime(discussion.createdAt)}`,
-    `👉 处理：${buildDiscussionLink(discussion.id)}`
+    `👉 处理：${buildDiscussionLink(discussion.id)}`,
+    `👉 回复：@AITY回帖助手 回复 ${discussion.id}`
   ].join('\n');
 
   sendText(content).catch(err => logger.error('[wecom-notify] 新帖通知异常:', err.message));
@@ -87,7 +88,8 @@ function notifyNewReply(discussion, reply) {
     `回复人：${reply.userName || '未知用户'}`,
     `内容：${truncate(reply.content)}`,
     `时间：${formatTime(reply.createdAt)}`,
-    `👉 查看：${buildDiscussionLink(discussion.id)}`
+    `👉 查看：${buildDiscussionLink(discussion.id)}`,
+    `👉 回复：@AITY回帖助手 回复 ${discussion.id}`
   ].join('\n');
 
   sendText(content).catch(err => logger.error('[wecom-notify] 回帖通知异常:', err.message));

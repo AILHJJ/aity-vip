@@ -6,15 +6,18 @@ const wecomBot = require('../src/services/wecomBotService');
 
 function testParseCommand() {
   const cases = [
-    // 发帖（markdown # 标题，正文换行后）
-    { input: '发帖 # 今日策略\n今天关注xxx', expected: { cmd: 'post', title: '今日策略', content: '今天关注xxx' } },
-    { input: '发帖 # 今日策略\n今天关注xxx板块，注意风险', expected: { cmd: 'post', title: '今日策略', content: '今天关注xxx板块，注意风险' } },
-    { input: '发帖 今天关注xxx', expected: { cmd: 'post', title: '', content: '今天关注xxx' } },
-    { input: '发帖子 # 测试\n正文', expected: { cmd: 'post', title: '测试', content: '正文' } },
-    { input: '发个帖子 # 测试\n正文', expected: { cmd: 'post', title: '测试', content: '正文' } },
-    { input: '发一个帖子 # 测试\n正文', expected: { cmd: 'post', title: '测试', content: '正文' } },
-    { input: '发个帖 # 测试\n正文', expected: { cmd: 'post', title: '测试', content: '正文' } },
-    { input: '发帖 ## 测试\n正文', expected: { cmd: 'post', title: '测试', content: '正文' } },
+    // 发帖（markdown # 标题，正文换行后，visibility 缺省 public）
+    { input: '发帖 # 今日策略\n今天关注xxx', expected: { cmd: 'post', title: '今日策略', content: '今天关注xxx', visibility: 'public' } },
+    { input: '发帖 # 今日策略\n今天关注xxx板块，注意风险', expected: { cmd: 'post', title: '今日策略', content: '今天关注xxx板块，注意风险', visibility: 'public' } },
+    { input: '发帖 今天关注xxx', expected: { cmd: 'post', title: '', content: '今天关注xxx', visibility: 'public' } },
+    { input: '发帖子 # 测试\n正文', expected: { cmd: 'post', title: '测试', content: '正文', visibility: 'public' } },
+    { input: '发个帖子 # 测试\n正文', expected: { cmd: 'post', title: '测试', content: '正文', visibility: 'public' } },
+    { input: '发一个帖子 # 测试\n正文', expected: { cmd: 'post', title: '测试', content: '正文', visibility: 'public' } },
+    { input: '发个帖 # 测试\n正文', expected: { cmd: 'post', title: '测试', content: '正文', visibility: 'public' } },
+    { input: '发帖 ## 测试\n正文', expected: { cmd: 'post', title: '测试', content: '正文', visibility: 'public' } },
+    // 发帖可见性（公开/私密）
+    { input: '发帖 私密 # 测试\n正文', expected: { cmd: 'post', title: '测试', content: '正文', visibility: 'private' } },
+    { input: '发帖 公开 # 测试\n正文', expected: { cmd: 'post', title: '测试', content: '正文', visibility: 'public' } },
 
     // 回帖
     { input: '回复 1024 感谢反馈', expected: { cmd: 'reply', raw: '1024 感谢反馈' } },
