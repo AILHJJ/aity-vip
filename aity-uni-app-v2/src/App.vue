@@ -6,6 +6,15 @@ export default {
   onLaunch: function () {
     console.log('App Launch - 开始启动')
 
+    // #ifdef H5
+    // iframe 嵌入模式检测：URL 加 ?embed=1 触发（如 ?embed=1#/pages/xxx）
+    // 作用：消除双滚动条（iframe 外层滚动 + 页面内部滚动）
+    if (typeof window !== 'undefined' && /[?&]embed=1(\b|&)/.test(window.location.search)) {
+      document.body.classList.add('embed-mode')
+      console.log('App Launch - iframe 嵌入模式已启用')
+    }
+    // #endif
+
     // 初始化主题
     const themeStore = useThemeStore()
     themeStore.init()
@@ -130,6 +139,24 @@ uni-page-body {
 	.admin-only-mobile {
 		display: none !important;
 	}
+}
+
+/* ========== iframe 嵌入模式（解决双滚动条） ==========
+   触发：URL 加 ?embed=1，例如 https://aity88.online/?embed=1#/pages/messages/messages
+   效果：
+     1. body 高度自适应内容（不占满 iframe 视口），消除 iframe 外层滚动
+     2. 取消 touch 高亮（嵌入场景无意义）
+     3. 隐藏 page-head fixed 偏移（嵌入场景通常不需要固定头）
+   不影响正常浏览（用户不加 ?embed=1 一切照旧） */
+body.embed-mode,
+body.embed-mode html {
+	height: auto !important;
+	min-height: 100% !important;
+	overflow: visible !important;
+}
+
+body.embed-mode {
+	-webkit-tap-highlight-color: transparent !important;
 }
 /* #endif */
 </style>
