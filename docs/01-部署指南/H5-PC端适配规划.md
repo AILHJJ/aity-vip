@@ -71,6 +71,22 @@
 
 **实现要点**：pc-top-nav 用 `position: fixed; height: 44px` 与 uni-app 原生 `uni-page-head` 等高对齐，直接盖住原生标题栏，无需额外 padding，避免内容错位。小程序端零影响（`#ifdef H5` 隔离，编译验证无残留）。
 
+### 2.1c 详情页顶部导航（已完成 2026-09-14）✅
+
+**本次交付**：深层次页面（消息详情/讨论详情）的顶部导航条，解决"点链接进详情页后无法返回主界面"的问题。
+
+| 项 | 实现 |
+|---|---|
+| 详情页导航组件 | `components/pc-detail-header.vue`（fixed top 44px，仅 H5 大屏 ≥769px 显示） |
+| 内容 | 「← 返回」按钮 + 页面标题（简化版，非完整菜单） |
+| 居中 | `.pc-detail-header-inner { max-width: 1280px; margin: 0 auto }` 与主内容区域左对齐 |
+| 接入页面 | message-detail / discussion-detail 2 个详情页 |
+| 嵌入模式 | `?embed=1` 时隐藏（iframe 内无需导航） |
+
+**实现要点**：详情页导航用简化版（返回+标题），不放完整菜单（深层次页面菜单冗余）。返回逻辑：优先 `history.back()`，无历史时 `reLaunch` 到列表页。
+
+> ⚠️ **踩坑**：外层 `.pc-detail-header { display: none }`（小屏隐藏）需在 `@media (min-width: 769px)` 里显式 `display: block` 覆盖，否则大屏下也始终隐藏（display:none 不会被 position:fixed 覆盖）。
+
 ### 2.1b 侧边栏布局（待做，视需求）
 
 导航项仅 7 个（4 tab + 3 管理），顶导 + 管理下拉已足够承载，暂不做独立侧边栏，避免过度设计。若后续导航项增长到 15+ 再评估。
