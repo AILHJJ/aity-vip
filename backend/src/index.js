@@ -28,8 +28,6 @@ const logger = require('./utils/logger');
 const swaggerSpec = require('./config/swagger');
 const { trackRequest, trackError, getMetrics } = require('./middleware/monitoring');
 const { startUserExpirySync } = require('./services/userExpiryService');
-const { createBotService } = require('./services/channelFactory');
-const botServiceInstance = require('./services/botServiceInstance');
 
 // 导入路由
 const authRoutes = require('./routes/authRoutes');
@@ -47,6 +45,7 @@ const aiAdvisorRoutes = require('./routes/aiAdvisorRoutes');
 const favoritesRoutes = require('./routes/favoritesRoutes');
 const aiRoutes = require('./routes/ai');
 const messageTypeRoutes = require('./routes/messageTypeRoutes');
+const botConfigRoutes = require('./routes/botConfigRoutes');
 
 // 创建Express应用
 const app = express();
@@ -197,6 +196,7 @@ app.use('/api/ai-advisor', aiAdvisorRoutes);
 app.use('/api/favorites', favoritesRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/message-types', messageTypeRoutes);
+app.use('/api/admin/bot-config', botConfigRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -231,21 +231,19 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Internal server error' });
 });
 
-// 启动群内机器人（渠道抽象：当前从 env 读配置，后续改为数据库配置）
-function startBotService() {
-  const channelName = process.env.IM_CHANNEL || 'wecom';
-  let config;
-  if (channelName === 'wecom') {
-    config = { botId: process.env.WECOM_BOT_ID, secret: process.env.WECOM_BOT_SECRET };
+// 启动群内机器人（渠道抽象 + 配置可管理：从数据库读配置，fallback env）
+async function startBotService() {
+  const { bootstrapBotService } = require('./services/botConfigService');
+  try {
+    const channel = await bootstrapBotService();
+    if (channel) {
+      logger.info(`[botService] 已启动渠道: ${channel}`);
+    } else {
+      logger.info('[botService] 未配置机器人凭证，跳过启动');
+    }
+  } catch (err) {
+    logger.error('[botService] 启动异常:', err.message);
   }
-  if (!config || !config.botId || !config.secret) {
-    logger.info('[botService] 未配置机器人凭证，跳过启动');
-    return;
-  }
-  const botService = createBotService(channelName, config, { bindCode: process.env.WECOM_BIND_CODE });
-  botServiceInstance.set(botService);
-  botService.start();
-  logger.info(`[botService] 已启动渠道: ${channelName}`);
 }
 
 // 启动服务器
@@ -258,7 +256,7 @@ if (require.main === module) {
       allowedOrigins: ALLOWED_ORIGINS
     });
     startUserExpirySync();
-    startBotService();
+    startBotService().catch(err => logger.error('[botService] 启动异常:', err.message));
   });
 }
 
