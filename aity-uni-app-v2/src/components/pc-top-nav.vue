@@ -71,7 +71,8 @@ const adminItems = [
 	{ label: '用户管理', path: '/pages/user-management/user-management' },
 	{ label: '数据统计', path: '/pages/stats/stats' },
 	{ label: 'AI 管理', path: '/pages/admin/ai-config' },
-	{ label: 'Agent 管理', path: '/pages/admin/agent-config' }
+	{ label: 'Agent 管理', path: '/pages/admin/agent-config' },
+	{ label: '渠道配置', path: '/pages/admin/bot-config' }
 ]
 
 const isAdmin = computed(() => userStore.isAdmin)

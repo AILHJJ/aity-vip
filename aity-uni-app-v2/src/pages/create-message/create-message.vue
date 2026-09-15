@@ -3425,4 +3425,60 @@ button::after {
 	padding: 14rpx 28rpx;
 }
 /* #endif */
+
+/* #ifdef H5 */
+/* ========== PC 大屏适配：rpx 按屏宽等比放大导致按钮巨大，统一用 px 限制 ========== */
+@media (min-width: 769px) {
+	.fixed-bottom-bar {
+		left: 0;
+		right: 0;
+		max-width: 920px;
+		margin: 0 auto;
+		padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+		gap: 8px;
+	}
+
+	.publish-options {
+		padding: 8px 12px;
+		border-radius: 8px;
+	}
+
+	.publish-option-title {
+		font-size: 14px;
+	}
+
+	.publish-option-hint,
+	.publish-option-warning {
+		font-size: 12px;
+	}
+
+	.cancel-btn,
+	.submit-btn {
+		height: 40px;
+		line-height: 40px;
+		font-size: 15px;
+		border-radius: 6px;
+	}
+
+	.bottom-actions {
+		gap: 12px;
+	}
+
+	/* AI 预览弹窗按钮 */
+	.preview-btn {
+		height: 40px;
+		line-height: 40px;
+		font-size: 14px;
+	}
+
+	.preview-footer {
+		padding: 12px 16px;
+		gap: 10px;
+	}
+
+	.bottom-spacer {
+		min-height: 140px;
+	}
+}
+/* #endif */
 </style>

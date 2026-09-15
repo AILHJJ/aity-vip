@@ -85,6 +85,12 @@
 			}
 		},
 		{
+			"path": "pages/admin/bot-config",
+			"style": {
+				"navigationBarTitleText": "渠道配置"
+			}
+		},
+		{
 			"path": "pages/admin/agent-config",
 			"style": {
 				"navigationBarTitleText": "Agent 管理"
