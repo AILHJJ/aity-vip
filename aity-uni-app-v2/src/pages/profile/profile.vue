@@ -101,6 +101,14 @@
 				<text class="menu-arrow">?</text>
 			</view>
 
+			<view v-if="userStore.isAdmin" class="menu-item admin-only-mobile" @click="goToBotConfig">
+				<view class="menu-left">
+					<text class="menu-icon">🤖</text>
+					<text class="menu-text">渠道配置</text>
+				</view>
+				<text class="menu-arrow">?</text>
+			</view>
+
 			<view class="menu-item" @click="showThemeSettings">
 				<view class="menu-left">
 					<text class="menu-icon">🎨</text>
@@ -272,6 +280,10 @@ const goToAiConfig = () => {
 
 const goToAgentConfig = () => {
 	uni.navigateTo({ url: '/pages/admin/agent-config' })
+}
+
+const goToBotConfig = () => {
+	uni.navigateTo({ url: '/pages/admin/bot-config' })
 }
 
 // 跳转到修改密码
