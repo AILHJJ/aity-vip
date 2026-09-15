@@ -28,7 +28,8 @@ const logger = require('./utils/logger');
 const swaggerSpec = require('./config/swagger');
 const { trackRequest, trackError, getMetrics } = require('./middleware/monitoring');
 const { startUserExpirySync } = require('./services/userExpiryService');
-const wecomBotService = require('./services/wecomBotService');
+const { createBotService } = require('./services/channelFactory');
+const botServiceInstance = require('./services/botServiceInstance');
 
 // 导入路由
 const authRoutes = require('./routes/authRoutes');
@@ -230,6 +231,23 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Internal server error' });
 });
 
+// 启动群内机器人（渠道抽象：当前从 env 读配置，后续改为数据库配置）
+function startBotService() {
+  const channelName = process.env.IM_CHANNEL || 'wecom';
+  let config;
+  if (channelName === 'wecom') {
+    config = { botId: process.env.WECOM_BOT_ID, secret: process.env.WECOM_BOT_SECRET };
+  }
+  if (!config || !config.botId || !config.secret) {
+    logger.info('[botService] 未配置机器人凭证，跳过启动');
+    return;
+  }
+  const botService = createBotService(channelName, config, { bindCode: process.env.WECOM_BIND_CODE });
+  botServiceInstance.set(botService);
+  botService.start();
+  logger.info(`[botService] 已启动渠道: ${channelName}`);
+}
+
 // 启动服务器
 if (require.main === module) {
   app.listen(PORT, HOST, () => {
@@ -240,7 +258,7 @@ if (require.main === module) {
       allowedOrigins: ALLOWED_ORIGINS
     });
     startUserExpirySync();
-    wecomBotService.start();
+    startBotService();
   });
 }
 

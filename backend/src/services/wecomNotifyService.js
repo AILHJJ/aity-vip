@@ -5,7 +5,7 @@
 //   - 发送失败自动重试 3 次，仍失败仅记日志（不落库，避免引入 DB 迁移风险）
 // 配置项见 .env.example 中 WECOM_* 段
 const logger = require('../utils/logger');
-const wecomBotService = require('./wecomBotService'); // 统一 bot：主动推送通知（webhook 已下线）
+const botServiceInstance = require('./botServiceInstance'); // 统一 bot：主动推送通知（webhook 已下线）
 
 // 默认开启新帖通知；回帖通知默认也开启（管理员自己的回复不推）
 const NOTIFY_ON_CREATE = process.env.WECOM_NOTIFY_ON_CREATE !== 'false';
@@ -38,7 +38,7 @@ async function sendText(content) {
 
   // 统一走智能机器人主动推送（webhook 已完全下线）
   try {
-    const botSent = wecomBotService.notifyToGroup(content);
+    const botSent = botServiceInstance.notifyToGroup(content);
     if (botSent) {
       return { ok: true, via: 'bot' };
     }

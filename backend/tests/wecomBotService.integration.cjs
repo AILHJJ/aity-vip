@@ -3,16 +3,24 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env.development') });
 process.env.WECOM_NOTIFY_DRY_RUN = 'true'; // 测试时不真实推群
 
-const wecomBot = require('../src/services/wecomBotService');
+const BotService = require('../src/services/botService');
 const Message = require('../src/models/Message');
 const Discussion = require('../src/models/Discussion');
 const DiscussionReply = require('../src/models/DiscussionReply');
 
 const binding = { adminUserId: 1, adminName: 'admin', adminRole: 'super_admin' };
 
+// mock 渠道（测试不真实连接 WebSocket）
+const mockChannel = {
+  reply(reqId, text) { console.log('  → 回执:', text.split('\n')[0]); },
+  sendToGroup(text) { return true; },
+  async downloadImage(img) { return null; }
+};
+const botService = new BotService(mockChannel, { bindCode: 'test' });
+
 async function testPost() {
   const parsed = { cmd: 'post', title: '[测试] 群内发消息标题', content: '[测试] 群内发消息正文' };
-  await wecomBot.handlePost('test_req', binding, parsed, []);
+  await botService.handlePost('test_req', binding, parsed, []);
 
   const message = await Message.findOne({
     where: { title: '[测试] 群内发消息标题' },
@@ -40,7 +48,7 @@ async function testReply() {
   });
 
   const parsed = { cmd: 'reply', raw: `${discussion.id} 测试回帖内容` };
-  await wecomBot.handleReply('test_req', binding, parsed, []);
+  await botService.handleReply('test_req', binding, parsed, []);
 
   const reply = await DiscussionReply.findOne({ where: { discussionId: discussion.id }, order: [['id', 'DESC']] });
   if (!reply) throw new Error('回复未创建');

@@ -2,7 +2,8 @@
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env.development') });
 
-const wecomBot = require('../src/services/wecomBotService');
+const BotService = require('../src/services/botService');
+const botService = new BotService({ name: 'mock' });
 
 function testParseCommand() {
   const cases = [
@@ -41,7 +42,7 @@ function testParseCommand() {
 
   let pass = 0;
   for (const c of cases) {
-    const result = wecomBot.parseCommand(c.input);
+    const result = botService.parseCommand(c.input);
     const ok = JSON.stringify(result) === JSON.stringify(c.expected);
     if (ok) {
       pass++;
