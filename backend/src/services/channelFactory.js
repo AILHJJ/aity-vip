@@ -1,6 +1,7 @@
 // 渠道工厂：根据配置创建 BotChannel 实例
 // 新增渠道（飞书/钉钉）只需在此注册 + 新增对应 Channel 类
 const WecomBotChannel = require('../channels/WecomBotChannel');
+const FeishuBotChannel = require('../channels/FeishuBotChannel');
 const BotService = require('./botService');
 
 /**
@@ -16,10 +17,10 @@ function createBotService(channelName, config, options = {}) {
     case 'wecom':
       channel = new WecomBotChannel(config);
       break;
+    case 'feishu':
+      channel = new FeishuBotChannel(config);
+      break;
     // 未来扩展：
-    // case 'feishu':
-    //   channel = new FeishuBotChannel(config);
-    //   break;
     // case 'dingtalk':
     //   channel = new DingTalkBotChannel(config);
     //   break;
