@@ -678,7 +678,8 @@ button::after {
 /* #ifdef H5 */
 @media (min-width: 769px) {
 	.fab-button {
-		right: calc((100vw - 1280px) / 2 + 30rpx) !important;
+		/* 宽屏对齐 1280px 内容区右边缘；窄窗口（如通达信嵌入）退回贴边 20px，保证始终可见 */
+		right: max(20px, calc((100vw - 1280px) / 2 + 30px)) !important;
 		font-size: 48rpx !important;
 		width: 96rpx !important;
 		height: 96rpx !important;
