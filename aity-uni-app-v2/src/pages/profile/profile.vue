@@ -6,8 +6,9 @@
 
 		<!-- 用户信息卡片 -->
 		<view class="user-card">
-			<view class="user-avatar">
+			<view class="user-avatar" :style="{ background: avatarGradient }" @click="showAvatarPicker = true">
 				<text class="avatar-text">{{ userInitial || 'U' }}</text>
+				<text class="avatar-edit-hint">换</text>
 			</view>
 			<view class="user-info">
 				<text class="user-name">{{ userStore.userName || '用户' }}</text>
@@ -17,11 +18,33 @@
 			<view class="card-decoration"></view>
 		</view>
 
+		<!-- 头像选择弹层 -->
+		<view v-if="showAvatarPicker" class="avatar-picker-mask" @click="showAvatarPicker = false">
+			<view class="avatar-picker" @click.stop>
+				<text class="picker-title">选择默认头像</text>
+				<text class="picker-hint">点击色块即可更换，自动保存</text>
+				<view class="avatar-grid">
+					<view
+						v-for="(p, i) in AVATAR_PRESETS"
+						:key="i"
+						class="avatar-option"
+						:class="{ selected: selectedAvatarIndex === i }"
+						:style="{ background: p }"
+						@click="chooseAvatar(i)"
+					>
+						<text class="avatar-option-text">{{ userInitial || 'U' }}</text>
+						<text v-if="selectedAvatarIndex === i" class="avatar-check">✓</text>
+					</view>
+				</view>
+				<button class="picker-done" @click="showAvatarPicker = false">完成</button>
+			</view>
+		</view>
+
 		<!-- 功能菜单 -->
 		<view class="menu-section">
 			<view class="menu-item" @click="goToFavorites">
 				<view class="menu-left">
-					<text class="menu-icon">⭐</text>
+					<uni-icons class="menu-icon" type="star-filled" size="22" color="#f59e0b"></uni-icons>
 					<text class="menu-text">我的收藏</text>
 				</view>
 				<view class="menu-right">
@@ -32,7 +55,7 @@
 
 			<view class="menu-item" @click="goToMyDiscussions">
 				<view class="menu-left">
-					<text class="menu-icon">💬</text>
+					<uni-icons class="menu-icon" type="chat-filled" size="22" color="#3b82f6"></uni-icons>
 					<text class="menu-text">我的讨论</text>
 				</view>
 				<view class="menu-right">
@@ -43,7 +66,7 @@
 
 			<view v-if="userStore.isAdmin" class="menu-item admin-only-mobile" @click="goToUserManagement">
 				<view class="menu-left">
-					<text class="menu-icon">👥</text>
+					<uni-icons class="menu-icon" type="staff-filled" size="22" color="#10b981"></uni-icons>
 					<text class="menu-text">用户管理</text>
 				</view>
 				<text class="menu-arrow">›</text>
@@ -51,7 +74,7 @@
 
 			<view v-if="userStore.isAdmin" class="menu-item admin-only-mobile" @click="goToStats">
 				<view class="menu-left">
-					<text class="menu-icon">📊</text>
+					<uni-icons class="menu-icon" type="bars" size="22" color="#6366f1"></uni-icons>
 					<text class="menu-text">数据统计</text>
 				</view>
 				<text class="menu-arrow">›</text>
@@ -59,7 +82,7 @@
 
 			<view v-if="userStore.isAdmin" class="menu-item admin-only-mobile" @click="goToAiConfig">
 				<view class="menu-left">
-					<text class="menu-icon">🤖</text>
+					<uni-icons class="menu-icon" type="gear-filled" size="22" color="#8b5cf6"></uni-icons>
 					<text class="menu-text">AI管理</text>
 				</view>
 				<text class="menu-arrow">›</text>
@@ -70,7 +93,7 @@
 		<view class="menu-section">
 			<view class="menu-item" @click="goToChangePassword">
 				<view class="menu-left">
-					<text class="menu-icon">🔐</text>
+					<uni-icons class="menu-icon" type="locked-filled" size="22" color="#ef4444"></uni-icons>
 					<text class="menu-text">修改密码</text>
 				</view>
 				<view class="menu-right">
@@ -84,7 +107,7 @@
 			<!-- 主题设置 -->
 			<view class="menu-item" @click="goToChangeEmail">
 				<view class="menu-left">
-					<text class="menu-icon">@</text>
+					<uni-icons class="menu-icon" type="email-filled" size="22" color="#0ea5e9"></uni-icons>
 					<text class="menu-text">修改邮箱</text>
 				</view>
 				<view class="menu-right">
@@ -95,23 +118,23 @@
 
 			<view v-if="userStore.isAdmin" class="menu-item admin-only-mobile" @click="goToAgentConfig">
 				<view class="menu-left">
-					<text class="menu-icon">AI</text>
+					<uni-icons class="menu-icon" type="headphones" size="22" color="#8b5cf6"></uni-icons>
 					<text class="menu-text">Agent 管理</text>
 				</view>
-				<text class="menu-arrow">?</text>
+				<text class="menu-arrow">›</text>
 			</view>
 
 			<view v-if="userStore.isAdmin" class="menu-item admin-only-mobile" @click="goToBotConfig">
 				<view class="menu-left">
-					<text class="menu-icon">🤖</text>
+					<uni-icons class="menu-icon" type="link" size="22" color="#10b981"></uni-icons>
 					<text class="menu-text">渠道配置</text>
 				</view>
-				<text class="menu-arrow">?</text>
+				<text class="menu-arrow">›</text>
 			</view>
 
 			<view class="menu-item" @click="showThemeSettings">
 				<view class="menu-left">
-					<text class="menu-icon">🎨</text>
+					<uni-icons class="menu-icon" type="color-filled" size="22" color="#f43f5e"></uni-icons>
 					<text class="menu-text">主题设置</text>
 				</view>
 				<view class="menu-right">
@@ -124,7 +147,7 @@
 
 			<view class="menu-item" @click="showAbout">
 				<view class="menu-left">
-					<text class="menu-icon">ℹ️</text>
+					<uni-icons class="menu-icon" type="info-filled" size="22" color="#94a3b8"></uni-icons>
 					<text class="menu-text">关于我们</text>
 				</view>
 				<text class="menu-arrow">›</text>
@@ -169,6 +192,36 @@ const themeOptions = [
 // 统计数据
 const favoriteCount = ref(0)
 const discussionCount = ref(0)
+
+// ===== 预设头像（8 款渐变，无后端依赖，本地保存选择） =====
+const AVATAR_PRESETS = [
+	'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', // 极光紫（原默认）
+	'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', // 樱花粉
+	'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', // 海洋蓝
+	'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', // 翡翠绿
+	'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', // 落日晚霞
+	'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', // 深海蓝
+	'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)', // 琥珀金
+	'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'  // 薄荷粉
+]
+const showAvatarPicker = ref(false)
+
+// 初始头像：用户手选优先；否则按 userId 哈希确定性选一款（不同用户进来自动不同）
+function initAvatarIndex() {
+	const saved = uni.getStorageSync('preferredAvatar')
+	if (saved !== '' && saved !== null && AVATAR_PRESETS[saved] !== undefined) return saved
+	const idStr = String(userStore.userId || 'u')
+	let h = 0
+	for (let i = 0; i < idStr.length; i++) h = (h * 31 + idStr.charCodeAt(i)) >>> 0
+	return h % AVATAR_PRESETS.length
+}
+const selectedAvatarIndex = ref(initAvatarIndex())
+const avatarGradient = computed(() => AVATAR_PRESETS[selectedAvatarIndex.value])
+
+function chooseAvatar(i) {
+	selectedAvatarIndex.value = i
+	uni.setStorageSync('preferredAvatar', i)
+}
 
 // 用户名首字母（优化：确保总是有值）
 const userInitial = computed(() => {
@@ -394,12 +447,120 @@ button::after {
 	align-items: center;
 	justify-content: center;
 	border: 4rpx solid rgba(255, 255, 255, 0.5);
+	position: relative;
+	cursor: pointer;
 }
 
 .avatar-text {
 	font-size: 48rpx;
 	color: #ffffff;
 	font-weight: bold;
+}
+
+.avatar-edit-hint {
+	position: absolute;
+	right: -6rpx;
+	bottom: -6rpx;
+	width: 40rpx;
+	height: 40rpx;
+	line-height: 40rpx;
+	text-align: center;
+	font-size: 20rpx;
+	color: #ffffff;
+	background: rgba(0, 0, 0, 0.35);
+	border-radius: 50%;
+}
+
+/* 头像选择弹层 */
+.avatar-picker-mask {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+	z-index: 999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.avatar-picker {
+	width: 600rpx;
+	background: #ffffff;
+	border-radius: 24rpx;
+	padding: 40rpx 32rpx 32rpx;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.picker-title {
+	font-size: 32rpx;
+	font-weight: 600;
+	color: #333333;
+}
+
+.picker-hint {
+	font-size: 22rpx;
+	color: #999999;
+	margin: 12rpx 0 32rpx;
+}
+
+.avatar-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 28rpx;
+	justify-content: center;
+}
+
+.avatar-option {
+	width: 100rpx;
+	height: 100rpx;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+	border: 4rpx solid transparent;
+	box-sizing: border-box;
+}
+
+.avatar-option.selected {
+	border-color: #667eea;
+	box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.4);
+}
+
+.avatar-option-text {
+	font-size: 40rpx;
+	color: #ffffff;
+	font-weight: bold;
+}
+
+.avatar-check {
+	position: absolute;
+	right: -4rpx;
+	bottom: -4rpx;
+	width: 36rpx;
+	height: 36rpx;
+	line-height: 36rpx;
+	text-align: center;
+	font-size: 20rpx;
+	color: #ffffff;
+	background: #667eea;
+	border-radius: 50%;
+}
+
+.picker-done {
+	margin-top: 40rpx;
+	width: 100%;
+	height: 80rpx;
+	line-height: 80rpx;
+	font-size: 28rpx;
+	color: #ffffff;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border-radius: 12rpx;
+	border: none;
 }
 
 .user-info {

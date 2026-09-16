@@ -216,7 +216,15 @@
 		</scroll-view>
 
 		<!-- 管理员发布按钮：固定在内容区右下角，避免遮挡底部导航 -->
-		<view v-if="userStore.isAdmin && userInfoLoaded" class="fab-button" @click="goToCreate">
+		<view
+			v-if="userStore.isAdmin && userInfoLoaded"
+			class="fab-button"
+			:style="{ transform: 'translate(' + fabX + 'px, ' + fabY + 'px)' }"
+			@touchstart="onFabTouchStart"
+			@touchmove.stop.prevent="onFabTouchMove"
+			@touchend="onFabTouchEnd"
+			@click="onFabClick"
+		>
 			<text class="fab-icon">+</text>
 		</view>
 	</view>
@@ -714,6 +722,43 @@ const goToDetail = (id) => {
 	uni.navigateTo({
 		url: `/pages/message-detail/message-detail?id=${id}`
 	})
+}
+
+// 可拖动FAB按钮状态（拖动与点击双通道：移动端拖动后不触发跳转；PC 端鼠标点击直接跳转）
+const fabX = ref(0)
+const fabY = ref(0)
+let fabDragStartX = 0
+let fabDragStartY = 0
+let fabIsDragging = false
+let fabLastDragTime = 0
+
+const onFabTouchStart = (e) => {
+	fabIsDragging = false
+	fabDragStartX = e.touches[0].clientX
+	fabDragStartY = e.touches[0].clientY
+}
+
+const onFabTouchMove = (e) => {
+	fabIsDragging = true
+	const dx = e.touches[0].clientX - fabDragStartX
+	const dy = e.touches[0].clientY - fabDragStartY
+	fabX.value += dx
+	fabY.value += dy
+	fabDragStartX = e.touches[0].clientX
+	fabDragStartY = e.touches[0].clientY
+}
+
+const onFabTouchEnd = () => {
+	if (fabIsDragging) {
+		fabLastDragTime = Date.now()
+	}
+}
+
+// PC 端（H5）无 touch，click 直接触发；移动端 touchend 后的 click 在 500ms 内被抑制
+const onFabClick = () => {
+	if (Date.now() - fabLastDragTime > 500) {
+		goToCreate()
+	}
 }
 
 // 跳转到创建页面

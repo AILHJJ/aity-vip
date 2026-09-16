@@ -20,11 +20,11 @@
 		<!-- 渠道 Tab -->
 		<view class="tab-container">
 			<view class="tab-item" :class="{ active: activeTab === 'wecom' }" @click="switchTab('wecom')">
-				<text class="tab-icon">💬</text>
+				<view class="channel-logo wecom"><text class="channel-logo-text">企</text></view>
 				<text class="tab-text">企业微信</text>
 			</view>
 			<view class="tab-item" :class="{ active: activeTab === 'feishu' }" @click="switchTab('feishu')">
-				<text class="tab-icon">🐦</text>
+				<view class="channel-logo feishu"><text class="channel-logo-text">飞</text></view>
 				<text class="tab-text">飞书</text>
 			</view>
 		</view>
@@ -256,8 +256,28 @@ onShow(loadConfigs)
 	}
 }
 
-.tab-icon {
-	font-size: 28rpx;
+.channel-logo {
+	width: 44rpx;
+	height: 44rpx;
+	border-radius: 10rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	&.wecom {
+		background: linear-gradient(135deg, #0082ef 0%, #00b0f0 100%);
+	}
+
+	&.feishu {
+		background: linear-gradient(135deg, #3370ff 0%, #00d6b9 100%);
+	}
+}
+
+.channel-logo-text {
+	color: #ffffff;
+	font-size: 24rpx;
+	font-weight: bold;
+	line-height: 1;
 }
 
 .tab-text {
