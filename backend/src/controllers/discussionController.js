@@ -918,7 +918,7 @@ async function unfavoriteDiscussion(req, res) {
 // 基准：users.last_seen_replies_at（全局时间戳，避免逐条已读改造）
 async function getUnreadReplyCount(req, res) {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const user = await User.findByPk(userId);
     const lastSeen = (user && user.lastSeenRepliesAt) || new Date(0);
 
@@ -945,7 +945,7 @@ async function getUnreadReplyCount(req, res) {
 // 标记"我的帖子被回复"提醒已查看
 async function markRepliesSeen(req, res) {
   try {
-    const user = await User.findByPk(req.user.id);
+    const user = await User.findByPk(req.user.userId);
     if (!user) return res.status(404).json(error('User not found'));
     await user.update({ lastSeenRepliesAt: new Date() });
     res.json(success(null, 'Marked replies as seen'));

@@ -30,8 +30,9 @@ async function downloadAndSaveFeishuImage(larkClient, imageObj) {
   try {
     if (!imageObj || !imageObj.imageKey || !imageObj.messageId) return null;
 
-    const resp = await larkClient.im.messageResources.get({
-      params: { message_id: imageObj.messageId, file_key: imageObj.imageKey, type: 'image' }
+    const resp = await larkClient.im.messageResource.get({
+      path: { message_id: imageObj.messageId, file_key: imageObj.imageKey },
+      params: { type: 'image' }
     });
 
     // SDK 二进制响应兼容处理：ArrayBuffer / Buffer / Stream

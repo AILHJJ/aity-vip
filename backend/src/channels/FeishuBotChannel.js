@@ -128,7 +128,7 @@ class FeishuBotChannel extends BotChannel {
   reply(reqId, text) {
     if (!this.client || !reqId) return;
     this.client.im.message.reply({
-      params: { message_id: reqId },
+      path: { message_id: reqId },  // SDK 1.74：path 参数承载 URL 中的 message_id
       data: { msg_type: 'text', content: JSON.stringify({ text }) }
     }).catch(err => console.error('[飞书渠道] 回复失败:', err.message));
   }
