@@ -158,5 +158,16 @@ body.embed-mode html {
 body.embed-mode {
 	-webkit-tap-highlight-color: transparent !important;
 }
+
+/* ========== 内嵌窄面板缩放（通达信等客户端内嵌小视口） ==========
+   问题：页面按手机屏（750rpx 设计稿）设计，嵌入 500~700px 宽的面板时
+        rpx 换算出的尺寸观感巨大（fab/标签/字号），且面板宽 <769px，
+        之前的 min-width:769px PC 适配段不会触发。
+   方案：embed 模式下整体 zoom 缩放，等效于把设计稿宽度压到 ~520px，
+        所有页面所有组件一次性缩小，无需逐个覆盖。
+   通达信内嵌为 Chromium 内核，zoom 支持良好；触摸/点击坐标同步缩放。 */
+body.embed-mode {
+	zoom: 0.7;
+}
 /* #endif */
 </style>
