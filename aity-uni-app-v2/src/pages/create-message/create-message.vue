@@ -1873,6 +1873,7 @@ button::after {
 	color: #666666;
 	transition: all 0.2s;
 	white-space: nowrap;
+	flex-shrink: 0; /* 窄容器下禁止压缩（否则文字截断），放不下由 wrap 换行 */
 	box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.08);
 }
 
@@ -3423,6 +3424,7 @@ button::after {
 .tag-group .tag-item {
 	font-size: 28rpx;
 	padding: 14rpx 28rpx;
+	flex-shrink: 0; /* 窄容器下禁止压缩，避免文字截断 */
 }
 /* #endif */
 
