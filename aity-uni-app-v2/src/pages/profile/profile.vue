@@ -59,6 +59,7 @@
 					<text class="menu-text">我的讨论</text>
 				</view>
 				<view class="menu-right">
+					<text v-if="unreadReplyCount > 0" class="reply-unread-badge">{{ unreadReplyCount > 99 ? '99+' : unreadReplyCount }}</text>
 					<text class="menu-count">{{ discussionCount }}</text>
 					<text class="menu-arrow">›</text>
 				</view>
@@ -174,7 +175,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import { useThemeStore, ThemeMode } from '../../store/theme'
 import { USER_ROLE_LABELS } from '../../utils/constants'
-import { getDiscussionsApi } from '../../api/discussion'
+import { getDiscussionsApi, getUnreadReplyCountApi } from '../../api/discussion'
 import { getFavoriteMessagesApi } from '../../api/message'
 import PcTopNav from '@/components/pc-top-nav.vue'
 
@@ -294,7 +295,23 @@ onMounted(() => {
 onShow(() => {
 	// 刷新 tabBar 未读角标
 	userStore.updateTabBarBadge()
+	// 刷新"我的帖子被回复"未读数
+	fetchUnreadReplyCount()
 })
+
+// 未读回复数（我的帖子被别人回复且未查看）
+const unreadReplyCount = ref(0)
+const fetchUnreadReplyCount = async () => {
+	try {
+		if (!userStore.isLoggedIn) return
+		const res = await getUnreadReplyCountApi()
+		if (res.code === 200 && res.data) {
+			unreadReplyCount.value = res.data.unreadReplyCount || 0
+		}
+	} catch (e) {
+		console.error('获取未读回复数失败:', e)
+	}
+}
 
 // 跳转到收藏页面
 const goToFavorites = () => {
@@ -469,6 +486,19 @@ button::after {
 	color: #ffffff;
 	background: rgba(0, 0, 0, 0.35);
 	border-radius: 50%;
+}
+
+.reply-unread-badge {
+	min-width: 32rpx;
+	height: 32rpx;
+	line-height: 32rpx;
+	padding: 0 8rpx;
+	text-align: center;
+	font-size: 20rpx;
+	color: #ffffff;
+	background: #f5576c;
+	border-radius: 999rpx;
+	margin-right: 8rpx;
 }
 
 /* 头像选择弹层 */

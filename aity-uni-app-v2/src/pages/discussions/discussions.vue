@@ -106,7 +106,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
-import { getDiscussionsApi } from '../../api/discussion'
+import { getDiscussionsApi, getUnreadReplyCountApi } from '../../api/discussion'
 import { formatFriendlyTime } from '../../utils/time'
 import EmptyState from '@/components/empty-state.vue'
 import PcTopNav from '@/components/pc-top-nav.vue'
@@ -317,7 +317,29 @@ onShow(() => {
 	}
 	// 刷新 tabBar 未读角标
 	userStore.updateTabBarBadge()
+	// 刷新"我的帖子被回复"未读数 → 交流 tab 角标
+	refreshUnreadReplyBadge()
 })
+
+// 未读回复数 → 交流 tab（index 1）角标
+async function refreshUnreadReplyBadge() {
+	try {
+		if (!userStore.isLoggedIn) return
+		const res = await getUnreadReplyCountApi()
+		const count = (res.data && res.data.unreadReplyCount) || 0
+		if (count > 0) {
+			uni.setTabBarBadge({
+				index: 1,
+				text: count > 99 ? '99+' : String(count),
+				fail: () => {}
+			})
+		} else {
+			uni.removeTabBarBadge({ index: 1, fail: () => {} })
+		}
+	} catch (err) {
+		console.error('[讨论列表] 获取未读回复数失败:', err.message)
+	}
+}
 </script>
 
 <style lang="scss" scoped>

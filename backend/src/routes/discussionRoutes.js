@@ -8,6 +8,9 @@ const { validateCreateDiscussion, validateAddReply, validateIdParam } = require(
 router.get('/', authenticateToken, discussionController.getDiscussions);
 router.get('/my', authenticateToken, discussionController.getMyDiscussions);
 router.get('/favorites', authenticateToken, discussionController.getFavoriteDiscussions);
+// 未读回复提醒（必须在 /:id 之前注册，避免被 :id 吞掉）
+router.get('/unread-reply-count', authenticateToken, discussionController.getUnreadReplyCount);
+router.post('/mark-replies-seen', authenticateToken, discussionController.markRepliesSeen);
 router.get('/:id', authenticateToken, ...validateIdParam(), discussionController.getDiscussionById);
 router.post('/', authenticateToken, ...validateCreateDiscussion(), discussionController.createDiscussion);
 router.put('/:id', authenticateToken, ...validateIdParam(), discussionController.updateDiscussion);

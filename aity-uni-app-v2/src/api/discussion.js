@@ -16,6 +16,22 @@ export function getDiscussionsApi(params = {}) {
 }
 
 /**
+ * 获取"我的帖子被回复"未读数
+ * @returns {Promise<{unreadReplyCount: Number}>}
+ */
+export function getUnreadReplyCountApi() {
+  return get('/discussions/unread-reply-count')
+}
+
+/**
+ * 标记"我的帖子被回复"提醒已查看
+ * @returns {Promise}
+ */
+export function markRepliesSeenApi() {
+  return post('/discussions/mark-replies-seen')
+}
+
+/**
  * 获取讨论详情
  * @param {Number} id 讨论ID
  * @returns {Promise}

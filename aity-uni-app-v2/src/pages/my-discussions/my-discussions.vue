@@ -79,11 +79,18 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
-import { getMyDiscussionsApi, deleteDiscussionApi } from '../../api/discussion'
+import { getMyDiscussionsApi, deleteDiscussionApi, markRepliesSeenApi } from '../../api/discussion'
 import { formatFriendlyTime } from '../../utils/time'
 
 const userStore = useUserStore()
+
+// 进入"我的讨论"页 = 已查看回复提醒 → 标记已读 + 清交流 tab 角标
+onShow(() => {
+	markRepliesSeenApi().catch(() => {})
+	uni.removeTabBarBadge({ index: 1, fail: () => {} })
+})
 
 // 数据
 const discussions = ref([])

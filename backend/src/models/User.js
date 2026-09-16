@@ -66,6 +66,12 @@ const User = sequelize.define('User', {
     defaultValue: true,
     field: 'is_initial_password',
     comment: '是否使用初始密码'
+  },
+  lastSeenRepliesAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'last_seen_replies_at',
+    comment: '上次查看"我的帖子被回复"提醒的时间（未读回复统计基准）'
   }
 }, {
   tableName: 'users',

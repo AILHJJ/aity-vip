@@ -914,6 +914,47 @@ async function unfavoriteDiscussion(req, res) {
   }
 }
 
+// 未读回复提醒：统计"我发的帖子被别人回复、且晚于我上次查看"的回复数
+// 基准：users.last_seen_replies_at（全局时间戳，避免逐条已读改造）
+async function getUnreadReplyCount(req, res) {
+  try {
+    const userId = req.user.id;
+    const user = await User.findByPk(userId);
+    const lastSeen = (user && user.lastSeenRepliesAt) || new Date(0);
+
+    const count = await DiscussionReply.count({
+      include: [{
+        model: Discussion,
+        as: 'discussion',
+        where: { userId },           // 只统计我发的帖子
+        attributes: []
+      }],
+      where: {
+        userId: { [Op.ne]: userId }, // 排除我自己回复的
+        createdAt: { [Op.gt]: lastSeen }
+      }
+    });
+
+    res.json(success({ unreadReplyCount: count }));
+  } catch (err) {
+    console.error('获取未读回复数失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
+// 标记"我的帖子被回复"提醒已查看
+async function markRepliesSeen(req, res) {
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) return res.status(404).json(error('User not found'));
+    await user.update({ lastSeenRepliesAt: new Date() });
+    res.json(success(null, 'Marked replies as seen'));
+  } catch (err) {
+    console.error('标记回复已读失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
 module.exports = {
   getDiscussions,
   getDiscussionById,
@@ -928,5 +969,7 @@ module.exports = {
   getMyDiscussions,
   getFavoriteDiscussions,
   favoriteDiscussion,
-  unfavoriteDiscussion
+  unfavoriteDiscussion,
+  getUnreadReplyCount,
+  markRepliesSeen
 };
