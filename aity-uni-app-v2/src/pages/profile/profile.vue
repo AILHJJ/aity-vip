@@ -7,6 +7,8 @@
 		<!-- 用户信息卡片 -->
 		<view class="user-card">
 			<view class="user-avatar" :style="{ background: avatarGradient }" @click="showAvatarPicker = true">
+				<view class="avatar-glow-top"></view>
+				<view class="avatar-glow-bottom"></view>
 				<text class="avatar-text">{{ userInitial || 'U' }}</text>
 				<text class="avatar-edit-hint">换</text>
 			</view>
@@ -32,6 +34,8 @@
 						:style="{ background: p }"
 						@click="chooseAvatar(i)"
 					>
+						<view class="avatar-glow-top"></view>
+						<view class="avatar-glow-bottom"></view>
 						<text class="avatar-option-text">{{ userInitial || 'U' }}</text>
 						<text v-if="selectedAvatarIndex === i" class="avatar-check">✓</text>
 					</view>
@@ -194,18 +198,16 @@ const themeOptions = [
 const favoriteCount = ref(0)
 const discussionCount = ref(0)
 
-// ===== 预设头像（8 款：渐变 + 高光光斑双层背景，无后端依赖，本地保存选择） =====
-// 高光层：左上 radial 光斑 + 右下反光弧，提升质感
-const hl = 'radial-gradient(circle at 28% 22%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 42%)'
+// ===== 预设头像（8 款主渐变；光斑质感由模板内的 .avatar-glow 子元素叠加实现，兼容小程序） =====
 const AVATAR_PRESETS = [
-	`radial-gradient(circle at 72% 78%, rgba(103,126,234,0.55) 0%, rgba(103,126,234,0) 55%), ${hl}, linear-gradient(135deg, #667eea 0%, #764ba2 100%)`, // 极光紫
-	`radial-gradient(circle at 72% 78%, rgba(245,87,108,0.5) 0%, rgba(245,87,108,0) 55%), ${hl}, linear-gradient(135deg, #f093fb 0%, #f5576c 100%)`,   // 樱花粉
-	`radial-gradient(circle at 72% 78%, rgba(0,242,254,0.5) 0%, rgba(0,242,254,0) 55%), ${hl}, linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)`,     // 海洋蓝
-	`radial-gradient(circle at 72% 78%, rgba(56,249,215,0.5) 0%, rgba(56,249,215,0) 55%), ${hl}, linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)`,   // 翡翠绿
-	`radial-gradient(circle at 30% 80%, rgba(255,225,64,0.5) 0%, rgba(255,225,64,0) 50%), ${hl}, linear-gradient(135deg, #fa709a 0%, #fee140 100%)`,   // 落日晚霞
-	`radial-gradient(circle at 72% 78%, rgba(48,207,208,0.55) 0%, rgba(48,207,208,0) 55%), ${hl}, linear-gradient(135deg, #30cfd0 0%, #330867 100%)`,  // 深海蓝
-	`radial-gradient(circle at 72% 78%, rgba(255,210,0,0.5) 0%, rgba(255,210,0,0) 55%), ${hl}, linear-gradient(135deg, #f7971e 0%, #ffd200 100%)`,     // 琥珀金
-	`radial-gradient(circle at 72% 78%, rgba(254,214,227,0.7) 0%, rgba(254,214,227,0) 55%), ${hl}, linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)` // 薄荷粉
+	'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', // 极光紫
+	'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', // 樱花粉
+	'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', // 海洋蓝
+	'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', // 翡翠绿
+	'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', // 落日晚霞
+	'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', // 深海蓝
+	'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)', // 琥珀金
+	'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'  // 薄荷粉
 ]
 const showAvatarPicker = ref(false)
 
@@ -467,6 +469,7 @@ button::after {
 	justify-content: center;
 	border: 4rpx solid rgba(255, 255, 255, 0.5);
 	position: relative;
+	overflow: hidden;
 	cursor: pointer;
 }
 
@@ -556,8 +559,32 @@ button::after {
 	align-items: center;
 	justify-content: center;
 	position: relative;
+	overflow: hidden;
 	border: 4rpx solid transparent;
 	box-sizing: border-box;
+}
+
+/* 光斑质感（子元素叠加，兼容小程序，不支持伪元素/多重背景） */
+.avatar-glow-top {
+	position: absolute;
+	left: 12%;
+	top: 8%;
+	width: 56%;
+	height: 56%;
+	border-radius: 50%;
+	background: radial-gradient(circle, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 60%);
+	pointer-events: none;
+}
+
+.avatar-glow-bottom {
+	position: absolute;
+	right: -18%;
+	bottom: -22%;
+	width: 72%;
+	height: 72%;
+	border-radius: 50%;
+	background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 62%);
+	pointer-events: none;
 }
 
 .avatar-option.selected {
