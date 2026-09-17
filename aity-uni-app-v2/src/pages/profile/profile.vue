@@ -190,7 +190,7 @@ import { getDiscussionsApi, getUnreadReplyCountApi } from '../../api/discussion'
 import { getFavoriteMessagesApi } from '../../api/message'
 import { updateAvatarApi } from '../../api/auth'
 import { uploadImageApi } from '../../api/upload'
-import { API_BASE_URL } from '../../utils/config'
+import { BASE_URL } from '../../utils/config'
 import PcTopNav from '@/components/pc-top-nav.vue'
 
 const userStore = useUserStore()
@@ -222,9 +222,9 @@ function dicebearUrl(style, seed, size = 128) {
 	return `https://api.dicebear.com/10.x/${style}/png?seed=${encodeURIComponent(seed)}&size=${size}`
 }
 
-// 相对路径（/uploads/...）转完整 URL（小程序 image 需要绝对地址）
+// 相对路径（/uploads/...）转站点完整 URL（注意用站点根 BASE_URL，不能用含 /api 的 API_BASE_URL）
 function fullUrl(u) {
-	return u && u.indexOf('http') === 0 ? u : API_BASE_URL + u
+	return u && u.indexOf('http') === 0 ? u : BASE_URL + u
 }
 
 const showAvatarPicker = ref(false)
