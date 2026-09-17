@@ -138,7 +138,7 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(fileUpload({
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 },  // 全局 5MB（对齐小红书头像标准，覆盖发帖图；头像在 upload 路由再收紧到 2MB）
   useTempFiles: true,
   tempFileDir: '/tmp/'
 }));
@@ -226,6 +226,11 @@ app.use((err, req, res, next) => {
   
   if (err.message === 'Not allowed by CORS') {
     return res.status(403).json({ message: 'CORS policy violation' });
+  }
+
+  // 文件上传超限（express-fileupload）
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ code: 413, message: '文件过大，不能超过 5MB' });
   }
   
   res.status(500).json({ message: 'Internal server error' });

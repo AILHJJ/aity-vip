@@ -272,7 +272,7 @@ async function handleUploadAvatar() {
 		const filePath = choose.tempFilePaths && choose.tempFilePaths[0]
 		if (!filePath) return
 		uni.showLoading({ title: '上传中...' })
-		const up = await uploadImageApi(filePath)
+		const up = await uploadImageApi(filePath, { type: 'avatar' })
 		await updateAvatarApi(up.url)
 		userStore.updateUserInfo({ avatar: up.url })
 		uni.hideLoading()

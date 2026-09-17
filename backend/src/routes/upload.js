@@ -42,6 +42,14 @@ router.post('/', (req, res) => {
       });
     }
 
+    // 头像（type=avatar）限制 2MB（对齐微信/QQ/微博头像标准）
+    if (req.body && req.body.type === 'avatar' && file.size > 2 * 1024 * 1024) {
+      return res.status(400).json({
+        code: 400,
+        message: '头像图片不能超过 2MB，请压缩后重试'
+      });
+    }
+
     // 生成唯一文件名
     const uniqueSuffix = Date.now() + '-' + Math.random().toString(36).substring(2, 15);
     const ext = path.extname(file.name);

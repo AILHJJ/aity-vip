@@ -8,6 +8,7 @@ import { API_BASE_URL } from '../utils/config'
  * 上传图片
  * @param {String} filePath 文件路径 (小程序) 或 blob URL (H5)
  * @param {Object} options 上传选项
+ * @param {String} options.type 图片类型：'image'（默认，通用）/ 'avatar'（头像，后端限 2MB）
  * @returns {Promise}
  */
 export function uploadImageApi(filePath, options = {}) {
@@ -21,7 +22,7 @@ export function uploadImageApi(filePath, options = {}) {
       filePath: filePath,
       name: 'file',
       formData: {
-        type: 'image'
+        type: options.type || 'image'
       },
       success: (res) => {
         try {
