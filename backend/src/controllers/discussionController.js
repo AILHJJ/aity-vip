@@ -934,11 +934,12 @@ async function getUnreadReplyCount(req, res) {
     }
 
     // 第二步：这些帖子下、别人发的、晚于上次查看的回复数
+    // ⚠️ created_at 用列名而非属性名：老版 Sequelize 的 count 场景下 timestamps 映射失效
     const count = await DiscussionReply.count({
       where: {
         discussionId: { [Op.in]: ids },
         userId: { [Op.ne]: userId },  // 排除我自己回复的
-        createdAt: { [Op.gt]: lastSeen }
+        created_at: { [Op.gt]: lastSeen }
       }
     });
 

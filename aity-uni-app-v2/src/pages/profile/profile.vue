@@ -9,7 +9,7 @@
 			<view class="user-avatar" :style="{ background: avatarGradient }" @click="showAvatarPicker = true">
 				<view class="avatar-glow-top"></view>
 				<view class="avatar-glow-bottom"></view>
-				<text class="avatar-text">{{ userInitial || 'U' }}</text>
+				<uni-icons class="avatar-icon" :type="selectedAvatarIcon" size="34" color="#ffffff"></uni-icons>
 				<text class="avatar-edit-hint">换</text>
 			</view>
 			<view class="user-info">
@@ -31,12 +31,12 @@
 						:key="i"
 						class="avatar-option"
 						:class="{ selected: selectedAvatarIndex === i }"
-						:style="{ background: p }"
+						:style="{ background: p.gradient }"
 						@click="chooseAvatar(i)"
 					>
 						<view class="avatar-glow-top"></view>
 						<view class="avatar-glow-bottom"></view>
-						<text class="avatar-option-text">{{ userInitial || 'U' }}</text>
+						<uni-icons class="avatar-option-icon" :type="p.icon" size="22" color="#ffffff"></uni-icons>
 						<text v-if="selectedAvatarIndex === i" class="avatar-check">✓</text>
 					</view>
 				</view>
@@ -198,16 +198,16 @@ const themeOptions = [
 const favoriteCount = ref(0)
 const discussionCount = ref(0)
 
-// ===== 预设头像（8 款主渐变；光斑质感由模板内的 .avatar-glow 子元素叠加实现，兼容小程序） =====
+// ===== 预设头像（8 款：渐变底 + 白色图标 + 光斑子元素；兼容小程序） =====
 const AVATAR_PRESETS = [
-	'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', // 极光紫
-	'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', // 樱花粉
-	'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', // 海洋蓝
-	'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', // 翡翠绿
-	'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', // 落日晚霞
-	'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', // 深海蓝
-	'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)', // 琥珀金
-	'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'  // 薄荷粉
+	{ gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', icon: 'star-filled' },      // 极光紫·星
+	{ gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', icon: 'heart-filled' },     // 樱花粉·心
+	{ gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', icon: 'chat-filled' },      // 海洋蓝·话泡
+	{ gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', icon: 'fire-filled' },      // 翡翠绿·火
+	{ gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', icon: 'color-filled' },     // 落日晚霞·调色
+	{ gradient: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', icon: 'flag-filled' },      // 深海蓝·旗
+	{ gradient: 'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)', icon: 'medal-filled' },     // 琥珀金·奖牌
+	{ gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', icon: 'hand-up-filled' }    // 薄荷粉·赞
 ]
 const showAvatarPicker = ref(false)
 
@@ -221,7 +221,8 @@ function initAvatarIndex() {
 	return h % AVATAR_PRESETS.length
 }
 const selectedAvatarIndex = ref(initAvatarIndex())
-const avatarGradient = computed(() => AVATAR_PRESETS[selectedAvatarIndex.value])
+const avatarGradient = computed(() => AVATAR_PRESETS[selectedAvatarIndex.value].gradient)
+const selectedAvatarIcon = computed(() => AVATAR_PRESETS[selectedAvatarIndex.value].icon)
 
 function chooseAvatar(i) {
 	selectedAvatarIndex.value = i
@@ -479,6 +480,16 @@ button::after {
 	font-weight: 600;
 	text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.18);
 	letter-spacing: 2rpx;
+}
+
+.avatar-icon {
+	position: relative;
+	z-index: 1;
+}
+
+.avatar-option-icon {
+	position: relative;
+	z-index: 1;
 }
 
 .avatar-edit-hint {
