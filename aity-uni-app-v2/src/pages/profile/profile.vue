@@ -6,10 +6,8 @@
 
 		<!-- 用户信息卡片 -->
 		<view class="user-card">
-			<view class="user-avatar" :style="{ background: avatarGradient }" @click="showAvatarPicker = true">
-				<view class="avatar-glow-top"></view>
-				<view class="avatar-glow-bottom"></view>
-				<text class="avatar-emoji">{{ selectedAvatarEmoji }}</text>
+			<view class="user-avatar" @click="showAvatarPicker = true">
+				<image class="avatar-img" :src="currentAvatarUrl" mode="aspectFill" />
 				<text class="avatar-edit-hint">换</text>
 			</view>
 			<view class="user-info">
@@ -23,23 +21,32 @@
 		<!-- 头像选择弹层 -->
 		<view v-if="showAvatarPicker" class="avatar-picker-mask" @click="showAvatarPicker = false">
 			<view class="avatar-picker" @click.stop>
-				<text class="picker-title">选择默认头像</text>
-				<text class="picker-hint">点击色块即可更换，自动保存</text>
-				<view class="avatar-grid">
+				<text class="picker-title">选择头像</text>
+				<text class="picker-hint">点击头像即可更换，自动保存</text>
+				<view class="style-tabs">
 					<view
-						v-for="(p, i) in AVATAR_PRESETS"
-						:key="i"
-						class="avatar-option"
-						:class="{ selected: selectedAvatarIndex === i }"
-						:style="{ background: p.gradient }"
-						@click="chooseAvatar(i)"
+						v-for="s in AVATAR_STYLES"
+						:key="s.key"
+						class="style-tab"
+						:class="{ active: pickerStyle === s.key }"
+						@click="pickerStyle = s.key"
 					>
-						<view class="avatar-glow-top"></view>
-						<view class="avatar-glow-bottom"></view>
-						<text class="avatar-option-emoji">{{ p.emoji }}</text>
-						<text v-if="selectedAvatarIndex === i" class="avatar-check">✓</text>
+						<text class="style-tab-text">{{ s.label }}</text>
 					</view>
 				</view>
+				<view class="avatar-grid">
+					<view
+						v-for="seed in AVATAR_SEEDS"
+						:key="seed"
+						class="avatar-option"
+						:class="{ selected: isSelectedPreset(seed) }"
+						@click="choosePreset(seed)"
+					>
+						<image class="avatar-option-img" :src="dicebearUrl(pickerStyle, seed, 96)" mode="aspectFill" />
+						<text v-if="isSelectedPreset(seed)" class="avatar-check">✓</text>
+					</view>
+				</view>
+				<button class="picker-upload" @click="handleUploadAvatar">📷 上传自定义头像</button>
 				<button class="picker-done" @click="showAvatarPicker = false">完成</button>
 			</view>
 		</view>
@@ -181,6 +188,9 @@ import { useThemeStore, ThemeMode } from '../../store/theme'
 import { USER_ROLE_LABELS } from '../../utils/constants'
 import { getDiscussionsApi, getUnreadReplyCountApi } from '../../api/discussion'
 import { getFavoriteMessagesApi } from '../../api/message'
+import { updateAvatarApi } from '../../api/auth'
+import { uploadImageApi } from '../../api/upload'
+import { API_BASE_URL } from '../../utils/config'
 import PcTopNav from '@/components/pc-top-nav.vue'
 
 const userStore = useUserStore()
@@ -198,35 +208,80 @@ const themeOptions = [
 const favoriteCount = ref(0)
 const discussionCount = ref(0)
 
-// ===== 预设头像（8 款：渐变底 + emoji 卡通/科技形象 + 光斑；兼容小程序） =====
-const AVATAR_PRESETS = [
-	{ gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', emoji: '🤖' }, // 极光紫·机器人
-	{ gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', emoji: '🦊' }, // 樱花粉·狐狸
-	{ gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', emoji: '🐼' }, // 海洋蓝·熊猫
-	{ gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', emoji: '🐯' }, // 翡翠绿·老虎
-	{ gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', emoji: '🦄' }, // 落日晚霞·独角兽
-	{ gradient: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', emoji: '🚀' }, // 深海蓝·火箭
-	{ gradient: 'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)', emoji: '⚡' }, // 琥珀金·闪电
-	{ gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', emoji: '👽' }  // 薄荷粉·外星人
+// ===== 头像系统 =====
+// 预设：DiceBear 开源头像（https://www.dicebear.com，免费商用），PNG 直链，H5/小程序通用
+// 自定义：上传到 /api/upload，URL 存 user.avatar（后端）
+const AVATAR_STYLES = [
+	{ key: 'bottts', label: '机器人' },
+	{ key: 'adventurer', label: '卡通' },
+	{ key: 'pixel-art', label: '像素' }
 ]
-const showAvatarPicker = ref(false)
+const AVATAR_SEEDS = ['fox', 'panda', 'tiger', 'robot', 'rocket', 'nova', 'pixel', 'lucky']
 
-// 初始头像：用户手选优先；否则按 userId 哈希确定性选一款（不同用户进来自动不同）
-function initAvatarIndex() {
-	const saved = uni.getStorageSync('preferredAvatar')
-	if (saved !== '' && saved !== null && AVATAR_PRESETS[saved] !== undefined) return saved
-	const idStr = String(userStore.userId || 'u')
-	let h = 0
-	for (let i = 0; i < idStr.length; i++) h = (h * 31 + idStr.charCodeAt(i)) >>> 0
-	return h % AVATAR_PRESETS.length
+function dicebearUrl(style, seed, size = 128) {
+	return `https://api.dicebear.com/10.x/${style}/png?seed=${encodeURIComponent(seed)}&size=${size}`
 }
-const selectedAvatarIndex = ref(initAvatarIndex())
-const avatarGradient = computed(() => AVATAR_PRESETS[selectedAvatarIndex.value].gradient)
-const selectedAvatarEmoji = computed(() => AVATAR_PRESETS[selectedAvatarIndex.value].emoji)
 
-function chooseAvatar(i) {
-	selectedAvatarIndex.value = i
-	uni.setStorageSync('preferredAvatar', i)
+// 相对路径（/uploads/...）转完整 URL（小程序 image 需要绝对地址）
+function fullUrl(u) {
+	return u && u.indexOf('http') === 0 ? u : API_BASE_URL + u
+}
+
+const showAvatarPicker = ref(false)
+const pickerStyle = ref('bottts')
+
+// preferredAvatar 存 '风格:seed'（如 'bottts:fox'），空 = 未选（按用户名生成默认）
+const preferredAvatar = ref(String(uni.getStorageSync('preferredAvatar') || ''))
+
+const customAvatarUrl = computed(() => {
+	const a = userStore.userInfo?.avatar
+	return a ? fullUrl(a) : ''
+})
+const presetAvatarUrl = computed(() => {
+	const v = preferredAvatar.value
+	if (!v || !v.includes(':')) return ''
+	const [style, seed] = v.split(':')
+	return dicebearUrl(style, seed, 128)
+})
+// 显示优先级：自定义上传 > 本地预设 > 按用户名确定性生成（不同用户默认不同）
+const currentAvatarUrl = computed(() => {
+	return customAvatarUrl.value || presetAvatarUrl.value || dicebearUrl('bottts', userStore.userName || userStore.userId || 'user', 128)
+})
+
+function isSelectedPreset(seed) {
+	return preferredAvatar.value === `${pickerStyle.value}:${seed}`
+}
+
+function choosePreset(seed) {
+	preferredAvatar.value = `${pickerStyle.value}:${seed}`
+	uni.setStorageSync('preferredAvatar', preferredAvatar.value)
+	// 切回预设 = 清除后端自定义头像
+	updateAvatarApi('').catch(() => {})
+}
+
+async function handleUploadAvatar() {
+	try {
+		const choose = await new Promise((resolve, reject) => {
+			uni.chooseImage({
+				count: 1,
+				sizeType: ['compressed'],
+				success: resolve,
+				fail: reject
+			})
+		})
+		const filePath = choose.tempFilePaths && choose.tempFilePaths[0]
+		if (!filePath) return
+		uni.showLoading({ title: '上传中...' })
+		const up = await uploadImageApi(filePath)
+		await updateAvatarApi(up.url)
+		userStore.updateUserInfo({ avatar: up.url })
+		uni.hideLoading()
+		uni.showToast({ title: '头像已更新', icon: 'success' })
+	} catch (err) {
+		uni.hideLoading()
+		if (err && err.errMsg && err.errMsg.indexOf('cancel') >= 0) return
+		uni.showToast({ title: (err && err.message) || '上传失败', icon: 'none' })
+	}
 }
 
 // 用户名首字母（优化：确保总是有值）
@@ -465,35 +520,17 @@ button::after {
 	height: 120rpx;
 	background: rgba(255, 255, 255, 0.3);
 	border-radius: 50%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
 	border: 4rpx solid rgba(255, 255, 255, 0.5);
 	position: relative;
 	overflow: hidden;
 	cursor: pointer;
 }
 
-.avatar-text {
-	font-size: 46rpx;
-	color: rgba(255, 255, 255, 0.95);
-	font-weight: 600;
-	text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.18);
-	letter-spacing: 2rpx;
-}
-
-.avatar-emoji {
-	font-size: 56rpx;
-	line-height: 1;
-	position: relative;
-	z-index: 1;
-}
-
-.avatar-option-emoji {
-	font-size: 44rpx;
-	line-height: 1;
-	position: relative;
-	z-index: 1;
+.avatar-img {
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	display: block;
 }
 
 .avatar-edit-hint {
@@ -579,27 +616,52 @@ button::after {
 	box-sizing: border-box;
 }
 
-/* 光斑质感（子元素叠加，兼容小程序，不支持伪元素/多重背景） */
-.avatar-glow-top {
-	position: absolute;
-	left: 8%;
-	top: 6%;
-	width: 62%;
-	height: 62%;
+/* 头像图片（DiceBear 预设 / 自定义上传） */
+.avatar-img {
+	width: 100%;
+	height: 100%;
 	border-radius: 50%;
-	background: radial-gradient(circle, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 58%);
-	pointer-events: none;
+	display: block;
 }
 
-.avatar-glow-bottom {
-	position: absolute;
-	right: -20%;
-	bottom: -24%;
-	width: 76%;
-	height: 76%;
-	border-radius: 50%;
-	background: radial-gradient(circle, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 62%);
-	pointer-events: none;
+/* 风格切换 tab */
+.style-tabs {
+	display: flex;
+	gap: 12rpx;
+	justify-content: center;
+	margin-bottom: 28rpx;
+}
+
+.style-tab {
+	padding: 10rpx 28rpx;
+	border-radius: 999rpx;
+	background: #f1f5f9;
+}
+
+.style-tab.active {
+	background: #667eea;
+}
+
+.style-tab-text {
+	font-size: 24rpx;
+	color: #64748b;
+}
+
+.style-tab.active .style-tab-text {
+	color: #ffffff;
+	font-weight: 600;
+}
+
+.picker-upload {
+	margin-top: 28rpx;
+	width: 100%;
+	height: 76rpx;
+	line-height: 76rpx;
+	font-size: 26rpx;
+	color: #4f5fd5;
+	background: #f0f2ff;
+	border-radius: 12rpx;
+	border: none;
 }
 
 .avatar-option.selected {
@@ -607,10 +669,11 @@ button::after {
 	box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.4);
 }
 
-.avatar-option-text {
-	font-size: 40rpx;
-	color: #ffffff;
-	font-weight: bold;
+.avatar-option-img {
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	display: block;
 }
 
 .avatar-check {

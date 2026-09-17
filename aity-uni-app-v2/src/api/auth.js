@@ -25,6 +25,15 @@ export function logoutApi() {
 }
 
 /**
+ * 更新当前用户头像（自定义上传后的图片 URL；空字符串=清除，回退预设）
+ * @param {String} avatar 图片 URL（/uploads/... 或 https://...）
+ * @returns {Promise}
+ */
+export function updateAvatarApi(avatar) {
+  return post('/auth/avatar', { avatar })
+}
+
+/**
  * 获取当前用户信息
  * @returns {Promise}
  */

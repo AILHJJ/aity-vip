@@ -345,6 +345,37 @@ async function changeEmail(req, res) {
   }
 }
 
+// 更新当前用户头像（接收上传后的图片 URL；传空字符串表示清除自定义头像、回退预设）
+async function updateAvatar(req, res) {
+  try {
+    const userId = req.user.userId;
+    const avatar = typeof req.body?.avatar === 'string' ? req.body.avatar.trim() : '';
+
+    // 允许：空（清除）/ 站内上传路径 / 外部 https URL，限制长度防滥用
+    if (avatar && !avatar.startsWith('/uploads/') && !avatar.startsWith('https://')) {
+      return res.status(400).json(badRequest('头像地址不合法'));
+    }
+    if (avatar.length > 500) {
+      return res.status(400).json(badRequest('头像地址过长'));
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json(notFound('用户不存在'));
+    }
+
+    await user.update({ avatar: avatar || null });
+
+    return res.json(success({
+      id: user.id,
+      avatar: user.avatar
+    }, avatar ? '头像已更新' : '已恢复默认头像'));
+  } catch (err) {
+    console.error('更新头像错误:', err);
+    res.status(500).json(error('系统错误，请稍后重试'));
+  }
+}
+
 module.exports = {
   login,
   logout,
@@ -352,5 +383,6 @@ module.exports = {
   getUsers,
   updateUser,
   changePassword,
-  changeEmail
+  changeEmail,
+  updateAvatar
 };

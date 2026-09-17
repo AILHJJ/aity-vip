@@ -40,4 +40,10 @@ router.post('/change-email',
   authController.changeEmail
 );
 
+// 更新当前用户头像（自定义上传）
+router.post('/avatar',
+  authenticateToken,
+  authController.updateAvatar
+);
+
 module.exports = router;
