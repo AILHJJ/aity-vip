@@ -7,8 +7,26 @@
 //   4. 权限：接收群聊消息 / 发送消息 / 读取图片资源
 //   5. 创建版本并发布
 const Lark = require('@larksuiteoapi/node-sdk');
+const https = require('https');
 const BotChannel = require('./BotChannel');
 const { downloadAndSaveFeishuImage } = require('../utils/feishuImage');
+
+// 飞书开放平台 HTTPS JSON 请求（用于获取机器人自身身份，SDK 未封装该接口）
+function httpsJson(options, body) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', c => { data += c; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch (e) { reject(new Error('JSON解析失败: ' + data.substring(0, 80))); }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(8000, () => req.destroy(new Error('请求超时')));
+    if (body) req.write(body);
+    req.end();
+  });
+}
 
 class FeishuBotChannel extends BotChannel {
   constructor(config) {
@@ -52,6 +70,37 @@ class FeishuBotChannel extends BotChannel {
     this.wsClient.start({ eventDispatcher })
       .then(() => console.log('[飞书渠道] 长连接已建立'))
       .catch(err => console.error('[飞书渠道] 长连接启动失败:', err.message));
+
+    // 获取机器人自身 open_id（用于识别"是否 @了本机器人"，避免抢答 @其他机器人的消息）
+    this.fetchSelfOpenId();
+  }
+
+  async fetchSelfOpenId() {
+    try {
+      const tokenRes = await httpsJson({
+        hostname: 'open.feishu.cn',
+        path: '/open-apis/auth/v3/tenant_access_token/internal',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }, JSON.stringify({ app_id: this.config.appId, app_secret: this.config.appSecret }));
+      if (tokenRes.code !== 0 || !tokenRes.tenant_access_token) {
+        throw new Error('token 获取失败: ' + (tokenRes.msg || 'unknown'));
+      }
+      const info = await httpsJson({
+        hostname: 'open.feishu.cn',
+        path: '/open-apis/bot/v3/info',
+        method: 'GET',
+        headers: { Authorization: 'Bearer ' + tokenRes.tenant_access_token }
+      });
+      if (info.code === 0 && info.bot && info.bot.open_id) {
+        this.selfOpenId = info.bot.open_id;
+        console.log('[飞书渠道] 机器人身份 open_id:', this.selfOpenId);
+      } else {
+        throw new Error('bot info 异常: ' + JSON.stringify(info).substring(0, 100));
+      }
+    } catch (err) {
+      console.error('[飞书渠道] 获取机器人身份失败（@过滤将降级为不过滤）:', err.message);
+    }
   }
 
   stop() {
@@ -110,6 +159,13 @@ class FeishuBotChannel extends BotChannel {
     }
 
     if (!content && imageObjs.length === 0) return;
+
+    // 文本消息必须 @了本机器人才处理（防止抢答 @其他机器人 / 普通群聊闲聊）。
+    // 图片消息不做此过滤：保留"先发图、紧接着 @机器人 发帖"的组合流程。
+    if (content && this.selfOpenId) {
+      const atMe = (message.mentions || []).some(m => m.id && m.id.open_id === this.selfOpenId);
+      if (!atMe) return;
+    }
 
     if (this.messageHandler) {
       this.messageHandler({
