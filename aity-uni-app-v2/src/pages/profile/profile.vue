@@ -567,23 +567,23 @@ button::after {
 /* 光斑质感（子元素叠加，兼容小程序，不支持伪元素/多重背景） */
 .avatar-glow-top {
 	position: absolute;
-	left: 12%;
-	top: 8%;
-	width: 56%;
-	height: 56%;
+	left: 8%;
+	top: 6%;
+	width: 62%;
+	height: 62%;
 	border-radius: 50%;
-	background: radial-gradient(circle, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 60%);
+	background: radial-gradient(circle, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 58%);
 	pointer-events: none;
 }
 
 .avatar-glow-bottom {
 	position: absolute;
-	right: -18%;
-	bottom: -22%;
-	width: 72%;
-	height: 72%;
+	right: -20%;
+	bottom: -24%;
+	width: 76%;
+	height: 76%;
 	border-radius: 50%;
-	background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 62%);
+	background: radial-gradient(circle, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 62%);
 	pointer-events: none;
 }
 
