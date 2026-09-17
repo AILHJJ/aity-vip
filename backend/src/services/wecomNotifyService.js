@@ -6,7 +6,8 @@
 // 配置项见 .env.example 中 WECOM_* 段
 const logger = require('../utils/logger');
 const botServiceInstance = require('./botServiceInstance'); // 统一 bot：主动推送通知（webhook 已下线）
-const { sendFeishuText } = require('../utils/feishuWebhook'); // 飞书 webhook 双通道（未配置则跳过）
+// 注意：小程序动态（新帖/回帖/新消息）只走 bot 渠道单通道，避免与 webhook 运维通道重复推送。
+// 飞书 webhook（AI运维助手）专用于服务器/SSL 等运维告警，见 utils/feishuWebhook.js
 
 // 默认开启新帖通知；回帖通知默认也开启（管理员自己的回复不推）
 const NOTIFY_ON_CREATE = process.env.WECOM_NOTIFY_ON_CREATE !== 'false';
@@ -37,11 +38,10 @@ async function sendText(content) {
     return { dryRun: true };
   }
 
-  // 统一走智能机器人主动推送（webhook 已完全下线）
+  // 统一走智能机器人主动推送（小程序动态单通道；运维告警走独立 webhook，见 feishuWebhook）
   try {
     const botSent = botServiceInstance.notifyToGroup(content);
     if (botSent) {
-      sendFeishuText(content).catch(err => logger.warn('[wecom-notify] 飞书通道异常:', err.message));
       return { ok: true, via: 'bot' };
     }
     logger.warn('[wecom-notify] 智能机器人未连接或无群 chatid，通知未发送');
