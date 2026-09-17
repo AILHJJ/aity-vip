@@ -9,7 +9,7 @@
 			<view class="user-avatar" :style="{ background: avatarGradient }" @click="showAvatarPicker = true">
 				<view class="avatar-glow-top"></view>
 				<view class="avatar-glow-bottom"></view>
-				<uni-icons class="avatar-icon" :type="selectedAvatarIcon" size="34" color="#ffffff"></uni-icons>
+				<text class="avatar-emoji">{{ selectedAvatarEmoji }}</text>
 				<text class="avatar-edit-hint">换</text>
 			</view>
 			<view class="user-info">
@@ -36,7 +36,7 @@
 					>
 						<view class="avatar-glow-top"></view>
 						<view class="avatar-glow-bottom"></view>
-						<uni-icons class="avatar-option-icon" :type="p.icon" size="22" color="#ffffff"></uni-icons>
+						<text class="avatar-option-emoji">{{ p.emoji }}</text>
 						<text v-if="selectedAvatarIndex === i" class="avatar-check">✓</text>
 					</view>
 				</view>
@@ -198,16 +198,16 @@ const themeOptions = [
 const favoriteCount = ref(0)
 const discussionCount = ref(0)
 
-// ===== 预设头像（8 款：渐变底 + 白色图标 + 光斑子元素；兼容小程序） =====
+// ===== 预设头像（8 款：渐变底 + emoji 卡通/科技形象 + 光斑；兼容小程序） =====
 const AVATAR_PRESETS = [
-	{ gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', icon: 'star-filled' },      // 极光紫·星
-	{ gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', icon: 'heart-filled' },     // 樱花粉·心
-	{ gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', icon: 'chat-filled' },      // 海洋蓝·话泡
-	{ gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', icon: 'fire-filled' },      // 翡翠绿·火
-	{ gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', icon: 'color-filled' },     // 落日晚霞·调色
-	{ gradient: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', icon: 'flag-filled' },      // 深海蓝·旗
-	{ gradient: 'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)', icon: 'medal-filled' },     // 琥珀金·奖牌
-	{ gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', icon: 'hand-up-filled' }    // 薄荷粉·赞
+	{ gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', emoji: '🤖' }, // 极光紫·机器人
+	{ gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', emoji: '🦊' }, // 樱花粉·狐狸
+	{ gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', emoji: '🐼' }, // 海洋蓝·熊猫
+	{ gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', emoji: '🐯' }, // 翡翠绿·老虎
+	{ gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', emoji: '🦄' }, // 落日晚霞·独角兽
+	{ gradient: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', emoji: '🚀' }, // 深海蓝·火箭
+	{ gradient: 'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)', emoji: '⚡' }, // 琥珀金·闪电
+	{ gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', emoji: '👽' }  // 薄荷粉·外星人
 ]
 const showAvatarPicker = ref(false)
 
@@ -222,7 +222,7 @@ function initAvatarIndex() {
 }
 const selectedAvatarIndex = ref(initAvatarIndex())
 const avatarGradient = computed(() => AVATAR_PRESETS[selectedAvatarIndex.value].gradient)
-const selectedAvatarIcon = computed(() => AVATAR_PRESETS[selectedAvatarIndex.value].icon)
+const selectedAvatarEmoji = computed(() => AVATAR_PRESETS[selectedAvatarIndex.value].emoji)
 
 function chooseAvatar(i) {
 	selectedAvatarIndex.value = i
@@ -482,12 +482,16 @@ button::after {
 	letter-spacing: 2rpx;
 }
 
-.avatar-icon {
+.avatar-emoji {
+	font-size: 56rpx;
+	line-height: 1;
 	position: relative;
 	z-index: 1;
 }
 
-.avatar-option-icon {
+.avatar-option-emoji {
+	font-size: 44rpx;
+	line-height: 1;
 	position: relative;
 	z-index: 1;
 }
