@@ -916,21 +916,28 @@ async function unfavoriteDiscussion(req, res) {
 
 // 未读回复提醒：统计"我发的帖子被别人回复、且晚于我上次查看"的回复数
 // 基准：users.last_seen_replies_at（全局时间戳，避免逐条已读改造）
+// 注意：不用 count+include（子查询中 createdAt 列映射会丢失报 Unknown column），改为两步查询
 async function getUnreadReplyCount(req, res) {
   try {
     const userId = req.user.userId;
     const user = await User.findByPk(userId);
     const lastSeen = (user && user.lastSeenRepliesAt) || new Date(0);
 
+    // 第一步：我发的帖子 ID 列表
+    const myDiscussions = await Discussion.findAll({
+      where: { userId },
+      attributes: ['id']
+    });
+    const ids = myDiscussions.map(d => d.id);
+    if (ids.length === 0) {
+      return res.json(success({ unreadReplyCount: 0 }));
+    }
+
+    // 第二步：这些帖子下、别人发的、晚于上次查看的回复数
     const count = await DiscussionReply.count({
-      include: [{
-        model: Discussion,
-        as: 'discussion',
-        where: { userId },           // 只统计我发的帖子
-        attributes: []
-      }],
       where: {
-        userId: { [Op.ne]: userId }, // 排除我自己回复的
+        discussionId: { [Op.in]: ids },
+        userId: { [Op.ne]: userId },  // 排除我自己回复的
         createdAt: { [Op.gt]: lastSeen }
       }
     });

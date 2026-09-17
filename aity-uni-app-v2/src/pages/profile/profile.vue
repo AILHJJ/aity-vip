@@ -194,16 +194,18 @@ const themeOptions = [
 const favoriteCount = ref(0)
 const discussionCount = ref(0)
 
-// ===== 预设头像（8 款渐变，无后端依赖，本地保存选择） =====
+// ===== 预设头像（8 款：渐变 + 高光光斑双层背景，无后端依赖，本地保存选择） =====
+// 高光层：左上 radial 光斑 + 右下反光弧，提升质感
+const hl = 'radial-gradient(circle at 28% 22%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 42%)'
 const AVATAR_PRESETS = [
-	'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', // 极光紫（原默认）
-	'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', // 樱花粉
-	'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', // 海洋蓝
-	'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', // 翡翠绿
-	'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', // 落日晚霞
-	'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', // 深海蓝
-	'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)', // 琥珀金
-	'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'  // 薄荷粉
+	`radial-gradient(circle at 72% 78%, rgba(103,126,234,0.55) 0%, rgba(103,126,234,0) 55%), ${hl}, linear-gradient(135deg, #667eea 0%, #764ba2 100%)`, // 极光紫
+	`radial-gradient(circle at 72% 78%, rgba(245,87,108,0.5) 0%, rgba(245,87,108,0) 55%), ${hl}, linear-gradient(135deg, #f093fb 0%, #f5576c 100%)`,   // 樱花粉
+	`radial-gradient(circle at 72% 78%, rgba(0,242,254,0.5) 0%, rgba(0,242,254,0) 55%), ${hl}, linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)`,     // 海洋蓝
+	`radial-gradient(circle at 72% 78%, rgba(56,249,215,0.5) 0%, rgba(56,249,215,0) 55%), ${hl}, linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)`,   // 翡翠绿
+	`radial-gradient(circle at 30% 80%, rgba(255,225,64,0.5) 0%, rgba(255,225,64,0) 50%), ${hl}, linear-gradient(135deg, #fa709a 0%, #fee140 100%)`,   // 落日晚霞
+	`radial-gradient(circle at 72% 78%, rgba(48,207,208,0.55) 0%, rgba(48,207,208,0) 55%), ${hl}, linear-gradient(135deg, #30cfd0 0%, #330867 100%)`,  // 深海蓝
+	`radial-gradient(circle at 72% 78%, rgba(255,210,0,0.5) 0%, rgba(255,210,0,0) 55%), ${hl}, linear-gradient(135deg, #f7971e 0%, #ffd200 100%)`,     // 琥珀金
+	`radial-gradient(circle at 72% 78%, rgba(254,214,227,0.7) 0%, rgba(254,214,227,0) 55%), ${hl}, linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)` // 薄荷粉
 ]
 const showAvatarPicker = ref(false)
 
@@ -469,9 +471,11 @@ button::after {
 }
 
 .avatar-text {
-	font-size: 48rpx;
-	color: #ffffff;
-	font-weight: bold;
+	font-size: 46rpx;
+	color: rgba(255, 255, 255, 0.95);
+	font-weight: 600;
+	text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.18);
+	letter-spacing: 2rpx;
 }
 
 .avatar-edit-hint {
