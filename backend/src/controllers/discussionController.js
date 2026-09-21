@@ -278,6 +278,7 @@ async function getDiscussionById(req, res) {
       status: discussion.status,
       category: discussion.category || 'interaction',
       visibility: discussion.visibility,
+      stockCodes: discussion.stockCodes,
       viewCount: 0,
       replyCount: allReplies.length,
       unreadCount,
