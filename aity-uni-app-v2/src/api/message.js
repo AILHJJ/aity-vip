@@ -18,6 +18,14 @@ export function getMessagesApi(params = {}) {
 }
 
 /**
+ * 一键全部标记为已读
+ * @returns {Promise}
+ */
+export function markAllMessagesReadApi() {
+  return post('/messages/read-all')
+}
+
+/**
  * 获取消息详情
  * @param {Number} id 消息ID
  * @returns {Promise}

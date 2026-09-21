@@ -128,6 +128,7 @@ const userInfoLoaded = ref(false)
 // 筛选pill
 const statusFilters = [
 	{ label: '全部', value: '' },
+	{ label: '👤 我的', value: 'mine' },
 	{ label: '📋 实盘', value: 'position' },
 	{ label: '⏳ 待回复', value: 'pending' },
 	{ label: '✅ 已回复', value: 'replied' }
@@ -190,7 +191,9 @@ const loadDiscussions = async (isRefresh = false) => {
 		}
 
 		// 根据选中pill决定筛选参数
-		if (activeFilter.value === 'position') {
+		if (activeFilter.value === 'mine') {
+			params.mine = '1'
+		} else if (activeFilter.value === 'position') {
 			params.category = 'position'
 		} else if (activeFilter.value === 'pending') {
 			params.status = 'pending'

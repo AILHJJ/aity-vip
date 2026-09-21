@@ -655,6 +655,43 @@ async function getUnreadCount(req, res) {
   }
 }
 
+// 全部标记为已读（一键清除未读角标）
+async function markAllMessagesRead(req, res) {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    if (!currentUser) {
+      return res.status(404).json(notFound('User not found'));
+    }
+
+    // 复用可见性规则，拿到当前用户可见且未读的消息
+    const readRecords = await UserMessageRead.findAll({
+      where: { userId },
+      attributes: ['messageId']
+    });
+    const readMessageIds = readRecords.map(r => r.messageId);
+    const messageWhere = buildVisibleMessageWhere({
+      user: currentUser,
+      query: { readStatus: 'unread' },
+      readMessageIds,
+      sequelize,
+      Op
+    });
+
+    const unreadMessages = await Message.findAll({ where: messageWhere, attributes: ['id'] });
+    const ids = unreadMessages.map(m => m.id);
+
+    for (const id of ids) {
+      await UserMessageRead.findOrCreate({ where: { userId, messageId: id } });
+    }
+
+    res.json(success({ markedCount: ids.length }, 'All messages marked as read'));
+  } catch (err) {
+    console.error('全部标记已读失败:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
 // 收藏消息
 async function favoriteMessage(req, res) {
   try {
@@ -771,6 +808,7 @@ module.exports = {
   markMessageAsRead,
   getMessageReadDetails,
   getUnreadCount,
+  markAllMessagesRead,
   getEmailNotificationInfo,
   processEmailNotifications,
   favoriteMessage,

@@ -78,11 +78,16 @@ function filterPrivateReplies(replies, discussion, currentUserId, currentUserRol
 // 获取讨论列表
 async function getDiscussions(req, res) {
   try {
-    const { messageId, status, category } = req.query;
+    const { messageId, status, category, mine } = req.query;
     const currentUserId = req.user.userId;
     const currentUserRole = req.user.role;
     
     const where = {};
+
+    // 只看我发起的讨论（「我的」快捷筛选）
+    if (mine === '1' || mine === 'true') {
+      where.userId = currentUserId;
+    }
     
     if (messageId) {
       where.messageId = messageId;

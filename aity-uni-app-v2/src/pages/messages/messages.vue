@@ -52,6 +52,14 @@
 			@unread-change="handleUnreadFilterChange"
 		/>
 
+		<!-- 一键全部已读 -->
+		<view v-if="serverUnreadCount > 0" class="read-all-bar">
+			<text class="read-all-hint">{{ serverUnreadCount }} 条未读消息</text>
+			<text class="read-all-btn" :class="{ disabled: markingAllRead }" @click="handleMarkAllRead">
+				{{ markingAllRead ? '处理中...' : '全部已读' }}
+			</text>
+		</view>
+
 		<!-- 消息列表 -->
 		<scroll-view
 				class="messages-scroll"
@@ -240,7 +248,7 @@ import { MESSAGE_TYPE_LABELS, MESSAGE_TAGS, MESSAGE_TAG_LABELS } from '../../uti
 import { formatFriendlyTime } from '../../utils/time'
 import { getSearchHistory, addSearchHistory, clearSearchHistory, removeSearchHistory } from '../../utils/search-history'
 import { isMessageRead, markAsRead } from '../../utils/read-status'
-import { markMessageAsReadApi } from '../../api/message'
+import { markMessageAsReadApi, markAllMessagesReadApi } from '../../api/message'
 import dayjs from 'dayjs'
 import MessageSkeleton from '@/components/message-skeleton.vue'
 import EmptyState from '@/components/empty-state.vue'
@@ -523,6 +531,27 @@ const getStrategyTag = (tags) => {
 }
 
 // 加载消息列表
+// 一键全部已读
+const markingAllRead = ref(false)
+const handleMarkAllRead = async () => {
+	if (markingAllRead.value) return
+	markingAllRead.value = true
+	try {
+		const res = await markAllMessagesReadApi()
+		if (res.code === 200 || res.success) {
+			userStore.clearUnreadCount()
+			uni.showToast({ title: '已全部标记为已读', icon: 'none' })
+			await loadMessages(true)
+		} else {
+			uni.showToast({ title: res.message || '操作失败', icon: 'none' })
+		}
+	} catch (e) {
+		uni.showToast({ title: '操作失败', icon: 'none' })
+	} finally {
+		markingAllRead.value = false
+	}
+}
+
 const loadMessages = async (isRefresh = false) => {
 	if (loading.value) return
 
@@ -896,6 +925,35 @@ button::after {
 	padding: 20rpx;
 	background: var(--bg-card);
 	border-bottom: 1rpx solid var(--border-primary);
+}
+
+/* 一键全部已读操作条 */
+.read-all-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16rpx 24rpx;
+	background: rgba(102, 126, 234, 0.06);
+	border-bottom: 1rpx solid var(--border-primary);
+}
+
+.read-all-hint {
+	font-size: 24rpx;
+	color: #999999;
+}
+
+.read-all-btn {
+	font-size: 24rpx;
+	color: #667eea;
+	font-weight: 600;
+	padding: 8rpx 24rpx;
+	border: 1rpx solid #667eea;
+	border-radius: 999rpx;
+}
+
+.read-all-btn.disabled {
+	opacity: 0.5;
+	pointer-events: none;
 }
 
 .search-input-wrapper {

@@ -17,6 +17,12 @@ router.get('/unread-count',
   messageController.getUnreadCount
 );
 
+// 一键全部标记为已读（必须在 /:id 之前）
+router.post('/read-all',
+  authenticateToken,
+  messageController.markAllMessagesRead
+);
+
 router.post('/notifications/process',
   authenticateToken,
   checkAdmin,
