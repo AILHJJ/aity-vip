@@ -42,12 +42,19 @@ const DiscussionReply = sequelize.define('DiscussionReply', {
     allowNull: false,
     defaultValue: 0,
     comment: '1=私密回复(仅管理员和发帖人可见), 0=公开(所有人可见)'
+  },
+  // 时间戳显式定义（同 Discussion.js 说明）
+  createdAt: {
+    type: DataTypes.DATE,
+    field: 'created_at'
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    field: 'updated_at'
   }
 }, {
   tableName: 'discussion_replies',
-  timestamps: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at'
+  timestamps: true
 });
 
 // 关联关系

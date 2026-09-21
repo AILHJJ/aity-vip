@@ -283,6 +283,11 @@ const handleSubmit = async () => {
 			category: postType.value === 'position' ? 'position' : 'interaction'
 		}
 
+		// 持仓帖携带关联股票代码（此前该输入值未提交，标的丢失）
+		if (postType.value === 'position' && stockCodeInput.value && stockCodeInput.value.trim()) {
+			data.stockCodes = stockCodeInput.value.trim()
+		}
+
 		// 关联消息ID（互动交流必须传，持仓帖不传）
 		if (formData.value.messageId) {
 			data.messageId = normalizeMessageId(formData.value.messageId)

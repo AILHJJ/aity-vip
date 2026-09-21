@@ -25,12 +25,19 @@ const DiscussionRead = sequelize.define('DiscussionRead', {
     type: DataTypes.DATE,
     field: 'last_seen_at',
     allowNull: false
+  },
+  // 时间戳显式定义（同 Discussion.js 说明）
+  createdAt: {
+    type: DataTypes.DATE,
+    field: 'created_at'
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    field: 'updated_at'
   }
 }, {
   tableName: 'discussion_reads',
   timestamps: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at',
   indexes: [
     { unique: true, fields: ['user_id', 'discussion_id'] }
   ]

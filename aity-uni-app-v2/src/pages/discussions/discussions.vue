@@ -79,6 +79,7 @@
 					<view class="discussion-footer">
 						<text v-if="discussion.category === 'position'" class="position-label">📊 持仓帖</text>
 						<text v-else class="interaction-label">💬 讨论</text>
+						<text v-if="discussion.stockCodes" class="stock-mini">{{ discussion.stockCodes }}</text>
 						<view class="discussion-stats">
 							<text class="stat-item">💬 {{ discussion.replyCount || 0 }}</text>
 							<text v-if="discussion.visibility === 'private'" class="visibility-badge">🔒 私密</text>
@@ -652,6 +653,18 @@ button::after {
 	font-size: 24rpx;
 	color: #667eea;
 	font-weight: 500;
+}
+
+.stock-mini {
+	font-size: 22rpx;
+	color: #9b59b6;
+	background: rgba(155, 89, 182, 0.08);
+	padding: 4rpx 12rpx;
+	border-radius: 8rpx;
+	max-width: 300rpx;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .fab-button {

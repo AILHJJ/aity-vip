@@ -72,12 +72,26 @@ const Discussion = sequelize.define('Discussion', {
     field: 'last_reply_at',
     allowNull: true,
     comment: '最后回复时间（冗余，用于列表按最新回复排序）'
+  },
+  stockCodes: {
+    type: DataTypes.STRING(255),
+    field: 'stock_codes',
+    allowNull: true,
+    defaultValue: null,
+    comment: '关联股票代码（逗号分隔，仅持仓帖）'
+  },
+  // 时间戳必须显式定义（sequelize 6 下 options 写法 createdAt:'created_at' 会导致 rawAttributes 无 createdAt，toJSON 输出 created_at，前端全部拿不到时间）
+  createdAt: {
+    type: DataTypes.DATE,
+    field: 'created_at'
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    field: 'updated_at'
   }
 }, {
   tableName: 'discussions',
-  timestamps: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at'
+  timestamps: true
 });
 
 // 关联关系

@@ -1,5 +1,6 @@
 // 讨论控制器
 const { Op } = require('sequelize');
+const sequelize = require('../config/db');
 const Discussion = require('../models/Discussion');
 const DiscussionReply = require('../models/DiscussionReply');
 const DiscussionFavorite = require('../models/DiscussionFavorite');
@@ -292,7 +293,7 @@ async function createDiscussion(req, res) {
   const startTime = Date.now();
 
   try {
-    const { messageId, content, visibility = 'private', category = 'interaction' } = req.body;
+    const { messageId, content, visibility = 'private', category = 'interaction', stockCodes } = req.body;
     const userId = req.user.userId;
 
     // 自动生成title
@@ -345,6 +346,7 @@ async function createDiscussion(req, res) {
           content,
           visibility,
           category,
+          stockCodes: (stockCodes && String(stockCodes).trim()) ? String(stockCodes).trim() : null,
           status: 'pending'
         }),
         new Promise((_, reject) =>
@@ -759,11 +761,13 @@ async function getMyDiscussions(req, res) {
     const { filter } = req.query;
 
     // 获取当前用户发起的讨论（有回复的按最后回复时间倒序，无回复的按发帖时间）
+    // 注意：sequelize 6 对 options 写法 createdAt:'created_at' 不做 order 映射，必须用真实列名（历史 bug 56face0 同因）
     const discussions = await Discussion.findAll({
       where: { userId: currentUserId },
       order: [
-        ['lastReplyAt', 'DESC'],
-        ['createdAt', 'DESC']
+        [sequelize.fn('ISNULL', sequelize.col('last_reply_at')), 'ASC'],
+        [sequelize.col('last_reply_at'), 'DESC'],
+        [sequelize.col('created_at'), 'DESC']
       ]
     });
 

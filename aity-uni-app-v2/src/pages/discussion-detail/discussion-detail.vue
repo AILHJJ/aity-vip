@@ -58,6 +58,15 @@
 
 					<view class="discussion-title">{{ discussion.title }}</view>
 
+					<!-- 持仓帖标的徽标 -->
+					<view v-if="discussion.category === 'position' && discussion.stockCodes" class="stock-codes-bar">
+						<text
+							v-for="(code, idx) in discussion.stockCodes.split(',')"
+							:key="idx"
+							class="stock-chip"
+						>📈 {{ code.trim() }}</text>
+					</view>
+
 					<view class="discussion-content">{{ discussion.content }}</view>
 
 					<view class="discussion-footer">
@@ -1021,6 +1030,24 @@ button::after {
 	color: #333333;
 	margin-bottom: 20rpx;
 	line-height: 1.4;
+}
+
+/* 持仓帖标的徽标 */
+.stock-codes-bar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12rpx;
+	margin-bottom: 20rpx;
+}
+
+.stock-chip {
+	font-size: 24rpx;
+	color: #9b59b6;
+	background: rgba(155, 89, 182, 0.08);
+	border: 1rpx solid rgba(155, 89, 182, 0.25);
+	padding: 6rpx 18rpx;
+	border-radius: 999rpx;
+	font-weight: 500;
 }
 
 .discussion-content {

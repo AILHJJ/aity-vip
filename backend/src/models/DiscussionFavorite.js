@@ -19,11 +19,15 @@ const DiscussionFavorite = sequelize.define('DiscussionFavorite', {
     type: DataTypes.INTEGER,
     field: 'discussion_id',
     allowNull: false
+  },
+  // 时间戳显式定义（同 Discussion.js 说明）
+  createdAt: {
+    type: DataTypes.DATE,
+    field: 'created_at'
   }
 }, {
   tableName: 'discussion_favorites',
   timestamps: true,
-  createdAt: 'created_at',
   updatedAt: false,
   indexes: [
     {
