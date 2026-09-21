@@ -15,6 +15,7 @@
 			<scroll-view
 				class="content-scroll"
 				scroll-y
+				:scroll-into-view="scrollIntoViewId"
 				:refresher-enabled="true"
 				:refresher-triggered="refreshing"
 				@refresherrefresh="onRefresh"
@@ -104,11 +105,14 @@
 						<view
 							v-for="reply in replies"
 							:key="reply.id"
+							:id="'reply-' + reply.id"
 							class="reply-item"
-							:class="{ 'is-private': reply.isPrivate, 'editing': editingReplyId === reply.id }"
+							:class="{ 'is-private': reply.isPrivate, 'editing': editingReplyId === reply.id, 'is-new': reply.isNew, 'is-admin-reply': reply.isAdminReply }"
 						>
 							<view class="reply-header">
 								<text class="reply-user">{{ reply.userName }}</text>
+								<text v-if="reply.isAdminReply" class="official-badge">官方回复</text>
+								<text v-if="reply.isNew" class="new-badge">新</text>
 								<text class="reply-time">{{ formatFriendlyTime(reply.createdAt) }}</text>
 								<text v-if="reply.isPrivate" class="private-badge">私密</text>
 								<!-- 编辑/删除操作按钮（仅本人或管理员可见） -->
@@ -236,7 +240,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import EmptyState from '../../components/empty-state.vue'
@@ -246,7 +250,8 @@ import {
 	replyDiscussionApi,
 	updateReplyApi,
 	deleteReplyApi,
-	updateDiscussionVisibilityApi
+	updateDiscussionVisibilityApi,
+	markDiscussionReadApi
 } from '../../api/discussion'
 import { getMessageDetailApi } from '../../api/message'
 import { uploadImageApi } from '../../api/upload'
@@ -273,6 +278,9 @@ const submitting = ref(false)
 
 // 用于跟踪是否需要刷新回复列表
 const needRefreshReplies = ref(false)
+
+// 滚动定位到第一条新回复
+const scrollIntoViewId = ref('')
 
 // 回复图片
 const replyImages = ref([])
@@ -407,10 +415,23 @@ const loadReplies = async () => {
 
 		if (res.code === 200) {
 			// 后端返回的数据格式: { code: 200, message: "Success", data: [...] }
-			// 后端已经提供了 userName 字段
+			// 后端已经提供了 userName / isNew / isAdminReply 字段
 			replies.value = res.data || []
 
 			console.log('[讨论回复] 加载成功，回复数:', replies.value.length)
+
+			// 标记已读（在拿到 isNew 数据后标记，不影响当前"新回复"高亮展示）
+			markDiscussionReadApi(id).catch(() => {})
+
+			// 自动滚动到第一条新回复
+			const firstNew = replies.value.find(r => r.isNew)
+			if (firstNew) {
+				nextTick(() => {
+					setTimeout(() => {
+						scrollIntoViewId.value = 'reply-' + firstNew.id
+					}, 300)
+				})
+			}
 		} else {
 			console.error('[讨论回复] 加载失败 - 响应:', res)
 		}
@@ -1098,6 +1119,38 @@ button::after {
 		background: #fff8e1;
 		border: 1rpx solid #ffd54f;
 	}
+
+	// 新回复高亮
+	&.is-new {
+		background: #f0f4ff;
+		border: 1rpx solid #91a7ff;
+	}
+
+	// 管理员回复视觉区分
+	&.is-admin-reply {
+		border-left: 6rpx solid #667eea;
+		background: #f5f7ff;
+	}
+}
+
+.official-badge {
+	font-size: 20rpx;
+	color: #ffffff;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	padding: 4rpx 12rpx;
+	border-radius: 8rpx;
+	margin-left: 10rpx;
+	font-weight: 600;
+}
+
+.new-badge {
+	font-size: 20rpx;
+	color: #ffffff;
+	background: #f5222d;
+	padding: 2rpx 10rpx;
+	border-radius: 8rpx;
+	margin-left: 10rpx;
+	font-weight: 600;
 }
 
 .private-badge {

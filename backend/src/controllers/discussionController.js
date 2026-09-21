@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const Discussion = require('../models/Discussion');
 const DiscussionReply = require('../models/DiscussionReply');
 const DiscussionFavorite = require('../models/DiscussionFavorite');
+const DiscussionRead = require('../models/DiscussionRead');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const {
@@ -218,15 +219,23 @@ async function getDiscussionById(req, res) {
     const repliesWithSender = await Promise.all(
       allReplies.map(async (reply) => {
         const replySender = await User.findByPk(reply.userId, {
-          attributes: ['name', 'avatar']
+          attributes: ['name', 'avatar', 'role']
         });
         return {
           ...reply.toJSON(),
           userName: replySender?.name || '匿名用户',
-          userAvatar: replySender?.avatar
+          userAvatar: replySender?.avatar,
+          senderRole: replySender?.role || '',
+          isAdminReply: !!(replySender && (replySender.role === 'super_admin' || replySender.role === 'admin'))
         };
       })
     );
+
+    // 帖级已读时间（用于标记"新回复"）
+    const readRecord = await DiscussionRead.findOne({
+      where: { userId: currentUserId, discussionId: id }
+    });
+    const lastSeen = readRecord ? readRecord.lastSeenAt : null;
 
     // 按隐私权限过滤回复
     const isAdmin = currentUserRole === 'super_admin' || currentUserRole === 'admin';
@@ -235,6 +244,18 @@ async function getDiscussionById(req, res) {
         return canViewPrivateReply({ isAdmin, discussion, reply, currentUserId });
       }
       return true;
+    });
+
+    // 标记新回复（别人发的、晚于上次查看时间），并计算未读数
+    let unreadCount = 0;
+    filteredReplies.forEach(reply => {
+      if (reply.userId === currentUserId) {
+        reply.isNew = false;
+        return;
+      }
+      const isNew = !lastSeen || new Date(reply.createdAt) > new Date(lastSeen);
+      reply.isNew = isNew;
+      if (isNew) unreadCount++;
     });
 
     const discussionData = {
@@ -253,6 +274,7 @@ async function getDiscussionById(req, res) {
       visibility: discussion.visibility,
       viewCount: 0,
       replyCount: allReplies.length,
+      unreadCount,
       createdAt: discussion.createdAt,
       updatedAt: discussion.updatedAt,
       replies: filteredReplies
@@ -429,8 +451,8 @@ async function addDiscussionReply(req, res) {
 
     const reply = await DiscussionReply.create(replyData);
 
-    // 更新讨论状态
-    const updateData = { status: 'replied' };
+    // 更新讨论状态 + 最后回复时间（用于列表排序）
+    const updateData = { status: 'replied', lastReplyAt: new Date() };
 
     // 管理员回复仍然可以修改讨论的可见性（原有逻辑）
     if (isAdmin && visibility) {
@@ -650,12 +672,14 @@ async function getDiscussionReplies(req, res) {
     const repliesWithSender = await Promise.all(
       allReplies.map(async (reply) => {
         const sender = await User.findByPk(reply.userId, {
-          attributes: ['name', 'avatar']
+          attributes: ['name', 'avatar', 'role']
         });
         return {
           ...reply.toJSON(),
           userName: sender?.name || '匿名用户',
-          userAvatar: sender?.avatar
+          userAvatar: sender?.avatar,
+          senderRole: sender?.role || '',
+          isAdminReply: !!(sender && (sender.role === 'super_admin' || sender.role === 'admin'))
         };
       })
     );
@@ -667,6 +691,19 @@ async function getDiscussionReplies(req, res) {
         return canViewPrivateReply({ isAdmin, discussion, reply, currentUserId });
       }
       return true;
+    });
+
+    // 标记新回复（别人发的、晚于该帖上次查看时间）
+    const readRecord = await DiscussionRead.findOne({
+      where: { userId: currentUserId, discussionId: id }
+    });
+    const lastSeen = readRecord ? readRecord.lastSeenAt : null;
+    filteredReplies.forEach(reply => {
+      if (reply.userId === currentUserId) {
+        reply.isNew = false;
+      } else {
+        reply.isNew = !lastSeen || new Date(reply.createdAt) > new Date(lastSeen);
+      }
     });
 
     console.log(`[获取讨论回复] 成功 - 讨论ID: ${id}, 回复数: ${filteredReplies.length}/${allReplies.length}`);
@@ -719,22 +756,52 @@ async function updateDiscussionVisibility(req, res) {
 async function getMyDiscussions(req, res) {
   try {
     const currentUserId = req.user.userId;
+    const { filter } = req.query;
 
-    // 获取当前用户发起的讨论
+    // 获取当前用户发起的讨论（有回复的按最后回复时间倒序，无回复的按发帖时间）
     const discussions = await Discussion.findAll({
       where: { userId: currentUserId },
-      order: [['created_at', 'DESC']]
+      order: [
+        ['lastReplyAt', 'DESC'],
+        ['createdAt', 'DESC']
+      ]
     });
 
-    // 获取每个讨论的回复
-    const discussionsWithReplies = await Promise.all(
+    // 帖级已读记录（discussion_reads）
+    const readRecords = await DiscussionRead.findAll({
+      where: { userId: currentUserId, discussionId: { [Op.in]: discussions.map(d => d.id) } }
+    });
+    const readMap = {};
+    readRecords.forEach(r => { readMap[r.discussionId] = r.lastSeenAt; });
+
+    const discussionsWithMeta = await Promise.all(
       discussions.map(async (discussion) => {
         const replies = await DiscussionReply.findAll({
           where: { discussionId: discussion.id },
-          order: [['created_at', 'ASC']]
+          order: [['createdAt', 'ASC']]
         });
 
-        // 获取关联的消息信息
+        // 最后一条回复（摘要 + 是否管理员回复）
+        const lastReply = replies.length > 0 ? replies[replies.length - 1] : null;
+        let lastReplyUserName = null;
+        let lastReplyContent = null;
+        let lastReplyIsAdmin = false;
+        if (lastReply) {
+          lastReplyUserName = lastReply.userName;
+          lastReplyContent = lastReply.content;
+          const sender = await User.findByPk(lastReply.userId, { attributes: ['role'] });
+          lastReplyIsAdmin = !!(sender && (sender.role === 'super_admin' || sender.role === 'admin'));
+        }
+
+        // 未读数：别人发的、晚于该帖上次查看时间的回复数
+        const lastSeen = readMap[discussion.id] || null;
+        let unreadCount = 0;
+        for (const r of replies) {
+          if (r.userId === currentUserId) continue; // 自己回复的不算未读
+          if (!lastSeen || new Date(r.createdAt) > new Date(lastSeen)) unreadCount++;
+        }
+
+        // 关联的消息信息
         let linkedMessage = null;
         if (discussion.messageId) {
           const message = await Message.findByPk(discussion.messageId, {
@@ -758,18 +825,28 @@ async function getMyDiscussions(req, res) {
           category: discussion.category || 'interaction',
           visibility: discussion.visibility,
           messageId: discussion.messageId,
-          linkedMessage: linkedMessage,
+          linkedMessage,
           replyCount: replies.length,
+          unreadCount,
+          lastReplyAt: discussion.lastReplyAt || null,
+          lastReplyUserName,
+          lastReplyContent: lastReplyContent
+            ? (lastReplyContent.length > 60 ? lastReplyContent.substring(0, 60) + '…' : lastReplyContent)
+            : null,
+          lastReplyIsAdmin,
           createdAt: discussion.createdAt,
-          updatedAt: discussion.updatedAt,
-          replies
+          updatedAt: discussion.updatedAt
         };
       })
     );
 
-    res.json(success({
-      discussions: discussionsWithReplies
-    }));
+    // 「只看新回复」筛选
+    let result = discussionsWithMeta;
+    if (filter === 'unread') {
+      result = result.filter(d => d.unreadCount > 0);
+    }
+
+    res.json(success({ discussions: result }));
   } catch (err) {
     console.error('[获取我的讨论] 错误:', err);
     res.status(500).json(error('Server error'));
@@ -963,6 +1040,30 @@ async function markRepliesSeen(req, res) {
   }
 }
 
+// 标记某条讨论已读（upsert discussion_reads 的最后查看时间）
+async function markDiscussionRead(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    const discussion = await Discussion.findByPk(id);
+    if (!discussion) {
+      return res.status(404).json(notFound('Discussion not found'));
+    }
+
+    await DiscussionRead.upsert({
+      discussionId: id,
+      userId,
+      lastSeenAt: new Date()
+    });
+
+    res.json(success(null, 'Marked read'));
+  } catch (err) {
+    console.error('[标记讨论已读] 错误:', err);
+    res.status(500).json(error('Server error'));
+  }
+}
+
 module.exports = {
   getDiscussions,
   getDiscussionById,
@@ -979,5 +1080,6 @@ module.exports = {
   favoriteDiscussion,
   unfavoriteDiscussion,
   getUnreadReplyCount,
-  markRepliesSeen
+  markRepliesSeen,
+  markDiscussionRead
 };

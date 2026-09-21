@@ -4,11 +4,20 @@
 		<scroll-view
 			class="content-scroll"
 			scroll-y
-			@scrolltolower="loadMore"
 			:refresher-enabled="true"
 			:refresher-triggered="refreshing"
 			@refresherrefresh="onRefresh"
 		>
+			<!-- 筛选栏 -->
+			<view class="filter-bar">
+				<view class="filter-tab" :class="{ active: !showUnreadOnly }" @click="showUnreadOnly && toggleUnreadFilter()">
+					<text>全部</text>
+				</view>
+				<view class="filter-tab" :class="{ active: showUnreadOnly }" @click="!showUnreadOnly && toggleUnreadFilter()">
+					<text>只看新回复</text>
+				</view>
+			</view>
+
 			<!-- 加载中 -->
 			<view v-if="loading && discussions.length === 0" class="loading-container">
 				<view class="loading-spinner"></view>
@@ -18,8 +27,8 @@
 			<!-- 空状态 -->
 			<view v-else-if="discussions.length === 0" class="empty-state">
 				<text class="empty-icon">💬</text>
-				<text class="empty-text">暂无讨论</text>
-				<text class="empty-hint">快去发起一个讨论吧</text>
+				<text class="empty-text">{{ showUnreadOnly ? '没有新回复' : '暂无讨论' }}</text>
+				<text class="empty-hint">{{ showUnreadOnly ? '你的帖子暂时没有新回复' : '快去发起一个讨论吧' }}</text>
 			</view>
 
 			<!-- 讨论列表 -->
@@ -38,13 +47,24 @@
 							<view class="status-badge" :class="'status-' + discussion.status">
 								{{ discussion.status === 'replied' ? '已回复' : '待回复' }}
 							</view>
+							<view v-if="discussion.unreadCount > 0" class="unread-badge">
+								{{ discussion.unreadCount }} 条新回复
+							</view>
 						</view>
-						<text class="discussion-time">{{ formatFriendlyTime(discussion.createdAt) }}</text>
+						<text class="discussion-time">{{ formatFriendlyTime(discussion.lastReplyAt || discussion.createdAt) }}</text>
 					</view>
 
 					<view class="discussion-title">{{ discussion.title }}</view>
 
 					<view class="discussion-content">{{ discussion.content }}</view>
+
+					<!-- 最新回复摘要 -->
+					<view v-if="discussion.lastReplyContent" class="reply-summary">
+						<text class="summary-tag" :class="discussion.lastReplyIsAdmin ? 'admin' : ''">
+							{{ discussion.lastReplyIsAdmin ? '官方回复' : '回复' }}
+						</text>
+						<text class="summary-text">{{ discussion.lastReplyUserName }}：{{ discussion.lastReplyContent }}</text>
+					</view>
 
 					<view class="discussion-footer">
 						<view class="discussion-stats">
@@ -59,15 +79,6 @@
 				</view>
 			</view>
 
-			<!-- 加载更多 -->
-			<view v-if="hasMore && !loading" class="load-more">
-				<text class="load-more-text">加载更多...</text>
-			</view>
-
-			<!-- 没有更多 -->
-			<view v-if="!hasMore && discussions.length > 0" class="no-more">
-				<text class="no-more-text">没有更多了</text>
-			</view>
 		</scroll-view>
 
 		<!-- 创建按钮 -->
@@ -96,40 +107,21 @@ onShow(() => {
 const discussions = ref([])
 const loading = ref(false)
 const refreshing = ref(false)
-const page = ref(1)
-const limit = ref(20)
-const hasMore = ref(true)
+const showUnreadOnly = ref(false)
 
-// 加载讨论列表
+// 加载讨论列表（后端全量返回，带可选"只看新回复"筛选）
 const loadDiscussions = async (isRefresh = false) => {
 	if (loading.value) return
-
-	if (isRefresh) {
-		page.value = 1
-		hasMore.value = true
-	}
-
 	loading.value = true
 
 	try {
-		const params = {
-			page: page.value,
-			limit: limit.value
-		}
+		const params = {}
+		if (showUnreadOnly.value) params.filter = 'unread'
 
 		const res = await getMyDiscussionsApi(params)
 
 		if (res.success || res.code === 200) {
-			const newData = res.data.discussions || res.data.list || []
-
-			if (isRefresh) {
-				discussions.value = newData
-			} else {
-				discussions.value = [...discussions.value, ...newData]
-			}
-
-			// 判断是否还有更多
-			hasMore.value = discussions.value.length < res.data.total
+			discussions.value = res.data.discussions || res.data.list || []
 		} else {
 			uni.showToast({
 				title: res.message || '加载失败',
@@ -148,16 +140,15 @@ const loadDiscussions = async (isRefresh = false) => {
 	}
 }
 
+// 切换筛选
+const toggleUnreadFilter = () => {
+	showUnreadOnly.value = !showUnreadOnly.value
+	loadDiscussions()
+}
+
 // 下拉刷新
 const onRefresh = () => {
 	refreshing.value = true
-	loadDiscussions(true)
-}
-
-// 加载更多
-const loadMore = () => {
-	if (!hasMore.value || loading.value) return
-	page.value++
 	loadDiscussions()
 }
 
@@ -425,6 +416,76 @@ onMounted(() => {
 .no-more-text {
 	font-size: 26rpx;
 	color: #999999;
+}
+
+/* 筛选栏 */
+.filter-bar {
+	display: flex;
+	gap: 16rpx;
+	padding: 20rpx;
+	background: #ffffff;
+	border-bottom: 2rpx solid #f0f0f0;
+}
+
+.filter-tab {
+	padding: 10rpx 28rpx;
+	border-radius: 999rpx;
+	background: #f1f5f9;
+	font-size: 24rpx;
+	color: #64748b;
+}
+
+.filter-tab.active {
+	background: #667eea;
+	color: #ffffff;
+	font-weight: 600;
+}
+
+/* 未读角标 */
+.unread-badge {
+	padding: 6rpx 14rpx;
+	font-size: 22rpx;
+	border-radius: 12rpx;
+	color: #ffffff;
+	background: #f5222d;
+	font-weight: 600;
+}
+
+/* 最新回复摘要 */
+.reply-summary {
+	display: flex;
+	align-items: flex-start;
+	gap: 12rpx;
+	margin-bottom: 20rpx;
+	padding: 16rpx 20rpx;
+	background: #f8f9ff;
+	border-radius: 12rpx;
+	border-left: 6rpx solid #667eea;
+}
+
+.summary-tag {
+	flex-shrink: 0;
+	padding: 2rpx 12rpx;
+	font-size: 20rpx;
+	border-radius: 8rpx;
+	color: #667eea;
+	background: #eef0ff;
+}
+
+.summary-tag.admin {
+	color: #b45309;
+	background: #fef3c7;
+}
+
+.summary-text {
+	font-size: 24rpx;
+	color: #666666;
+	line-height: 1.5;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 1;
+	-webkit-box-orient: vertical;
 }
 
 .fab-button {

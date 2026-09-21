@@ -32,6 +32,15 @@ export function markRepliesSeenApi() {
 }
 
 /**
+ * 标记某条讨论已读（记录帖级最后查看时间）
+ * @param {Number} id 讨论ID
+ * @returns {Promise}
+ */
+export function markDiscussionReadApi(id) {
+  return post(`/discussions/${id}/read`)
+}
+
+/**
  * 获取讨论详情
  * @param {Number} id 讨论ID
  * @returns {Promise}

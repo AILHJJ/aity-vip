@@ -66,6 +66,12 @@ const Discussion = sequelize.define('Discussion', {
     allowNull: true,
     defaultValue: null,
     comment: '图片列表 [{url, filename}]'
+  },
+  lastReplyAt: {
+    type: DataTypes.DATE,
+    field: 'last_reply_at',
+    allowNull: true,
+    comment: '最后回复时间（冗余，用于列表按最新回复排序）'
   }
 }, {
   tableName: 'discussions',

@@ -17,6 +17,7 @@ router.put('/:id', authenticateToken, ...validateIdParam(), discussionController
 router.delete('/:id', authenticateToken, ...validateIdParam(), discussionController.deleteDiscussion);
 router.post('/:id/replies', authenticateToken, ...validateAddReply(), discussionController.addDiscussionReply);
 router.get('/:id/replies', authenticateToken, ...validateIdParam(), discussionController.getDiscussionReplies);
+router.post('/:id/read', authenticateToken, ...validateIdParam(), discussionController.markDiscussionRead);
 router.put('/:id/replies/:replyId', authenticateToken, discussionController.updateDiscussionReply);
 router.delete('/:id/replies/:replyId', authenticateToken, discussionController.deleteDiscussionReply);
 router.put('/:id/visibility', authenticateToken, ...validateIdParam(), discussionController.updateDiscussionVisibility);
