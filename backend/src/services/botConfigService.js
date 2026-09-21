@@ -74,14 +74,19 @@ async function listBotConfigs() {
  */
 async function upsertBotConfig(channel, data) {
   const record = await BotChannelConfig.findOne({ where: { channel } });
+  const newConfig = data.config !== undefined ? { ...data.config } : undefined;
+  // 保留运行时学到的群会话 ID（前端不感知该字段，避免保存配置时被覆盖丢失）
+  if (newConfig && record && record.config && record.config.groupChatId && !newConfig.groupChatId) {
+    newConfig.groupChatId = record.config.groupChatId;
+  }
   if (record) {
     await record.update({
       enabled: data.enabled !== undefined ? data.enabled : record.enabled,
-      config: data.config !== undefined ? data.config : record.config
+      config: newConfig !== undefined ? newConfig : record.config
     });
     return record;
   }
-  return BotChannelConfig.create({ channel, enabled: !!data.enabled, config: data.config || {} });
+  return BotChannelConfig.create({ channel, enabled: !!data.enabled, config: newConfig || {} });
 }
 
 /**
@@ -96,6 +101,16 @@ async function bootstrapBotService() {
   for (const active of actives) {
     try {
       const botService = createBotService(active.channel, active.config, { bindCode: active.bindCode });
+      // 初始化群会话 ID（持久化：从数据库读取，重启不丢失）
+      botService.channel.groupChatId = active.config.groupChatId || null;
+      // 学到新群 ID 时回写数据库
+      botService.setGroupChatIdPersist(async (chatId) => {
+        const rec = await BotChannelConfig.findOne({ where: { channel: active.channel } });
+        if (rec) {
+          const cfg = { ...(rec.config || {}), groupChatId: chatId };
+          await rec.update({ config: cfg });
+        }
+      });
       botServiceInstance.set(botService, active.channel);
       botService.start();
       started.push(active.channel);

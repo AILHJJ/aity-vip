@@ -16,6 +16,12 @@ class BotService {
     this.bindCode = options.bindCode || process.env.WECOM_BIND_CODE || '';
     this.processedMsgIds = new Set();
     this.pendingImages = {}; // { [userId]: [{url, filename}] }
+    this.persistGroupChatId = null; // 群会话 ID 持久化回调（多渠道下各渠道独立）
+  }
+
+  // 注入群会话 ID 持久化回调（学到新群 ID 时回写数据库，重启不丢失）
+  setGroupChatIdPersist(fn) {
+    this.persistGroupChatId = fn;
   }
 
   async start() {
@@ -42,9 +48,14 @@ class BotService {
       if (this.processedMsgIds.size > 10000) this.processedMsgIds.clear();
     }
 
-    // 缓存群会话 ID（供渠道主动推送）
+    // 缓存群会话 ID（供渠道主动推送）+ 持久化（重启不丢失）
     if (msg.chatId) {
       this.channel.groupChatId = msg.chatId;
+      if (this.persistGroupChatId) {
+        this.persistGroupChatId(msg.chatId).catch(err =>
+          console.error('[botService] 持久化群会话ID失败:', err.message)
+        );
+      }
     }
 
     // 下载并缓存图片（image 消息的图片，或 mixed 内嵌图片）
