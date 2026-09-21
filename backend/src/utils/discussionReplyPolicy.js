@@ -1,9 +1,11 @@
-function resolveReplyPrivacy({ isAdmin, requestedIsPrivate }) {
-  if (!isAdmin) {
-    return 1;
+function resolveReplyPrivacy({ isAdmin, requestedIsPrivate, discussionVisibility }) {
+  // 公开帖：任何人可选择公开/私密回复
+  if (isAdmin || discussionVisibility === 'public') {
+    return requestedIsPrivate ? 1 : 0;
   }
 
-  return requestedIsPrivate ? 1 : 0;
+  // 私密帖（如持仓帖）：回复强制私密，保护持仓隐私
+  return 1;
 }
 
 function canViewPrivateReply({ isAdmin, discussion, reply, currentUserId }) {

@@ -226,14 +226,23 @@
 						{{ submitting ? '发送中...' : '私密回复' }}
 					</button>
 				</view>
-				<!-- 非管理员：默认私密回复 -->
-				<view v-else class="reply-buttons single">
+				<!-- 非管理员：公开帖可公开/私密回复；私密帖（持仓帖）仅私密回复 -->
+				<view v-else class="reply-buttons" :class="{ single: discussion.visibility !== 'public' }">
 					<button
-						class="reply-btn primary full"
+						v-if="discussion.visibility === 'public'"
+						class="reply-btn primary"
 						:disabled="!replyContent.trim() && replyImages.length === 0 || submitting"
-						@click="handleUserReply"
+						@click="handleReply(false)"
 					>
-						{{ submitting ? '发送中...' : '发送私密回复' }}
+						{{ submitting ? '发送中...' : '公开回复' }}
+					</button>
+					<button
+						class="reply-btn"
+						:class="discussion.visibility === 'public' ? 'secondary' : 'primary full'"
+						:disabled="!replyContent.trim() && replyImages.length === 0 || submitting"
+						@click="handleReply(true)"
+					>
+						{{ submitting ? '发送中...' : (discussion.visibility === 'public' ? '私密回复' : '发送私密回复') }}
 					</button>
 				</view>
 			</view>

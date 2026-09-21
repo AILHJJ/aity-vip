@@ -154,9 +154,10 @@ async function getDiscussions(req, res) {
       })
     );
 
-    // 返回格式: { code: 200, message: "Success", data: { discussions: [...] } }
+    // 返回格式: { code: 200, message: "Success", data: { discussions: [...], total } }
     res.json(success({
-      discussions: discussionsWithReplies
+      discussions: discussionsWithReplies,
+      total: discussionsWithReplies.length
     }));
   } catch (err) {
     console.error(err);
@@ -440,7 +441,8 @@ async function addDiscussionReply(req, res) {
 
     const finalIsPrivate = resolveReplyPrivacy({
       isAdmin,
-      requestedIsPrivate: isPrivate
+      requestedIsPrivate: isPrivate,
+      discussionVisibility: discussion.visibility
     });
 
     // 创建回复（支持图片）

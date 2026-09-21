@@ -279,7 +279,8 @@ const handleSubmit = async () => {
 		const data = {
 			title: discussionTitle,
 			content: formData.value.content.trim(),
-			visibility: 'private', // 默认私密
+			// 持仓帖默认私密（保护持仓隐私）；互动讨论默认公开（社区可见可回复）
+			visibility: postType.value === 'position' ? 'private' : 'public',
 			category: postType.value === 'position' ? 'position' : 'interaction'
 		}
 

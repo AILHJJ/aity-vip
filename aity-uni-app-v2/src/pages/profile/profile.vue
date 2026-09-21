@@ -332,11 +332,11 @@ const loadStats = async () => {
 			console.error('加载收藏数失败:', e)
 		}
 
-		// 加载讨论数
+		// 加载讨论数（只统计我发起的）
 		try {
-			const discRes = await getDiscussionsApi({ page: 1, limit: 1 })
+			const discRes = await getDiscussionsApi({ page: 1, limit: 1, mine: 1 })
 			if (discRes.code === 200 && discRes.data) {
-				discussionCount.value = discRes.data.pagination?.total || discRes.data.total || 0
+				discussionCount.value = discRes.data.pagination?.total || discRes.data.total || discRes.data.discussions?.length || 0
 			} else if (discRes.success && discRes.data) {
 				discussionCount.value = discRes.data.total || 0
 			}
