@@ -4,30 +4,45 @@ const { createBotService } = require('./channelFactory');
 const botServiceInstance = require('./botServiceInstance');
 
 /**
- * 加载当前启用的渠道配置（用于启动 botService）
+ * 加载所有启用的渠道配置（多渠道并存：企微+飞书可同时在线）
  * 优先读数据库；数据库无配置时 fallback 到 env（过渡期兼容）
- * @returns {Promise<{channel: string, config: object, bindCode: string} | null>}
+ * @returns {Promise<Array<{channel: string, config: object, bindCode: string}>>}
  */
-async function loadActiveBotConfig() {
-  const record = await BotChannelConfig.findOne({ where: { enabled: true } });
-  if (record && record.config) {
-    return {
-      channel: record.channel,
-      config: record.config,
-      bindCode: record.config.bindCode || process.env.WECOM_BIND_CODE || ''
-    };
-  }
+async function loadActiveBotConfigs() {
+  const records = await BotChannelConfig.findAll({ where: { enabled: true } });
+  const list = records
+    .filter(r => r.config)
+    .map(r => ({
+      channel: r.channel,
+      config: r.config,
+      bindCode: r.config.bindCode || process.env.WECOM_BIND_CODE || ''
+    }));
+  if (list.length) return list;
 
   // fallback env（过渡期，配置还没录入数据库时）
-  const channel = process.env.IM_CHANNEL || 'wecom';
-  if (channel === 'wecom' && process.env.WECOM_BOT_ID && process.env.WECOM_BOT_SECRET) {
-    return {
+  const result = [];
+  const legacyChannel = process.env.IM_CHANNEL || 'wecom';
+  if (legacyChannel === 'wecom' && process.env.WECOM_BOT_ID && process.env.WECOM_BOT_SECRET) {
+    result.push({
       channel: 'wecom',
       config: { botId: process.env.WECOM_BOT_ID, secret: process.env.WECOM_BOT_SECRET },
       bindCode: process.env.WECOM_BIND_CODE || ''
-    };
+    });
   }
-  return null;
+  if (process.env.FEISHU_APP_ID && process.env.FEISHU_APP_SECRET) {
+    result.push({
+      channel: 'feishu',
+      config: { appId: process.env.FEISHU_APP_ID, appSecret: process.env.FEISHU_APP_SECRET },
+      bindCode: process.env.WECOM_BIND_CODE || ''
+    });
+  }
+  return result;
+}
+
+// 兼容旧接口：返回单个（第一个启用渠道）
+async function loadActiveBotConfig() {
+  const list = await loadActiveBotConfigs();
+  return list[0] || null;
 }
 
 /**
@@ -70,32 +85,39 @@ async function upsertBotConfig(channel, data) {
 }
 
 /**
- * 启动 botService（读配置 → 创建渠道 → 启动 → 注册单例）
- * @returns {Promise<string|null>} 启动的渠道名，未配置返回 null
+ * 启动 botService（读全部启用配置 → 逐渠道创建并启动 → 注册容器）
+ * 多渠道并存：企微+飞书同时在线，通知推送到所有已连接群
+ * @returns {Promise<string[]>} 启动的渠道名列表，未配置返回空数组
  */
 async function bootstrapBotService() {
-  const active = await loadActiveBotConfig();
-  if (!active) return null;
-  const botService = createBotService(active.channel, active.config, { bindCode: active.bindCode });
-  botServiceInstance.set(botService);
-  botService.start();
-  return active.channel;
+  const actives = await loadActiveBotConfigs();
+  if (!actives.length) return [];
+  const started = [];
+  for (const active of actives) {
+    try {
+      const botService = createBotService(active.channel, active.config, { bindCode: active.bindCode });
+      botServiceInstance.set(botService, active.channel);
+      botService.start();
+      started.push(active.channel);
+    } catch (err) {
+      console.error(`[botConfig] 渠道 ${active.channel} 启动失败:`, err.message);
+    }
+  }
+  return started;
 }
 
 /**
- * 热重载 botService（配置变更后调用）：停止旧连接，用新配置重新启动
- * @returns {Promise<string|null>}
+ * 热重载 botService（配置变更后调用）：停止全部旧连接，用新配置重新启动
+ * @returns {Promise<string[]>}
  */
 async function reloadBotService() {
-  const old = botServiceInstance.get();
-  if (old) {
-    try { old.stop(); } catch (e) {}
-  }
+  await botServiceInstance.stopAll();
   return bootstrapBotService();
 }
 
 module.exports = {
   loadActiveBotConfig,
+  loadActiveBotConfigs,
   listBotConfigs,
   upsertBotConfig,
   bootstrapBotService,

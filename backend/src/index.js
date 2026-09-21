@@ -236,13 +236,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Internal server error' });
 });
 
-// 启动群内机器人（渠道抽象 + 配置可管理：从数据库读配置，fallback env）
+// 启动群内机器人（渠道抽象 + 配置可管理：多渠道并存，从数据库读配置，fallback env）
 async function startBotService() {
   const { bootstrapBotService } = require('./services/botConfigService');
   try {
-    const channel = await bootstrapBotService();
-    if (channel) {
-      logger.info(`[botService] 已启动渠道: ${channel}`);
+    const channels = await bootstrapBotService();
+    if (channels && channels.length) {
+      logger.info(`[botService] 已启动渠道: ${channels.join(', ')}`);
     } else {
       logger.info('[botService] 未配置机器人凭证，跳过启动');
     }
