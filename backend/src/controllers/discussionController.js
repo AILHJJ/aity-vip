@@ -441,8 +441,7 @@ async function addDiscussionReply(req, res) {
 
     const finalIsPrivate = resolveReplyPrivacy({
       isAdmin,
-      requestedIsPrivate: isPrivate,
-      discussionVisibility: discussion.visibility
+      requestedIsPrivate: isPrivate
     });
 
     // 创建回复（支持图片）
