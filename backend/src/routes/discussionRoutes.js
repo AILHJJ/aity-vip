@@ -2,9 +2,14 @@
 const express = require('express');
 const router = express.Router();
 const discussionController = require('../controllers/discussionController');
+const discussionImageController = require('../controllers/discussionImageController');
 const { authenticateToken } = require('../utils/jwtUtils');
 const { validateCreateDiscussion, validateAddReply, validateIdParam } = require('../middleware/validation');
 
+// 图片读取使用仅在已鉴权讨论响应中签发的短时URL；新图片目录不可直接静态访问。
+router.get('/images/:imageId', discussionImageController.serveSigned);
+router.post('/images', authenticateToken, discussionImageController.upload);
+router.delete('/images/:imageId', authenticateToken, discussionImageController.deletePending);
 router.get('/', authenticateToken, discussionController.getDiscussions);
 router.get('/my', authenticateToken, discussionController.getMyDiscussions);
 router.get('/favorites', authenticateToken, discussionController.getFavoriteDiscussions);

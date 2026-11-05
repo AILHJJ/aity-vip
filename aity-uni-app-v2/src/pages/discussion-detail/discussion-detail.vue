@@ -68,6 +68,9 @@
 					</view>
 
 					<view class="discussion-content">{{ discussion.content }}</view>
+					<view v-if="discussion.images && discussion.images.length" class="discussion-post-images">
+						<image v-for="(image, index) in discussion.images" :key="image.id || image.filename || index" :src="fullUrl(image.url)" class="discussion-post-image" mode="aspectFill" @click="previewImage(image.url, discussion.images)" />
+					</view>
 
 					<view class="discussion-footer">
 						<view class="user-info">
@@ -75,12 +78,16 @@
 						</view>
 						<view class="discussion-stats">
 							<text class="stat-item">回复 {{ discussion.replyCount || 0 }}</text>
-							<text class="stat-item">浏览 {{ discussion.viewCount || 0 }}</text>
+							<text v-if="userStore.isAdmin && !hideDiscussionViews" class="stat-item">浏览 {{ discussion.viewCount || 0 }}</text>
 						</view>
 					</view>
 
 					<!-- 管理员操作 -->
 					<view v-if="userStore.isAdmin" class="admin-actions">
+						<view class="view-preference-control">
+							<text>隐藏浏览人数</text>
+							<switch :checked="hideDiscussionViews" color="#b7791f" @change="setViewsHidden" />
+						</view>
 						<picker
 							mode="selector"
 							:range="visibilityOptions"
@@ -270,6 +277,7 @@ let removePasteListener = null
 // #endif
 import { formatFriendlyTime } from '../../utils/time'
 import { BASE_URL } from '../../utils/config'
+import { getDiscussionViewsHidden, setDiscussionViewsHidden } from '../../utils/discussionViewPreference.mjs'
 import { MarkdownRenderer } from '../../utils/markdown-renderer'
 import { getMessageTypeDisplayLabel } from '../../utils/message-labels.mjs'
 import { normalizeMessageId } from '../../utils/discussion-link.mjs'
@@ -279,6 +287,12 @@ const userStore = useUserStore()
 
 // 数据
 const discussion = ref(null)
+const hideDiscussionViews = ref(getDiscussionViewsHidden())
+
+const setViewsHidden = (event) => {
+	hideDiscussionViews.value = Boolean(event.detail.value)
+	setDiscussionViewsHidden(hideDiscussionViews.value)
+}
 const replies = ref([])
 const replyContent = ref('')
 const loading = ref(false)
@@ -805,6 +819,7 @@ onBeforeUnmount(() => {
 
 // 页面显示时刷新回复列表（如果需要）
 onShow(() => {
+	hideDiscussionViews.value = getDiscussionViewsHidden()
 	// 只在需要时刷新回复列表
 	if (needRefreshReplies.value) {
 		console.log('[讨论详情] 页面显示，刷新回复列表')
@@ -879,6 +894,30 @@ button::after {
 	padding: 30rpx;
 	margin-bottom: 20rpx;
 	animation: fadeIn 0.3s ease-in-out;
+}
+
+.discussion-post-images {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16rpx;
+	margin-top: 20rpx;
+}
+
+.discussion-post-image {
+	width: 210rpx;
+	height: 210rpx;
+	border-radius: 8rpx;
+	background: #f1f1f1;
+}
+
+.view-preference-control {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	padding: 0 12rpx;
+	color: #666;
+	font-size: 24rpx;
 }
 
 // 关联消息卡片

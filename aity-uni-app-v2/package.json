@@ -36,6 +36,7 @@
     "build:quickapp-webview-huawei": "uni build -p quickapp-webview-huawei",
     "build:quickapp-webview-union": "uni build -p quickapp-webview-union",
     "test:discussion-link": "node scripts/test-discussion-link.mjs",
+    "test:discussion-view-preference": "node scripts/test-discussion-view-preference.mjs",
     "test:ui-contract": "node scripts/test-miniapp-ui-contract.mjs",
     "verify:mp-weixin": "npm run test:discussion-link && npm run test:ui-contract && npm run build:mp-weixin",
     "verify:h5": "npm run build:h5"

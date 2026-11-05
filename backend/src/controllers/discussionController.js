@@ -1,5 +1,7 @@
 // 讨论控制器
 const { Op } = require('sequelize');
+const fs = require('fs');
+const path = require('path');
 const sequelize = require('../config/db');
 const Discussion = require('../models/Discussion');
 const DiscussionReply = require('../models/DiscussionReply');
@@ -7,6 +9,11 @@ const DiscussionFavorite = require('../models/DiscussionFavorite');
 const DiscussionRead = require('../models/DiscussionRead');
 const Message = require('../models/Message');
 const User = require('../models/User');
+const DiscussionImage = require('../models/DiscussionImage');
+const { canAttachDiscussionImage } = require('../utils/discussionImagePolicy');
+const { canReadDiscussion, canRevealDiscussionViews } = require('../utils/discussionViewPolicy');
+const { getDiscussionPresentation } = require('../services/discussionPresentationService');
+const discussionImageDir = path.join(__dirname, '../../uploads/discussion-images');
 const {
   canViewPrivateReply,
   resolveReplyPrivacy
@@ -121,6 +128,7 @@ async function getDiscussions(req, res) {
     });
 
     // 获取每个讨论的回复
+    const presentation = await getDiscussionPresentation(discussions, currentUserRole);
     const discussionsWithReplies = await Promise.all(
       discussions.map(async (discussion) => {
         const replies = await DiscussionReply.findAll({
@@ -149,6 +157,7 @@ async function getDiscussions(req, res) {
           updatedAt: discussionData.updatedAt,
           messageId: discussionData.messageId,
           userId: discussionData.userId,
+          ...(presentation.get(Number(discussionData.id)) || { images: [] }),
           replies // 完整的回复列表
         };
       })
@@ -265,6 +274,7 @@ async function getDiscussionById(req, res) {
       if (isNew) unreadCount++;
     });
 
+    const presentation = await getDiscussionPresentation([discussion], currentUserRole);
     const discussionData = {
       id: discussion.id,
       messageId: discussion.messageId,
@@ -280,7 +290,7 @@ async function getDiscussionById(req, res) {
       category: discussion.category || 'interaction',
       visibility: discussion.visibility,
       stockCodes: discussion.stockCodes,
-      viewCount: 0,
+      ...(presentation.get(Number(discussion.id)) || { images: [] }),
       replyCount: allReplies.length,
       unreadCount,
       createdAt: discussion.createdAt,
@@ -301,6 +311,7 @@ async function createDiscussion(req, res) {
 
   try {
     const { messageId, content, visibility = 'private', category = 'interaction', stockCodes } = req.body;
+    const imageIds = [...new Set((req.body.imageIds || []).map(Number))];
     const userId = req.user.userId;
 
     // 自动生成title
@@ -312,11 +323,11 @@ async function createDiscussion(req, res) {
       setTimeout(() => reject(new Error('请求超时')), 90000);
     });
 
-    const dbOperation = async () => {
+    const dbOperation = async () => sequelize.transaction(async (transaction) => {
       // 获取用户信息
       const user = await Promise.race([
         User.findByPk(userId, {
-          attributes: ['id', 'name', 'avatar', 'role', 'groupId']
+          attributes: ['id', 'name', 'avatar', 'role', 'groupId'], transaction
         }),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('用户查询超时')), 10000)
@@ -331,7 +342,7 @@ async function createDiscussion(req, res) {
       if (messageId) {
         const message = await Promise.race([
           Message.findByPk(messageId, {
-            attributes: ['id', 'title', 'type', 'status']
+            attributes: ['id', 'title', 'type', 'status'], transaction
           }),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('消息查询超时')), 10000)
@@ -343,7 +354,21 @@ async function createDiscussion(req, res) {
         }
       }
 
-      // 创建讨论
+      let images = [];
+      if (imageIds.length) {
+        images = await DiscussionImage.findAll({
+          where: { id: { [Op.in]: imageIds } },
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        if (images.length !== imageIds.length || images.some((image) => !canAttachDiscussionImage({ image, currentUserId: userId }))) {
+          const invalidImages = new Error('图片不存在、已使用或不属于当前用户');
+          invalidImages.code = 'INVALID_DISCUSSION_IMAGES';
+          throw invalidImages;
+        }
+      }
+
+      // 创建讨论并在同一事务中占用上传图片，避免伪造或跨用户复用图片ID。
       const discussion = await Promise.race([
         Discussion.create({
           messageId: messageId || null,
@@ -355,16 +380,23 @@ async function createDiscussion(req, res) {
           category,
           stockCodes: (stockCodes && String(stockCodes).trim()) ? String(stockCodes).trim() : null,
           status: 'pending'
-        }),
+        }, { transaction }),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('创建讨论超时')), 10000)
         )
       ]);
 
+      if (images.length) {
+        await DiscussionImage.update(
+          { discussionId: discussion.id },
+          { where: { id: { [Op.in]: imageIds }, userId, discussionId: null }, transaction }
+        );
+      }
+
       console.log(`[创建讨论] 创建完成 - 讨论ID: ${discussion.id}, 总耗时: ${Date.now() - startTime}ms`);
 
       return { user, discussion };
-    };
+    });
 
     // 执行操作或超时
     const { user, discussion } = await Promise.race([dbOperation(), timeoutPromise]);
@@ -376,6 +408,7 @@ async function createDiscussion(req, res) {
       user_name: user.name,
       user_avatar: user.avatar
     };
+    Object.assign(discussionData, (await getDiscussionPresentation([discussion], req.user.role)).get(Number(discussion.id)) || { images: [] });
 
     // 新帖通知管理员（fire-and-forget，不影响发帖响应；所有用户含管理员都推）
     notifyNewDiscussion(discussion);
@@ -397,6 +430,9 @@ async function createDiscussion(req, res) {
 
     if (err.message === 'Message not found') {
       return res.status(404).json(notFound('Message not found'));
+    }
+    if (err.code === 'INVALID_DISCUSSION_IMAGES') {
+      return res.status(400).json(badRequest(err.message));
     }
 
     res.status(500).json(error(err.message || 'Server error'));
@@ -566,7 +602,12 @@ async function deleteDiscussion(req, res) {
     // 联合删除所有回复
     await DiscussionReply.destroy({ where: { discussionId: id } });
     await DiscussionFavorite.destroy({ where: { discussionId: id } });
+    const attachedImages = await DiscussionImage.findAll({ where: { discussionId: id } });
+    await DiscussionImage.destroy({ where: { discussionId: id } });
     await discussion.destroy();
+    for (const image of attachedImages) {
+      await fs.promises.unlink(path.join(discussionImageDir, image.filename)).catch(() => {});
+    }
 
     res.json(success(null, '删除成功'));
   } catch (err) {
@@ -851,6 +892,11 @@ async function getMyDiscussions(req, res) {
       })
     );
 
+    const presentation = await getDiscussionPresentation(discussions, req.user.role);
+    for (const item of discussionsWithMeta) {
+      Object.assign(item, presentation.get(Number(item.id)) || { images: [] });
+    }
+
     // 「只看新回复」筛选
     let result = discussionsWithMeta;
     if (filter === 'unread') {
@@ -875,8 +921,17 @@ async function getFavoriteDiscussions(req, res) {
     const offset = (page - 1) * limit;
 
     // 获取收藏的记录总数
+    const isAdmin = canRevealDiscussionViews(req.user.role);
+    const visibleDiscussion = isAdmin ? {} : { [Op.or]: [{ visibility: 'public' }, { userId }] };
+    const favoriteInclude = [{
+      model: Discussion,
+      as: 'discussion',
+      required: true,
+      where: visibleDiscussion
+    }];
     const { count } = await DiscussionFavorite.findAndCountAll({
-      where: { userId }
+      where: { userId },
+      include: favoriteInclude
     });
 
     // 获取收藏的讨论
@@ -888,7 +943,8 @@ async function getFavoriteDiscussions(req, res) {
       include: [{
         model: Discussion,
         as: 'discussion',
-        required: false, // 使用LEFT JOIN，允许讨论为null（已被删除）
+        required: true,
+        where: visibleDiscussion,
         include: [{
           model: User,
           as: 'user',
@@ -899,7 +955,7 @@ async function getFavoriteDiscussions(req, res) {
     });
 
     // 提取讨论数据
-    const discussions = favorites
+    let discussions = favorites
       .map(fav => {
         const discussion = fav.discussion;
         if (!discussion) return null;
@@ -923,7 +979,16 @@ async function getFavoriteDiscussions(req, res) {
           userAvatar: discussionData.user?.avatar
         };
       })
-      .filter(disc => disc !== null); // 过滤掉已被删除的讨论
+      .filter(disc => disc !== null); // 隐藏已删除或当前用户不可见的讨论
+
+    const presentation = await getDiscussionPresentation(
+      favorites.map((favorite) => favorite.discussion).filter(Boolean),
+      req.user.role
+    );
+    discussions = discussions.map((item) => ({
+      ...item,
+      ...(presentation.get(Number(item.id)) || { images: [] })
+    }));
 
     console.log('获取收藏讨论列表请求处理完成，总耗时:', Date.now() - startTime, 'ms');
 
@@ -1056,10 +1121,15 @@ async function markDiscussionRead(req, res) {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
+    const userRole = req.user.role;
 
     const discussion = await Discussion.findByPk(id);
     if (!discussion) {
       return res.status(404).json(notFound('Discussion not found'));
+    }
+
+    if (!canReadDiscussion({ discussion, currentUserId: userId, currentUserRole: userRole })) {
+      return res.status(403).json(forbidden('No permission to read this discussion'));
     }
 
     await DiscussionRead.upsert({

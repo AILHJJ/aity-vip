@@ -68,6 +68,10 @@ export function createDiscussionApi(data) {
   }, 1)
 }
 
+export function deletePendingDiscussionImageApi(imageId) {
+  return del(`/discussions/images/${imageId}`)
+}
+
 /**
  * 更新讨论可见性
  * @param {Number} id 讨论ID

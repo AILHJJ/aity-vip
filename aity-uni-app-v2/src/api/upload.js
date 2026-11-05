@@ -64,6 +64,32 @@ export function uploadImageApi(filePath, options = {}) {
   })
 }
 
+export function uploadDiscussionImageApi(filePath) {
+  const token = uni.getStorageSync('token')
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: API_BASE_URL + '/discussions/images',
+      filePath,
+      name: 'file',
+      header: token ? { Authorization: `Bearer ${token}` } : {},
+      success: (res) => {
+        try {
+          const data = JSON.parse(res.data)
+          if (res.statusCode >= 200 && res.statusCode < 300 && data.code === 200) {
+            resolve(data.data)
+          } else {
+            reject(new Error(data.message || '图片上传失败'))
+          }
+        } catch (err) {
+          reject(new Error('图片上传响应解析失败'))
+        }
+      },
+      fail: reject
+    })
+  })
+}
+
 export default {
-  uploadImageApi
+  uploadImageApi,
+  uploadDiscussionImageApi
 }

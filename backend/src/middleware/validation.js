@@ -94,6 +94,13 @@ function validateCreateDiscussion() {
   return [
     body('title').optional().isLength({ min: 1, max: 255 }).withMessage('Title must be between 1 and 255 characters'),
     body('content').notEmpty().withMessage('Content is required'),
+    body('imageIds').optional().isArray({ max: 9 }).withMessage('最多可附加9张图片'),
+    body('imageIds').optional().custom((ids) => {
+      if (!Array.isArray(ids)) return true;
+      if (ids.some((id) => !Number.isSafeInteger(Number(id)) || Number(id) < 1)) throw new Error('图片参数无效');
+      if (new Set(ids.map(Number)).size !== ids.length) throw new Error('图片不能重复添加');
+      return true;
+    }),
     body('messageId').optional({ values: 'null' }).isInt({ min: 1 }).withMessage('Message ID must be a positive integer'),
     body('groupId').optional().isLength({ max: 50 }).withMessage('Group ID must be at most 50 characters'),
     handleValidationErrors

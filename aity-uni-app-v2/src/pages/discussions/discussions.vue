@@ -33,6 +33,10 @@
 				<text>{{ filter.label }}</text>
 			</view>
 		</view>
+		<view v-if="userStore.isAdmin" class="view-preference-row">
+			<text>隐藏浏览人数</text>
+			<switch :checked="hideDiscussionViews" color="#b7791f" @change="setViewsHidden" />
+		</view>
 
 		<!-- 讨论列表 -->
 		<scroll-view
@@ -75,6 +79,10 @@
 
 					<view class="discussion-title">{{ discussion.title }}</view>
 					<view class="discussion-content">{{ discussion.content }}</view>
+					<view v-if="discussion.images && discussion.images.length" class="discussion-image-strip">
+						<image v-for="(image, index) in discussion.images.slice(0, 3)" :key="image.id || image.filename || index" :src="fullUrl(image.url)" class="discussion-image-thumb" mode="aspectFill" @click.stop="previewImages(discussion.images, index)" />
+						<text v-if="discussion.images.length > 3" class="discussion-image-more">+{{ discussion.images.length - 3 }}</text>
+					</view>
 
 					<view class="discussion-footer">
 						<text v-if="discussion.category === 'position'" class="position-label">📊 持仓帖</text>
@@ -82,6 +90,7 @@
 						<text v-if="discussion.stockCodes" class="stock-mini">{{ discussion.stockCodes }}</text>
 						<view class="discussion-stats">
 							<text class="stat-item">💬 {{ discussion.replyCount || 0 }}</text>
+							<text v-if="userStore.isAdmin && !hideDiscussionViews" class="stat-item">浏览 {{ discussion.viewCount || 0 }}</text>
 							<text v-if="discussion.visibility === 'private'" class="visibility-badge">🔒 私密</text>
 						</view>
 					</view>
@@ -109,6 +118,8 @@ import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import { getDiscussionsApi, getUnreadReplyCountApi } from '../../api/discussion'
 import { formatFriendlyTime } from '../../utils/time'
+import { getDiscussionViewsHidden, setDiscussionViewsHidden } from '../../utils/discussionViewPreference.mjs'
+import { BASE_URL } from '../../utils/config'
 import EmptyState from '@/components/empty-state.vue'
 import PcTopNav from '@/components/pc-top-nav.vue'
 
@@ -124,6 +135,19 @@ const hasMore = ref(true)
 const activeStatus = ref('')
 const searchKeyword = ref('')
 const userInfoLoaded = ref(false)
+const hideDiscussionViews = ref(getDiscussionViewsHidden())
+
+const setViewsHidden = (event) => {
+	hideDiscussionViews.value = Boolean(event.detail.value)
+	setDiscussionViewsHidden(hideDiscussionViews.value)
+}
+
+const fullUrl = (url) => /^https?:\/\//.test(url || '') ? url : `${BASE_URL}${url || ''}`
+
+const previewImages = (images, index) => {
+	const urls = images.map(image => fullUrl(image.url))
+	uni.previewImage({ current: urls[index], urls })
+}
 
 // 筛选pill
 const statusFilters = [
@@ -314,6 +338,7 @@ onMounted(async () => {
 
 // 页面显示时刷新（从详情页返回时）
 onShow(() => {
+	hideDiscussionViews.value = getDiscussionViewsHidden()
 	// 只有初始化完成后才刷新（避免首次加载重复刷新）
 	if (isInitialized.value && userInfoLoaded.value) {
 		console.log('[讨论列表] 页面返回，刷新列表')
@@ -467,6 +492,36 @@ button::after {
 .discussions-scroll {
 	flex: 1;
 	overflow-y: auto;
+}
+
+.view-preference-row {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 12rpx;
+	padding: 8rpx 24rpx;
+	background: #fff;
+	color: #666;
+	font-size: 24rpx;
+}
+
+.discussion-image-strip {
+	display: flex;
+	gap: 12rpx;
+	margin: 16rpx 0;
+}
+
+.discussion-image-thumb {
+	width: 150rpx;
+	height: 150rpx;
+	border-radius: 8rpx;
+	background: #f1f1f1;
+}
+
+.discussion-image-more {
+	align-self: center;
+	color: #777;
+	font-size: 24rpx;
 }
 
 .refresh-tip {

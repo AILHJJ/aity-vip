@@ -103,6 +103,22 @@
 					</view>
 				</view>
 
+				<!-- 帖子图片 -->
+				<view class="form-item">
+					<text class="form-label">图片（{{ selectedImages.length }}/9）</text>
+					<view class="post-images">
+						<view v-for="(image, index) in selectedImages" :key="image.key" class="post-image-item">
+							<image class="post-image-thumb" :src="image.path" mode="aspectFill" @click="previewSelectedImage(index)" />
+							<text class="post-image-remove" @click="removeSelectedImage(index)">×</text>
+						</view>
+						<view v-if="selectedImages.length < 9" class="post-image-add" @click="choosePostImages">
+							<text class="post-image-add-icon">+</text>
+							<text>添加图片</text>
+						</view>
+					</view>
+					<text class="form-hint">最多9张，单张不超过5MB</text>
+				</view>
+
 				<!-- 可见性说明 -->
 				<view class="form-item">
 					<view class="visibility-notice">
@@ -140,9 +156,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useUserStore } from '../../store/user'
-import { createDiscussionApi } from '../../api/discussion'
+import { createDiscussionApi, deletePendingDiscussionImageApi } from '../../api/discussion'
+import { uploadDiscussionImageApi } from '../../api/upload'
 import { getMessagesApi, getMessageDetailApi } from '../../api/message'
 import { MarkdownRenderer } from '../../utils/markdown-renderer'
 import { getMessageTypeDisplayLabel } from '../../utils/message-labels.mjs'
@@ -152,6 +169,10 @@ import {
 	normalizeMessageId,
 	selectMessageByPickerIndex
 } from '../../utils/discussion-link.mjs'
+// #ifdef H5
+import { setupPasteUpload } from '../../utils/pasteImage'
+let removePasteListener = null
+// #endif
 
 const userStore = useUserStore()
 
@@ -176,6 +197,41 @@ const linkedMessageRenderedContent = computed(() => {
 // 发帖类型: 'discussion' = 互动交流, 'position' = 持仓帖
 const postType = ref('discussion')
 const stockCodeInput = ref('')
+const selectedImages = ref([])
+let nextImageKey = 1
+
+const addImagePaths = (paths) => {
+	const remaining = 9 - selectedImages.value.length
+	selectedImages.value.push(...paths.slice(0, remaining).map(path => ({ key: nextImageKey++, path })))
+	if (paths.length > remaining) uni.showToast({ title: '最多添加9张图片', icon: 'none' })
+}
+
+const choosePostImages = () => {
+	const remaining = 9 - selectedImages.value.length
+	if (remaining <= 0) return uni.showToast({ title: '最多添加9张图片', icon: 'none' })
+	uni.chooseImage({
+		count: remaining,
+		sizeType: ['compressed'],
+		sourceType: ['album', 'camera'],
+		success: ({ tempFilePaths = [], tempFiles = [] }) => {
+			const oversized = tempFiles.some(file => file.size > 5 * 1024 * 1024)
+			if (oversized) return uni.showToast({ title: '单张图片不能超过5MB', icon: 'none' })
+			addImagePaths(tempFilePaths)
+		}
+	})
+}
+
+const removeSelectedImage = (index) => {
+	const [image] = selectedImages.value.splice(index, 1)
+	// #ifdef H5
+	if (image?.path.startsWith('blob:')) URL.revokeObjectURL(image.path)
+	// #endif
+}
+
+const previewSelectedImage = (index) => uni.previewImage({
+	current: selectedImages.value[index]?.path,
+	urls: selectedImages.value.map(image => image.path)
+})
 
 // 切换发帖类型
 const switchPostType = (type) => {
@@ -293,49 +349,45 @@ const handleSubmit = async () => {
 			data.messageId = normalizeMessageId(formData.value.messageId)
 		}
 
-		const res = await createDiscussionApi(data)
+		const uploadedImageIds = []
+		try {
+			for (const image of selectedImages.value) {
+				const uploaded = await uploadDiscussionImageApi(image.path)
+				uploadedImageIds.push(uploaded.id)
+			}
+			if (uploadedImageIds.length) data.imageIds = uploadedImageIds
 
-		// 清除超时定时器
-		clearTimeout(timeoutTimer)
-
-		// 隐藏loading（如果显示了）
-		if (submitTimeout.value) {
-			uni.hideLoading()
-		}
-
-		console.log('=== 创建讨论 API 响应 ===', res)
-
-		// 后端返回 {code: 200, message: "...", data: {...}}
-		if (res.code === 200 || res.success) {
-			console.log('=== 创建讨论成功 v2.2,准备进入详情页 ===')
-
-			// 显示成功提示
-			uni.showToast({
-				title: '✅ 讨论已创建',
-				icon: 'success',
-				duration: 1500
+			const res = await createDiscussionApi(data)
+			if (res.code !== 200 && !res.success) {
+				throw new Error(res.message || '创建失败')
+			}
+			// #ifdef H5
+			selectedImages.value.forEach(image => {
+				if (image.path.startsWith('blob:')) URL.revokeObjectURL(image.path)
 			})
+			// #endif
+			selectedImages.value = []
 
-			// 立即返回上一页,用户体验更流畅
+			// 清除超时定时器
+			clearTimeout(timeoutTimer)
+
+			if (submitTimeout.value) uni.hideLoading()
+
+			console.log('=== 创建讨论 API 响应 ===', res)
+			uni.showToast({ title: '讨论已创建', icon: 'success', duration: 1500 })
 			setTimeout(() => {
 				const discussionId = res.data?.id
 				if (discussionId) {
-					console.log('=== 执行进入讨论详情页操作 v2.2 ===', discussionId)
 					uni.redirectTo({
 						url: `/pages/discussion-detail/discussion-detail?id=${discussionId}&fallbackMessageId=${data.messageId || ''}`
 					})
 					return
 				}
-
-				console.log('=== 未获得讨论ID，执行返回上一页操作 v2.2 ===')
 				uni.navigateBack()
 			}, 1000)
-		} else {
-			uni.showToast({
-				title: res.message || '创建失败',
-				icon: 'none',
-				duration: 3000
-			})
+		} catch (error) {
+			await Promise.all(uploadedImageIds.map(id => deletePendingDiscussionImageApi(id).catch(() => {})))
+			throw error
 		}
 	} catch (error) {
 		// 清除超时定时器
@@ -418,6 +470,24 @@ onMounted(() => {
 		// 如果没有消息ID，加载消息列表供选择
 		loadMessages()
 	}
+
+	// #ifdef H5
+	removePasteListener = setupPasteUpload((files) => {
+		const remaining = 9 - selectedImages.value.length
+		const usable = files.slice(0, remaining).filter(file => file.size <= 5 * 1024 * 1024)
+		if (usable.length !== files.length) uni.showToast({ title: '超出数量或单张图片超过5MB的图片未添加', icon: 'none' })
+		addImagePaths(usable.map(file => URL.createObjectURL(file)))
+	})
+	// #endif
+})
+
+onBeforeUnmount(() => {
+	// #ifdef H5
+	if (removePasteListener) removePasteListener()
+	selectedImages.value.forEach(image => {
+		if (image.path.startsWith('blob:')) URL.revokeObjectURL(image.path)
+	})
+	// #endif
 })
 
 // 加载关联的消息详情
@@ -499,6 +569,58 @@ button::after {
 
 .form-item {
 	margin-bottom: 40rpx;
+}
+
+.post-images {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16rpx;
+}
+
+.post-image-item,
+.post-image-add {
+	position: relative;
+	width: 150rpx;
+	height: 150rpx;
+}
+
+.post-image-thumb {
+	width: 100%;
+	height: 100%;
+	border-radius: 8rpx;
+	background: #f1f1f1;
+}
+
+.post-image-remove {
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 40rpx;
+	height: 40rpx;
+	line-height: 40rpx;
+	border-radius: 0 8rpx 0 8rpx;
+	background: rgba(0, 0, 0, .65);
+	color: #fff;
+	font-size: 34rpx;
+	text-align: center;
+}
+
+.post-image-add {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8rpx;
+	box-sizing: border-box;
+	border: 1rpx dashed #c7c7c7;
+	border-radius: 8rpx;
+	color: #777;
+	font-size: 22rpx;
+}
+
+.post-image-add-icon {
+	font-size: 42rpx;
+	line-height: 1;
 }
 
 .form-label {

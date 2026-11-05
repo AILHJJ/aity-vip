@@ -162,6 +162,9 @@ if (NODE_ENV === 'development') {
   });
 }
 
+// 讨论图片仅通过短时签名接口读取，禁止绕过帖子可见性直接访问文件路径。
+app.use('/uploads/discussion-images', (req, res) => res.status(404).end());
+
 // 静态文件服务 (带CORS支持)
 app.use('/uploads', (req, res, next) => {
   // CORS 头
