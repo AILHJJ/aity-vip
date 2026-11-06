@@ -14,9 +14,11 @@ const [filterBar, marketPage, marketLadderPage, webviewPage, aiAdvisorPage, agen
 	read('src/components/app-nav-bar.vue')
 ])
 
-const [messagesPage, discussionsPage, createMessagePage] = await Promise.all([
+const [messagesPage, discussionsPage, myDiscussionsPage, discussionDetailPage, createMessagePage] = await Promise.all([
 	read('src/pages/messages/messages.vue'),
 	read('src/pages/discussions/discussions.vue'),
+	read('src/pages/my-discussions/my-discussions.vue'),
+	read('src/pages/discussion-detail/discussion-detail.vue'),
 	read('src/pages/create-message/create-message.vue')
 ])
 const requestUtil = await read('src/utils/request.js')
@@ -62,5 +64,9 @@ assert.doesNotMatch(profilePage, />消息中心</, '个人页不得重复展示�
 assert.match(profilePage, /class="menu-arrow">›</, '个人页菜单必须使用一致的方向箭头')
 assert.match(profilePage, /v1\.6\.0/, '个人页版本号必须与前端包版本一致')
 assert.match(profilePage, /Agent 管理/, '管理员必须有 Agent 管理入口')
+assert.match(profilePage, /v-if="userStore\.isAdmin"[^>]*>[\s\S]*?隐藏讨论浏览人数[\s\S]*?<switch/, '隐藏讨论浏览人数开关必须放在管理员个人设置中')
+assert.doesNotMatch(discussionsPage, /隐藏讨论浏览人数|隐藏浏览人数|<switch/, '讨论列表页不得显示浏览人数设置')
+assert.doesNotMatch(myDiscussionsPage, /隐藏讨论浏览人数|隐藏浏览人数|<switch/, '我的讨论页不得显示浏览人数设置')
+assert.doesNotMatch(discussionDetailPage, /隐藏讨论浏览人数|隐藏浏览人数|<switch/, '讨论详情页不得显示浏览人数设置')
 
 console.log('小程序 UI 结构契约检查通过')

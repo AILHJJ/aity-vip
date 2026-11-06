@@ -84,10 +84,6 @@
 
 					<!-- 管理员操作 -->
 					<view v-if="userStore.isAdmin" class="admin-actions">
-						<view class="view-preference-control">
-							<text>隐藏浏览人数</text>
-							<switch :checked="hideDiscussionViews" color="#b7791f" @change="setViewsHidden" />
-						</view>
 						<picker
 							mode="selector"
 							:range="visibilityOptions"
@@ -277,7 +273,7 @@ let removePasteListener = null
 // #endif
 import { formatFriendlyTime } from '../../utils/time'
 import { BASE_URL } from '../../utils/config'
-import { getDiscussionViewsHidden, setDiscussionViewsHidden } from '../../utils/discussionViewPreference.mjs'
+import { getDiscussionViewsHidden } from '../../utils/discussionViewPreference.mjs'
 import { MarkdownRenderer } from '../../utils/markdown-renderer'
 import { getMessageTypeDisplayLabel } from '../../utils/message-labels.mjs'
 import { normalizeMessageId } from '../../utils/discussion-link.mjs'
@@ -289,10 +285,6 @@ const userStore = useUserStore()
 const discussion = ref(null)
 const hideDiscussionViews = ref(getDiscussionViewsHidden())
 
-const setViewsHidden = (event) => {
-	hideDiscussionViews.value = Boolean(event.detail.value)
-	setDiscussionViewsHidden(hideDiscussionViews.value)
-}
 const replies = ref([])
 const replyContent = ref('')
 const loading = ref(false)
@@ -908,16 +900,6 @@ button::after {
 	height: 210rpx;
 	border-radius: 8rpx;
 	background: #f1f1f1;
-}
-
-.view-preference-control {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	width: 100%;
-	padding: 0 12rpx;
-	color: #666;
-	font-size: 24rpx;
 }
 
 // 关联消息卡片

@@ -128,6 +128,14 @@
 				</view>
 			</view>
 
+			<view v-if="userStore.isAdmin" class="menu-item admin-only-mobile view-preference-setting">
+				<view class="menu-left">
+					<uni-icons class="menu-icon" type="eye" size="22" color="#64748b"></uni-icons>
+					<text class="menu-text">隐藏讨论浏览人数</text>
+				</view>
+				<switch :checked="hideDiscussionViews" color="#b7791f" @change="setDiscussionViewsHiddenPreference" />
+			</view>
+
 			<view v-if="userStore.isAdmin" class="menu-item admin-only-mobile" @click="goToAgentConfig">
 				<view class="menu-left">
 					<uni-icons class="menu-icon" type="headphones" size="22" color="#8b5cf6"></uni-icons>
@@ -191,10 +199,17 @@ import { getFavoriteMessagesApi } from '../../api/message'
 import { updateAvatarApi } from '../../api/auth'
 import { uploadImageApi } from '../../api/upload'
 import { BASE_URL } from '../../utils/config'
+import { getDiscussionViewsHidden, setDiscussionViewsHidden } from '../../utils/discussionViewPreference.mjs'
 import PcTopNav from '@/components/pc-top-nav.vue'
 
 const userStore = useUserStore()
 const themeStore = useThemeStore()
+const hideDiscussionViews = ref(getDiscussionViewsHidden())
+
+const setDiscussionViewsHiddenPreference = (event) => {
+	hideDiscussionViews.value = Boolean(event.detail.value)
+	setDiscussionViewsHidden(hideDiscussionViews.value)
+}
 
 // 主题选择器状态
 const showThemePicker = ref(false)
@@ -353,6 +368,7 @@ onMounted(() => {
 })
 
 onShow(() => {
+	hideDiscussionViews.value = getDiscussionViewsHidden()
 	// 刷新 tabBar 未读角标
 	userStore.updateTabBarBadge()
 	// 刷新"我的帖子被回复"未读数

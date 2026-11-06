@@ -33,11 +33,6 @@
 				<text>{{ filter.label }}</text>
 			</view>
 		</view>
-		<view v-if="userStore.isAdmin" class="view-preference-row">
-			<text>隐藏浏览人数</text>
-			<switch :checked="hideDiscussionViews" color="#b7791f" @change="setViewsHidden" />
-		</view>
-
 		<!-- 讨论列表 -->
 		<scroll-view
 			class="discussions-scroll"
@@ -118,7 +113,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../store/user'
 import { getDiscussionsApi, getUnreadReplyCountApi } from '../../api/discussion'
 import { formatFriendlyTime } from '../../utils/time'
-import { getDiscussionViewsHidden, setDiscussionViewsHidden } from '../../utils/discussionViewPreference.mjs'
+import { getDiscussionViewsHidden } from '../../utils/discussionViewPreference.mjs'
 import { BASE_URL } from '../../utils/config'
 import EmptyState from '@/components/empty-state.vue'
 import PcTopNav from '@/components/pc-top-nav.vue'
@@ -136,11 +131,6 @@ const activeStatus = ref('')
 const searchKeyword = ref('')
 const userInfoLoaded = ref(false)
 const hideDiscussionViews = ref(getDiscussionViewsHidden())
-
-const setViewsHidden = (event) => {
-	hideDiscussionViews.value = Boolean(event.detail.value)
-	setDiscussionViewsHidden(hideDiscussionViews.value)
-}
 
 const fullUrl = (url) => /^https?:\/\//.test(url || '') ? url : `${BASE_URL}${url || ''}`
 
@@ -492,17 +482,6 @@ button::after {
 .discussions-scroll {
 	flex: 1;
 	overflow-y: auto;
-}
-
-.view-preference-row {
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
-	gap: 12rpx;
-	padding: 8rpx 24rpx;
-	background: #fff;
-	color: #666;
-	font-size: 24rpx;
 }
 
 .discussion-image-strip {
