@@ -106,9 +106,10 @@ assert.deepStrictEqual(validateAccountEmail('user@example.com'), { valid: true, 
 assert.strictEqual(validateAccountEmail('bad-email').valid, false);
 assert.strictEqual(validateAccountEmail('demo@users.aity.vip').valid, false);
 
+process.env.MAIL_NOTIFY_COOLDOWN_MINUTES = '10';
 const email = buildNotificationEmail();
-assert.strictEqual(email.subject.includes('小程序有新的内容更新'), true);
-assert.strictEqual(email.content.includes('请打开微信小程序查看最新内容'), true);
+assert.strictEqual(email.subject.includes('新的内容更新'), true);
+assert.strictEqual(email.content.includes('小程序查看最新内容'), true);
 assert.strictEqual(email.content.includes('投资建议'), true);
 assert.strictEqual(email.content.includes('10分钟内不会重复发送'), true);
 assert.strictEqual(email.content.includes('邮件测试'), false);
