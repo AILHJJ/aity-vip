@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily AITY backup at Beijing 04:45
+
+[Timer]
+OnCalendar=*-*-* 04:45:00 Asia/Shanghai
+RandomizedDelaySec=10min
+Persistent=true
+Unit=aity-backup.service
+
+[Install]
+WantedBy=timers.target
