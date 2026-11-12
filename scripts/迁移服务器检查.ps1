@@ -2,7 +2,8 @@ param(
   [ValidateSet('status', 'verify')][string]$Action = 'status',
   [string]$Server = 'ubuntu@122.51.214.161',
   [string]$KeyPath = 'C:\Users\DELL\.ssh\aity_migration_ed25519',
-  [string]$BackupStamp = '20261112T055254Z'
+  [string]$BackupStamp = '20261112T131120Z',
+  [switch]$Production
 )
 $ErrorActionPreference = 'Stop'
 $sshExe = 'C:\Program Files\Git\usr\bin\ssh.exe'
@@ -13,6 +14,8 @@ if ($Action -eq 'verify') {
   & $scpExe -i $KeyPath -o BatchMode=yes -o ConnectTimeout=10 (Join-Path $PSScriptRoot 'migration/verify-target.cjs') "${Server}:/tmp/aity-verify-target.cjs"
   if ($LASTEXITCODE) { throw '验证脚本上传失败' }
   $remoteScript = "sudo node /tmp/aity-verify-target.cjs $BackupStamp"
+  if ($Production) { $remoteScript += ' --production' }
+  else { $remoteScript = "if sudo test -f /root/aity-migration/cutover-$BackupStamp/opened; then $remoteScript --production; else $remoteScript; fi" }
 } else {
   $remoteScript = @'
 set -eu

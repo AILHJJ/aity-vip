@@ -7,6 +7,8 @@ const mysql = require('/root/aity-vip/current/backend/node_modules/mysql2/promis
 const jwt = require('/root/aity-vip/current/backend/node_modules/jsonwebtoken');
 const nodemailer = require('/root/aity-vip/current/backend/node_modules/nodemailer');
 const stamp = process.argv[2];
+const maintenance = process.argv.includes('--maintenance');
+const production = process.argv.includes('--production');
 if (!/^\d{8}T\d{6}Z$/.test(stamp || '')) throw Error('Invalid timestamp');
 const backup = `/root/aity-migration/${stamp}`;
 const summary = [];
@@ -31,7 +33,9 @@ function curl(url, output) {
   const e = dotenv.parse(fs.readFileSync('/root/aity-vip/shared/backend.env'));
   const old = dotenv.parse(fs.readFileSync(`${backup}/aity-production.env`));
   check('AITY JWT and encryption configuration preserved', ['JWT_SECRET', 'ENCRYPTION_KEY', 'AGENT_CONFIG_ENCRYPTION_KEY'].every(k => e[k] === old[k]));
-  check('Staging mail disabled', e.MAIL_ENABLED === 'false' && e.MAIL_AUTO_PROCESS === 'false');
+  check(production ? 'Production mail configuration restored' : 'Staging mail disabled', production
+    ? e.MAIL_ENABLED === (old.MAIL_ENABLED || 'false') && e.MAIL_AUTO_PROCESS === (old.MAIL_AUTO_PROCESS || 'true')
+    : e.MAIL_ENABLED === 'false' && e.MAIL_AUTO_PROCESS === 'false');
   const db = await mysql.createConnection({ host: e.DB_HOST, user: e.DB_USER, password: e.DB_PASSWORD, database: e.DB_NAME });
   try {
     const [admins] = await db.query("SELECT id, email, role FROM users WHERE role IN ('admin','super_admin') AND status='active' ORDER BY id LIMIT 1");
@@ -64,11 +68,13 @@ function curl(url, output) {
       await http('AI restored user session', 'http://127.0.0.1:3008/ai-experience-api/api/me', token);
     } else { summary.push({ name: 'AI restored user session', skipped: 'No existing users; real wx.login still needs device validation' }); }
   } finally { await aiDb.end(); }
-  for (const endpoint of ['/api/health', '/ai-experience-api/health', '/ai-experience-api/api/capabilities']) curl(`https://aity88.online${endpoint}`);
-  const html = curl('https://aity88.online/');
-  check('H5 index and asset links served', /<html/i.test(html));
-  const assets = [...html.matchAll(/(?:src|href)=["'](\/assets\/[^"']+)["']/g)].map(m => m[1]);
-  for (const asset of assets.slice(0, 4)) curl(`https://aity88.online${asset}`, '/dev/null');
+  if (!maintenance) {
+    for (const endpoint of ['/api/health', '/ai-experience-api/health', '/ai-experience-api/api/capabilities']) curl(`https://aity88.online${endpoint}`);
+    const html = curl('https://aity88.online/');
+    check('H5 index and asset links served', /<html/i.test(html));
+    const assets = [...html.matchAll(/(?:src|href)=["'](\/assets\/[^"']+)["']/g)].map(m => m[1]);
+    for (const asset of assets.slice(0, 4)) curl(`https://aity88.online${asset}`, '/dev/null');
+  }
   const sourceUploads = `${backup}/extracted/root/aity-vip/shared/uploads`;
   let fileCount = 0;
   const hash = p => crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
