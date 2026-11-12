@@ -1,6 +1,6 @@
 param(
-  [string]$Server = 'root@124.221.119.134',
-  [string]$KeyPath = 'D:\your-mcp-proxy\99-个人探索\AITY_VIP\_运维配置_敏感\AITY0127.pem',
+  [string]$Server = 'ubuntu@122.51.214.161',
+  [string]$KeyPath = 'C:\Users\DELL\.ssh\aity_migration_ed25519',
   [string]$SshExe = 'C:\Program Files\Git\usr\bin\ssh.exe'
 )
 
@@ -27,7 +27,8 @@ cd /root/aity-vip/current/backend
 node -e "require('dotenv').config(); const {getEmailNotificationStatus}=require('./src/services/notificationOutboxService'); getEmailNotificationStatus().then(s=>{console.log(JSON.stringify({lastSentAt:s.lastSentAt,nextAvailableAt:s.nextAvailableAt,remainingSeconds:s.remainingSeconds,inCooldown:s.inCooldown,lastStatus:s.lastStatus})); process.exit(0)}).catch(e=>{console.error(e.stack||e.message); process.exit(1)})"
 '@
 
-$scriptBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($remoteScript))
-$remoteCommand = "printf '%s' '$scriptBase64' | base64 -d > /tmp/aity-backend-status-check.sh && bash /tmp/aity-backend-status-check.sh"
+$scriptBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($remoteScript.Replace("`r", '')))
+$remoteCommand = "printf '%s' '$scriptBase64' | base64 -d | sudo -n bash"
 
-& $SshExe -i $KeyPath -o StrictHostKeyChecking=no $Server $remoteCommand
+& $SshExe -n -T -i $KeyPath -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 $Server $remoteCommand
+if ($LASTEXITCODE) { throw '新服务器后端状态检查失败' }

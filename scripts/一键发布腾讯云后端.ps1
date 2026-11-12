@@ -17,7 +17,9 @@ function Invoke-Step {
     [scriptblock]$Script
   )
   Write-Host "=== $Name ==="
+  $global:LASTEXITCODE = 0
   & $Script
+  if ($LASTEXITCODE) { throw "$Name 失败，退出码=$LASTEXITCODE" }
 }
 
 Push-Location $repoRoot

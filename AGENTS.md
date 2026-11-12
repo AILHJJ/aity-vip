@@ -12,7 +12,13 @@
   - `skills/ai-dev-closed-loop/references/development-checklist.md`
   - `skills/ai-dev-closed-loop/references/change-impact-analysis.md`
 
-## 仓库范围
+## 当前生产入口（2026-11-12迁移后）
+
+- 新服务器：`ubuntu@122.51.214.161`，通过`sudo -n`管理root的PM2及共享目录；旧IP`124.221.119.134`已退出日常发布。
+- 当前维护主文档：`docs/operations/服务器迁移后维护指南.md`；迁移过程另见`docs/operations/腾讯云跨账号服务器迁移记录.md`。
+- 网关为Caddy。历史宝塔Nginx路径与旧IP仅作历史证据，不直接用于新机操作。
+
+## 项目目录
 
 - `backend/`：Node.js 后端 API、数据库模型、迁移、上传和 PM2 配置。
 - `aity-uni-app-v2/`：uni-app 前端源码，同时产出微信小程序和 H5。
