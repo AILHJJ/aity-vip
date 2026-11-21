@@ -6,6 +6,7 @@ const Discussion = require('../models/Discussion');
 const DiscussionReply = require('../models/DiscussionReply');
 const WecomUserBinding = require('../models/WecomUserBinding');
 const Message = require('../models/Message');
+const home = require('./homeCommandService');
 
 const MAX_CONTENT_LENGTH = 2000;
 const IMAGE_PENDING_MS = 60 * 1000; // 图片缓存有效期 60 秒
@@ -57,6 +58,9 @@ class BotService {
         );
       }
     }
+
+    // 家居群消息交给「家庭管家」（转发给家里那台 Home Assistant 的对话代理）
+    if (await home.tryHandle(msg, this.channel)) return;
 
     // 下载并缓存图片（image 消息的图片，或 mixed 内嵌图片）
     for (const imageObj of msg.imageObjs || []) {
